@@ -25,12 +25,33 @@ OUTPUT_QWEN="$OUTPUT_DIR/review-qwen-$TIMESTAMP.txt"
 OUTPUT_DEEPSEEK="$OUTPUT_DIR/review-deepseek-$TIMESTAMP.txt"
 OUTPUT_GLM="$OUTPUT_DIR/review-glm-$TIMESTAMP.txt"
 
-# Check LiteLLM is running
-if ! curl -s http://localhost:4000/health > /dev/null 2>&1; then
-    echo "ERROR: LiteLLM proxy not running on localhost:4000"
-    echo "Start it with: start-nano-proxy"
+# Health check function (test actual model response)
+check_model_health() {
+    local model="$1"
+    local resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
+    echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1
+}
+
+# Check which models are healthy
+echo "Checking model health..."
+HEALTHY_MODELS=""
+for model in coding-qwen architecture-deepseek tools-glm; do
+    if check_model_health "$model"; then
+        echo "✓ $model - healthy"
+        HEALTHY_MODELS="$HEALTHY_MODELS $model"
+    else
+        echo "✗ $model - unhealthy (will skip)"
+    fi
+done
+
+if [ -z "$HEALTHY_MODELS" ]; then
+    echo "ERROR: No healthy models available"
+    echo "Check if LiteLLM proxy is running: start-nano-proxy"
     exit 1
 fi
+echo ""
 
 echo "═══════════════════════════════════════════════════════════════════"
 echo "PARALLEL DEEP REVIEW - 3 Models with Full Tool Access"

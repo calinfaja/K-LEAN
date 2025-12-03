@@ -18,32 +18,89 @@ MODEL="${1:-qwen}"
 PROMPT="${2:-Review the codebase for issues}"
 WORK_DIR="${3:-$(pwd)}"
 
-# Map model alias to Claude model name
-case "$MODEL" in
-    qwen|code|bugs)
-        CLAUDE_MODEL="sonnet"
-        MODEL_DESC="coding-qwen (code quality)"
-        ;;
-    deepseek|arch|architecture)
-        CLAUDE_MODEL="haiku"
-        MODEL_DESC="architecture-deepseek (design)"
-        ;;
-    glm|standards|misra)
-        CLAUDE_MODEL="opus"
-        MODEL_DESC="tools-glm (standards)"
-        ;;
-    *)
-        CLAUDE_MODEL="sonnet"
-        MODEL_DESC="coding-qwen (default)"
-        ;;
-esac
+# Model priority for fallback
+MODELS_PRIORITY="coding-qwen architecture-deepseek tools-glm"
 
-# Check LiteLLM is running
-if ! curl -s http://localhost:4000/health > /dev/null 2>&1; then
-    echo "ERROR: LiteLLM proxy not running on localhost:4000"
-    echo "Start it with: start-nano-proxy"
+# Health check function (test actual model response)
+check_model_health() {
+    local model="$1"
+    local resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
+    echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1
+}
+
+# Find healthy model with fallback
+find_healthy_model() {
+    local preferred="$1"
+    if check_model_health "$preferred"; then
+        echo "$preferred"
+        return 0
+    fi
+    echo "⚠️  $preferred unhealthy, trying fallback..." >&2
+    for m in $MODELS_PRIORITY; do
+        if [ "$m" != "$preferred" ] && check_model_health "$m"; then
+            echo "✓ Using $m" >&2
+            echo "$m"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Map model alias to LiteLLM model name and Claude model name
+get_model_info() {
+    case "$1" in
+        qwen|code|bugs)
+            echo "coding-qwen sonnet"
+            ;;
+        deepseek|arch|architecture)
+            echo "architecture-deepseek haiku"
+            ;;
+        glm|standards|misra)
+            echo "tools-glm opus"
+            ;;
+        *)
+            echo "coding-qwen sonnet"
+            ;;
+    esac
+}
+
+# Get Claude model name from LiteLLM model name
+litellm_to_claude() {
+    case "$1" in
+        coding-qwen) echo "sonnet" ;;
+        architecture-deepseek) echo "haiku" ;;
+        tools-glm) echo "opus" ;;
+        *) echo "sonnet" ;;
+    esac
+}
+
+# Get model description
+get_model_desc() {
+    case "$1" in
+        coding-qwen) echo "coding-qwen (code quality)" ;;
+        architecture-deepseek) echo "architecture-deepseek (design)" ;;
+        tools-glm) echo "tools-glm (standards)" ;;
+        *) echo "$1" ;;
+    esac
+}
+
+# Get preferred model info
+read PREFERRED_LITELLM PREFERRED_CLAUDE <<< $(get_model_info "$MODEL")
+
+# Find healthy model
+echo "Checking model health..."
+LITELLM_MODEL=$(find_healthy_model "$PREFERRED_LITELLM")
+if [ -z "$LITELLM_MODEL" ]; then
+    echo "ERROR: No healthy models available"
+    echo "Check if LiteLLM proxy is running: start-nano-proxy"
     exit 1
 fi
+
+# Get Claude model name and description for the healthy model
+CLAUDE_MODEL=$(litellm_to_claude "$LITELLM_MODEL")
+MODEL_DESC=$(get_model_desc "$LITELLM_MODEL")
 
 # Build the system context for the review
 SYSTEM_CONTEXT="You are an independent code reviewer with FULL TOOL ACCESS.

@@ -1,0 +1,121 @@
+#!/bin/bash
+#
+# Test Script - Verify the review system works
+#
+# Usage: test-system.sh
+#
+
+echo "═══════════════════════════════════════════════════════════════"
+echo "  REVIEW SYSTEM TEST"
+echo "═══════════════════════════════════════════════════════════════"
+echo ""
+
+PASS=0
+FAIL=0
+
+test_pass() { echo "✅ PASS: $1"; ((PASS++)); }
+test_fail() { echo "❌ FAIL: $1"; ((FAIL++)); }
+
+# 1. Check proxy + models (if any model works, proxy is up)
+echo "1. Proxy & Model Health (localhost:4000)"
+echo "─────────────────────────────────────────────────────────────────"
+HEALTHY_COUNT=0
+for model in coding-qwen architecture-deepseek tools-glm; do
+    resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
+
+    if echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1; then
+        test_pass "$model - healthy"
+        ((HEALTHY_COUNT++))
+    else
+        test_fail "$model - unhealthy"
+        ERROR=$(echo "$resp" | jq -r '.error.message // .error // "No response"' 2>/dev/null | head -c 80)
+        echo "   Error: $ERROR"
+    fi
+done
+
+if [ $HEALTHY_COUNT -eq 0 ]; then
+    echo ""
+    echo "   ⚠️  No models responding. Is proxy running? (start-nano-proxy)"
+fi
+echo ""
+
+# 2. Check scripts exist
+echo "2. Scripts"
+echo "─────────────────────────────────────────────────────────────────"
+for script in second-opinion.sh quick-review.sh consensus-review.sh parallel-deep-review.sh async-dispatch.sh post-commit-docs.sh; do
+    if [ -x ~/.claude/scripts/$script ]; then
+        test_pass "$script exists and executable"
+    else
+        test_fail "$script missing or not executable"
+    fi
+done
+echo ""
+
+# 3. Check settings.json has hooks
+echo "3. Hooks Configuration"
+echo "─────────────────────────────────────────────────────────────────"
+if [ -f ~/.claude/settings.json ]; then
+    if jq -e '.hooks.UserPromptSubmit' ~/.claude/settings.json > /dev/null 2>&1; then
+        test_pass "UserPromptSubmit hook configured"
+    else
+        test_fail "UserPromptSubmit hook missing"
+    fi
+
+    if jq -e '.hooks.PostToolUse' ~/.claude/settings.json > /dev/null 2>&1; then
+        test_pass "PostToolUse hook configured"
+    else
+        test_fail "PostToolUse hook missing"
+    fi
+else
+    test_fail "settings.json not found"
+fi
+echo ""
+
+# 4. Check output directory
+echo "4. Output Directory"
+echo "─────────────────────────────────────────────────────────────────"
+mkdir -p /tmp/claude-reviews
+if [ -d /tmp/claude-reviews ]; then
+    test_pass "/tmp/claude-reviews exists"
+    COUNT=$(ls /tmp/claude-reviews/*.json 2>/dev/null | wc -l)
+    echo "   Previous reviews: $COUNT files"
+else
+    test_fail "/tmp/claude-reviews cannot be created"
+fi
+echo ""
+
+# 5. Check dependencies
+echo "5. Dependencies"
+echo "─────────────────────────────────────────────────────────────────"
+if command -v jq > /dev/null 2>&1; then
+    test_pass "jq installed"
+else
+    test_fail "jq not installed (required for JSON parsing)"
+fi
+
+if command -v curl > /dev/null 2>&1; then
+    test_pass "curl installed"
+else
+    test_fail "curl not installed"
+fi
+echo ""
+
+# Summary
+echo "═══════════════════════════════════════════════════════════════"
+echo "  SUMMARY: $PASS passed, $FAIL failed"
+echo "═══════════════════════════════════════════════════════════════"
+
+if [ $FAIL -eq 0 ]; then
+    echo ""
+    echo "🎉 All tests passed! System ready."
+    echo ""
+    echo "Try these commands:"
+    echo "  ~/.claude/scripts/quick-review.sh qwen 'test review'"
+    echo "  ~/.claude/scripts/second-opinion.sh deepseek 'is this ok?'"
+    echo "  ~/.claude/scripts/consensus-review.sh 'general check'"
+else
+    echo ""
+    echo "⚠️  Some tests failed. Fix issues above before using."
+fi
