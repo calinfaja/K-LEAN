@@ -133,8 +133,18 @@ model_list:
 **Purpose:** Run 3 headless Claude instances with different LiteLLM models
 **Location:** `~/.claude/scripts/parallel-deep-review.sh`
 **Usage:** `./parallel-deep-review.sh "<focus>" <working_dir>`
-**Models:** coding-qwen, architecture-deepseek, tools-glm
+**Models:** coding-qwen, agent-kimi, tools-glm (all reliable for tool use)
 **Features:** Full tool access (Read, Grep, Bash, Serena)
+
+### test-headless.sh
+**Purpose:** Test any model via headless Claude
+**Location:** `~/.claude/scripts/test-headless.sh`
+**Usage:** `./test-headless.sh <model> "<prompt>"`
+**Features:**
+- Auto-starts LiteLLM proxy if not running
+- Validates model health before running
+- Switches to NanoGPT settings automatically
+- Restores original settings after test
 
 ### consensus-review.sh
 **Purpose:** Run 3 parallel curl requests to LiteLLM
@@ -178,11 +188,23 @@ model_list:
 
 ## Model Specializations
 
-| Model | Alias | Specialty | Best For |
-|-------|-------|-----------|----------|
-| coding-qwen | qwen | Code quality | Bugs, memory safety, buffer handling |
-| architecture-deepseek | deepseek | Design | Architecture, coupling, modularity |
-| tools-glm | glm | Compliance | MISRA, standards, best practices |
+### Reliable for Tool Use (Deep Reviews)
+
+| Model | Alias | Specialty | Speed | Tool Support |
+|-------|-------|-----------|-------|--------------|
+| coding-qwen | qwen | Code quality, bugs | ~11s | ✅ Reliable |
+| agent-kimi | kimi | Architecture, planning | ~5min | ✅ Reliable |
+| tools-glm | glm | MISRA, standards | ~19s | ✅ Reliable |
+
+### Quick Reviews Only (No Tool Access)
+
+| Model | Alias | Specialty | Issue |
+|-------|-------|-----------|-------|
+| architecture-deepseek | deepseek | Design, architecture | ⚠️ Empty output with tools |
+| research-minimax | minimax | Research, large context | ⚠️ Frequent timeouts (~5min) |
+| scripting-hermes | hermes | Scripting, automation | ⚠️ May hallucinate |
+
+**Recommendation:** Use `qwen`, `kimi`, `glm` for deep reviews with tool access. Use all 6 for quick curl-based reviews.
 
 ---
 
@@ -300,6 +322,14 @@ See [KNOWLEDGE_SYSTEM.md](KNOWLEDGE_SYSTEM.md) for full documentation.
 ---
 
 ## Version History
+
+- **2025-12-03:** Model reliability testing & fixes
+  - Tested all 6 models via headless Claude
+  - Identified reliable models for tool use: qwen, kimi, glm
+  - Fixed deep-review.sh settings path
+  - Fixed parallel-deep-review.sh orphan config
+  - Added test-headless.sh for model testing
+  - Updated parallel-deep-review.sh to use reliable models only
 
 - **2025-12-03:** Knowledge System integration
   - Per-project semantic knowledge database (txtai)
