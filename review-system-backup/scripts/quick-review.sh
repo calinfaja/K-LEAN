@@ -57,6 +57,16 @@ echo "════════════════════════�
 
 cd "$WORK_DIR"
 
+# Search knowledge-db for relevant context
+KNOWLEDGE_CONTEXT=""
+PYTHON="$HOME/.venvs/knowledge-db/bin/python"
+if [ -x "$PYTHON" ] && [ -f "$HOME/.claude/scripts/knowledge-search.py" ]; then
+    # Check if project has knowledge-db
+    if [ -d ".knowledge-db" ] || [ -d "../.knowledge-db" ]; then
+        KNOWLEDGE_CONTEXT=$("$PYTHON" "$HOME/.claude/scripts/knowledge-search.py" "$FOCUS" --format inject --limit 3 2>/dev/null || echo "")
+    fi
+fi
+
 DIFF=$(git diff HEAD~1..HEAD 2>/dev/null | head -300)
 [ -z "$DIFF" ] && DIFF=$(git diff 2>/dev/null | head -300)
 [ -z "$DIFF" ] && DIFF="No git changes found."
@@ -68,12 +78,23 @@ $DIFF
 
 Provide: Grade (A-F), Risk, Issues, Verdict (APPROVE/REQUEST_CHANGES)"
 
+# Build system prompt with optional knowledge context
+SYSTEM_PROMPT="Concise code reviewer."
+if [ -n "$KNOWLEDGE_CONTEXT" ] && [ "$KNOWLEDGE_CONTEXT" != "No relevant prior knowledge found." ]; then
+    SYSTEM_PROMPT="Concise code reviewer.
+
+$KNOWLEDGE_CONTEXT
+
+Use this prior knowledge if relevant to the review."
+    echo "📚 Found relevant prior knowledge"
+fi
+
 RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d "{
     \"model\": \"$LITELLM_MODEL\",
     \"messages\": [
-      {\"role\": \"system\", \"content\": \"Concise code reviewer.\"},
+      {\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)},
       {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}
     ],
     \"temperature\": 0.3,

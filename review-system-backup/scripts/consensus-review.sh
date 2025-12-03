@@ -49,6 +49,18 @@ echo "════════════════════════�
 
 cd "$WORK_DIR"
 
+# Search knowledge-db for relevant context
+KNOWLEDGE_CONTEXT=""
+PYTHON="$HOME/.venvs/knowledge-db/bin/python"
+if [ -x "$PYTHON" ] && [ -f "$HOME/.claude/scripts/knowledge-search.py" ]; then
+    if [ -d ".knowledge-db" ] || [ -d "../.knowledge-db" ]; then
+        KNOWLEDGE_CONTEXT=$("$PYTHON" "$HOME/.claude/scripts/knowledge-search.py" "$FOCUS" --format inject --limit 3 2>/dev/null || echo "")
+        if [ -n "$KNOWLEDGE_CONTEXT" ] && [ "$KNOWLEDGE_CONTEXT" != "No relevant prior knowledge found." ]; then
+            echo "📚 Found relevant prior knowledge"
+        fi
+    fi
+fi
+
 DIFF=$(git diff HEAD~1..HEAD 2>/dev/null | head -300)
 [ -z "$DIFF" ] && DIFF=$(git diff 2>/dev/null | head -300)
 [ -z "$DIFF" ] && DIFF="No git changes found."
@@ -62,31 +74,44 @@ Provide: Grade (A-F), Risk, Top 3 Issues, Verdict"
 
 echo "Starting parallel reviews..."
 
+# Build knowledge suffix for system prompts
+KNOWLEDGE_SUFFIX=""
+if [ -n "$KNOWLEDGE_CONTEXT" ] && [ "$KNOWLEDGE_CONTEXT" != "No relevant prior knowledge found." ]; then
+    KNOWLEDGE_SUFFIX="
+
+$KNOWLEDGE_CONTEXT
+
+Consider this prior knowledge if relevant."
+fi
+
 # Launch healthy models in parallel
 PIDS=""
 
 if echo "$HEALTHY_MODELS" | grep -q "coding-qwen"; then
+    SYSTEM_QWEN="Code reviewer: bugs, memory safety.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 60 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"coding-qwen\", \"messages\": [{\"role\": \"system\", \"content\": \"Code reviewer: bugs, memory safety.\"}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"coding-qwen\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_QWEN" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" &
     PID_QWEN=$!
     PIDS="$PIDS $PID_QWEN"
 fi
 
 if echo "$HEALTHY_MODELS" | grep -q "architecture-deepseek"; then
+    SYSTEM_DS="Architect: design, coupling.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 60 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"architecture-deepseek\", \"messages\": [{\"role\": \"system\", \"content\": \"Architect: design, coupling.\"}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"architecture-deepseek\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_DS" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" &
     PID_DEEPSEEK=$!
     PIDS="$PIDS $PID_DEEPSEEK"
 fi
 
 if echo "$HEALTHY_MODELS" | grep -q "tools-glm"; then
+    SYSTEM_GLM="Compliance: MISRA, standards.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 60 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"tools-glm\", \"messages\": [{\"role\": \"system\", \"content\": \"Compliance: MISRA, standards.\"}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"tools-glm\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_GLM" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" &
     PID_GLM=$!
     PIDS="$PIDS $PID_GLM"
