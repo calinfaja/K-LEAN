@@ -1,0 +1,11 @@
+{
+  "defaultModel": "coding-qwen",
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:4000",
+    "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
+
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "coding-qwen",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "architecture-deepseek",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "tools-glm"
+  }
+}

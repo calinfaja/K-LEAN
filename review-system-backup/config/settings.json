@@ -1,0 +1,29 @@
+{
+  "includeCoAuthoredBy": false,
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/async-dispatch.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/post-commit-docs.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "alwaysThinkingEnabled": true
+}
