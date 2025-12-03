@@ -30,9 +30,9 @@ block_with_message() {
     exit 0
 }
 
-# Quick health check function
+# Quick health check function (use /models - faster than /health)
 check_proxy_health() {
-    curl -s --max-time 3 http://localhost:4000/health > /dev/null 2>&1
+    curl -s --max-time 5 http://localhost:4000/models > /dev/null 2>&1
 }
 
 # Full model health check

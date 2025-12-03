@@ -42,7 +42,7 @@ find_healthy_model() {
 }
 
 # Check proxy
-curl -s --max-time 3 http://localhost:4000/health > /dev/null 2>&1 || { echo "ERROR: LiteLLM not running"; exit 1; }
+curl -s --max-time 3 http://localhost:4000/models > /dev/null 2>&1 || { echo "ERROR: LiteLLM not running"; exit 1; }
 
 # Find healthy model
 PREFERRED=$(get_litellm_model "$MODEL")

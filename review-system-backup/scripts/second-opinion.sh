@@ -75,7 +75,7 @@ find_healthy_model() {
 }
 
 # Check LiteLLM proxy is running
-if ! curl -s --max-time 3 http://localhost:4000/health > /dev/null 2>&1; then
+if ! curl -s --max-time 3 http://localhost:4000/models > /dev/null 2>&1; then
     echo "ERROR: LiteLLM proxy not running on localhost:4000"
     echo "Start with: start-nano-proxy"
     exit 1

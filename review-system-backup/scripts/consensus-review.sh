@@ -23,7 +23,7 @@ check_model_health() {
 }
 
 # Check proxy
-curl -s --max-time 3 http://localhost:4000/health > /dev/null 2>&1 || { echo "ERROR: LiteLLM not running"; exit 1; }
+curl -s --max-time 3 http://localhost:4000/models > /dev/null 2>&1 || { echo "ERROR: LiteLLM not running"; exit 1; }
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "CONSENSUS REVIEW - Checking model health..."
@@ -100,7 +100,13 @@ done
 # Display results for healthy models only
 # Helper to extract content from regular or thinking models
 get_response() {
-    jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "No response"' "$1"
+    # Check content first, if empty check reasoning_content (for thinking models)
+    local content=$(jq -r '.choices[0].message.content // empty' "$1")
+    if [ -n "$content" ]; then
+        echo "$content"
+    else
+        jq -r '.choices[0].message.reasoning_content // "No response"' "$1"
+    fi
 }
 
 if [ -f "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" ]; then
