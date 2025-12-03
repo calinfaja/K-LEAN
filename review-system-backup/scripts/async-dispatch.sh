@@ -124,5 +124,28 @@ if echo "$PROMPT" | grep -qi "asyncSecondOpinion"; then
     fi
 fi
 
+# GoodJob - manual knowledge capture
+if echo "$PROMPT" | grep -qi "^goodjob\|^savethis"; then
+    # Run in background, but block the prompt so Claude doesn't respond
+    nohup ~/.claude/scripts/goodjob-dispatch.sh "$PROMPT" > "$OUTPUT_DIR/goodjob-latest.log" 2>&1 &
+
+    if echo "$PROMPT" | grep -qi "^goodjob"; then
+        block_with_message "📚 Capturing knowledge... Check: $OUTPUT_DIR/goodjob-latest.log"
+    else
+        block_with_message "📝 Saving lesson learned... Check: $OUTPUT_DIR/goodjob-latest.log"
+    fi
+fi
+
+# FindKnowledge - search knowledge base
+if echo "$PROMPT" | grep -qi "^findknowledge\|^searchknowledge"; then
+    QUERY=$(echo "$PROMPT" | sed -E 's/^(find|search)knowledge[[:space:]]*//i')
+    if [ -n "$QUERY" ]; then
+        RESULTS=$("$HOME/.venvs/knowledge-db/bin/python" "$HOME/.claude/scripts/knowledge-search.py" "$QUERY" --format inject 2>&1)
+        block_with_message "$RESULTS"
+    else
+        block_with_message "Usage: FindKnowledge <query>"
+    fi
+fi
+
 # No async keyword found - continue normally (no output, exit 0)
 exit 0

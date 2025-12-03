@@ -99,6 +99,15 @@ echo "════════════════════════�
 
 cd "$WORK_DIR"
 
+# Search knowledge-db for relevant context
+KNOWLEDGE_CONTEXT=""
+PYTHON="$HOME/.venvs/knowledge-db/bin/python"
+if [ -x "$PYTHON" ] && [ -f "$HOME/.claude/scripts/knowledge-search.py" ]; then
+    if [ -d ".knowledge-db" ] || [ -d "../.knowledge-db" ]; then
+        KNOWLEDGE_CONTEXT=$("$PYTHON" "$HOME/.claude/scripts/knowledge-search.py" "$QUESTION" --format inject --limit 3 2>/dev/null || echo "")
+    fi
+fi
+
 # Gather context
 DIFF=$(git diff HEAD~3..HEAD 2>/dev/null | head -500)
 [ -z "$DIFF" ] && DIFF=$(git diff 2>/dev/null | head -500)
@@ -122,13 +131,24 @@ YOUR QUESTION: $QUESTION
 
 Provide your honest, independent assessment. Be specific."
 
+# Build system prompt with optional knowledge context
+SYSTEM_PROMPT="You provide independent technical opinions. Be direct and specific."
+if [ -n "$KNOWLEDGE_CONTEXT" ] && [ "$KNOWLEDGE_CONTEXT" != "No relevant prior knowledge found." ]; then
+    SYSTEM_PROMPT="You provide independent technical opinions. Be direct and specific.
+
+$KNOWLEDGE_CONTEXT
+
+Consider this prior knowledge in your assessment if relevant."
+    echo "📚 Found relevant prior knowledge"
+fi
+
 # Make the actual request (with timeout)
 RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d "{
     \"model\": \"$LITELLM_MODEL\",
     \"messages\": [
-      {\"role\": \"system\", \"content\": \"You provide independent technical opinions. Be direct and specific.\"},
+      {\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)},
       {\"role\": \"user\", \"content\": $(echo "$CONTEXT" | jq -Rs .)}
     ],
     \"temperature\": 0.3,
