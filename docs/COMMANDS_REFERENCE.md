@@ -29,7 +29,9 @@
 | `/kln:consensus <focus>` | 3 | No | 1min | Quick 3-model comparison |
 | `/kln:parallelDeepReview <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
 
-**Models:** `qwen` (code), `deepseek` (architecture), `glm` (standards), `minimax` (research), `kimi` (agent), `hermes` (scripting)
+**Models:**
+- ✅ Reliable for tools: `qwen` (code), `kimi` (architecture), `glm` (standards)
+- ⚠️ Quick reviews only: `deepseek` (design), `minimax` (research), `hermes` (scripting)
 
 ### Async Review Commands (Background Execution)
 
@@ -47,6 +49,7 @@
 | `/kln:createReviewDoc <title>` | Create session review documentation |
 | `/kln:asyncReviewDoc <title>` | Create doc in background |
 | `/kln:backgroundReviewDoc <title>` | Spawn doc creation in subagent |
+| `/kln:help` | List all /kln: commands with model info |
 
 **Output location:** `/tmp/claude-reviews/{session-id}/`
 
@@ -97,6 +100,7 @@ FindKnowledge BLE power optimization
 | `~/.claude/scripts/second-opinion.sh <model> "<q>"` | Single model opinion |
 | `~/.claude/scripts/consensus-review.sh "<focus>"` | 3 models via curl |
 | `~/.claude/scripts/parallel-deep-review.sh "<focus>"` | 3 models with tools |
+| `~/.claude/scripts/test-headless.sh <model> "<prompt>"` | Test any model via headless Claude |
 | `~/.claude/scripts/test-system.sh` | Verify system works |
 
 ### Knowledge System Scripts
