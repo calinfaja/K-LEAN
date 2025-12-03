@@ -89,7 +89,7 @@ PIDS=""
 
 if echo "$HEALTHY_MODELS" | grep -q "coding-qwen"; then
     SYSTEM_QWEN="Code reviewer: bugs, memory safety.$KNOWLEDGE_SUFFIX"
-    curl -s --max-time 60 http://localhost:4000/chat/completions \
+    curl -s --max-time 90 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"coding-qwen\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_QWEN" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" &
@@ -99,7 +99,7 @@ fi
 
 if echo "$HEALTHY_MODELS" | grep -q "architecture-deepseek"; then
     SYSTEM_DS="Architect: design, coupling.$KNOWLEDGE_SUFFIX"
-    curl -s --max-time 60 http://localhost:4000/chat/completions \
+    curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"architecture-deepseek\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_DS" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" &
@@ -109,7 +109,7 @@ fi
 
 if echo "$HEALTHY_MODELS" | grep -q "tools-glm"; then
     SYSTEM_GLM="Compliance: MISRA, standards.$KNOWLEDGE_SUFFIX"
-    curl -s --max-time 60 http://localhost:4000/chat/completions \
+    curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"tools-glm\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_GLM" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" &

@@ -11,3 +11,4 @@ Thumbs.db
 # Don't track the local .claude folder (it's a copy)
 .claude/
 .serena/
+.knowledge-db/

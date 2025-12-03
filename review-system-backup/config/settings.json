@@ -1,49 +1,10 @@
 {
-  "includeCoAuthoredBy": false,
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/async-dispatch.sh",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/post-commit-docs.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/auto-capture-hook.sh",
-            "timeout": 60
-          }
-        ]
-      },
-      {
-        "matcher": "WebSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/auto-capture-hook.sh",
-            "timeout": 60
-          }
-        ]
-      }
-    ]
-  },
-  "alwaysThinkingEnabled": true
+  "defaultModel": "tools-glm",
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:4000",
+    "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "tools-glm",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "tools-glm",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "tools-glm"
+  }
 }
