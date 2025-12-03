@@ -345,10 +345,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Knowledge Database CLI")
     parser.add_argument("command", choices=["stats", "search", "recent", "add", "rebuild"],
                         help="Command to run")
-    parser.add_argument("query", nargs="?", help="Search query or entry JSON")
+    parser.add_argument("query", nargs="?", help="Search query, entry JSON, or title for add")
+    parser.add_argument("summary", nargs="?", help="Summary text (for simple add)")
     parser.add_argument("--limit", "-n", type=int, default=5, help="Result limit")
     parser.add_argument("--project", "-p", help="Project path")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    # Simple add arguments
+    parser.add_argument("--title", "-t", help="Entry title (alternative to positional)")
+    parser.add_argument("--tags", help="Comma-separated tags")
+    parser.add_argument("--source", "-s", help="Source identifier")
+    parser.add_argument("--url", "-u", help="Source URL")
 
     args = parser.parse_args()
 
@@ -404,16 +410,43 @@ if __name__ == "__main__":
                     print(f"  URL: {e['url']}")
 
     elif args.command == "add":
-        if not args.query:
-            print("ERROR: Add requires JSON entry data")
-            sys.exit(1)
+        entry = None
+
+        # Try JSON first (for backwards compatibility)
+        if args.query and args.query.startswith("{"):
+            try:
+                entry = json.loads(args.query)
+            except json.JSONDecodeError:
+                pass
+
+        # If not JSON, use simple positional/flag arguments
+        if entry is None:
+            title = args.title or args.query
+            summary = args.summary or args.query  # Use title as summary if no summary
+
+            if not title:
+                print("ERROR: Add requires title")
+                print("Usage: knowledge_db.py add \"Title\" \"Summary\" [--tags t1,t2] [--source src] [--url url]")
+                print("   or: knowledge_db.py add '{\"title\":\"...\", \"summary\":\"...\"}'")
+                sys.exit(1)
+
+            entry = {
+                "title": title,
+                "summary": summary if summary != title else title,
+            }
+
+            if args.tags:
+                entry["tags"] = [t.strip() for t in args.tags.split(",")]
+            if args.source:
+                entry["source"] = args.source
+            if args.url:
+                entry["url"] = args.url
 
         try:
-            entry = json.loads(args.query)
             entry_id = db.add(entry)
             print(f"Added entry: {entry_id}")
-        except json.JSONDecodeError:
-            print("ERROR: Invalid JSON")
+        except ValueError as e:
+            print(f"ERROR: {e}")
             sys.exit(1)
 
     elif args.command == "rebuild":
