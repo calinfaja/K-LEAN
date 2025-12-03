@@ -1,13 +1,13 @@
 ---
 name: asyncSecondOpinion
-description: "Run /sc:secondOpinion in a SEPARATE subagent - you can keep working!"
+description: "Run /kln:secondOpinion in a SEPARATE subagent - you can keep working!"
 allowed-tools: Task
 argument-hint: "[model] [question] — Runs in background subagent with full context"
 ---
 
 # Async Second Opinion (Tier 2 in Subagent)
 
-Runs `/sc:secondOpinion` in a **separate subagent context**.
+Runs `/kln:secondOpinion` in a **separate subagent context**.
 Gathers FULL context and gets independent review while you keep working.
 
 **Arguments:** $ARGUMENTS

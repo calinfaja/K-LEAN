@@ -43,7 +43,7 @@ From $ARGUMENTS:
 
 ## Step 2: Gather COMPREHENSIVE Context
 
-**This is the key difference from /sc:review - we gather EVERYTHING relevant.**
+**This is the key difference from /kln:review - we gather EVERYTHING relevant.**
 
 ### 2.1 Git Context
 ```bash
@@ -277,16 +277,16 @@ SECOND OPINION COMPLETE
 
 ```bash
 # Quick code review second opinion
-/sc:secondOpinion qwen Is this implementation memory-safe?
+/kln:secondOpinion qwen Is this implementation memory-safe?
 
 # Architecture decision review
-/sc:secondOpinion deepseek Is this module structure correct for BLE + Crypto?
+/kln:secondOpinion deepseek Is this module structure correct for BLE + Crypto?
 
 # Compliance check
-/sc:secondOpinion glm Check MISRA compliance before merge
+/kln:secondOpinion glm Check MISRA compliance before merge
 
 # Default (qwen) with open question
-/sc:secondOpinion Should I use static allocation here or k_malloc?
+/kln:secondOpinion Should I use static allocation here or k_malloc?
 ```
 
 ---

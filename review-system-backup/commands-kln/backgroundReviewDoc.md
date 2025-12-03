@@ -130,7 +130,7 @@ mcp__serena__read_memory with memory_file_name: "review-..."
 ## Usage
 
 ```bash
-/sc:backgroundReviewDoc Secure Boot Implementation
-/sc:backgroundReviewDoc BLE Stack Refactor
-/sc:backgroundReviewDoc Power Optimization Phase 1
+/kln:backgroundReviewDoc Secure Boot Implementation
+/kln:backgroundReviewDoc BLE Stack Refactor
+/kln:backgroundReviewDoc Power Optimization Phase 1
 ```

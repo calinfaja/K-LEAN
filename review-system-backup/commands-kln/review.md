@@ -258,16 +258,16 @@ mcp__serena__write_memory
 
 ```bash
 # Bug hunting
-/sc:review qwen check for buffer overflows and null pointer issues
+/kln:review qwen check for buffer overflows and null pointer issues
 
 # Architecture review
-/sc:review deepseek evaluate module coupling and abstraction quality
+/kln:review deepseek evaluate module coupling and abstraction quality
 
 # Standards compliance
-/sc:review glm MISRA-C:2012 compliance audit
+/kln:review glm MISRA-C:2012 compliance audit
 
 # Default (qwen)
-/sc:review look for memory safety issues
+/kln:review look for memory safety issues
 ```
 
 ---

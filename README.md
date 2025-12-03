@@ -55,7 +55,7 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 healthcheck
 
 # Run code review
-/sc:review qwen security vulnerabilities
+/kln:review qwen security vulnerabilities
 
 # Capture knowledge
 GoodJob https://example.com/docs focus on authentication
@@ -84,13 +84,16 @@ asyncDeepReview security audit
 ├── docs/                           # Documentation
 ├── review-system-backup/           # Backup of all scripts/commands/config
 │   ├── scripts/
-│   ├── commands/
+│   ├── commands/                   # SuperClaude commands backup
+│   ├── commands-kln/               # Custom /kln: commands backup
 │   └── config/
 └── NEXT_FEATURES/                  # Feature ideas
 
 ~/.claude/                          # Active Claude configuration
 ├── scripts/                        # All executable scripts
-├── commands/sc/                    # Slash commands
+├── commands/
+│   ├── sc/                         # SuperClaude commands (30)
+│   └── kln/                        # Custom review commands (12)
 ├── settings.json                   # Hooks and configuration
 └── CLAUDE.md                       # System instructions
 
