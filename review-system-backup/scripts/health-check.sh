@@ -22,9 +22,9 @@ echo "  MODEL HEALTH CHECK"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
-# Check proxy first
+# Check proxy first (use /models endpoint - faster than /health)
 echo "Checking LiteLLM proxy (localhost:4000)..."
-if ! curl -s --max-time 3 http://localhost:4000/health > /dev/null 2>&1; then
+if ! curl -s --max-time 5 http://localhost:4000/models > /dev/null 2>&1; then
     echo "❌ FAIL: LiteLLM proxy not responding"
     echo ""
     echo "Start it with: start-nano-proxy"
