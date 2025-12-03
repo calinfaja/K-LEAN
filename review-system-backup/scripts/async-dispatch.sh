@@ -5,8 +5,9 @@
 # so Claude doesn't try to respond to it - user can immediately continue coding
 #
 
-OUTPUT_DIR="/tmp/claude-reviews"
-mkdir -p "$OUTPUT_DIR"
+# Session-based output directory
+source ~/.claude/scripts/session-helper.sh
+OUTPUT_DIR="$SESSION_DIR"
 
 # Read JSON input from stdin
 INPUT=$(cat)
@@ -28,6 +29,44 @@ block_with_message() {
     echo "{\"decision\": \"block\", \"reason\": \"$msg\"}"
     exit 0
 }
+
+# Quick health check function
+check_proxy_health() {
+    curl -s --max-time 3 http://localhost:4000/health > /dev/null 2>&1
+}
+
+# Full model health check
+check_all_models() {
+    local results=""
+    for model in coding-qwen architecture-deepseek tools-glm research-minimax agent-kimi scripting-hermes; do
+        local resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
+            -H "Content-Type: application/json" \
+            -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
+        local content=$(echo "$resp" | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // empty' 2>/dev/null)
+        if [ -n "$content" ]; then
+            results="$results ✅ $model"
+        else
+            results="$results ❌ $model"
+        fi
+    done
+    echo "$results"
+}
+
+# Health check keyword - run full model check
+if echo "$PROMPT" | grep -qi "^healthcheck$\|^health check$\|^checkhealth$"; then
+    if ! check_proxy_health; then
+        block_with_message "❌ LiteLLM proxy not running on localhost:4000. Run: start-nano-proxy"
+    fi
+    RESULTS=$(check_all_models)
+    block_with_message "Model Health:$RESULTS"
+fi
+
+# Pre-check: If any async keyword detected, verify proxy is up first
+if echo "$PROMPT" | grep -qi "asyncDeepReview\|asyncConsensus\|asyncReview\|asyncSecondOpinion"; then
+    if ! check_proxy_health; then
+        block_with_message "❌ LiteLLM proxy not running. Start it first: start-nano-proxy"
+    fi
+fi
 
 # asyncDeepReview - 3 models with full tools
 if echo "$PROMPT" | grep -qi "asyncDeepReview"; then

@@ -8,10 +8,11 @@
 
 FOCUS="${1:-General code review}"
 WORK_DIR="${2:-$(pwd)}"
-TIMESTAMP=$(date +%s)
 
-OUTPUT_DIR="/tmp/claude-reviews"
-mkdir -p "$OUTPUT_DIR"
+# Session-based output directory (each Claude instance gets its own folder)
+source ~/.claude/scripts/session-helper.sh
+OUTPUT_DIR="$SESSION_DIR"
+TIME_STAMP=$(date +%H%M%S)
 
 # Health check
 check_model_health() {
@@ -68,7 +69,7 @@ if echo "$HEALTHY_MODELS" | grep -q "coding-qwen"; then
     curl -s --max-time 60 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"coding-qwen\", \"messages\": [{\"role\": \"system\", \"content\": \"Code reviewer: bugs, memory safety.\"}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$OUTPUT_DIR/consensus-qwen-$TIMESTAMP.json" &
+      > "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" &
     PID_QWEN=$!
     PIDS="$PIDS $PID_QWEN"
 fi
@@ -77,7 +78,7 @@ if echo "$HEALTHY_MODELS" | grep -q "architecture-deepseek"; then
     curl -s --max-time 60 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"architecture-deepseek\", \"messages\": [{\"role\": \"system\", \"content\": \"Architect: design, coupling.\"}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json" &
+      > "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" &
     PID_DEEPSEEK=$!
     PIDS="$PIDS $PID_DEEPSEEK"
 fi
@@ -86,7 +87,7 @@ if echo "$HEALTHY_MODELS" | grep -q "tools-glm"; then
     curl -s --max-time 60 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"tools-glm\", \"messages\": [{\"role\": \"system\", \"content\": \"Compliance: MISRA, standards.\"}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json" &
+      > "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" &
     PID_GLM=$!
     PIDS="$PIDS $PID_GLM"
 fi
@@ -102,31 +103,31 @@ get_response() {
     jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "No response"' "$1"
 }
 
-if [ -f "$OUTPUT_DIR/consensus-qwen-$TIMESTAMP.json" ]; then
+if [ -f "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" ]; then
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "QWEN (Code Quality)"
     echo "═══════════════════════════════════════════════════════════════"
-    get_response "$OUTPUT_DIR/consensus-qwen-$TIMESTAMP.json"
+    get_response "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json"
 fi
 
-if [ -f "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json" ]; then
+if [ -f "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" ]; then
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "DEEPSEEK (Architecture)"
     echo "═══════════════════════════════════════════════════════════════"
-    get_response "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json"
+    get_response "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json"
 fi
 
-if [ -f "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json" ]; then
+if [ -f "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" ]; then
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "GLM (Standards)"
     echo "═══════════════════════════════════════════════════════════════"
-    get_response "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json"
+    get_response "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json"
 fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "Results saved to: $OUTPUT_DIR/consensus-*-$TIMESTAMP.json"
+echo "Results saved to: $OUTPUT_DIR/consensus-*-$TIME_STAMP.json"
 echo "═══════════════════════════════════════════════════════════════"

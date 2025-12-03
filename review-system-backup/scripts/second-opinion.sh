@@ -9,10 +9,11 @@
 MODEL="${1:-qwen}"
 QUESTION="${2:-Is this implementation correct?}"
 WORK_DIR="${3:-$(pwd)}"
-TIMESTAMP=$(date +%s)
 
-OUTPUT_DIR="/tmp/claude-reviews"
-mkdir -p "$OUTPUT_DIR"
+# Session-based output directory (each Claude instance gets its own folder)
+source ~/.claude/scripts/session-helper.sh
+OUTPUT_DIR="$SESSION_DIR"
+TIME_STAMP=$(date +%H%M%S)
 
 # Model priority order for fallback
 MODELS_PRIORITY="coding-qwen architecture-deepseek tools-glm"
@@ -135,7 +136,7 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
   }")
 
 # Save and display
-echo "$RESPONSE" > "$OUTPUT_DIR/opinion-$LITELLM_MODEL-$TIMESTAMP.json"
+echo "$RESPONSE" > "$OUTPUT_DIR/opinion-$LITELLM_MODEL-$TIME_STAMP.json"
 
 # Handle both regular and thinking models
 CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
@@ -152,5 +153,5 @@ fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "Result saved to: $OUTPUT_DIR/opinion-$LITELLM_MODEL-$TIMESTAMP.json"
+echo "Result saved to: $OUTPUT_DIR/opinion-$LITELLM_MODEL-$TIME_STAMP.json"
 echo "═══════════════════════════════════════════════════════════════"
