@@ -138,19 +138,19 @@ After the parallel execution, read and display each result:
 echo "═══════════════════════════════════════════════════════════════"
 echo "QWEN (Code Quality)"
 echo "═══════════════════════════════════════════════════════════════"
-cat /tmp/claude-reviews/review_qwen.json | jq -r '.choices[0].message.content // "Error"'
+cat /tmp/claude-reviews/review_qwen.json | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "Error"'
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "DEEPSEEK (Architecture)"
 echo "═══════════════════════════════════════════════════════════════"
-cat /tmp/claude-reviews/review_deepseek.json | jq -r '.choices[0].message.content // "Error"'
+cat /tmp/claude-reviews/review_deepseek.json | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "Error"'
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "GLM (Standards)"
 echo "═══════════════════════════════════════════════════════════════"
-cat /tmp/claude-reviews/review_glm.json | jq -r '.choices[0].message.content // "Error"'
+cat /tmp/claude-reviews/review_glm.json | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "Error"'
 ```
 
 ---

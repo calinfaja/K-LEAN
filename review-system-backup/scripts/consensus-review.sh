@@ -97,12 +97,17 @@ for pid in $PIDS; do
 done
 
 # Display results for healthy models only
+# Helper to extract content from regular or thinking models
+get_response() {
+    jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "No response"' "$1"
+}
+
 if [ -f "$OUTPUT_DIR/consensus-qwen-$TIMESTAMP.json" ]; then
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "QWEN (Code Quality)"
     echo "═══════════════════════════════════════════════════════════════"
-    jq -r '.choices[0].message.content // "No response"' "$OUTPUT_DIR/consensus-qwen-$TIMESTAMP.json"
+    get_response "$OUTPUT_DIR/consensus-qwen-$TIMESTAMP.json"
 fi
 
 if [ -f "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json" ]; then
@@ -110,7 +115,7 @@ if [ -f "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json" ]; then
     echo "═══════════════════════════════════════════════════════════════"
     echo "DEEPSEEK (Architecture)"
     echo "═══════════════════════════════════════════════════════════════"
-    jq -r '.choices[0].message.content // "No response"' "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json"
+    get_response "$OUTPUT_DIR/consensus-deepseek-$TIMESTAMP.json"
 fi
 
 if [ -f "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json" ]; then
@@ -118,7 +123,7 @@ if [ -f "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json" ]; then
     echo "═══════════════════════════════════════════════════════════════"
     echo "GLM (Standards)"
     echo "═══════════════════════════════════════════════════════════════"
-    jq -r '.choices[0].message.content // "No response"' "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json"
+    get_response "$OUTPUT_DIR/consensus-glm-$TIMESTAMP.json"
 fi
 
 echo ""

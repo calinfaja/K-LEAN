@@ -53,7 +53,7 @@ curl -s http://localhost:4000/chat/completions \
     ],
     "temperature": 0.3,
     "max_tokens": 2000
-  }' | jq -r '.choices[0].message.content'
+  }' | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content'
 ```
 
 4. Return CONCISE summary:

@@ -81,7 +81,9 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
 
 echo "$RESPONSE" > "$OUTPUT_DIR/quick-$LITELLM_MODEL-$TIMESTAMP.json"
 
+# Handle both regular and thinking models
 CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+[ -z "$CONTENT" ] && CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.reasoning_content // empty')
 [ -z "$CONTENT" ] && { echo "ERROR: No response"; echo "$RESPONSE"; exit 1; }
 
 echo ""
