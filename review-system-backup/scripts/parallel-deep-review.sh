@@ -19,12 +19,12 @@ TIME_STAMP=$(date +%H%M%S)
 # Create isolated config directories for each model
 CONFIG_DIR_BASE="/tmp/claude-review-config-$TIME_STAMP"
 mkdir -p "$CONFIG_DIR_BASE/qwen"
-mkdir -p "$CONFIG_DIR_BASE/deepseek"
+mkdir -p "$CONFIG_DIR_BASE/kimi"
 mkdir -p "$CONFIG_DIR_BASE/glm"
 
 # Output files
 OUTPUT_QWEN="$OUTPUT_DIR/deep-qwen-$TIME_STAMP.txt"
-OUTPUT_DEEPSEEK="$OUTPUT_DIR/deep-deepseek-$TIME_STAMP.txt"
+OUTPUT_KIMI="$OUTPUT_DIR/deep-kimi-$TIME_STAMP.txt"
 OUTPUT_GLM="$OUTPUT_DIR/deep-glm-$TIME_STAMP.txt"
 
 # Health check function (test actual model response)
@@ -37,9 +37,11 @@ check_model_health() {
 }
 
 # Check which models are healthy
+# Using qwen, kimi, glm - these are proven reliable for tool use
+# Avoided: deepseek (empty output), hermes (hallucinates), minimax (timeout)
 echo "Checking model health..."
 HEALTHY_MODELS=""
-for model in coding-qwen architecture-deepseek tools-glm; do
+for model in coding-qwen agent-kimi tools-glm; do
     if check_model_health "$model"; then
         echo "✓ $model - healthy"
         HEALTHY_MODELS="$HEALTHY_MODELS $model"
@@ -133,41 +135,23 @@ run_review() {
     local model_name=$1
     local config_dir=$2
     local output_file=$3
+    local litellm_model=$4
 
     echo "[$(date +%H:%M:%S)] Starting $model_name review..."
 
-    # Copy essential claude config files
-    cp -r ~/.claude/commands "$config_dir/" 2>/dev/null || true
-    cp -r ~/.claude/skills "$config_dir/" 2>/dev/null || true
+    cd "$WORK_DIR"
 
-    # Set config directory and run
-    export HOME_BACKUP="$HOME"
+    # Use settings-nanogpt.json to route through LiteLLM, then specify model explicitly
+    cp ~/.claude/settings-nanogpt.json ~/.claude/settings.json 2>/dev/null || true
 
-    # Use a subshell with modified HOME to isolate the config
-    (
-        # Create minimal home structure
-        mkdir -p "$config_dir/.claude"
-        cp "$config_dir/settings.json" "$config_dir/.claude/settings.json"
-
-        # Copy MCP config if exists
-        if [ -f ~/.claude/mcp.json ]; then
-            cp ~/.claude/mcp.json "$config_dir/.claude/"
-        fi
-
-        cd "$WORK_DIR"
-
-        # Run with settings override by copying to actual location temporarily
-        # This is a workaround since Claude doesn't support custom config dirs
-        cp "$config_dir/settings.json" ~/.claude/settings.json
-
-        claude --print "$SYSTEM_PROMPT
+    # Run with explicit model via --model flag
+    claude --model "$litellm_model" --print "$SYSTEM_PROMPT
 
 USER REQUEST: $PROMPT
 
 Directory: $WORK_DIR
 
 Investigate using your tools. Be thorough." > "$output_file" 2>&1
-    )
 
     echo "[$(date +%H:%M:%S)] $model_name review complete"
 }
@@ -175,26 +159,27 @@ Investigate using your tools. Be thorough." > "$output_file" 2>&1
 # Backup original settings
 cp ~/.claude/settings.json ~/.claude/settings-parallel-backup.json
 
-# Run all 3 in parallel
-run_review "QWEN" "$CONFIG_DIR_BASE/qwen" "$OUTPUT_QWEN" &
+# Run all 3 in parallel with explicit LiteLLM model names
+# Using reliable models: qwen (code), kimi (architecture), glm (standards)
+run_review "QWEN" "$CONFIG_DIR_BASE/qwen" "$OUTPUT_QWEN" "coding-qwen" &
 PID_QWEN=$!
 
 # Small delay to avoid race on settings file
 sleep 2
 
-run_review "DEEPSEEK" "$CONFIG_DIR_BASE/deepseek" "$OUTPUT_DEEPSEEK" &
-PID_DEEPSEEK=$!
+run_review "KIMI" "$CONFIG_DIR_BASE/kimi" "$OUTPUT_KIMI" "agent-kimi" &
+PID_KIMI=$!
 
 sleep 2
 
-run_review "GLM" "$CONFIG_DIR_BASE/glm" "$OUTPUT_GLM" &
+run_review "GLM" "$CONFIG_DIR_BASE/glm" "$OUTPUT_GLM" "tools-glm" &
 PID_GLM=$!
 
 # Wait for all to complete
 echo ""
 echo "Waiting for all reviews to complete (this may take 2-5 minutes each)..."
 echo "  QWEN (PID: $PID_QWEN)"
-echo "  DEEPSEEK (PID: $PID_DEEPSEEK)"
+echo "  KIMI (PID: $PID_KIMI)"
 echo "  GLM (PID: $PID_GLM)"
 echo ""
 
@@ -202,9 +187,9 @@ wait $PID_QWEN
 QWEN_EXIT=$?
 echo "✓ QWEN complete (exit: $QWEN_EXIT)"
 
-wait $PID_DEEPSEEK
-DEEPSEEK_EXIT=$?
-echo "✓ DEEPSEEK complete (exit: $DEEPSEEK_EXIT)"
+wait $PID_KIMI
+KIMI_EXIT=$?
+echo "✓ KIMI complete (exit: $KIMI_EXIT)"
 
 wait $PID_GLM
 GLM_EXIT=$?
@@ -228,13 +213,13 @@ cat "$OUTPUT_QWEN"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
-echo "DEEPSEEK REVIEW (Architecture, Design)"
+echo "KIMI REVIEW (Architecture, Planning)"
 echo "═══════════════════════════════════════════════════════════════════"
-cat "$OUTPUT_DEEPSEEK"
+cat "$OUTPUT_KIMI"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
-echo "GLM REVIEW (Standards, MISRA)"
+echo "GLM REVIEW (Standards, Compliance)"
 echo "═══════════════════════════════════════════════════════════════════"
 cat "$OUTPUT_GLM"
 
@@ -242,7 +227,7 @@ echo ""
 echo "═══════════════════════════════════════════════════════════════════"
 echo "REVIEW FILES SAVED TO:"
 echo "  $OUTPUT_QWEN"
-echo "  $OUTPUT_DEEPSEEK"
+echo "  $OUTPUT_KIMI"
 echo "  $OUTPUT_GLM"
 echo "═══════════════════════════════════════════════════════════════════"
 

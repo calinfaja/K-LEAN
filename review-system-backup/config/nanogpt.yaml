@@ -1,6 +1,16 @@
 litellm_settings:
   drop_params: true
 
+# Model aliases - catch Claude CLI default model names and route to our models
+model_alias_map:
+  "claude-sonnet-4-5-20250929": "coding-qwen"
+  "claude-3-5-sonnet-20241022": "coding-qwen"
+  "claude-3-haiku-20240307": "coding-qwen"
+  "claude-3-opus-20240229": "coding-qwen"
+  "sonnet": "coding-qwen"
+  "haiku": "coding-qwen"
+  "opus": "coding-qwen"
+
 model_list:
   # --- TIER 1: CORE CODING ---
   # The Workhorse: Pure coding. Powered by Qwen 3 Coder.

@@ -6,20 +6,22 @@
 # Usage: deep-review.sh <model> "<prompt>" [working_dir]
 #
 # Models:
-#   qwen     -> coding-qwen (via sonnet)     - Code quality, bugs
-#   deepseek -> architecture-deepseek (haiku) - Architecture review
-#   glm      -> tools-glm (via opus)          - Standards/MISRA
+#   qwen     -> coding-qwen      - Code quality, bugs (RELIABLE)
+#   kimi     -> agent-kimi       - Architecture, planning (RELIABLE)
+#   glm      -> tools-glm        - Standards/compliance (RELIABLE)
+#   deepseek -> NOT RECOMMENDED for tool use (empty output issue)
 #
 
 set -e
 
 # Arguments
+# Default to qwen (most reliable for tool use)
 MODEL="${1:-qwen}"
 PROMPT="${2:-Review the codebase for issues}"
 WORK_DIR="${3:-$(pwd)}"
 
-# Model priority for fallback
-MODELS_PRIORITY="coding-qwen architecture-deepseek tools-glm"
+# Model priority for fallback (only reliable models for tool use)
+MODELS_PRIORITY="coding-qwen agent-kimi tools-glm"
 
 # Health check function (test actual model response)
 check_model_health() {
@@ -52,16 +54,20 @@ find_healthy_model() {
 get_model_info() {
     case "$1" in
         qwen|code|bugs)
-            echo "coding-qwen sonnet"
+            echo "coding-qwen"
             ;;
-        deepseek|arch|architecture)
-            echo "architecture-deepseek haiku"
+        kimi|arch|architecture|planning)
+            echo "agent-kimi"
             ;;
-        glm|standards|misra)
-            echo "tools-glm opus"
+        glm|standards|misra|compliance)
+            echo "tools-glm"
+            ;;
+        deepseek)
+            echo "WARNING: deepseek not recommended for tool use" >&2
+            echo "architecture-deepseek"
             ;;
         *)
-            echo "coding-qwen sonnet"
+            echo "coding-qwen"
             ;;
     esac
 }
@@ -79,15 +85,16 @@ litellm_to_claude() {
 # Get model description
 get_model_desc() {
     case "$1" in
-        coding-qwen) echo "coding-qwen (code quality)" ;;
-        architecture-deepseek) echo "architecture-deepseek (design)" ;;
-        tools-glm) echo "tools-glm (standards)" ;;
+        coding-qwen) echo "coding-qwen (code quality, bugs)" ;;
+        agent-kimi) echo "agent-kimi (architecture, planning)" ;;
+        tools-glm) echo "tools-glm (standards, compliance)" ;;
+        architecture-deepseek) echo "architecture-deepseek (NOT RECOMMENDED)" ;;
         *) echo "$1" ;;
     esac
 }
 
-# Get preferred model info
-read PREFERRED_LITELLM PREFERRED_CLAUDE <<< $(get_model_info "$MODEL")
+# Get preferred model info (now returns just LiteLLM name)
+PREFERRED_LITELLM=$(get_model_info "$MODEL")
 
 # Find healthy model
 echo "Checking model health..."
@@ -98,8 +105,9 @@ if [ -z "$LITELLM_MODEL" ]; then
     exit 1
 fi
 
-# Get Claude model name and description for the healthy model
-CLAUDE_MODEL=$(litellm_to_claude "$LITELLM_MODEL")
+# Use LiteLLM model name directly (don't convert to Claude aliases)
+# The settings-nanogpt.json routes via LiteLLM, so use LiteLLM names
+CLAUDE_MODEL="$LITELLM_MODEL"
 MODEL_DESC=$(get_model_desc "$LITELLM_MODEL")
 
 # Build the system context for the review
