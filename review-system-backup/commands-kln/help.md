@@ -50,14 +50,19 @@ Here is a complete list of all custom `/kln:` commands in your review & knowledg
 
 ## Model Aliases
 
+### Reliable for Deep Reviews (Tool Use)
 | Alias | LiteLLM Model | Specialty |
 |-------|---------------|-----------|
 | `qwen` | `coding-qwen` | Code quality, bugs, memory safety |
-| `deepseek` | `architecture-deepseek` | Architecture, design patterns |
+| `kimi` | `agent-kimi` | Architecture, planning |
 | `glm` | `tools-glm` | Standards compliance, MISRA |
-| `minimax` | `research-minimax` | Research, documentation |
-| `kimi` | `agent-kimi` | Agent workflows |
-| `hermes` | `scripting-hermes` | Scripting, automation |
+
+### Quick Reviews Only (No Tools)
+| Alias | LiteLLM Model | Notes |
+|-------|---------------|-------|
+| `deepseek` | `architecture-deepseek` | ⚠️ Empty output in tool mode |
+| `minimax` | `research-minimax` | ⚠️ Timeouts common |
+| `hermes` | `scripting-hermes` | ⚠️ May hallucinate |
 
 ---
 
@@ -78,11 +83,14 @@ Here is a complete list of all custom `/kln:` commands in your review & knowledg
 # Quick single-model review
 /kln:review qwen security vulnerabilities
 
-# Get architecture opinion
-/kln:secondOpinion deepseek "Is this design scalable?"
+# Get architecture opinion (use kimi for reliable tool use)
+/kln:secondOpinion kimi "Is this design scalable?"
 
-# 3-model consensus
+# 3-model consensus (uses qwen, kimi, glm)
 /kln:consensus code quality
+
+# Deep review with tools (qwen recommended)
+/kln:deepReview qwen "memory safety audit"
 
 # Background deep review (continue working)
 /kln:asyncDeepReview performance audit
