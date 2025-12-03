@@ -52,7 +52,7 @@ echo ""
 # 2. Check scripts exist
 echo "2. Scripts"
 echo "─────────────────────────────────────────────────────────────────"
-for script in second-opinion.sh quick-review.sh consensus-review.sh parallel-deep-review.sh async-dispatch.sh post-commit-docs.sh; do
+for script in quick-review.sh second-opinion.sh consensus-review.sh parallel-deep-review.sh deep-review.sh async-dispatch.sh health-check.sh session-helper.sh start-litellm.sh; do
     if [ -x ~/.claude/scripts/$script ]; then
         test_pass "$script exists and executable"
     else
@@ -87,8 +87,10 @@ echo "────────────────────────�
 mkdir -p /tmp/claude-reviews
 if [ -d /tmp/claude-reviews ]; then
     test_pass "/tmp/claude-reviews exists"
-    COUNT=$(ls /tmp/claude-reviews/*.json 2>/dev/null | wc -l)
-    echo "   Previous reviews: $COUNT files"
+    SESSIONS=$(ls -d /tmp/claude-reviews/*/ 2>/dev/null | wc -l)
+    FILES=$(find /tmp/claude-reviews -name "*.json" -o -name "*.txt" -o -name "*.log" 2>/dev/null | wc -l)
+    echo "   Sessions: $SESSIONS folders"
+    echo "   Review files: $FILES total"
 else
     test_fail "/tmp/claude-reviews cannot be created"
 fi

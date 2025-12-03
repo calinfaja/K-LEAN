@@ -14,14 +14,31 @@ ACTIVE (what Claude uses)              BACKUP (git tracked)
 │   ├── deep-review.sh                 │   ├── deep-review.sh
 │   ├── parallel-deep-review.sh        │   ├── parallel-deep-review.sh
 │   ├── async-dispatch.sh              │   ├── async-dispatch.sh
-│   ├── post-commit-docs.sh            │   ├── post-commit-docs.sh
-│   └── test-system.sh                 │   └── test-system.sh
+│   ├── health-check.sh                │   ├── health-check.sh
+│   ├── session-helper.sh              │   ├── session-helper.sh
+│   ├── start-litellm.sh               │   ├── start-litellm.sh
+│   ├── test-system.sh                 │   └── test-system.sh
+│   └── post-commit-docs.sh            │
 ├── commands/sc/                       ├── commands/
 │   └── *.md (slash commands)          │   └── *.md
-├── settings.json                      ├── config/
-└── mcp.json                           │   └── settings.json
-                                       └── config/
+├── settings.json                      └── config/
+└── mcp.json                               └── settings.json
 ```
+
+## Output Structure
+
+Reviews are saved in session-based folders:
+
+```
+/tmp/claude-reviews/
+├── 2024-12-03-143005/      # Session 1 (Claude instance 1)
+│   ├── quick-qwen-143022.json
+│   └── consensus-all-144500.json
+└── 2024-12-03-150000/      # Session 2 (Claude instance 2)
+    └── deep-glm-150030.txt
+```
+
+Each Claude instance gets its own folder based on start time.
 
 ## Workflow
 
@@ -75,9 +92,22 @@ Examples:
 ## Testing After Changes
 
 ```bash
+# Check all models
+~/.claude/scripts/health-check.sh
+
 # Run full system test
 ~/.claude/scripts/test-system.sh
 
 # Test specific script
 ~/.claude/scripts/quick-review.sh qwen "test"
+```
+
+## Starting LiteLLM
+
+```bash
+# Use the alias (ensures port 4000 is free)
+start-nano-proxy
+
+# Or directly
+~/.claude/scripts/start-litellm.sh
 ```
