@@ -199,7 +199,7 @@ echo ""
 # Save current settings and switch to review config
 ORIGINAL_SETTINGS="$HOME/.claude/settings.json"
 BACKUP_SETTINGS="$HOME/.claude/settings-pre-review-backup.json"
-REVIEW_SETTINGS="$HOME/.claude-review/settings.json"
+REVIEW_SETTINGS="$HOME/.claude/settings-nanogpt.json"
 
 # Backup current settings
 cp "$ORIGINAL_SETTINGS" "$BACKUP_SETTINGS"
