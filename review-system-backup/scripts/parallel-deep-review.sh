@@ -82,16 +82,16 @@ cat > "$CONFIG_DIR_BASE/qwen/settings.json" << 'EOF'
 }
 EOF
 
-# DEEPSEEK (runs as haiku)
-cat > "$CONFIG_DIR_BASE/deepseek/settings.json" << 'EOF'
+# KIMI (runs as haiku) - reliable for tool use
+cat > "$CONFIG_DIR_BASE/kimi/settings.json" << 'EOF'
 {
-  "defaultModel": "architecture-deepseek",
+  "defaultModel": "agent-kimi",
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "architecture-deepseek",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "architecture-deepseek",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "architecture-deepseek"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "agent-kimi",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "agent-kimi",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "agent-kimi"
   }
 }
 EOF
