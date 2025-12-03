@@ -55,5 +55,5 @@ RESPONSE=$(curl -s "$LITELLM_URL/chat/completions" \
 EOF
 )
 
-# Extract and print response
-echo "$RESPONSE" | jq -r '.choices[0].message.content // .error.message // "Unknown error"'
+# Extract and print response (handles thinking models with reasoning_content)
+echo "$RESPONSE" | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // .error.message // "Unknown error"'

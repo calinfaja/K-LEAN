@@ -137,7 +137,9 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
 # Save and display
 echo "$RESPONSE" > "$OUTPUT_DIR/opinion-$LITELLM_MODEL-$TIMESTAMP.json"
 
+# Handle both regular and thinking models
 CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
+[ -z "$CONTENT" ] && CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.reasoning_content // empty')
 
 if [ -z "$CONTENT" ]; then
     echo ""
