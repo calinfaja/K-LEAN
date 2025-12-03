@@ -1,5 +1,14 @@
 # Commands Quick Reference
 
+## Command Namespaces
+
+| Namespace | Purpose | Source |
+|-----------|---------|--------|
+| `/sc:` | SuperClaude general-purpose commands | [SuperClaude Framework](https://github.com/SuperClaude-Org/SuperClaude_Framework) |
+| `/kln:` | Custom review & knowledge framework | This project |
+
+---
+
 ## Health Check
 
 | Command | What It Does |
@@ -10,21 +19,55 @@
 
 ---
 
-## Review Commands (Inside Claude)
+## /kln: Review Commands (Custom Framework)
 
 | Command | Models | Tools | Time | Use Case |
 |---------|--------|-------|------|----------|
-| `/sc:review <model> <focus>` | 1 | No | 30s | Quick sanity check |
-| `/sc:secondOpinion <model> <question>` | 1 | No | 1min | Get independent opinion |
-| `/sc:deepReview <model> <focus>` | 1 | Yes | 3min | Thorough single-model audit |
-| `/sc:consensus <focus>` | 3 | No | 1min | Quick 3-model comparison |
-| `/sc:parallelDeepReview <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
+| `/kln:review <model> <focus>` | 1 | No | 30s | Quick sanity check |
+| `/kln:secondOpinion <model> <question>` | 1 | No | 1min | Get independent opinion |
+| `/kln:deepReview <model> <focus>` | 1 | Yes | 3min | Thorough single-model audit |
+| `/kln:consensus <focus>` | 3 | No | 1min | Quick 3-model comparison |
+| `/kln:parallelDeepReview <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
 
 **Models:** `qwen` (code), `deepseek` (architecture), `glm` (standards), `minimax` (research), `kimi` (agent), `hermes` (scripting)
 
+### Async Review Commands (Background Execution)
+
+| Command/Keyword | What Runs | Output |
+|-----------------|-----------|--------|
+| `/kln:asyncDeepReview <focus>` | 3 models + tools | `{session}/deep-*.txt` |
+| `/kln:asyncConsensus <focus>` | 3 models curl | `{session}/consensus-*.json` |
+| `/kln:asyncReview qwen <focus>` | Single qwen | `{session}/quick-*.json` |
+| `/kln:asyncSecondOpinion deepseek <q>` | Single model opinion | `{session}/opinion-*.json` |
+
+### Documentation Commands
+
+| Command | What It Does |
+|---------|--------------|
+| `/kln:createReviewDoc <title>` | Create session review documentation |
+| `/kln:asyncReviewDoc <title>` | Create doc in background |
+| `/kln:backgroundReviewDoc <title>` | Spawn doc creation in subagent |
+
+**Output location:** `/tmp/claude-reviews/{session-id}/`
+
 ---
 
-## Knowledge System Commands (Inside Claude)
+## /sc: SuperClaude Commands (30 Original)
+
+| Category | Commands |
+|----------|----------|
+| Planning & Design | `/sc:brainstorm`, `/sc:design`, `/sc:estimate`, `/sc:spec-panel` |
+| Development | `/sc:implement`, `/sc:build`, `/sc:improve`, `/sc:cleanup`, `/sc:explain` |
+| Testing & Quality | `/sc:test`, `/sc:analyze`, `/sc:troubleshoot`, `/sc:reflect` |
+| Documentation | `/sc:document`, `/sc:help` |
+| Version Control | `/sc:git` |
+| Project Management | `/sc:pm`, `/sc:task`, `/sc:workflow` |
+| Research | `/sc:research`, `/sc:business-panel` |
+| Utilities | `/sc:agent`, `/sc:index-repo`, `/sc:index`, `/sc:recommend`, `/sc:select-tool`, `/sc:spawn`, `/sc:load`, `/sc:save`, `/sc:sc` |
+
+---
+
+## Knowledge System Commands (Keywords)
 
 | Keyword in Prompt | What It Does |
 |-------------------|--------------|
@@ -39,21 +82,6 @@ GoodJob https://docs.txtai.io/embeddings focus on SQLite backend
 SaveThis connection pooling improves PostgreSQL performance 10x
 FindKnowledge BLE power optimization
 ```
-
----
-
-## Async Commands via Hooks (Background Execution)
-
-| Keyword in Prompt | What Runs | Output |
-|-------------------|-----------|--------|
-| `asyncDeepReview <focus>` | 3 models + tools | `{session}/deep-*.txt` |
-| `asyncConsensus <focus>` | 3 models curl | `{session}/consensus-*.json` |
-| `asyncReview qwen <focus>` | Single qwen | `{session}/quick-*.json` |
-| `asyncSecondOpinion deepseek <q>` | Single model opinion | `{session}/opinion-*.json` |
-
-**Output location:** `/tmp/claude-reviews/{session-id}/`
-
-**How:** Type keyword -> Hook intercepts -> Script runs in background -> You keep working
 
 ---
 
@@ -129,7 +157,7 @@ cat /tmp/claude-reviews/*/quick-qwen-*.json | jq '.choices[0].message.content'
 
 ### Code Review Workflow
 ```
-healthcheck -> CODE -> asyncDeepReview security -> KEEP CODING -> check results
+healthcheck -> CODE -> /kln:asyncDeepReview security -> KEEP CODING -> check results
 ```
 
 ### Knowledge Capture Workflow
@@ -139,5 +167,5 @@ research topic -> GoodJob <url> -> keep researching -> FindKnowledge <topic> -> 
 
 ### Full Development Cycle
 ```
-healthcheck -> CODE -> SaveThis lesson learned -> asyncConsensus review -> check results -> commit
+healthcheck -> CODE -> SaveThis lesson learned -> /kln:asyncConsensus review -> check results -> commit
 ```

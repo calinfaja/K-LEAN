@@ -138,7 +138,8 @@ git clone https://github.com/your-username/claudeAgentic.git ~/claudeAgentic
 
 # Create Claude directories
 mkdir -p ~/.claude/scripts
-mkdir -p ~/.claude/commands/sc
+mkdir -p ~/.claude/commands/sc    # SuperClaude commands
+mkdir -p ~/.claude/commands/kln   # Custom review commands
 mkdir -p ~/.claude/templates
 
 # Copy scripts
@@ -146,8 +147,11 @@ cp ~/claudeAgentic/review-system-backup/scripts/*.sh ~/.claude/scripts/
 cp ~/claudeAgentic/review-system-backup/scripts/*.py ~/.claude/scripts/
 chmod +x ~/.claude/scripts/*.sh
 
-# Copy slash commands
+# Copy SuperClaude slash commands (/sc:)
 cp ~/claudeAgentic/review-system-backup/commands/*.md ~/.claude/commands/sc/
+
+# Copy custom review commands (/kln:)
+cp ~/claudeAgentic/review-system-backup/commands-kln/*.md ~/.claude/commands/kln/
 
 # Copy configuration
 cp ~/claudeAgentic/review-system-backup/config/settings.json ~/.claude/settings.json
@@ -288,11 +292,15 @@ If using Serena for project memories:
 │   ├── sync-check.sh
 │   └── test-system.sh
 ├── commands/
-│   └── sc/                # Slash commands
+│   ├── sc/                # SuperClaude commands (30)
+│   │   ├── implement.md
+│   │   ├── analyze.md
+│   │   └── ... (30 commands)
+│   └── kln/               # Custom review commands (12)
 │       ├── review.md
 │       ├── consensus.md
 │       ├── deepReview.md
-│       └── ... (43 commands)
+│       └── ... (12 commands)
 └── templates/
     └── serena-knowledge-memory.md
 

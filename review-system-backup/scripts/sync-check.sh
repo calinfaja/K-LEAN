@@ -101,14 +101,30 @@ fi
 
 #=== COMMANDS (Slash Commands) ===
 if $CHECK_COMMANDS; then
-    echo "=== Slash Commands ==="
+    echo "=== SuperClaude Commands (/sc:) ==="
 
-    # Get all .md files from source commands/sc/
+    # SuperClaude original commands in sc/
     if [ -d "$CLAUDE_DIR/commands/sc" ]; then
         for f in "$CLAUDE_DIR/commands/sc"/*.md; do
             [ -f "$f" ] || continue
             NAME=$(basename "$f")
             check_file "$f" "$BACKUP_DIR/commands/$NAME" "sc/$NAME"
+            case $? in
+                0) ((TOTAL_SYNCED++)) ;;
+                1) ((TOTAL_DIFFS++)) ;;
+            esac
+        done
+    fi
+    echo ""
+
+    echo "=== Custom Commands (/kln:) ==="
+
+    # Custom review commands in kln/
+    if [ -d "$CLAUDE_DIR/commands/kln" ]; then
+        for f in "$CLAUDE_DIR/commands/kln"/*.md; do
+            [ -f "$f" ] || continue
+            NAME=$(basename "$f")
+            check_file "$f" "$BACKUP_DIR/commands-kln/$NAME" "kln/$NAME"
             case $? in
                 0) ((TOTAL_SYNCED++)) ;;
                 1) ((TOTAL_DIFFS++)) ;;

@@ -18,9 +18,9 @@ The reviewing model can read files, grep code, check git, access Serena - it INV
 
 | Tier | Command | Tool Access | Use Case |
 |------|---------|-------------|----------|
-| 1 | `/sc:review` | ❌ None | Quick sanity check |
-| 2 | `/sc:secondOpinion` | ❌ None | Full context, passive review |
-| **3** | **`/sc:deepReview`** | **✅ Full** | **Thorough investigation** |
+| 1 | `/kln:review` | ❌ None | Quick sanity check |
+| 2 | `/kln:secondOpinion` | ❌ None | Full context, passive review |
+| **3** | **`/kln:deepReview`** | **✅ Full** | **Thorough investigation** |
 
 ---
 
@@ -30,7 +30,7 @@ The reviewing model can read files, grep code, check git, access Serena - it INV
 ┌────────────────────────────────────────────────────────────────┐
 │  YOUR SESSION (Native Claude)                                  │
 │       │                                                        │
-│       │ /sc:deepReview qwen "security audit"                  │
+│       │ /kln:deepReview qwen "security audit"                  │
 │       ▼                                                        │
 │  ┌──────────────────────────────────────────────────────────┐ │
 │  │  SPAWNS NEW HEADLESS INSTANCE                            │ │
@@ -125,16 +125,16 @@ Display the full output to the user.
 
 ```bash
 # Thorough security audit
-/sc:deepReview qwen Conduct a thorough security audit focusing on buffer handling
+/kln:deepReview qwen Conduct a thorough security audit focusing on buffer handling
 
 # Architecture review with investigation
-/sc:deepReview deepseek Analyze the module structure and identify coupling issues
+/kln:deepReview deepseek Analyze the module structure and identify coupling issues
 
 # Pre-release MISRA compliance check
-/sc:deepReview glm Full MISRA-C:2012 compliance audit before release
+/kln:deepReview glm Full MISRA-C:2012 compliance audit before release
 
 # General code quality investigation
-/sc:deepReview qwen Find all potential memory safety issues
+/kln:deepReview qwen Find all potential memory safety issues
 ```
 
 ---

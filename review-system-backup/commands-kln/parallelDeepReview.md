@@ -18,7 +18,7 @@ Each instance has **FULL TOOL ACCESS** and can investigate independently.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  /sc:parallelDeepReview "security audit"                            │
+│  /kln:parallelDeepReview "security audit"                            │
 │       │                                                             │
 │       ├──► Headless #1: coding-qwen ───────────┐                   │
 │       │    • Full tool access                   │                   │
@@ -43,11 +43,11 @@ Each instance has **FULL TOOL ACCESS** and can investigate independently.
 
 | Command | Models | Parallel | Tool Access | Time |
 |---------|--------|----------|-------------|------|
-| `/sc:review` | 1 | N/A | ❌ None | 30s |
-| `/sc:secondOpinion` | 1 | N/A | ❌ None | 1min |
-| `/sc:deepReview` | 1 | N/A | ✅ Full | 3min |
-| `/sc:consensus` | 3 | ✅ Yes | ❌ None | 1min |
-| **`/sc:parallelDeepReview`** | **3** | **✅ Yes** | **✅ Full** | **5min** |
+| `/kln:review` | 1 | N/A | ❌ None | 30s |
+| `/kln:secondOpinion` | 1 | N/A | ❌ None | 1min |
+| `/kln:deepReview` | 1 | N/A | ✅ Full | 3min |
+| `/kln:consensus` | 3 | ✅ Yes | ❌ None | 1min |
+| **`/kln:parallelDeepReview`** | **3** | **✅ Yes** | **✅ Full** | **5min** |
 
 ---
 
@@ -119,13 +119,13 @@ Based on consensus: [APPROVE / REQUEST_CHANGES / NEEDS_DISCUSSION]
 
 ```bash
 # Comprehensive pre-release audit
-/sc:parallelDeepReview Complete security and quality audit before v1.0 release
+/kln:parallelDeepReview Complete security and quality audit before v1.0 release
 
 # Major refactor review
-/sc:parallelDeepReview Review the BLE stack refactor for issues
+/kln:parallelDeepReview Review the BLE stack refactor for issues
 
 # Architecture validation
-/sc:parallelDeepReview Validate the new module structure
+/kln:parallelDeepReview Validate the new module structure
 ```
 
 ---
