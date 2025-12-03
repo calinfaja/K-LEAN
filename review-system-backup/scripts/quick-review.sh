@@ -8,10 +8,11 @@
 MODEL="${1:-qwen}"
 FOCUS="${2:-General code review}"
 WORK_DIR="${3:-$(pwd)}"
-TIMESTAMP=$(date +%s)
 
-OUTPUT_DIR="/tmp/claude-reviews"
-mkdir -p "$OUTPUT_DIR"
+# Session-based output directory (each Claude instance gets its own folder)
+source ~/.claude/scripts/session-helper.sh
+OUTPUT_DIR="$SESSION_DIR"
+TIME_STAMP=$(date +%H%M%S)
 
 MODELS_PRIORITY="coding-qwen architecture-deepseek tools-glm"
 
@@ -79,7 +80,8 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
     \"max_tokens\": 1500
   }")
 
-echo "$RESPONSE" > "$OUTPUT_DIR/quick-$LITELLM_MODEL-$TIMESTAMP.json"
+OUTPUT_FILE="$OUTPUT_DIR/quick-$LITELLM_MODEL-$TIME_STAMP.json"
+echo "$RESPONSE" > "$OUTPUT_FILE"
 
 # Handle both regular and thinking models
 CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
@@ -90,5 +92,5 @@ echo ""
 echo "$CONTENT"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "Saved: $OUTPUT_DIR/quick-$LITELLM_MODEL-$TIMESTAMP.json"
+echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"

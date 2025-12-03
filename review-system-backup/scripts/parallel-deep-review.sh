@@ -10,20 +10,22 @@ set -e
 
 PROMPT="${1:-Review the codebase for issues}"
 WORK_DIR="${2:-$(pwd)}"
-TIMESTAMP=$(date +%s)
+
+# Session-based output directory (each Claude instance gets its own folder)
+source ~/.claude/scripts/session-helper.sh
+OUTPUT_DIR="$SESSION_DIR"
+TIME_STAMP=$(date +%H%M%S)
 
 # Create isolated config directories for each model
-CONFIG_DIR_BASE="/tmp/claude-review-$TIMESTAMP"
+CONFIG_DIR_BASE="/tmp/claude-review-config-$TIME_STAMP"
 mkdir -p "$CONFIG_DIR_BASE/qwen"
 mkdir -p "$CONFIG_DIR_BASE/deepseek"
 mkdir -p "$CONFIG_DIR_BASE/glm"
 
-# Output directory and files
-OUTPUT_DIR="/tmp/claude-reviews"
-mkdir -p "$OUTPUT_DIR"
-OUTPUT_QWEN="$OUTPUT_DIR/review-qwen-$TIMESTAMP.txt"
-OUTPUT_DEEPSEEK="$OUTPUT_DIR/review-deepseek-$TIMESTAMP.txt"
-OUTPUT_GLM="$OUTPUT_DIR/review-glm-$TIMESTAMP.txt"
+# Output files
+OUTPUT_QWEN="$OUTPUT_DIR/deep-qwen-$TIME_STAMP.txt"
+OUTPUT_DEEPSEEK="$OUTPUT_DIR/deep-deepseek-$TIME_STAMP.txt"
+OUTPUT_GLM="$OUTPUT_DIR/deep-glm-$TIME_STAMP.txt"
 
 # Health check function (test actual model response)
 check_model_health() {
