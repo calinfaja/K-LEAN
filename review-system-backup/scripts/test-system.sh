@@ -20,17 +20,25 @@ test_fail() { echo "❌ FAIL: $1"; ((FAIL++)); }
 echo "1. Proxy & Model Health (localhost:4000)"
 echo "─────────────────────────────────────────────────────────────────"
 HEALTHY_COUNT=0
-for model in coding-qwen architecture-deepseek tools-glm; do
-    resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
 
-    if echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1; then
-        test_pass "$model - healthy"
+# All 6 models from nanogpt.yaml
+MODELS="coding-qwen architecture-deepseek tools-glm research-minimax agent-kimi scripting-hermes"
+
+for model in $MODELS; do
+    resp=$(curl -s --max-time 15 http://localhost:4000/chat/completions \
+        -H "Content-Type: application/json" \
+        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 10}" 2>/dev/null)
+
+    # Check for content OR reasoning_content (thinking models use reasoning_content)
+    content=$(echo "$resp" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+    reasoning=$(echo "$resp" | jq -r '.choices[0].message.reasoning_content // empty' 2>/dev/null)
+
+    if [ -n "$content" ] || [ -n "$reasoning" ]; then
+        test_pass "$model"
         ((HEALTHY_COUNT++))
     else
-        test_fail "$model - unhealthy"
-        ERROR=$(echo "$resp" | jq -r '.error.message // .error // "No response"' 2>/dev/null | head -c 80)
+        test_fail "$model"
+        ERROR=$(echo "$resp" | jq -r '.error.message // .error // "No response"' 2>/dev/null | head -c 60)
         echo "   Error: $ERROR"
     fi
 done
