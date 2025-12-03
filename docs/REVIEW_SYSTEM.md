@@ -276,10 +276,36 @@ ANTHROPIC_DEFAULT_OPUS_MODEL
 | Review Results | `/tmp/claude-reviews/` |
 | Serena Memories | `.serena/memories/` (in project) |
 | Backups | `~/claudeAgentic/review-system-backup/` |
+| Knowledge DB | `.knowledge-db/` (in project) |
+
+---
+
+## Knowledge System Integration
+
+Review scripts automatically search the project's knowledge database and inject relevant prior knowledge into the system prompt.
+
+**Integrated scripts:**
+- `quick-review.sh` - Searches before review
+- `second-opinion.sh` - Includes knowledge context
+- `consensus-review.sh` - All 3 models get prior knowledge
+
+**How it works:**
+1. Script extracts focus/query from arguments
+2. Searches knowledge DB with `--format inject`
+3. Injects relevant entries (score > 0.3) into system prompt
+4. Model receives prior knowledge during review
+
+See [KNOWLEDGE_SYSTEM.md](KNOWLEDGE_SYSTEM.md) for full documentation.
 
 ---
 
 ## Version History
+
+- **2025-12-03:** Knowledge System integration
+  - Per-project semantic knowledge database (txtai)
+  - Review scripts inject prior knowledge
+  - Auto-capture hooks for WebFetch/WebSearch
+  - Manual capture: GoodJob, SaveThis, FindKnowledge
 
 - **2025-12-02:** Initial implementation
   - Hooks for async reviews (UserPromptSubmit)
