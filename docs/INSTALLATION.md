@@ -51,11 +51,44 @@ pipx install litellm
 ~/.claude/scripts/start-litellm.sh
 ```
 
-### Step 5: Verify
+### Step 5: Setup Profile Aliases
+
+Add to `~/.bashrc`:
 
 ```bash
-./test.sh
-healthcheck
+# K-LEAN Profile System
+alias claude-nano='CLAUDE_CONFIG_DIR=~/.claude-nano claude'
+alias claude-status='if [ -n "$CLAUDE_CONFIG_DIR" ]; then echo "Profile: nano ($CLAUDE_CONFIG_DIR)"; else echo "Profile: native (~/.claude/)"; fi'
+alias start-nano-proxy='~/.claude/scripts/start-litellm.sh'
+```
+
+Then reload: `source ~/.bashrc`
+
+### Step 6: Verify
+
+```bash
+./test.sh        # Should show 18 tests passed
+healthcheck      # Check all models
+claude-status    # Should show "Profile: native"
+```
+
+## Profile System
+
+K-LEAN uses two profiles:
+
+| Command | Profile | Config Directory | API |
+|---------|---------|------------------|-----|
+| `claude` | Native | `~/.claude/` | Anthropic |
+| `claude-nano` | NanoGPT | `~/.claude-nano/` | LiteLLM proxy |
+
+Both can run **simultaneously** in different terminals!
+
+```bash
+# Terminal 1: Native Claude
+claude
+
+# Terminal 2: NanoGPT Claude (parallel!)
+claude-nano
 ```
 
 ## Troubleshooting
