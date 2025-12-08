@@ -40,6 +40,7 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 - **Per-project knowledge database** using txtai
 - **Manual capture**: `GoodJob <url>`, `SaveThis <lesson>`
 - **Auto-capture**: PostToolUse hooks on WebFetch/WebSearch
+- **Automatic fact generation**: Extract patterns from reviews and commits using native Haiku
 - **Semantic search**: `FindKnowledge <query>`
 - **Headless integration**: Review scripts inject relevant prior knowledge
 
