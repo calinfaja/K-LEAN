@@ -72,8 +72,65 @@ Multi-model code review system using LiteLLM proxy at localhost:4000.
 - `kimi` - Agent tasks
 - `hermes` - Scripting
 
+## Timeline System (Chronological Progress)
+
+A timeline log tracks all significant events across sessions.
+
+### Location
+- `.knowledge-db/timeline.txt` in each project root
+
+### What Gets Logged Automatically
+- Reviews completed (with fact count and focus)
+- Git commits (hash and message)
+- Facts extracted from reviews/commits
+
+### Querying Timeline
+
+```bash
+# Last 20 events
+tail -20 .knowledge-db/timeline.txt
+
+# Events from today
+grep "$(date '+%m-%d')" .knowledge-db/timeline.txt
+
+# All commits
+grep "| commit |" .knowledge-db/timeline.txt
+
+# All security-related events
+grep -i security .knowledge-db/timeline.txt
+
+# Full timeline helper
+~/.claude/scripts/timeline-query.sh [today|week|commits|reviews|<search>]
+```
+
+### Timeline Format
+```
+MM-DD HH:MM | type | description
+12-08 17:30 | review | security audit (3 facts, score: 0.8)
+12-08 17:45 | commit | abc123: Fix XSS vulnerability
+```
+
+## Serena Memories (Curated Knowledge)
+
+For high-value, curated insights, use Serena memories:
+
+### Available Memories
+- `lessons-learned` - Gotchas, patterns, tips discovered
+- `architecture-review-system` - System documentation
+- `session-log` - Session progress notes (manual)
+
+### When to Update
+After significant discoveries:
+```
+Use mcp__serena__edit_memory to append to lessons-learned:
+### NEW PATTERN: <title>
+**Date**: <today>
+**Context**: <what led to this>
+<description>
+```
+
 ## Hooks Active
 
 - **UserPromptSubmit**: Async review dispatch, GoodJob capture, health check
-- **PostToolUse (Bash)**: Post-commit documentation
+- **PostToolUse (Bash)**: Post-commit documentation + timeline logging
 - **PostToolUse (WebFetch/WebSearch)**: Auto-capture to knowledge DB
