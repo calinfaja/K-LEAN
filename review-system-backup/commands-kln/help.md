@@ -5,108 +5,98 @@ allowed-tools: Read, Glob
 argument-hint: ""
 ---
 
-# /kln:help - Custom Commands Reference
+# /kln:help - K-LEAN Code Review System
 
-## Triggers
-- Command discovery for custom review/knowledge framework
-- Documentation requests for /kln: namespace
-
-## Behavioral Flow
-1. **Display**: Present complete list of /kln: commands
-2. **Complete**: End after displaying information
+Display the complete reference for all `/kln:` commands.
 
 ---
 
-Here is a complete list of all custom `/kln:` commands in your review & knowledge framework.
+```
+═══════════════════════════════════════════════════════════════════════════════
+  K-LEAN Code Review System v1.0
+  Multi-model review framework powered by NanoGPT + LiteLLM
+═══════════════════════════════════════════════════════════════════════════════
 
-## Review Commands
+QUICK REVIEWS ─────────────────────────────────────────── API calls, no tools
+┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
+│ Command                   │ Models │ Method │ Time   │ Description          │
+├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
+│ /kln:quickReview <m> <f>  │ 1      │ API    │ ~30s   │ Fast code check      │
+│ /kln:quickConsult <m> <q> │ 1      │ API    │ ~60s   │ Get expert opinion   │
+│ /kln:quickCompare <focus> │ 3      │ API    │ ~60s   │ Multi-model compare  │
+└───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
 
-| Command | Description | Models | Time |
-|---------|-------------|--------|------|
-| `/kln:review <model> <focus>` | Quick code review via LiteLLM | 1 | ~30s |
-| `/kln:secondOpinion <model> <question>` | Get independent opinion with full context | 1 | ~1min |
-| `/kln:consensus <focus>` | 3-model parallel review comparison | 3 | ~1min |
-| `/kln:deepReview <model> <focus>` | Thorough review with tool access | 1 | ~3min |
-| `/kln:parallelDeepReview <focus>` | 3 headless Claude instances with tools | 3 | ~5min |
+DEEP REVIEWS ──────────────────────────────────── Headless Claude, full tools
+┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
+│ Command                   │ Models │ Method │ Time   │ Description          │
+├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
+│ /kln:deepInspect <m> <f>  │ 1      │ CLI    │ ~3min  │ Thorough inspection  │
+│ /kln:deepAudit <focus>    │ 3      │ CLI    │ ~5min  │ Comprehensive audit  │
+└───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
 
-## Async Commands (Background Execution)
+ASYNC VARIANTS ────────────────────────────────────── Background execution
+┌───────────────────────────┬───────────────────────────┬──────────────────────┐
+│ Sync Command              │ Async Variant             │ Use Case             │
+├───────────────────────────┼───────────────────────────┼──────────────────────┤
+│ /kln:quickReview          │ /kln:asyncQuickReview     │ Quick check + go     │
+│ /kln:quickConsult         │ /kln:asyncQuickConsult    │ Get opinion + go     │
+│ /kln:quickCompare         │ /kln:asyncQuickCompare    │ Compare + go         │
+│ /kln:deepAudit            │ /kln:asyncDeepAudit       │ Full audit + go      │
+└───────────────────────────┴───────────────────────────┴──────────────────────┘
 
-| Command | Description | Output Location |
-|---------|-------------|-----------------|
-| `/kln:asyncReview <model> <focus>` | Background single-model review | `/tmp/claude-reviews/{session}/` |
-| `/kln:asyncSecondOpinion <model> <question>` | Background opinion | `/tmp/claude-reviews/{session}/` |
-| `/kln:asyncConsensus <focus>` | Background 3-model consensus | `/tmp/claude-reviews/{session}/` |
-| `/kln:asyncDeepReview <focus>` | Background deep review (3 models) | `/tmp/claude-reviews/{session}/` |
+DOCUMENTATION ─────────────────────────────────────────── Session reports
+┌───────────────────────────┬──────────────────────────────────────────────────┐
+│ /kln:createReport <title> │ Create session review document (saves to Serena) │
+│ /kln:asyncCreateReport    │ Create report in background                      │
+│ /kln:backgroundReport     │ Spawn report creation in separate subagent       │
+└───────────────────────────┴──────────────────────────────────────────────────┘
 
-## Documentation Commands
+MODELS ────────────────────────────────────────────────────────────────────────
+  ✅ RELIABLE (Deep + Quick reviews)
+     qwen .......... qwen3-coder ........... Code quality, bugs, memory safety
+     kimi .......... kimi-k2-thinking ...... Architecture, planning, design
+     glm ........... glm-4.6-thinking ...... Standards, MISRA, compliance
 
-| Command | Description |
-|---------|-------------|
-| `/kln:createReviewDoc <title>` | Create session review documentation |
-| `/kln:asyncReviewDoc <title>` | Create doc in background |
-| `/kln:backgroundReviewDoc <title>` | Spawn doc creation in subagent |
+  ⚠️  QUICK ONLY (API calls, no tool support)
+     deepseek ...... deepseek-v3-thinking .. Architecture (fails with tools)
+     minimax ....... minimax-m2 ............ Research (timeout issues)
+     hermes ........ hermes-4-70b .......... Scripting (may hallucinate)
 
----
+EXECUTION METHODS ─────────────────────────────────────────────────────────────
+  API = curl → LiteLLM:4000 → NanoGPT
+        Fast (~30-60s), no file access, all 6 models work
 
-## Model Aliases
+  CLI = claude --model → Headless Claude instance
+        Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
+        Only reliable: qwen, kimi, glm
 
-### Reliable for Deep Reviews (Tool Use)
-| Alias | LiteLLM Model | Specialty |
-|-------|---------------|-----------|
-| `qwen` | `qwen3-coder` | Code quality, bugs, memory safety |
-| `kimi` | `kimi-k2-thinking` | Architecture, planning |
-| `glm` | `glm-4.6-thinking` | Standards compliance, MISRA |
+KNOWLEDGE SYSTEM ──────────────────────────────────────────────────────────────
+  GoodJob <url> [focus] .... Capture knowledge from URL to database
+  SaveThis <lesson> ........ Save a lesson learned
+  FindKnowledge <query> .... Search semantic knowledge database
 
-### Quick Reviews Only (No Tools)
-| Alias | LiteLLM Model | Notes |
-|-------|---------------|-------|
-| `deepseek` | `deepseek-v3-thinking` | ⚠️ Empty output in tool mode |
-| `minimax` | `minimax-m2` | ⚠️ Timeouts common |
-| `hermes` | `hermes-4-70b` | ⚠️ May hallucinate |
+UTILITIES ─────────────────────────────────────────────────────────────────────
+  healthcheck .............. Type in prompt to check all 6 models
+  /kln:help ................ This reference guide
 
----
+EXAMPLES ──────────────────────────────────────────────────────────────────────
+  /kln:quickReview qwen "check null pointer handling"
+  /kln:quickCompare "review error handling patterns"
+  /kln:deepInspect glm "MISRA-C compliance check"
+  /kln:deepAudit "full security audit before release"
+  /kln:asyncDeepAudit "comprehensive review" → continue coding → check later
 
-## Knowledge Keywords (Type in Prompt)
-
-| Keyword | Action |
-|---------|--------|
-| `GoodJob <url>` | Capture knowledge from URL |
-| `GoodJob <url> <focus>` | Capture with specific focus |
-| `SaveThis <description>` | Save a lesson learned |
-| `FindKnowledge <query>` | Search knowledge database |
-
----
-
-## Quick Examples
-
-```bash
-# Quick single-model review
-/kln:review qwen security vulnerabilities
-
-# Get architecture opinion (use kimi for reliable tool use)
-/kln:secondOpinion kimi "Is this design scalable?"
-
-# 3-model consensus (uses qwen, kimi, glm)
-/kln:consensus code quality
-
-# Deep review with tools (qwen recommended)
-/kln:deepReview qwen "memory safety audit"
-
-# Background deep review (continue working)
-/kln:asyncDeepReview performance audit
-
-# Capture knowledge
-GoodJob https://docs.example.com focus on authentication
+═══════════════════════════════════════════════════════════════════════════════
+  Output:  /tmp/claude-reviews/{session}/
+  Docs:    ~/claudeAgentic/docs/REVIEW_SYSTEM.md
+  Scripts: ~/.claude/scripts/
+═══════════════════════════════════════════════════════════════════════════════
 ```
 
 ---
 
-## Related
+## Related Commands
 
 - `/sc:help` - SuperClaude framework commands
-- `healthcheck` - Check all 6 models health
-- `~/.claude/scripts/sync-check.sh` - Verify scripts synced
-
----
-
-**Note:** Review outputs are saved to `/tmp/claude-reviews/{session-id}/`
+- `healthcheck` - Check all 6 models (type in prompt)
+- `~/.claude/scripts/sync-check.sh` - Verify scripts synced to backup

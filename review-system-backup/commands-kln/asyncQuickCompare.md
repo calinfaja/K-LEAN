@@ -1,13 +1,13 @@
 ---
 name: asyncConsensus
-description: "Run /kln:consensus (3 models) in a SEPARATE subagent - you can keep working!"
+description: "Run /kln:quickCompare (3 models) in a SEPARATE subagent - you can keep working!"
 allowed-tools: Task
 argument-hint: "[focus-prompt] — Runs 3 models in parallel in background subagent"
 ---
 
 # Async Consensus Review (Tier 2P in Subagent)
 
-Runs `/kln:consensus` (all 3 models) in a **separate subagent context**.
+Runs `/kln:quickCompare` (all 3 models) in a **separate subagent context**.
 You can **continue working** while 3 models review in parallel.
 
 **Arguments:** $ARGUMENTS

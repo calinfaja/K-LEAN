@@ -1,13 +1,13 @@
 ---
 name: asyncReviewDoc
-description: "Run /kln:createReviewDoc in a SEPARATE subagent - you can keep working!"
+description: "Run /kln:createReport in a SEPARATE subagent - you can keep working!"
 allowed-tools: Task
 argument-hint: "[session-title] — Creates and persists doc in background subagent"
 ---
 
 # Async Review Document (Subagent)
 
-Runs `/kln:createReviewDoc` in a **separate subagent context**.
+Runs `/kln:createReport` in a **separate subagent context**.
 Creates and **persists** documentation while you keep working.
 
 **Arguments:** $ARGUMENTS

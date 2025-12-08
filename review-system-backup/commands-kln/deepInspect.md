@@ -18,9 +18,9 @@ The reviewing model can read files, grep code, check git, access Serena - it INV
 
 | Tier | Command | Tool Access | Use Case |
 |------|---------|-------------|----------|
-| 1 | `/kln:review` | ❌ None | Quick sanity check |
-| 2 | `/kln:secondOpinion` | ❌ None | Full context, passive review |
-| **3** | **`/kln:deepReview`** | **✅ Full** | **Thorough investigation** |
+| 1 | `/kln:quickReview` | ❌ None | Quick sanity check |
+| 2 | `/kln:quickConsult` | ❌ None | Full context, passive review |
+| **3** | **`/kln:deepInspect`** | **✅ Full** | **Thorough investigation** |
 
 ---
 
@@ -30,7 +30,7 @@ The reviewing model can read files, grep code, check git, access Serena - it INV
 ┌────────────────────────────────────────────────────────────────┐
 │  YOUR SESSION (Native Claude)                                  │
 │       │                                                        │
-│       │ /kln:deepReview qwen "security audit"                  │
+│       │ /kln:deepInspect qwen "security audit"                  │
 │       ▼                                                        │
 │  ┌──────────────────────────────────────────────────────────┐ │
 │  │  SPAWNS NEW HEADLESS INSTANCE                            │ │
@@ -125,16 +125,16 @@ Display the full output to the user.
 
 ```bash
 # Thorough security audit
-/kln:deepReview qwen Conduct a thorough security audit focusing on buffer handling
+/kln:deepInspect qwen Conduct a thorough security audit focusing on buffer handling
 
 # Architecture review with investigation
-/kln:deepReview deepseek Analyze the module structure and identify coupling issues
+/kln:deepInspect deepseek Analyze the module structure and identify coupling issues
 
 # Pre-release MISRA compliance check
-/kln:deepReview glm Full MISRA-C:2012 compliance audit before release
+/kln:deepInspect glm Full MISRA-C:2012 compliance audit before release
 
 # General code quality investigation
-/kln:deepReview qwen Find all potential memory safety issues
+/kln:deepInspect qwen Find all potential memory safety issues
 ```
 
 ---
