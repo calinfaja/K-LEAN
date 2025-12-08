@@ -23,11 +23,11 @@
 
 | Command | Models | Tools | Time | Use Case |
 |---------|--------|-------|------|----------|
-| `/kln:review <model> <focus>` | 1 | No | 30s | Quick sanity check |
-| `/kln:secondOpinion <model> <question>` | 1 | No | 1min | Get independent opinion |
-| `/kln:deepReview <model> <focus>` | 1 | Yes | 3min | Thorough single-model audit |
-| `/kln:consensus <focus>` | 3 | No | 1min | Quick 3-model comparison |
-| `/kln:parallelDeepReview <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
+| `/kln:quickReview <model> <focus>` | 1 | No | 30s | Quick sanity check |
+| `/kln:quickConsult <model> <question>` | 1 | No | 1min | Get independent opinion |
+| `/kln:deepInspect <model> <focus>` | 1 | Yes | 3min | Thorough single-model audit |
+| `/kln:quickCompare <focus>` | 3 | No | 1min | Quick 3-model comparison |
+| `/kln:deepAudit <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
 
 **Models:**
 - ✅ Reliable for tools: `qwen` (code), `kimi` (architecture), `glm` (standards)
@@ -37,18 +37,18 @@
 
 | Command/Keyword | What Runs | Output |
 |-----------------|-----------|--------|
-| `/kln:asyncDeepReview <focus>` | 3 models + tools | `{session}/deep-*.txt` |
-| `/kln:asyncConsensus <focus>` | 3 models curl | `{session}/consensus-*.json` |
-| `/kln:asyncReview qwen <focus>` | Single qwen | `{session}/quick-*.json` |
-| `/kln:asyncSecondOpinion deepseek <q>` | Single model opinion | `{session}/opinion-*.json` |
+| `/kln:asyncDeepAudit <focus>` | 3 models + tools | `{session}/deep-*.txt` |
+| `/kln:asyncQuickCompare <focus>` | 3 models curl | `{session}/consensus-*.json` |
+| `/kln:asyncQuickReview qwen <focus>` | Single qwen | `{session}/quick-*.json` |
+| `/kln:asyncQuickConsult deepseek <q>` | Single model opinion | `{session}/opinion-*.json` |
 
 ### Documentation Commands
 
 | Command | What It Does |
 |---------|--------------|
-| `/kln:createReviewDoc <title>` | Create session review documentation |
-| `/kln:asyncReviewDoc <title>` | Create doc in background |
-| `/kln:backgroundReviewDoc <title>` | Spawn doc creation in subagent |
+| `/kln:createReport <title>` | Create session review documentation |
+| `/kln:asyncQuickReviewDoc <title>` | Create doc in background |
+| `/kln:backgroundReport <title>` | Spawn doc creation in subagent |
 | `/kln:help` | List all /kln: commands with model info |
 
 **Output location:** `/tmp/claude-reviews/{session-id}/`
@@ -161,7 +161,7 @@ cat /tmp/claude-reviews/*/quick-qwen-*.json | jq '.choices[0].message.content'
 
 ### Code Review Workflow
 ```
-healthcheck -> CODE -> /kln:asyncDeepReview security -> KEEP CODING -> check results
+healthcheck -> CODE -> /kln:asyncDeepAudit security -> KEEP CODING -> check results
 ```
 
 ### Knowledge Capture Workflow
@@ -171,5 +171,5 @@ research topic -> GoodJob <url> -> keep researching -> FindKnowledge <topic> -> 
 
 ### Full Development Cycle
 ```
-healthcheck -> CODE -> SaveThis lesson learned -> /kln:asyncConsensus review -> check results -> commit
+healthcheck -> CODE -> SaveThis lesson learned -> /kln:asyncQuickCompare review -> check results -> commit
 ```

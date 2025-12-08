@@ -7,7 +7,7 @@ argument-hint: "[focus-prompt] — Runs in background subagent, returns summary 
 
 # Async Deep Review (Background Subagent)
 
-Spawns `/kln:parallelDeepReview` in a **separate subagent context**.
+Spawns `/kln:deepAudit` in a **separate subagent context**.
 You can **continue working** while the review runs. Results come back when done.
 
 **Arguments:** $ARGUMENTS
@@ -106,7 +106,7 @@ FOCUS: $ARGUMENTS
 
 ```bash
 # Start review and keep working
-/kln:asyncDeepReview Review the HKDF-SHA256 implementation
+/kln:asyncDeepAudit Review the HKDF-SHA256 implementation
 
 # You can now do other things...
 # The subagent will return results when done
@@ -114,12 +114,12 @@ FOCUS: $ARGUMENTS
 
 ---
 
-## Key Difference from /kln:parallelDeepReview
+## Key Difference from /kln:deepAudit
 
 | Command | Behavior |
 |---------|----------|
-| `/kln:parallelDeepReview` | Blocks your session, polls output repeatedly |
-| `/kln:asyncDeepReview` | **Runs in subagent**, you keep working |
+| `/kln:deepAudit` | Blocks your session, polls output repeatedly |
+| `/kln:asyncDeepAudit` | **Runs in subagent**, you keep working |
 
 ---
 

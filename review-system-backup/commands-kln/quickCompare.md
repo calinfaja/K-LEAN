@@ -18,7 +18,7 @@ Compares their findings to identify consensus and disagreements.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  /kln:consensus "security audit"                                     │
+│  /kln:quickCompare "security audit"                                     │
 │       │                                                             │
 │       ├──► qwen3-coder ────────┐                                   │
 │       │    (bugs, memory)      │                                   │
@@ -202,12 +202,12 @@ After showing individual results, analyze and synthesize:
 
 ```bash
 # Run consensus review
-/kln:consensus security audit focusing on memory safety
+/kln:quickCompare security audit focusing on memory safety
 
 # Specific focus areas
-/kln:consensus check buffer handling and error paths
-/kln:consensus architecture review before refactor
-/kln:consensus pre-release compliance check
+/kln:quickCompare check buffer handling and error paths
+/kln:quickCompare architecture review before refactor
+/kln:quickCompare pre-release compliance check
 ```
 
 ---

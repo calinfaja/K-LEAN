@@ -194,9 +194,9 @@ After successful save, report:
 ## Example Usage
 
 ```
-/kln:createReviewDoc Secure Boot Implementation
-/kln:createReviewDoc BLE Stack Integration
-/kln:createReviewDoc Power Optimization Phase 1
+/kln:createReport Secure Boot Implementation
+/kln:createReport BLE Stack Integration
+/kln:createReport Power Optimization Phase 1
 ```
 
 **After running:** Use `mcp__serena__list_memories` to verify the document was saved.

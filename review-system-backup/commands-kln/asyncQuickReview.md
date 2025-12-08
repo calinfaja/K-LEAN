@@ -1,13 +1,13 @@
 ---
 name: asyncReview
-description: "Run /kln:review in a SEPARATE subagent - you can keep working!"
+description: "Run /kln:quickReview in a SEPARATE subagent - you can keep working!"
 allowed-tools: Task
 argument-hint: "[model] [focus] — Runs in background subagent"
 ---
 
 # Async Review (Tier 1 in Subagent)
 
-Runs `/kln:review` in a **separate subagent context**.
+Runs `/kln:quickReview` in a **separate subagent context**.
 You can **continue working** while the review runs.
 
 **Arguments:** $ARGUMENTS
