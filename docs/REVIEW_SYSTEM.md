@@ -186,25 +186,65 @@ model_list:
 
 ---
 
-## Model Specializations
+## Models (v2.0 - Unified Prompts)
 
-### Reliable for Tool Use (Deep Reviews)
+All 6 models use the **SAME unified prompt** and review **ALL areas**. No model specialization.
 
-| Model | Alias | Specialty | Speed | Tool Support |
-|-------|-------|-----------|-------|--------------|
-| qwen3-coder | qwen | Code quality, bugs | ~11s | ✅ Reliable |
-| kimi-k2-thinking | kimi | Architecture, planning | ~5min | ✅ Reliable |
-| glm-4.6-thinking | glm | MISRA, standards | ~19s | ✅ Reliable |
+| Alias | Model | Notes |
+|-------|-------|-------|
+| `qwen` | qwen3-coder | Default for single-model |
+| `deepseek` | deepseek-v3-thinking | Good for architecture |
+| `kimi` | kimi-k2-thinking | Good for planning |
+| `glm` | glm-4.6-thinking | Good for standards |
+| `minimax` | minimax-m2 | Research focus |
+| `hermes` | hermes-4-70b | Scripting focus |
 
-### Quick Reviews Only (No Tool Access)
+**Default single-model:** qwen
+**Default multi-model:** qwen, kimi, glm
 
-| Model | Alias | Specialty | Issue |
-|-------|-------|-----------|-------|
-| deepseek-v3-thinking | deepseek | Design, architecture | ⚠️ Empty output with tools |
-| minimax-m2 | minimax | Research, large context | ⚠️ Frequent timeouts (~5min) |
-| hermes-4-70b | hermes | Scripting, automation | ⚠️ May hallucinate |
+### Custom Model Selection
 
-**Recommendation:** Use `qwen`, `kimi`, `glm` for deep reviews with tool access. Use all 6 for quick curl-based reviews.
+For multi-model commands (`quickCompare`, `deepAudit`), specify 3 models comma-separated:
+```
+/kln:quickCompare qwen,deepseek,glm security audit
+/kln:deepAudit kimi,hermes,minimax architecture review
+```
+
+---
+
+## Prompt Categories (v2.0)
+
+| Category | Purpose | Commands | Output |
+|----------|---------|----------|--------|
+| **REVIEW** | Find issues in code | quickReview, quickCompare, deepInspect, deepAudit | Grade, Risk, Issues |
+| **CONSULT** | Challenge decisions | quickConsult | Verdict, Alternatives |
+| **DOCUMENT** | Capture knowledge | createReport | Lessons, TODOs |
+
+### Unified Review Checklist (All Models)
+
+All models review ALL of these areas:
+- **CORRECTNESS** - Logic errors, edge cases, algorithm correctness
+- **MEMORY SAFETY** - Buffer overflows, null pointers, leaks
+- **ERROR HANDLING** - Validation, propagation, resource cleanup
+- **CONCURRENCY** - Race conditions, ISR safety, shared data
+- **ARCHITECTURE** - Coupling, cohesion, API consistency
+- **HARDWARE** - I/O correctness, volatile usage, timing
+- **STANDARDS** - Coding style, MISRA guidelines
+
+---
+
+## MCP Tools for Deep Reviews
+
+Headless Claude sessions (`deepInspect`, `deepAudit`) have access to:
+
+| Tool | Purpose |
+|------|---------|
+| Read, Grep, Glob, Bash | Explore and read any file |
+| Sequential Thinking MCP | Complex multi-step analysis |
+| Serena MCP | Project memories and symbols |
+| Context7 MCP | Library documentation lookup |
+
+**IMPORTANT:** Deep reviews operate in READ-ONLY mode. They investigate and report but do NOT modify any files.
 
 ---
 
@@ -322,6 +362,15 @@ See [KNOWLEDGE_SYSTEM.md](KNOWLEDGE_SYSTEM.md) for full documentation.
 ---
 
 ## Version History
+
+- **2025-12-08:** K-LEAN v2.0 - Unified Prompts
+  - All 6 models now use SAME unified prompt
+  - 3 prompt categories: REVIEW, CONSULT, DOCUMENT
+  - All models review ALL areas (correctness, memory, errors, concurrency, architecture, hardware, standards)
+  - Custom model selection for multi-model commands
+  - MCP tools for deep reviews: Sequential Thinking, Serena, Context7
+  - READ-ONLY constraints for headless sessions
+  - Renamed commands: review→quickReview, consensus→quickCompare, etc.
 
 - **2025-12-03:** Model reliability testing & fixes
   - Tested all 6 models via headless Claude

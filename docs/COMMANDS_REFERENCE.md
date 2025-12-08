@@ -19,19 +19,21 @@
 
 ---
 
-## /kln: Review Commands (Custom Framework)
+## /kln: Review Commands (v2.0 - Unified Prompts)
 
 | Command | Models | Tools | Time | Use Case |
 |---------|--------|-------|------|----------|
 | `/kln:quickReview <model> <focus>` | 1 | No | 30s | Quick sanity check |
 | `/kln:quickConsult <model> <question>` | 1 | No | 1min | Get independent opinion |
 | `/kln:deepInspect <model> <focus>` | 1 | Yes | 3min | Thorough single-model audit |
-| `/kln:quickCompare <focus>` | 3 | No | 1min | Quick 3-model comparison |
-| `/kln:deepAudit <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
+| `/kln:quickCompare [models] <focus>` | 3 | No | 1min | Quick 3-model comparison |
+| `/kln:deepAudit [models] <focus>` | 3 | Yes | 5min | Comprehensive 3-model audit |
 
-**Models:**
-- ✅ Reliable for tools: `qwen` (code), `kimi` (architecture), `glm` (standards)
-- ⚠️ Quick reviews only: `deepseek` (design), `minimax` (research), `hermes` (scripting)
+**Models:** All 6 use unified prompt - `qwen`, `deepseek`, `kimi`, `glm`, `minimax`, `hermes`
+
+**Defaults:** Single=qwen, Multi=qwen,kimi,glm
+
+**Custom selection:** `/kln:quickCompare qwen,deepseek,glm security audit`
 
 ### Async Review Commands (Background Execution)
 
