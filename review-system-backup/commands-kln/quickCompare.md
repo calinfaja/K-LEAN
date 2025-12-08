@@ -1,16 +1,36 @@
 ---
-name: consensus
-description: "Run ALL 3 models (qwen, deepseek, glm) in PARALLEL and compare their reviews"
+name: quickCompare
+description: "Run 3 models in PARALLEL and compare reviews"
 allowed-tools: Bash, Read, Grep
-argument-hint: "[focus-prompt] — Runs qwen, deepseek, AND glm simultaneously"
+argument-hint: "[models] [focus] — default: qwen,kimi,glm or specify 3 models"
 ---
 
-# Consensus Review - All 3 Models in Parallel
+# Quick Compare - 3 Models in Parallel (API)
 
-Runs **qwen**, **deepseek**, and **glm** reviews **simultaneously** via parallel curl calls.
-Compares their findings to identify consensus and disagreements.
+Runs **3 models** simultaneously via parallel API calls.
+All models use the same unified checklist - compare their findings for consensus.
 
 **Arguments:** $ARGUMENTS
+
+---
+
+## Model Selection
+
+**Default models:** qwen, kimi, glm
+
+**All available:**
+| Alias | Model |
+|-------|-------|
+| `qwen` | qwen3-coder |
+| `deepseek` | deepseek-v3-thinking |
+| `kimi` | kimi-k2-thinking |
+| `glm` | glm-4.6-thinking |
+| `minimax` | minimax-m2 |
+| `hermes` | hermes-4-70b |
+
+**Custom selection:** Specify 3 models comma-separated before focus:
+- `qwen,deepseek,glm security audit` → runs qwen, deepseek, glm
+- `kimi,hermes,minimax check architecture` → runs kimi, hermes, minimax
 
 ---
 
@@ -18,34 +38,39 @@ Compares their findings to identify consensus and disagreements.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  /kln:quickCompare "security audit"                                     │
+│  /kln:quickCompare "security audit"                                 │
 │       │                                                             │
-│       ├──► qwen3-coder ────────┐                                   │
-│       │    (bugs, memory)      │                                   │
-│       │                        │                                   │
-│       ├──► deepseek-v3-thinking ──► PARALLEL                      │
-│       │    (design, coupling)  │     EXECUTION                     │
-│       │                        │                                   │
-│       └──► glm-4.6-thinking ──────────┘                                   │
-│            (MISRA, standards)                                       │
+│       ├──► Model 1 (qwen) ───────┐                                  │
+│       │                          │                                  │
+│       ├──► Model 2 (kimi) ───────┼──► PARALLEL EXECUTION            │
+│       │                          │                                  │
+│       └──► Model 3 (glm) ────────┘                                  │
 │                                                                     │
-│       All 3 return simultaneously                                   │
-│                    │                                                │
-│                    ▼                                                │
-│       COMPARE & SYNTHESIZE                                          │
-│       • Issues found by ALL 3 = HIGH CONFIDENCE                    │
-│       • Issues found by 2/3 = MEDIUM CONFIDENCE                    │
-│       • Issues found by 1/3 = LOW CONFIDENCE (review manually)     │
-│                                                                     │
+│       All 3 return → COMPARE & SYNTHESIZE                           │
+│       • Issues found by ALL 3 = HIGH CONFIDENCE                     │
+│       • Issues found by 2/3 = MEDIUM CONFIDENCE                     │
+│       • Issues found by 1/3 = LOW CONFIDENCE (review manually)      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Step 1: Gather Context
+## Step 1: Parse Arguments
+
+From $ARGUMENTS:
+- If first word contains commas (e.g., `qwen,deepseek,glm`), use those 3 models
+- Otherwise use default: qwen, kimi, glm
+- **Focus**: Everything after model selection
+
+Examples:
+- `security audit` → models=qwen,kimi,glm, focus="security audit"
+- `qwen,deepseek,glm memory safety` → models=qwen,deepseek,glm, focus="memory safety"
+
+---
+
+## Step 2: Gather Context
 
 ```bash
-# Get diff and file list
 DIFF=$(git diff HEAD~1..HEAD 2>/dev/null | head -300)
 FILES=$(git diff --name-only HEAD~1..HEAD 2>/dev/null)
 echo "Context gathered: $(echo "$DIFF" | wc -l) lines of diff"
@@ -53,147 +78,105 @@ echo "Context gathered: $(echo "$DIFF" | wc -l) lines of diff"
 
 ---
 
-## Step 2: Run Parallel Reviews
+## Step 3: Run Parallel Reviews
 
-Execute this bash script to run all 3 models in parallel:
+All 3 models use the SAME unified system prompt:
 
-```bash
-#!/bin/bash
-FOCUS="$ARGUMENTS"
-DIFF=$(git diff HEAD~1..HEAD 2>/dev/null | head -300)
+### System Prompt (UNIFIED)
 
-# Common review prompt
-REVIEW_PROMPT="Review this code for: $FOCUS
+```
+You are an expert embedded systems code reviewer.
+
+REVIEW ALL of these areas, with extra attention to the user's focus:
+
+## CORRECTNESS
+- Logic errors, edge cases, off-by-one
+- Algorithm correctness, state management
+- Variable initialization
+
+## MEMORY SAFETY
+- Buffer overflows, null pointer dereferences
+- Memory leaks (especially error paths)
+- Stack usage, integer overflow/underflow
+
+## ERROR HANDLING
+- Input validation at trust boundaries
+- Error propagation and resource cleanup
+- Defensive programming patterns
+
+## CONCURRENCY
+- Race conditions, thread safety
+- ISR constraints (fast, non-blocking)
+- Shared data protection, volatile usage
+
+## ARCHITECTURE
+- Module coupling and cohesion
+- Abstraction quality, API consistency
+- Testability, maintainability
+
+## HARDWARE (if applicable)
+- I/O state correctness, timing
+- Volatile usage for registers
+
+## STANDARDS
+- Coding style consistency
+- MISRA-C guidelines (where applicable)
+```
+
+### User Prompt
+
+```
+REVIEW REQUEST
+Focus: [USER_FOCUS]
 
 CODE CHANGES:
-$DIFF
+[GIT_DIFF]
 
 Provide:
 1. Grade (A-F)
 2. Risk Level (CRITICAL/HIGH/MEDIUM/LOW)
 3. Top 3 Critical Issues (if any)
 4. Top 3 Warnings
-5. Verdict (APPROVE/REQUEST_CHANGES)"
-
-# Run all 3 in parallel using background processes
-echo "Starting parallel reviews..."
-mkdir -p /tmp/claude-reviews
-
-# QWEN (code quality)
-curl -s http://localhost:4000/chat/completions \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"model\": \"qwen3-coder\",
-    \"messages\": [
-      {\"role\": \"system\", \"content\": \"You are a code reviewer focused on bugs and memory safety.\"},
-      {\"role\": \"user\", \"content\": $(echo "$REVIEW_PROMPT" | jq -Rs .)}
-    ],
-    \"temperature\": 0.3,
-    \"max_tokens\": 1500
-  }" > /tmp/claude-reviews/review_qwen.json &
-PID_QWEN=$!
-
-# DEEPSEEK (architecture)
-curl -s http://localhost:4000/chat/completions \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"model\": \"deepseek-v3-thinking\",
-    \"messages\": [
-      {\"role\": \"system\", \"content\": \"You are an architect focused on design and coupling.\"},
-      {\"role\": \"user\", \"content\": $(echo "$REVIEW_PROMPT" | jq -Rs .)}
-    ],
-    \"temperature\": 0.3,
-    \"max_tokens\": 1500
-  }" > /tmp/claude-reviews/review_deepseek.json &
-PID_DEEPSEEK=$!
-
-# GLM (standards)
-curl -s http://localhost:4000/chat/completions \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"model\": \"glm-4.6-thinking\",
-    \"messages\": [
-      {\"role\": \"system\", \"content\": \"You are a compliance reviewer focused on MISRA and standards.\"},
-      {\"role\": \"user\", \"content\": $(echo "$REVIEW_PROMPT" | jq -Rs .)}
-    ],
-    \"temperature\": 0.3,
-    \"max_tokens\": 1500
-  }" > /tmp/claude-reviews/review_glm.json &
-PID_GLM=$!
-
-# Wait for all to complete
-echo "Waiting for all reviews to complete..."
-wait $PID_QWEN $PID_DEEPSEEK $PID_GLM
-
-echo "All reviews complete!"
+5. Verdict (APPROVE/REQUEST_CHANGES)
 ```
+
+### Parallel Execution
+
+Run all 3 selected models in parallel using `&` and `wait`.
 
 ---
 
-## Step 3: Display Individual Results
+## Step 4: Display Individual Results
 
-After the parallel execution, read and display each result:
-
-```bash
-echo "═══════════════════════════════════════════════════════════════"
-echo "QWEN (Code Quality)"
-echo "═══════════════════════════════════════════════════════════════"
-cat /tmp/claude-reviews/review_qwen.json | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "Error"'
-
-echo ""
-echo "═══════════════════════════════════════════════════════════════"
-echo "DEEPSEEK (Architecture)"
-echo "═══════════════════════════════════════════════════════════════"
-cat /tmp/claude-reviews/review_deepseek.json | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "Error"'
-
-echo ""
-echo "═══════════════════════════════════════════════════════════════"
-echo "GLM (Standards)"
-echo "═══════════════════════════════════════════════════════════════"
-cat /tmp/claude-reviews/review_glm.json | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // "Error"'
-```
+Show each model's review output.
 
 ---
 
-## Step 4: Synthesize Consensus
-
-After showing individual results, analyze and synthesize:
-
-**Look for:**
-- Issues mentioned by ALL 3 models → **HIGH CONFIDENCE** (definitely fix)
-- Issues mentioned by 2 models → **MEDIUM CONFIDENCE** (likely fix)
-- Issues mentioned by only 1 model → **LOW CONFIDENCE** (investigate)
-
-**Create a consensus summary:**
+## Step 5: Synthesize Consensus
 
 ```markdown
 ## Consensus Summary
 
 ### HIGH CONFIDENCE (All 3 agree)
-| Issue | Qwen | DeepSeek | GLM |
-|-------|------|----------|-----|
-| [issue] | ✅ | ✅ | ✅ |
+| Issue | Model 1 | Model 2 | Model 3 |
+|-------|---------|---------|---------|
+| [issue] | found | found | found |
 
 ### MEDIUM CONFIDENCE (2/3 agree)
-| Issue | Qwen | DeepSeek | GLM |
-|-------|------|----------|-----|
-| [issue] | ✅ | ✅ | ❌ |
+| Issue | Found By | Not Found By |
+|-------|----------|--------------|
 
 ### LOW CONFIDENCE (Only 1 found)
 | Issue | Found By | Action |
 |-------|----------|--------|
-| [issue] | [model] | Investigate |
 
 ### Grade Consensus
-| Model | Grade | Risk |
-|-------|-------|------|
-| Qwen | [A-F] | [level] |
-| DeepSeek | [A-F] | [level] |
-| GLM | [A-F] | [level] |
-| **AVERAGE** | **[X]** | **[level]** |
-
-### Final Verdict
-[APPROVE / REQUEST_CHANGES based on consensus]
+| Model | Grade | Risk | Verdict |
+|-------|-------|------|---------|
+| [model1] | [A-F] | [level] | [verdict] |
+| [model2] | [A-F] | [level] | [verdict] |
+| [model3] | [A-F] | [level] | [verdict] |
+| **CONSENSUS** | **[avg]** | **[level]** | **[verdict]** |
 ```
 
 ---
@@ -201,20 +184,21 @@ After showing individual results, analyze and synthesize:
 ## Usage
 
 ```bash
-# Run consensus review
-/kln:quickCompare security audit focusing on memory safety
+# Default models (qwen, kimi, glm)
+/kln:quickCompare review recent changes
 
-# Specific focus areas
-/kln:quickCompare check buffer handling and error paths
-/kln:quickCompare architecture review before refactor
-/kln:quickCompare pre-release compliance check
+# Custom model selection
+/kln:quickCompare qwen,deepseek,glm security audit
+
+# Different combination
+/kln:quickCompare kimi,minimax,hermes check architecture patterns
 ```
 
 ---
 
 ## Benefits
 
-1. **Speed**: All 3 run in parallel (same total time as 1 review)
-2. **Coverage**: Different models catch different issues
+1. **Speed**: All 3 run in parallel (~60s total)
+2. **Coverage**: Same checklist, different model perspectives
 3. **Confidence**: Consensus = higher confidence in findings
-4. **No blind spots**: What one model misses, another catches
+4. **Flexibility**: Choose which 3 models to compare
