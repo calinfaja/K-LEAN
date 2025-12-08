@@ -162,3 +162,11 @@ echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "Results saved to: $OUTPUT_DIR/consensus-*-$TIME_STAMP.json"
 echo "═══════════════════════════════════════════════════════════════"
+
+# Auto-extract facts from all reviews (Tier 1)
+# Combine all responses for extraction
+ALL_CONTENT=""
+for f in "$OUTPUT_DIR"/consensus-*-$TIME_STAMP.json; do
+    [ -f "$f" ] && ALL_CONTENT="$ALL_CONTENT\n$(get_response "$f")"
+done
+[ -n "$ALL_CONTENT" ] && ~/.claude/scripts/fact-extract.sh "$ALL_CONTENT" "review" "$FOCUS" "$WORK_DIR"

@@ -231,5 +231,13 @@ echo "  $OUTPUT_KIMI"
 echo "  $OUTPUT_GLM"
 echo "═══════════════════════════════════════════════════════════════════"
 
+# Auto-extract facts from all reviews (Tier 1)
+# Combine all review outputs for extraction
+ALL_CONTENT=""
+[ -f "$OUTPUT_QWEN" ] && ALL_CONTENT="$ALL_CONTENT\n$(cat "$OUTPUT_QWEN")"
+[ -f "$OUTPUT_KIMI" ] && ALL_CONTENT="$ALL_CONTENT\n$(cat "$OUTPUT_KIMI")"
+[ -f "$OUTPUT_GLM" ] && ALL_CONTENT="$ALL_CONTENT\n$(cat "$OUTPUT_GLM")"
+[ -n "$ALL_CONTENT" ] && ~/.claude/scripts/fact-extract.sh "$ALL_CONTENT" "review" "$PROMPT" "$WORK_DIR"
+
 # Cleanup temp configs
 rm -rf "$CONFIG_DIR_BASE"

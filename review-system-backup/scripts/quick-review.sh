@@ -115,3 +115,6 @@ echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
+
+# Auto-extract facts from review (Tier 1)
+~/.claude/scripts/fact-extract.sh "$CONTENT" "review" "$FOCUS" "$WORK_DIR"
