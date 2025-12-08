@@ -23,6 +23,9 @@ fi
 # Get working directory
 WORK_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
+# Auto-initialize knowledge-db for this project (runs once, silent if exists)
+~/.claude/scripts/knowledge-init.sh "$WORK_DIR" > /dev/null 2>&1 &
+
 # Helper function to block prompt and show message
 block_with_message() {
     local msg="$1"
