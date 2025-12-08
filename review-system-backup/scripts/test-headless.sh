@@ -4,15 +4,15 @@
 #
 # Usage: test-headless.sh <model> "<prompt>"
 #
-# Models: coding-qwen, architecture-deepseek, tools-glm,
-#         research-minimax, agent-kimi, scripting-hermes
+# Models: qwen3-coder, deepseek-v3-thinking, glm-4.6-thinking,
+#         minimax-m2, kimi-k2-thinking, hermes-4-70b
 #
 # Examples:
-#   test-headless.sh coding-qwen "List files in current directory"
-#   test-headless.sh agent-kimi "What is 2+2?"
+#   test-headless.sh qwen3-coder "List files in current directory"
+#   test-headless.sh kimi-k2-thinking "What is 2+2?"
 #
 
-MODEL="${1:-coding-qwen}"
+MODEL="${1:-qwen3-coder}"
 PROMPT="${2:-Say hello and confirm which model you are}"
 
 echo "═══════════════════════════════════════════════════════════════"
@@ -63,8 +63,8 @@ if ! echo "$HEALTH_RESP" | jq -e '.choices[0]' > /dev/null 2>&1; then
     echo "❌ Model '$MODEL' is not healthy"
     echo "Response: $HEALTH_RESP"
     echo ""
-    echo "Available models: coding-qwen, architecture-deepseek, tools-glm,"
-    echo "                  research-minimax, agent-kimi, scripting-hermes"
+    echo "Available models: qwen3-coder, deepseek-v3-thinking, glm-4.6-thinking,"
+    echo "                  minimax-m2, kimi-k2-thinking, hermes-4-70b"
     exit 1
 fi
 echo "✅ Model '$MODEL' is healthy"

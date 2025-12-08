@@ -5,20 +5,20 @@
 set -e
 
 LITELLM_URL="${LITELLM_URL:-http://localhost:4000}"
-MODEL="${1:-coding-qwen}"
+MODEL="${1:-qwen3-coder}"
 SYSTEM_PROMPT="${2:-}"
 USER_PROMPT="${3:-}"
 
 # Model mapping
 case "$MODEL" in
   qwen|coding)
-    MODEL_ID="coding-qwen"
+    MODEL_ID="qwen3-coder"
     ;;
   deepseek|architecture)
-    MODEL_ID="architecture-deepseek"
+    MODEL_ID="deepseek-v3-thinking"
     ;;
   glm|tools|standards)
-    MODEL_ID="tools-glm"
+    MODEL_ID="glm-4.6-thinking"
     ;;
   *)
     MODEL_ID="$MODEL"

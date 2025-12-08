@@ -18,9 +18,9 @@ Returns **graded assessment** with risk levels and actionable improvements.
 
 | Alias | LiteLLM Model | Specialty | Best For |
 |-------|---------------|-----------|----------|
-| `qwen` | `coding-qwen` | Code quality, bugs | Memory safety, logic errors, buffer overflows |
-| `deepseek` | `architecture-deepseek` | Architecture | Module coupling, design patterns, abstraction |
-| `glm` | `tools-glm` | Standards | MISRA-C, coding standards, compliance |
+| `qwen` | `qwen3-coder` | Code quality, bugs | Memory safety, logic errors, buffer overflows |
+| `deepseek` | `deepseek-v3-thinking` | Architecture | Module coupling, design patterns, abstraction |
+| `glm` | `glm-4.6-thinking` | Standards | MISRA-C, coding standards, compliance |
 
 **Default:** `qwen` if no model specified
 
@@ -76,7 +76,7 @@ Look for `review-*.md` files that might contain relevant lessons.
 
 ### System Prompt (Model-Specific)
 
-**For QWEN (coding-qwen):**
+**For QWEN (qwen3-coder):**
 ```
 You are an expert embedded systems code reviewer for Zephyr RTOS / nRF5340.
 
@@ -99,7 +99,7 @@ EMBEDDED PRINCIPLES:
 - Hardware can fail - code defensively
 ```
 
-**For DEEPSEEK (architecture-deepseek):**
+**For DEEPSEEK (deepseek-v3-thinking):**
 ```
 You are an expert firmware architect for Zephyr RTOS / nRF5340.
 
@@ -120,7 +120,7 @@ ARCHITECTURE PRINCIPLES:
 - Event-driven where appropriate
 ```
 
-**For GLM (tools-glm):**
+**For GLM (glm-4.6-thinking):**
 ```
 You are an expert compliance reviewer for safety-critical embedded systems.
 
@@ -218,7 +218,7 @@ Execute the review via curl:
 
 ```bash
 # Set model based on selection (qwen/deepseek/glm)
-MODEL="coding-qwen"  # or architecture-deepseek or tools-glm
+MODEL="qwen3-coder"  # or deepseek-v3-thinking or glm-4.6-thinking
 
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \

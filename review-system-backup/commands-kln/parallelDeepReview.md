@@ -20,15 +20,15 @@ Each instance has **FULL TOOL ACCESS** and can investigate independently.
 ┌─────────────────────────────────────────────────────────────────────┐
 │  /kln:parallelDeepReview "security audit"                            │
 │       │                                                             │
-│       ├──► Headless #1: coding-qwen ───────────┐                   │
+│       ├──► Headless #1: qwen3-coder ───────────┐                   │
 │       │    • Full tool access                   │                   │
 │       │    • Investigates bugs, memory          │   PARALLEL       │
 │       │                                         │   EXECUTION      │
-│       ├──► Headless #2: architecture-deepseek ──┤   (2-5 min)      │
+│       ├──► Headless #2: deepseek-v3-thinking ──┤   (2-5 min)      │
 │       │    • Full tool access                   │                   │
 │       │    • Investigates architecture          │                   │
 │       │                                         │                   │
-│       └──► Headless #3: tools-glm ─────────────┘                   │
+│       └──► Headless #3: glm-4.6-thinking ─────────────┘                   │
 │            • Full tool access                                       │
 │            • Investigates MISRA/standards                           │
 │                                                                     │

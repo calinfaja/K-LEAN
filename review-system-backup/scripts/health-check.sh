@@ -15,7 +15,7 @@ QUICK_MODE=false
 [ "$1" = "--quick" ] && QUICK_MODE=true
 
 # All available models
-MODELS="coding-qwen architecture-deepseek tools-glm research-minimax agent-kimi scripting-hermes"
+MODELS="qwen3-coder deepseek-v3-thinking glm-4.6-thinking minimax-m2 kimi-k2-thinking hermes-4-70b"
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "  MODEL HEALTH CHECK"

@@ -31,7 +31,7 @@ echo "════════════════════════�
 
 # Check which models are healthy
 HEALTHY_MODELS=""
-for model in coding-qwen architecture-deepseek tools-glm; do
+for model in qwen3-coder deepseek-v3-thinking glm-4.6-thinking; do
     if check_model_health "$model"; then
         echo "✓ $model - healthy"
         HEALTHY_MODELS="$HEALTHY_MODELS $model"
@@ -87,31 +87,31 @@ fi
 # Launch healthy models in parallel
 PIDS=""
 
-if echo "$HEALTHY_MODELS" | grep -q "coding-qwen"; then
+if echo "$HEALTHY_MODELS" | grep -q "qwen3-coder"; then
     SYSTEM_QWEN="Code reviewer: bugs, memory safety.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 90 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"coding-qwen\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_QWEN" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"qwen3-coder\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_QWEN" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" &
     PID_QWEN=$!
     PIDS="$PIDS $PID_QWEN"
 fi
 
-if echo "$HEALTHY_MODELS" | grep -q "architecture-deepseek"; then
+if echo "$HEALTHY_MODELS" | grep -q "deepseek-v3-thinking"; then
     SYSTEM_DS="Architect: design, coupling.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"architecture-deepseek\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_DS" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"deepseek-v3-thinking\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_DS" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" &
     PID_DEEPSEEK=$!
     PIDS="$PIDS $PID_DEEPSEEK"
 fi
 
-if echo "$HEALTHY_MODELS" | grep -q "tools-glm"; then
+if echo "$HEALTHY_MODELS" | grep -q "glm-4.6-thinking"; then
     SYSTEM_GLM="Compliance: MISRA, standards.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"tools-glm\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_GLM" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"glm-4.6-thinking\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_GLM" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
       > "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" &
     PID_GLM=$!
     PIDS="$PIDS $PID_GLM"

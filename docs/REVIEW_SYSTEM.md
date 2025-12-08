@@ -103,17 +103,17 @@ alias use-native='cp ~/.claude/settings-native.json ~/.claude/settings.json'
 ### ~/.config/litellm/nanogpt.yaml (LiteLLM Config)
 ```yaml
 model_list:
-  - model_name: coding-qwen
+  - model_name: qwen3-coder
     litellm_params:
       model: openai/qwen-coder
       api_base: https://api.nano-gpt.com/v1
 
-  - model_name: architecture-deepseek
+  - model_name: deepseek-v3-thinking
     litellm_params:
       model: openai/deepseek-chat
       api_base: https://api.nano-gpt.com/v1
 
-  - model_name: tools-glm
+  - model_name: glm-4.6-thinking
     litellm_params:
       model: openai/glm-4-flash
       api_base: https://api.nano-gpt.com/v1
@@ -133,7 +133,7 @@ model_list:
 **Purpose:** Run 3 headless Claude instances with different LiteLLM models
 **Location:** `~/.claude/scripts/parallel-deep-review.sh`
 **Usage:** `./parallel-deep-review.sh "<focus>" <working_dir>`
-**Models:** coding-qwen, agent-kimi, tools-glm (all reliable for tool use)
+**Models:** qwen3-coder, kimi-k2-thinking, glm-4.6-thinking (all reliable for tool use)
 **Features:** Full tool access (Read, Grep, Bash, Serena)
 
 ### test-headless.sh
@@ -192,17 +192,17 @@ model_list:
 
 | Model | Alias | Specialty | Speed | Tool Support |
 |-------|-------|-----------|-------|--------------|
-| coding-qwen | qwen | Code quality, bugs | ~11s | ✅ Reliable |
-| agent-kimi | kimi | Architecture, planning | ~5min | ✅ Reliable |
-| tools-glm | glm | MISRA, standards | ~19s | ✅ Reliable |
+| qwen3-coder | qwen | Code quality, bugs | ~11s | ✅ Reliable |
+| kimi-k2-thinking | kimi | Architecture, planning | ~5min | ✅ Reliable |
+| glm-4.6-thinking | glm | MISRA, standards | ~19s | ✅ Reliable |
 
 ### Quick Reviews Only (No Tool Access)
 
 | Model | Alias | Specialty | Issue |
 |-------|-------|-----------|-------|
-| architecture-deepseek | deepseek | Design, architecture | ⚠️ Empty output with tools |
-| research-minimax | minimax | Research, large context | ⚠️ Frequent timeouts (~5min) |
-| scripting-hermes | hermes | Scripting, automation | ⚠️ May hallucinate |
+| deepseek-v3-thinking | deepseek | Design, architecture | ⚠️ Empty output with tools |
+| minimax-m2 | minimax | Research, large context | ⚠️ Frequent timeouts (~5min) |
+| hermes-4-70b | hermes | Scripting, automation | ⚠️ May hallucinate |
 
 **Recommendation:** Use `qwen`, `kimi`, `glm` for deep reviews with tool access. Use all 6 for quick curl-based reviews.
 

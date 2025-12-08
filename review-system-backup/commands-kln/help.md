@@ -53,16 +53,16 @@ Here is a complete list of all custom `/kln:` commands in your review & knowledg
 ### Reliable for Deep Reviews (Tool Use)
 | Alias | LiteLLM Model | Specialty |
 |-------|---------------|-----------|
-| `qwen` | `coding-qwen` | Code quality, bugs, memory safety |
-| `kimi` | `agent-kimi` | Architecture, planning |
-| `glm` | `tools-glm` | Standards compliance, MISRA |
+| `qwen` | `qwen3-coder` | Code quality, bugs, memory safety |
+| `kimi` | `kimi-k2-thinking` | Architecture, planning |
+| `glm` | `glm-4.6-thinking` | Standards compliance, MISRA |
 
 ### Quick Reviews Only (No Tools)
 | Alias | LiteLLM Model | Notes |
 |-------|---------------|-------|
-| `deepseek` | `architecture-deepseek` | ⚠️ Empty output in tool mode |
-| `minimax` | `research-minimax` | ⚠️ Timeouts common |
-| `hermes` | `scripting-hermes` | ⚠️ May hallucinate |
+| `deepseek` | `deepseek-v3-thinking` | ⚠️ Empty output in tool mode |
+| `minimax` | `minimax-m2` | ⚠️ Timeouts common |
+| `hermes` | `hermes-4-70b` | ⚠️ May hallucinate |
 
 ---
 

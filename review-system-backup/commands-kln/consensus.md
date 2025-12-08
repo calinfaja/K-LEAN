@@ -20,13 +20,13 @@ Compares their findings to identify consensus and disagreements.
 ┌─────────────────────────────────────────────────────────────────────┐
 │  /kln:consensus "security audit"                                     │
 │       │                                                             │
-│       ├──► coding-qwen ────────┐                                   │
+│       ├──► qwen3-coder ────────┐                                   │
 │       │    (bugs, memory)      │                                   │
 │       │                        │                                   │
-│       ├──► architecture-deepseek ──► PARALLEL                      │
+│       ├──► deepseek-v3-thinking ──► PARALLEL                      │
 │       │    (design, coupling)  │     EXECUTION                     │
 │       │                        │                                   │
-│       └──► tools-glm ──────────┘                                   │
+│       └──► glm-4.6-thinking ──────────┘                                   │
 │            (MISRA, standards)                                       │
 │                                                                     │
 │       All 3 return simultaneously                                   │
@@ -83,7 +83,7 @@ mkdir -p /tmp/claude-reviews
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d "{
-    \"model\": \"coding-qwen\",
+    \"model\": \"qwen3-coder\",
     \"messages\": [
       {\"role\": \"system\", \"content\": \"You are a code reviewer focused on bugs and memory safety.\"},
       {\"role\": \"user\", \"content\": $(echo "$REVIEW_PROMPT" | jq -Rs .)}
@@ -97,7 +97,7 @@ PID_QWEN=$!
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d "{
-    \"model\": \"architecture-deepseek\",
+    \"model\": \"deepseek-v3-thinking\",
     \"messages\": [
       {\"role\": \"system\", \"content\": \"You are an architect focused on design and coupling.\"},
       {\"role\": \"user\", \"content\": $(echo "$REVIEW_PROMPT" | jq -Rs .)}
@@ -111,7 +111,7 @@ PID_DEEPSEEK=$!
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d "{
-    \"model\": \"tools-glm\",
+    \"model\": \"glm-4.6-thinking\",
     \"messages\": [
       {\"role\": \"system\", \"content\": \"You are a compliance reviewer focused on MISRA and standards.\"},
       {\"role\": \"user\", \"content\": $(echo "$REVIEW_PROMPT" | jq -Rs .)}

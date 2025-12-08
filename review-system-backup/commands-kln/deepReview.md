@@ -56,9 +56,9 @@ The reviewing model can read files, grep code, check git, access Serena - it INV
 
 | Alias | LiteLLM Model | Specialty |
 |-------|---------------|-----------|
-| `qwen` | coding-qwen | Code quality, bugs, memory safety |
-| `deepseek` | architecture-deepseek | Architecture, design, coupling |
-| `glm` | tools-glm | MISRA-C, standards, compliance |
+| `qwen` | qwen3-coder | Code quality, bugs, memory safety |
+| `deepseek` | deepseek-v3-thinking | Architecture, design, coupling |
+| `glm` | glm-4.6-thinking | MISRA-C, standards, compliance |
 
 ---
 
@@ -161,7 +161,7 @@ This means it can **VERIFY** issues, not just suspect them.
 ═══════════════════════════════════════════════════════════════
 DEEP REVIEW - Tier 3 (Full Tool Access)
 ═══════════════════════════════════════════════════════════════
-Model: coding-qwen (code quality)
+Model: qwen3-coder (code quality)
 Directory: /path/to/project
 Prompt: security audit
 ═══════════════════════════════════════════════════════════════

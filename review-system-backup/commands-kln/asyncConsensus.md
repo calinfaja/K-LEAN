@@ -44,19 +44,19 @@ mkdir -p /tmp/claude-reviews
 
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"coding-qwen","messages":[{"role":"system","content":"Code reviewer for bugs."},{"role":"user","content":"Review for: '$FOCUS'\n\n'$DIFF'"}],"max_tokens":1500}' \
+  -d '{"model":"qwen3-coder","messages":[{"role":"system","content":"Code reviewer for bugs."},{"role":"user","content":"Review for: '$FOCUS'\n\n'$DIFF'"}],"max_tokens":1500}' \
   > /tmp/claude-reviews/consensus_qwen.json &
 
 # DEEPSEEK
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"architecture-deepseek","messages":[{"role":"system","content":"Architecture reviewer."},{"role":"user","content":"Review for: '$FOCUS'\n\n'$DIFF'"}],"max_tokens":1500}' \
+  -d '{"model":"deepseek-v3-thinking","messages":[{"role":"system","content":"Architecture reviewer."},{"role":"user","content":"Review for: '$FOCUS'\n\n'$DIFF'"}],"max_tokens":1500}' \
   > /tmp/claude-reviews/consensus_deepseek.json &
 
 # GLM
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"tools-glm","messages":[{"role":"system","content":"Standards reviewer."},{"role":"user","content":"Review for: '$FOCUS'\n\n'$DIFF'"}],"max_tokens":1500}' \
+  -d '{"model":"glm-4.6-thinking","messages":[{"role":"system","content":"Standards reviewer."},{"role":"user","content":"Review for: '$FOCUS'\n\n'$DIFF'"}],"max_tokens":1500}' \
   > /tmp/claude-reviews/consensus_glm.json &
 
 wait

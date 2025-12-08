@@ -48,7 +48,7 @@ echo "=== PROJECT CONFIG ===" && cat prj.conf 2>/dev/null | head -30
 
 5. Build full context and call LiteLLM:
 ```bash
-MODEL="coding-qwen"  # based on selection
+MODEL="qwen3-coder"  # based on selection
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d '{

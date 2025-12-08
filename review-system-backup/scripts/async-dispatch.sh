@@ -38,7 +38,7 @@ check_proxy_health() {
 # Full model health check
 check_all_models() {
     local results=""
-    for model in coding-qwen architecture-deepseek tools-glm research-minimax agent-kimi scripting-hermes; do
+    for model in qwen3-coder deepseek-v3-thinking glm-4.6-thinking minimax-m2 kimi-k2-thinking hermes-4-70b; do
         local resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
             -H "Content-Type: application/json" \
             -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
