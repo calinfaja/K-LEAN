@@ -1,16 +1,47 @@
 ---
-name: parallelDeepReview
-description: "Run ALL 3 deep reviews (qwen, deepseek, glm) in PARALLEL with FULL TOOL ACCESS"
+name: deepAudit
+description: "Run 3 models in PARALLEL with FULL TOOL ACCESS - comprehensive audit"
 allowed-tools: Bash
-argument-hint: "[focus-prompt] — Spawns 3 headless instances simultaneously"
+argument-hint: "[models] [focus] — default: qwen,kimi,glm or specify 3 models"
 ---
 
-# Parallel Deep Review - 3 Models, Full Tool Access, Simultaneous
+# Deep Audit - 3 Models in Parallel (CLI with Tools)
 
-Spawns **3 headless Claude instances** running different LiteLLM models **in parallel**.
+Spawns **3 headless Claude instances** running different models **in parallel**.
 Each instance has **FULL TOOL ACCESS** and can investigate independently.
 
 **Arguments:** $ARGUMENTS
+
+---
+
+## Quick vs Deep Comparison
+
+| Command | Models | Method | Tools | Time |
+|---------|--------|--------|-------|------|
+| `/kln:quickReview` | 1 | API | None | ~30s |
+| `/kln:quickCompare` | 3 | API | None | ~60s |
+| `/kln:deepInspect` | 1 | CLI | Full | ~3min |
+| **`/kln:deepAudit`** | **3** | **CLI** | **Full** | **~5min** |
+
+---
+
+## Model Selection
+
+**Default models:** qwen, kimi, glm
+
+**All available:**
+| Alias | Model |
+|-------|-------|
+| `qwen` | qwen3-coder |
+| `deepseek` | deepseek-v3-thinking |
+| `kimi` | kimi-k2-thinking |
+| `glm` | glm-4.6-thinking |
+| `minimax` | minimax-m2 |
+| `hermes` | hermes-4-70b |
+
+**Custom selection:** Specify 3 models comma-separated before focus:
+- `qwen,deepseek,glm security audit`
+- `kimi,hermes,minimax architecture review`
 
 ---
 
@@ -18,91 +49,125 @@ Each instance has **FULL TOOL ACCESS** and can investigate independently.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  /kln:deepAudit "security audit"                            │
+│  /kln:deepAudit "security audit"                                    │
 │       │                                                             │
-│       ├──► Headless #1: qwen3-coder ───────────┐                   │
-│       │    • Full tool access                   │                   │
-│       │    • Investigates bugs, memory          │   PARALLEL       │
-│       │                                         │   EXECUTION      │
-│       ├──► Headless #2: deepseek-v3-thinking ──┤   (2-5 min)      │
-│       │    • Full tool access                   │                   │
-│       │    • Investigates architecture          │                   │
-│       │                                         │                   │
-│       └──► Headless #3: glm-4.6-thinking ─────────────┘                   │
-│            • Full tool access                                       │
-│            • Investigates MISRA/standards                           │
+│       ├──► Headless #1 (qwen) ───────┐                              │
+│       │    • Full tool access         │                              │
+│       │                               │   PARALLEL                   │
+│       ├──► Headless #2 (kimi) ────────┤   EXECUTION                  │
+│       │    • Full tool access         │   (3-5 min)                  │
+│       │                               │                              │
+│       └──► Headless #3 (glm) ─────────┘                              │
+│            • Full tool access                                        │
 │                                                                     │
-│       All 3 complete → Compare findings                            │
-│                                                                     │
+│       All 3 complete → Compare VERIFIED findings                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Comparison with Other Commands
+## Step 1: Parse Arguments
 
-| Command | Models | Parallel | Tool Access | Time |
-|---------|--------|----------|-------------|------|
-| `/kln:quickReview` | 1 | N/A | ❌ None | 30s |
-| `/kln:quickConsult` | 1 | N/A | ❌ None | 1min |
-| `/kln:deepInspect` | 1 | N/A | ✅ Full | 3min |
-| `/kln:quickCompare` | 3 | ✅ Yes | ❌ None | 1min |
-| **`/kln:deepAudit`** | **3** | **✅ Yes** | **✅ Full** | **5min** |
+From $ARGUMENTS:
+- If first word contains commas, use those 3 models
+- Otherwise use default: qwen, kimi, glm
+- **Focus**: Everything after model selection
 
 ---
 
-## Warning
-
-This command:
-- Spawns 3 headless Claude processes
-- Each runs for 2-5 minutes
-- Uses significant system resources
-- Temporarily modifies settings (restored automatically)
-
-**Use for:** Pre-release audits, major merges, security reviews
-
----
-
-## Instructions
-
-### Step 1: Inform User
+## Step 2: Inform User
 
 ```
-⚠️  PARALLEL DEEP REVIEW - Maximum Coverage
+⚠️  DEEP AUDIT - Maximum Coverage
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This will spawn 3 headless Claude instances in parallel:
-  • QWEN: Code quality, bugs, memory safety
-  • DEEPSEEK: Architecture, design, coupling
-  • GLM: Standards, MISRA compliance
-
+Spawning 3 headless Claude instances in parallel.
 Each has FULL TOOL ACCESS to investigate the codebase.
-Expected time: 3-5 minutes (all run simultaneously)
 
-Focus: $ARGUMENTS
+Models: [model1], [model2], [model3]
+Focus: [user's focus]
+
+Expected time: 3-5 minutes (all run simultaneously)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-### Step 2: Execute Parallel Review
+---
+
+## Step 3: Execute Parallel Deep Review
 
 Run the parallel review script:
 
 ```bash
-/home/calin/.claude/scripts/parallel-deep-review.sh "$ARGUMENTS" "$(pwd)"
+~/.claude/scripts/parallel-deep-review.sh "[FOCUS]" "$(pwd)" "[MODEL1]" "[MODEL2]" "[MODEL3]"
 ```
 
-### Step 3: Display Results
+Each headless instance receives the unified system prompt with full tool access.
 
-The script outputs all 3 reviews. After displaying, synthesize:
+---
+
+## System Prompt (UNIFIED - Same for all models)
+
+```
+You are an expert embedded systems code reviewer with FULL TOOL ACCESS.
+
+INVESTIGATE the codebase thoroughly. Use tools to VERIFY issues, not just suspect them.
+
+REVIEW ALL of these areas, with extra attention to the user's focus:
+
+## CORRECTNESS
+- Logic errors, edge cases, off-by-one
+- Algorithm correctness, state management
+- Variable initialization
+
+## MEMORY SAFETY
+- Buffer overflows, null pointer dereferences
+- Memory leaks (especially error paths)
+- Stack usage, integer overflow/underflow
+
+## ERROR HANDLING
+- Input validation at trust boundaries
+- Error propagation and resource cleanup
+- Defensive programming patterns
+
+## CONCURRENCY
+- Race conditions, thread safety
+- ISR constraints (fast, non-blocking)
+- Shared data protection, volatile usage
+
+## ARCHITECTURE
+- Module coupling and cohesion
+- Abstraction quality, API consistency
+- Testability, maintainability
+
+## HARDWARE (if applicable)
+- I/O state correctness, timing
+- Volatile usage for registers
+
+## STANDARDS
+- Coding style consistency
+- MISRA-C guidelines (where applicable)
+
+INVESTIGATION PROCESS:
+1. Read relevant files to understand context
+2. Search for patterns related to the focus area
+3. Verify issues with evidence (file:line references)
+4. Provide concrete fixes
+```
+
+---
+
+## Step 4: Display Results & Synthesize
+
+After all 3 complete, show individual results then synthesize:
 
 ```markdown
-## Parallel Deep Review Summary
+## Deep Audit Summary
 
 ### Reviewer Verdicts
-| Reviewer | Grade | Risk | Verdict |
-|----------|-------|------|---------|
-| QWEN | [A-F] | [level] | [APPROVE/REQUEST_CHANGES] |
-| DEEPSEEK | [A-F] | [level] | [APPROVE/REQUEST_CHANGES] |
-| GLM | [A-F] | [level] | [APPROVE/REQUEST_CHANGES] |
+| Model | Grade | Risk | Verdict |
+|-------|-------|------|---------|
+| [model1] | [A-F] | [level] | [verdict] |
+| [model2] | [A-F] | [level] | [verdict] |
+| [model3] | [A-F] | [level] | [verdict] |
 
 ### Consensus Analysis
 - **Unanimous Issues** (all 3 found): [list]
@@ -115,41 +180,33 @@ Based on consensus: [APPROVE / REQUEST_CHANGES / NEEDS_DISCUSSION]
 
 ---
 
-## Usage Examples
+## Usage
 
 ```bash
-# Comprehensive pre-release audit
-/kln:deepAudit Complete security and quality audit before v1.0 release
+# Default models (qwen, kimi, glm)
+/kln:deepAudit pre-release security audit
 
-# Major refactor review
-/kln:deepAudit Review the BLE stack refactor for issues
+# Custom models
+/kln:deepAudit qwen,deepseek,glm review BLE stack refactor
 
-# Architecture validation
-/kln:deepAudit Validate the new module structure
-```
-
----
-
-## From Terminal
-
-```bash
-# Run directly from bash
-~/.claude/scripts/parallel-deep-review.sh "security audit" /path/to/project
-
-# Or use the alias (after sourcing bashrc)
-parallel-review "security audit"
+# Architecture focus
+/kln:deepAudit kimi,hermes,minimax validate module structure
 ```
 
 ---
 
 ## Output Files
 
-Results are saved to:
-- `/tmp/claude-reviews/review-qwen-[timestamp].txt`
-- `/tmp/claude-reviews/review-deepseek-[timestamp].txt`
-- `/tmp/claude-reviews/review-glm-[timestamp].txt`
+Results saved to:
+- `/tmp/claude-reviews/review-[model1]-[timestamp].txt`
+- `/tmp/claude-reviews/review-[model2]-[timestamp].txt`
+- `/tmp/claude-reviews/review-[model3]-[timestamp].txt`
 
-Compare these files for detailed analysis:
-```bash
-ls -la /tmp/claude-reviews/
-```
+---
+
+## Notes
+
+- **Duration**: 3-5 minutes (all run simultaneously)
+- **Resource usage**: 3 headless Claude processes
+- **Use case**: Pre-release audits, major refactors, security reviews
+- **Settings**: Automatically restored after review

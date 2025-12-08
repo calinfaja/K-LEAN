@@ -1,51 +1,60 @@
 ---
-name: secondOpinion
-description: Get a second opinion from local LLM (qwen/deepseek/glm) with FULL context from current session
+name: quickConsult
+description: Get a second opinion from local LLM with full session context
 allowed-tools: Read, Bash, Grep, Glob, mcp__serena__list_memories, mcp__serena__read_memory
-argument-hint: "[model] [question] — models: qwen (code), deepseek (architecture), glm (standards)"
+argument-hint: "[model] [question] — models: qwen, deepseek, kimi, glm, minimax, hermes"
 ---
 
-# Second Opinion from Local LLM
+# Quick Consult - Second Opinion (API)
 
-Get a **comprehensive second opinion** from a local LLM model with full session context.
-Uses LiteLLM directly (not through Claude Code) so your primary session stays on native Claude.
+Get an **independent second opinion** from a local LLM model.
+Different from review - this is for **challenging decisions and approaches**.
 
 **Arguments:** $ARGUMENTS
 
 ---
 
-## Why This Exists
+## Review vs Consult
 
-- **Primary work:** Native Claude (Opus/Sonnet) - full power, MCP access
-- **Second opinion:** Local LLM via LiteLLM - independent review with full context
+| Command | Purpose | Output |
+|---------|---------|--------|
+| `/kln:quickReview` | Find issues in code | Grade, Issues, Risk |
+| **`/kln:quickConsult`** | **Challenge decisions** | **Verdict, Alternatives** |
 
 ---
 
 ## Model Selection
 
-| Alias | Model | Best For |
-|-------|-------|----------|
-| `qwen` | qwen3-coder | Code quality, bugs, memory safety |
-| `deepseek` | deepseek-v3-thinking | Architecture, design decisions |
-| `glm` | glm-4.6-thinking | Standards, MISRA, compliance |
+| Alias | Model |
+|-------|-------|
+| `qwen` | qwen3-coder |
+| `deepseek` | deepseek-v3-thinking |
+| `kimi` | kimi-k2-thinking |
+| `glm` | glm-4.6-thinking |
+| `minimax` | minimax-m2 |
+| `hermes` | hermes-4-70b |
 
-**Default:** `qwen`
+**Default:** `qwen` if no model specified
 
 ---
 
 ## Step 1: Parse Arguments
 
 From $ARGUMENTS:
-- **Model**: First word if `qwen`/`deepseek`/`glm`, else default to `qwen`
-- **Question**: The rest (what you want reviewed/answered)
+- **Model**: First word if it matches a model alias, else default to `qwen`
+- **Question**: Everything after the model
+
+Examples:
+- `qwen Is this the right approach for BLE pairing?`
+- `deepseek Should I use static allocation here?`
+- `Is this architecture scalable?` → model=qwen (default)
 
 ---
 
 ## Step 2: Gather COMPREHENSIVE Context
 
-**This is the key difference from /kln:quickReview - we gather EVERYTHING relevant.**
+This command gathers MORE context than quickReview:
 
-### 2.1 Git Context
 ```bash
 echo "=== GIT DIFF (last 3 commits) ==="
 git diff HEAD~3..HEAD 2>/dev/null | head -300
@@ -58,139 +67,56 @@ git log --oneline -5 2>/dev/null
 
 echo "=== UNCOMMITTED CHANGES ==="
 git diff --stat 2>/dev/null | head -20
-```
 
-### 2.2 Current Working Files
-Identify files the user is likely working on:
-```bash
-echo "=== RECENTLY MODIFIED FILES ==="
-find . -name "*.c" -o -name "*.h" -mmin -60 2>/dev/null | head -10
-```
-
-Read the **most recently changed files** (limit to avoid token overflow):
-- Read each file (max 3 files, max 200 lines each)
-- Focus on .c, .h files in embedded projects
-
-### 2.3 Project Configuration
-```bash
 echo "=== PROJECT CONFIG ==="
 cat prj.conf 2>/dev/null | head -50
-echo "=== BOARD CONFIG ==="
-grep "BOARD" prj.conf CMakeLists.txt 2>/dev/null | head -5
 ```
 
-### 2.4 Serena Memories (Lessons Learned)
-Check for relevant memories:
+Also read recently modified files (max 3 files, max 200 lines each).
+
+Check Serena memories for relevant past decisions:
 ```
 mcp__serena__list_memories
 ```
 
-If there are `review-*.md` files, read the most recent one for context.
-
-### 2.5 Session Context
-The user's **question** in $ARGUMENTS tells you what they're trying to achieve.
-Include this prominently in the context.
-
 ---
 
-## Step 3: Build the Second Opinion Request
+## Step 3: Build Consult Request
 
-### System Prompt (Model-Specific)
+### System Prompt (UNIFIED - Same for ALL models)
 
-**QWEN (qwen3-coder):**
 ```
-You are an independent code reviewer providing a SECOND OPINION on embedded systems code.
-You are reviewing work done by another AI (Claude). Be constructive but thorough.
-
-CONTEXT: Zephyr RTOS / nRF5340 embedded development
+You are an independent embedded systems expert providing a SECOND OPINION.
+You are reviewing work and decisions made by another engineer.
 
 YOUR ROLE:
-- Catch issues the primary AI might have missed
-- Challenge assumptions
-- Verify memory safety, error handling, edge cases
-- Provide specific, actionable feedback
+- Evaluate the approach/decision objectively
+- Challenge assumptions - what might be wrong?
+- Consider alternatives that may have been missed
+- Identify risks not yet considered
+- Be honest, not just agreeable
 
-OUTPUT FORMAT:
-## Second Opinion Summary
-[2-3 sentences: Do you agree with the approach? Major concerns?]
+ANALYSIS AREAS:
+## CORRECTNESS
+- Is the logic sound? Edge cases covered?
+- Will this work under all conditions?
 
-## Agreement Points
-- [What looks good/correct]
+## TRADE-OFFS
+- What are the pros/cons of this approach?
+- What alternatives exist?
 
-## Concerns & Challenges
-| Severity | Concern | Why It Matters | Suggestion |
-|----------|---------|----------------|------------|
-| HIGH/MED/LOW | [issue] | [impact] | [fix] |
+## RISKS
+- What could go wrong?
+- What assumptions might be invalid?
 
-## Risk Assessment
-- Overall Risk: [CRITICAL/HIGH/MEDIUM/LOW]
-- Confidence in Current Approach: [HIGH/MEDIUM/LOW]
+## EMBEDDED CONSTRAINTS
+- Memory/resource implications?
+- Timing/performance concerns?
+- Hardware interaction issues?
 
-## Alternative Approaches
-[If you would do something differently, explain why]
-
-## Final Verdict
-[APPROVE / APPROVE_WITH_CHANGES / REQUEST_CHANGES / NEEDS_DISCUSSION]
-```
-
-**DEEPSEEK (deepseek-v3-thinking):**
-```
-You are an independent software architect providing a SECOND OPINION on system design.
-You are reviewing architectural decisions made by another AI (Claude).
-
-YOUR ROLE:
-- Evaluate architectural soundness
-- Challenge design decisions
-- Consider scalability, maintainability, testability
-- Identify potential technical debt
-
-OUTPUT FORMAT:
-## Architecture Assessment
-[Is the design sound? Major structural concerns?]
-
-## Design Decisions Review
-| Decision | Assessment | Alternative |
-|----------|------------|-------------|
-| [decision made] | [GOOD/QUESTIONABLE/RISKY] | [alternative approach] |
-
-## Coupling & Cohesion
-- Module coupling: [LOOSE/MODERATE/TIGHT]
-- Concerns: [specific issues]
-
-## Future-Proofing
-- Extensibility: [GOOD/FAIR/POOR]
-- Testability: [GOOD/FAIR/POOR]
-
-## Recommendation
-[APPROVE / REFACTOR_SUGGESTED / MAJOR_REDESIGN_NEEDED]
-```
-
-**GLM (glm-4.6-thinking):**
-```
-You are an independent compliance reviewer providing a SECOND OPINION on code standards.
-You are reviewing code for MISRA-C and embedded best practices.
-
-YOUR ROLE:
-- Check MISRA-C:2012 compliance
-- Verify coding standards
-- Identify safety concerns
-- Assess production readiness
-
-OUTPUT FORMAT:
-## Compliance Summary
-- MISRA Violations: [count by severity]
-- Standards Adherence: [GOOD/FAIR/POOR]
-
-## Violations Found
-| Rule | Severity | Location | Issue |
-|------|----------|----------|-------|
-| MISRA X.Y | MANDATORY/REQUIRED/ADVISORY | file:line | [description] |
-
-## Safety Concerns
-[Any safety-critical issues for embedded systems]
-
-## Production Readiness
-[READY / NEEDS_FIXES / NOT_READY]
+## MAINTAINABILITY
+- Will this be easy to understand/modify later?
+- Is it testable?
 ```
 
 ### User Prompt Template
@@ -199,46 +125,59 @@ OUTPUT FORMAT:
 SECOND OPINION REQUEST
 ======================
 
-QUESTION/FOCUS:
-$USER_QUESTION
+QUESTION:
+[USER_QUESTION]
 
-CONTEXT: I'm working on a Zephyr RTOS project for nRF5340. Another AI (Claude) has been helping me implement features. I want your independent assessment.
+CONTEXT:
+I'm working on an embedded systems project. Another AI (Claude) has been helping me. I want your independent assessment.
 
----
+PROJECT CONFIG:
+[PROJECT_CONFIG]
 
-PROJECT CONFIGURATION:
-$PROJECT_CONFIG
-
----
-
-RECENT CODE CHANGES:
-$GIT_DIFF
-
----
+RECENT CHANGES:
+[GIT_DIFF]
 
 FILES BEING WORKED ON:
-$FILE_CONTENTS
+[FILE_CONTENTS]
+
+PREVIOUS DECISIONS:
+[SERENA_MEMORIES_IF_RELEVANT]
 
 ---
 
-PREVIOUS LESSONS LEARNED:
-$SERENA_MEMORIES
+Provide your SECOND OPINION:
 
----
+## Assessment
+[2-3 sentences: Do you agree? Major concerns?]
 
-Please provide your SECOND OPINION following the output format specified.
-Be thorough but constructive. If you disagree with the approach, explain why and suggest alternatives.
+## Agreement Points
+- [What looks correct/good]
+
+## Concerns
+| Severity | Concern | Why It Matters | Suggestion |
+|----------|---------|----------------|------------|
+
+## Alternatives
+| Alternative | Pros | Cons |
+|-------------|------|------|
+
+## Risk Assessment
+- Overall Risk: [CRITICAL/HIGH/MEDIUM/LOW]
+- Confidence in Current Approach: [HIGH/MEDIUM/LOW]
+
+## Verdict
+[AGREE / AGREE_WITH_RESERVATIONS / DISAGREE / NEEDS_MORE_INFO]
+
+## Recommendation
+[Concrete next steps]
 ```
 
 ---
 
-## Step 4: Call LiteLLM
+## Step 4: Call LiteLLM API
 
 ```bash
-MODEL="qwen3-coder"  # or deepseek-v3-thinking / glm-4.6-thinking
-
-# Build the full context (Claude should construct this from gathered data)
-CONTEXT="[CONSTRUCTED FROM STEPS ABOVE]"
+MODEL="[mapped-model-name]"
 
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
@@ -246,7 +185,7 @@ curl -s http://localhost:4000/chat/completions \
     "model": "'$MODEL'",
     "messages": [
       {"role": "system", "content": "[SYSTEM_PROMPT]"},
-      {"role": "user", "content": "'"$CONTEXT"'"}
+      {"role": "user", "content": "[USER_PROMPT_WITH_CONTEXT]"}
     ],
     "temperature": 0.4,
     "max_tokens": 4000
@@ -255,45 +194,46 @@ curl -s http://localhost:4000/chat/completions \
 
 ---
 
-## Step 5: Present Results
+## Step 5: Display Results
 
-Show the full second opinion to the user.
+Show the full opinion, then summarize:
 
-Summarize at the end:
 ```
 ═══════════════════════════════════════════════════════════════
 SECOND OPINION COMPLETE
 ═══════════════════════════════════════════════════════════════
-🤖 Model: [qwen/deepseek/glm]
-📊 Verdict: [APPROVE/APPROVE_WITH_CHANGES/REQUEST_CHANGES]
-⚠️  Concerns Raised: [count]
-✅ Agreement Points: [count]
+Model: [model]
+Verdict: [AGREE/AGREE_WITH_RESERVATIONS/DISAGREE]
+Risk: [level]
+Concerns: [count]
 ═══════════════════════════════════════════════════════════════
 ```
 
 ---
 
-## Usage Examples
+## Usage
 
 ```bash
-# Quick code review second opinion
-/kln:quickConsult qwen Is this implementation memory-safe?
-
-# Architecture decision review
+# Architecture question
 /kln:quickConsult deepseek Is this module structure correct for BLE + Crypto?
 
-# Compliance check
-/kln:quickConsult glm Check MISRA compliance before merge
+# Implementation decision
+/kln:quickConsult qwen Should I use static allocation or k_malloc here?
 
-# Default (qwen) with open question
-/kln:quickConsult Should I use static allocation here or k_malloc?
+# Design review
+/kln:quickConsult kimi Is this state machine approach scalable?
+
+# Default model
+/kln:quickConsult Is this error handling pattern correct?
 ```
 
 ---
 
-## Key Benefits
+## Key Differences from quickReview
 
-1. **Full Context**: Not just git diff, but files, config, memories
-2. **Independent Review**: Different model = different perspective
-3. **Native Claude Primary**: Your main session stays on powerful Claude
-4. **Structured Output**: Clear verdict, not just text dump
+| Aspect | quickReview | quickConsult |
+|--------|-------------|--------------|
+| Purpose | Find bugs/issues | Challenge decisions |
+| Context | Recent diff only | Full session context |
+| Output | Grade + Issues | Verdict + Alternatives |
+| Tone | Auditor | Peer reviewer |

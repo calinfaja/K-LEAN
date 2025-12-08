@@ -1,15 +1,25 @@
 ---
-name: createReviewDoc
-description: Create and PERSIST comprehensive session review documentation with grades and risk assessment
+name: createReport
+description: Create and PERSIST comprehensive session documentation
 allowed-tools: Read, Bash, Grep, Glob, mcp__serena__write_memory, mcp__serena__list_memories
 argument-hint: "[session-title]"
 ---
 
-# Create Review Document (Persisted)
+# Create Report - Session Documentation
 
-Generate and **PERSIST** a structured review document for the current development session.
+Generate and **PERSIST** a structured documentation report for the current development session.
 
 **Session Title:** $ARGUMENTS
+
+---
+
+## Purpose
+
+| Command | Purpose | Output |
+|---------|---------|--------|
+| `/kln:quickReview` | Find issues | Grade, Issues |
+| `/kln:quickConsult` | Challenge decisions | Verdict, Alternatives |
+| **`/kln:createReport`** | **Capture knowledge** | **Lessons, Decisions, TODOs** |
 
 ---
 
@@ -17,66 +27,66 @@ Generate and **PERSIST** a structured review document for the current developmen
 
 **YOU MUST call `mcp__serena__write_memory` at the end to save the document.**
 
-If Serena has no active project, inform the user to activate one first:
-```
-mcp__serena__activate_project with project: "zephyr" (or appropriate project)
-```
+If Serena has no active project, inform the user to activate one first.
 
 ---
 
 ## Step 1: Gather Context
 
-Run these bash commands to gather project state:
-
 ```bash
-echo "=== PROJECT DETECTION ===" && ls prj.conf Kconfig CMakeLists.txt 2>/dev/null | head -3
-echo "=== GIT STATUS ===" && git status --porcelain 2>/dev/null | head -15
-echo "=== RECENT COMMITS ===" && git log --oneline -5 2>/dev/null
-echo "=== CHANGES SUMMARY ===" && git diff --stat HEAD~3 2>/dev/null | tail -10
-echo "=== CONFIG CHANGES ===" && git diff HEAD~3 -- prj.conf 2>/dev/null | grep "^[+-]CONFIG" | head -15
+echo "=== PROJECT DETECTION ==="
+ls prj.conf Kconfig CMakeLists.txt 2>/dev/null | head -3
+
+echo "=== GIT STATUS ==="
+git status --porcelain 2>/dev/null | head -15
+
+echo "=== RECENT COMMITS ==="
+git log --oneline -5 2>/dev/null
+
+echo "=== CHANGES SUMMARY ==="
+git diff --stat HEAD~3 2>/dev/null | tail -10
+
+echo "=== CONFIG CHANGES ==="
+git diff HEAD~3 -- prj.conf 2>/dev/null | grep "^[+-]CONFIG" | head -15
 ```
 
 ---
 
-## Step 2: Generate Review Document
+## Step 2: Generate Report
 
-Create a markdown document with this **exact structure**:
+### System Prompt (DOCUMENT)
+
+```
+You are a technical documentation specialist capturing development session outcomes.
+
+DOCUMENTATION GOALS:
+- Capture WHAT was done and WHY
+- Record decisions and their rationale
+- Note lessons learned (what worked, what didn't)
+- Identify follow-up items and risks
+- Create searchable, reusable knowledge
+
+FOCUS ON FUTURE USEFULNESS:
+- Make lessons searchable with clear keywords
+- Be specific about what worked and why
+- Capture context that won't be obvious later
+```
+
+### Output Template
 
 ```markdown
-# Session Review: [SESSION_TITLE]
+# Session: [SESSION_TITLE]
 
 | Field | Value |
 |-------|-------|
 | **Date** | YYYY-MM-DD HH:MM |
 | **Project** | [from directory/git] |
-| **Target** | [from prj.conf BOARD=] |
 | **Session ID** | [short-uuid] |
 
 ---
 
-## Executive Summary
-
-[2-3 sentences: What was accomplished, key outcome, any blockers]
-
----
-
-## Quality Assessment
-
-### Overall Grade: [A/B/C/D/F]
-
-| Category | Score | Notes |
-|----------|-------|-------|
-| Code Quality | X/10 | [brief note] |
-| Memory Safety | X/10 | [brief note] |
-| Error Handling | X/10 | [brief note] |
-| Documentation | X/10 | [brief note] |
-| Test Coverage | X/10 | [brief note] |
-
-### Risk Level: [CRITICAL / HIGH / MEDIUM / LOW]
-
-**Risk Factors:**
-- [Risk 1 with severity]
-- [Risk 2 with severity]
+## Summary
+[2-3 sentences: What was accomplished, key outcome]
 
 ---
 
@@ -85,32 +95,25 @@ Create a markdown document with this **exact structure**:
 ### Files Modified
 | File | Change | Impact |
 |------|--------|--------|
-| path/file.c | Added/Modified | [High/Med/Low] |
 
-### CONFIG Changes (Zephyr)
+### CONFIG Changes (if applicable)
 | Config | Value | Reason |
 |--------|-------|--------|
-| CONFIG_XXX | y | [why] |
 
 ---
 
-## Implementation Details
-
-### Steps Taken
-1. [Step 1]
-2. [Step 2]
-
-### Technical Decisions
-- **Decision:** [what] | **Rationale:** [why] | **Alternatives:** [considered]
+## Technical Decisions
+| Decision | Rationale | Alternatives Considered |
+|----------|-----------|------------------------|
 
 ---
 
 ## Lessons Learned
 
-### Patterns (Reuse These)
+### What Worked Well
 - **[PATTERN]** `pattern-name`: [description]
 
-### Gotchas (Avoid These)
+### What to Avoid
 - **[GOTCHA]** `gotcha-name`: [description]
 
 ### Tips
@@ -118,52 +121,26 @@ Create a markdown document with this **exact structure**:
 
 ---
 
-## Potential Improvements
-
-| Priority | Improvement | Effort | Impact |
-|----------|-------------|--------|--------|
-| HIGH | [improvement 1] | [hours] | [benefit] |
-| MEDIUM | [improvement 2] | [hours] | [benefit] |
-
----
-
-## Potential Risks
-
-| Severity | Risk | Mitigation |
-|----------|------|------------|
-| CRITICAL | [risk description] | [how to mitigate] |
-| HIGH | [risk description] | [how to mitigate] |
+## Quality Assessment
+| Category | Score | Notes |
+|----------|-------|-------|
+| Code Quality | X/10 | |
+| Memory Safety | X/10 | |
+| Error Handling | X/10 | |
+| Documentation | X/10 | |
 
 ---
 
-## Code Practices Evaluation
-
-### Followed Best Practices
-- [x] [Practice 1]
-- [x] [Practice 2]
-
-### Needs Improvement
-- [ ] [Practice that wasn't followed]
-
-### Embedded-Specific Checklist
-- [ ] Static allocation only (no malloc)
-- [ ] Interrupt-safe code (volatile, atomics)
-- [ ] Bounded execution time
-- [ ] Power-aware implementation
-- [ ] Error paths tested
+## Risks & Follow-ups
+| Priority | Item | Action Needed |
+|----------|------|---------------|
+| HIGH/MED/LOW | [item] | [action] |
 
 ---
 
 ## Open Items
-
 - [ ] [TODO 1]
 - [ ] [TODO 2]
-
----
-
-## Related Documents
-- Previous: [link if known]
-- Next steps: [what comes next]
 ```
 
 ---
@@ -172,31 +149,49 @@ Create a markdown document with this **exact structure**:
 
 **YOU MUST EXECUTE THIS:**
 
-Call `mcp__serena__write_memory` with:
-- **memory_file_name:** `review-YYYY-MM-DD-[slug-from-title].md`
-- **content:** The complete markdown document above
+```
+mcp__serena__write_memory
+  memory_file_name: "session-YYYY-MM-DD-[slug-from-title].md"
+  content: [The complete markdown document]
+```
 
-Example filename: `review-2025-12-02-secure-boot-impl.md`
+Example filename: `session-2025-12-08-ble-optimization.md`
 
 ---
 
 ## Step 4: Confirm to User
 
-After successful save, report:
-1. ✅ Document saved: `[filename]`
-2. 📊 Grade: [A-F]
-3. ⚠️ Risk Level: [CRITICAL/HIGH/MEDIUM/LOW]
-4. 📝 Lessons captured: [count]
-5. 🔧 Improvements suggested: [count]
+After successful save:
+
+```
+═══════════════════════════════════════════════════════════════
+REPORT SAVED
+═══════════════════════════════════════════════════════════════
+File: session-YYYY-MM-DD-[slug].md
+Quality: X/10
+Lessons: [count]
+TODOs: [count]
+Risks: [count]
+═══════════════════════════════════════════════════════════════
+```
 
 ---
 
-## Example Usage
+## Usage
 
-```
-/kln:createReport Secure Boot Implementation
-/kln:createReport BLE Stack Integration
+```bash
+# After completing a feature
+/kln:createReport BLE Pairing Implementation
+
+# After debugging session
+/kln:createReport Fixed Crypto Memory Leak
+
+# After optimization work
 /kln:createReport Power Optimization Phase 1
 ```
 
-**After running:** Use `mcp__serena__list_memories` to verify the document was saved.
+---
+
+## Verify Saved
+
+Use `mcp__serena__list_memories` to verify the document was saved.

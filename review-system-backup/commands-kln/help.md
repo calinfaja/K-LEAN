@@ -13,62 +13,76 @@ Display the complete reference for all `/kln:` commands.
 
 ```
 ═══════════════════════════════════════════════════════════════════════════════
-  K-LEAN Code Review System v1.0
+  K-LEAN Code Review System v2.0
   Multi-model review framework powered by NanoGPT + LiteLLM
+
+  NEW: Unified prompts - all models review ALL areas
 ═══════════════════════════════════════════════════════════════════════════════
 
-QUICK REVIEWS ─────────────────────────────────────────── API calls, no tools
+COMMAND CATEGORIES ───────────────────────────────────────────────────────────
+  REVIEW .... Find issues in code (Grade, Risk, Issues)
+  CONSULT ... Challenge decisions (Verdict, Alternatives)
+  DOCUMENT .. Capture knowledge (Lessons, TODOs)
+
+REVIEW COMMANDS ──────────────────────────────────────── All models, all areas
 ┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
 │ Command                   │ Models │ Method │ Time   │ Description          │
 ├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
-│ /kln:quickReview <m> <f>  │ 1      │ API    │ ~30s   │ Fast code check      │
-│ /kln:quickConsult <m> <q> │ 1      │ API    │ ~60s   │ Get expert opinion   │
-│ /kln:quickCompare <focus> │ 3      │ API    │ ~60s   │ Multi-model compare  │
+│ /kln:quickReview <m> <f>  │ 1      │ API    │ ~30s   │ Fast code review     │
+│ /kln:quickCompare <f>     │ 3      │ API    │ ~60s   │ Multi-model consensus│
+│ /kln:deepInspect <m> <f>  │ 1      │ CLI    │ ~3min  │ Thorough with tools  │
+│ /kln:deepAudit <f>        │ 3      │ CLI    │ ~5min  │ Full audit with tools│
 └───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
 
-DEEP REVIEWS ──────────────────────────────────── Headless Claude, full tools
+CONSULT COMMAND ──────────────────────────────────────── Challenge decisions
 ┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
-│ Command                   │ Models │ Method │ Time   │ Description          │
-├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
-│ /kln:deepInspect <m> <f>  │ 1      │ CLI    │ ~3min  │ Thorough inspection  │
-│ /kln:deepAudit <focus>    │ 3      │ CLI    │ ~5min  │ Comprehensive audit  │
+│ /kln:quickConsult <m> <q> │ 1      │ API    │ ~60s   │ Get second opinion   │
 └───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
 
-ASYNC VARIANTS ────────────────────────────────────── Background execution
+DOCUMENT COMMAND ─────────────────────────────────────── Capture knowledge
+┌───────────────────────────┬──────────────────────────────────────────────────┐
+│ /kln:createReport <title> │ Create session documentation (saves to Serena)   │
+└───────────────────────────┴──────────────────────────────────────────────────┘
+
+ASYNC VARIANTS ────────────────────────────────────────── Background execution
 ┌───────────────────────────┬───────────────────────────┬──────────────────────┐
 │ Sync Command              │ Async Variant             │ Use Case             │
 ├───────────────────────────┼───────────────────────────┼──────────────────────┤
-│ /kln:quickReview          │ /kln:asyncQuickReview     │ Quick check + go     │
-│ /kln:quickConsult         │ /kln:asyncQuickConsult    │ Get opinion + go     │
-│ /kln:quickCompare         │ /kln:asyncQuickCompare    │ Compare + go         │
+│ /kln:quickReview          │ /kln:asyncQuickReview     │ Review + keep coding │
+│ /kln:quickConsult         │ /kln:asyncQuickConsult    │ Opinion + keep coding│
+│ /kln:quickCompare         │ /kln:asyncQuickCompare    │ Compare + keep coding│
 │ /kln:deepAudit            │ /kln:asyncDeepAudit       │ Full audit + go      │
+│ /kln:createReport         │ /kln:asyncCreateReport    │ Document + keep going│
 └───────────────────────────┴───────────────────────────┴──────────────────────┘
 
-DOCUMENTATION ─────────────────────────────────────────── Session reports
-┌───────────────────────────┬──────────────────────────────────────────────────┐
-│ /kln:createReport <title> │ Create session review document (saves to Serena) │
-│ /kln:asyncCreateReport    │ Create report in background                      │
-│ /kln:backgroundReport     │ Spawn report creation in separate subagent       │
-└───────────────────────────┴──────────────────────────────────────────────────┘
-
 MODELS ────────────────────────────────────────────────────────────────────────
-  ✅ RELIABLE (Deep + Quick reviews)
-     qwen .......... qwen3-coder ........... Code quality, bugs, memory safety
-     kimi .......... kimi-k2-thinking ...... Architecture, planning, design
-     glm ........... glm-4.6-thinking ...... Standards, MISRA, compliance
+  All 6 models use the SAME unified prompt - review ALL areas:
 
-  ⚠️  QUICK ONLY (API calls, no tool support)
-     deepseek ...... deepseek-v3-thinking .. Architecture (fails with tools)
-     minimax ....... minimax-m2 ............ Research (timeout issues)
-     hermes ........ hermes-4-70b .......... Scripting (may hallucinate)
+  qwen ........... qwen3-coder ............. Default model
+  deepseek ....... deepseek-v3-thinking .... Good for architecture
+  kimi ........... kimi-k2-thinking ........ Good for planning
+  glm ............ glm-4.6-thinking ........ Good for standards
+  minimax ........ minimax-m2 .............. Research focus
+  hermes ......... hermes-4-70b ............ Scripting focus
+
+  Default for single-model: qwen
+  Default for multi-model: qwen, kimi, glm
+
+REVIEW CHECKLIST (All models check ALL areas) ─────────────────────────────────
+  CORRECTNESS ... Logic errors, edge cases, algorithm correctness
+  MEMORY SAFETY . Buffer overflows, null pointers, leaks
+  ERROR HANDLING  Validation, propagation, resource cleanup
+  CONCURRENCY ... Race conditions, ISR safety, shared data
+  ARCHITECTURE .. Coupling, cohesion, API consistency
+  HARDWARE ...... I/O correctness, volatile usage, timing
+  STANDARDS ..... Coding style, MISRA guidelines
 
 EXECUTION METHODS ─────────────────────────────────────────────────────────────
   API = curl → LiteLLM:4000 → NanoGPT
-        Fast (~30-60s), no file access, all 6 models work
+        Fast (~30-60s), no file access, all 6 models
 
   CLI = claude --model → Headless Claude instance
         Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
-        Only reliable: qwen, kimi, glm
 
 KNOWLEDGE SYSTEM ──────────────────────────────────────────────────────────────
   GoodJob <url> [focus] .... Capture knowledge from URL to database
@@ -80,15 +94,36 @@ UTILITIES ───────────────────────�
   /kln:help ................ This reference guide
 
 EXAMPLES ──────────────────────────────────────────────────────────────────────
-  /kln:quickReview qwen "check null pointer handling"
-  /kln:quickCompare "review error handling patterns"
-  /kln:deepInspect glm "MISRA-C compliance check"
-  /kln:deepAudit "full security audit before release"
-  /kln:asyncDeepAudit "comprehensive review" → continue coding → check later
+  # Quick review with default model
+  /kln:quickReview check memory safety
+
+  # Quick review with specific model
+  /kln:quickReview deepseek review architecture patterns
+
+  # Multi-model comparison
+  /kln:quickCompare security audit
+
+  # Custom model selection for comparison
+  /kln:quickCompare qwen,deepseek,glm check error handling
+
+  # Get second opinion
+  /kln:quickConsult kimi Is this state machine approach correct?
+
+  # Deep inspection
+  /kln:deepInspect qwen full security audit of crypto module
+
+  # Full audit with tools
+  /kln:deepAudit pre-release quality check
+
+  # Async (background) review
+  /kln:asyncDeepAudit comprehensive review → continue coding → check later
+
+  # Document session
+  /kln:createReport BLE Implementation Complete
 
 ═══════════════════════════════════════════════════════════════════════════════
   Output:  /tmp/claude-reviews/{session}/
-  Docs:    ~/claudeAgentic/docs/REVIEW_SYSTEM.md
+  Docs:    ~/claudeAgentic/docs/
   Scripts: ~/.claude/scripts/
 ═══════════════════════════════════════════════════════════════════════════════
 ```

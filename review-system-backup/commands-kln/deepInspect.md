@@ -1,26 +1,40 @@
 ---
-name: deepReview
-description: "TIER 3: Thorough review with FULL TOOL ACCESS - spawns headless Claude with LiteLLM model"
+name: deepInspect
+description: "Thorough review with FULL TOOL ACCESS - spawns headless Claude with LiteLLM model"
 allowed-tools: Bash, Read
-argument-hint: "[model] [focus] — models: qwen (code), deepseek (architecture), glm (standards)"
+argument-hint: "[model] [focus] — models: qwen, deepseek, kimi, glm, minimax, hermes"
 ---
 
-# Deep Review (Tier 3) - Full Tool Access
+# Deep Inspect - CLI Method with Full Tools
 
 Spawns a **headless Claude instance** with a LiteLLM model that has **FULL TOOL ACCESS**.
-The reviewing model can read files, grep code, check git, access Serena - it INVESTIGATES, not just opines.
+The reviewing model can read files, grep code, check git - it INVESTIGATES, not just opines.
 
 **Arguments:** $ARGUMENTS
 
 ---
 
-## Why Tier 3?
+## Quick vs Deep
 
-| Tier | Command | Tool Access | Use Case |
-|------|---------|-------------|----------|
-| 1 | `/kln:quickReview` | ❌ None | Quick sanity check |
-| 2 | `/kln:quickConsult` | ❌ None | Full context, passive review |
-| **3** | **`/kln:deepInspect`** | **✅ Full** | **Thorough investigation** |
+| Command | Method | Tool Access | Time |
+|---------|--------|-------------|------|
+| `/kln:quickReview` | API | None | ~30s |
+| **`/kln:deepInspect`** | **CLI** | **Full** | **~3min** |
+
+---
+
+## Model Selection
+
+| Alias | Model |
+|-------|-------|
+| `qwen` | qwen3-coder |
+| `deepseek` | deepseek-v3-thinking |
+| `kimi` | kimi-k2-thinking |
+| `glm` | glm-4.6-thinking |
+| `minimax` | minimax-m2 |
+| `hermes` | hermes-4-70b |
+
+**Default:** `qwen` if no model specified
 
 ---
 
@@ -30,128 +44,120 @@ The reviewing model can read files, grep code, check git, access Serena - it INV
 ┌────────────────────────────────────────────────────────────────┐
 │  YOUR SESSION (Native Claude)                                  │
 │       │                                                        │
-│       │ /kln:deepInspect qwen "security audit"                  │
+│       │ /kln:deepInspect qwen "security audit"                 │
 │       ▼                                                        │
 │  ┌──────────────────────────────────────────────────────────┐ │
-│  │  SPAWNS NEW HEADLESS INSTANCE                            │ │
-│  │  • Temporarily switches to LiteLLM settings              │ │
-│  │  • Runs claude --print with your prompt                  │ │
-│  │  • Model has FULL tool access:                           │ │
+│  │  SPAWNS HEADLESS CLAUDE INSTANCE                         │ │
+│  │  • Uses LiteLLM model via settings                       │ │
+│  │  • Has FULL tool access:                                 │ │
 │  │    - Read any file                                       │ │
 │  │    - Grep/search codebase                                │ │
 │  │    - Run git commands                                    │ │
 │  │    - Access Serena memories                              │ │
-│  │  • Restores your native settings when done               │ │
 │  └──────────────────────────────────────────────────────────┘ │
 │       │                                                        │
 │       ▼                                                        │
-│  Returns VERIFIED findings (not just opinions)                │
-│                                                                │
+│  Returns VERIFIED findings (with evidence)                     │
 └────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Model Selection
-
-| Alias | LiteLLM Model | Specialty |
-|-------|---------------|-----------|
-| `qwen` | qwen3-coder | Code quality, bugs, memory safety |
-| `deepseek` | deepseek-v3-thinking | Architecture, design, coupling |
-| `glm` | glm-4.6-thinking | MISRA-C, standards, compliance |
-
----
-
-## Instructions
-
-### Step 1: Parse Arguments
+## Step 1: Parse Arguments
 
 From $ARGUMENTS:
-- **Model**: First word if `qwen`/`deepseek`/`glm`, else default to `qwen`
-- **Focus**: The rest of the arguments (what to investigate)
+- **Model**: First word if it matches a model alias, else default to `qwen`
+- **Focus**: The rest of the arguments
 
 Examples:
 - `qwen security audit` → model=qwen, focus="security audit"
-- `deepseek review architecture` → model=deepseek, focus="review architecture"
-- `glm MISRA compliance` → model=glm, focus="MISRA compliance"
+- `glm check MISRA compliance` → model=glm, focus="check MISRA compliance"
+- `review error handling` → model=qwen (default), focus="review error handling"
 
-### Step 2: Warn User
+---
 
-Tell the user:
+## Step 2: Inform User
+
 ```
-⚠️  DEEP REVIEW - Tier 3
+⚠️  DEEP INSPECT - Full Tool Access
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-This will spawn a headless Claude instance with LiteLLM.
-The reviewing model will have FULL tool access and will
-actively investigate the codebase.
-
-This may take several minutes as the model explores.
+Spawning headless Claude with LiteLLM model.
+The reviewer will INVESTIGATE the codebase using tools.
 
 Model: [selected model]
 Focus: [user's focus]
+
+This may take 2-5 minutes...
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-### Step 3: Execute Deep Review
+---
+
+## Step 3: Execute Deep Review
 
 Run the deep-review script:
 
 ```bash
-/home/calin/.claude/scripts/deep-review.sh "[MODEL]" "[FOCUS]" "$(pwd)"
+~/.claude/scripts/deep-review.sh "[MODEL]" "[FOCUS]" "$(pwd)"
 ```
 
-Where:
-- `[MODEL]` = qwen, deepseek, or glm
-- `[FOCUS]` = the user's review focus/question
-- `$(pwd)` = current working directory
-
-**IMPORTANT:** This command runs synchronously and may take several minutes.
-The script handles settings switching automatically.
-
-### Step 4: Present Results
-
-The script output contains the full review with:
-- Investigation summary (what the model checked)
-- Verified findings (with evidence)
-- Code practices assessment
-- Risk assessment
-- Verdict (APPROVE/REQUEST_CHANGES/etc.)
-
-Display the full output to the user.
+The script:
+1. Switches to LiteLLM settings
+2. Runs headless Claude with the unified review prompt
+3. Restores original settings
 
 ---
 
-## Usage Examples
+## System Prompt (UNIFIED - Same for all models)
 
-```bash
-# Thorough security audit
-/kln:deepInspect qwen Conduct a thorough security audit focusing on buffer handling
+The headless Claude receives this system context:
 
-# Architecture review with investigation
-/kln:deepInspect deepseek Analyze the module structure and identify coupling issues
-
-# Pre-release MISRA compliance check
-/kln:deepInspect glm Full MISRA-C:2012 compliance audit before release
-
-# General code quality investigation
-/kln:deepInspect qwen Find all potential memory safety issues
 ```
+You are an expert embedded systems code reviewer with FULL TOOL ACCESS.
 
----
+INVESTIGATE the codebase thoroughly. Use tools to VERIFY issues, not just suspect them.
 
-## What the Reviewing Model Can Do
+REVIEW ALL of these areas, with extra attention to the user's focus:
 
-The LiteLLM model running in headless mode has access to:
+## CORRECTNESS
+- Logic errors, edge cases, off-by-one
+- Algorithm correctness, state management
+- Variable initialization
 
-| Tool | What It Can Do |
-|------|----------------|
-| `Read` | Read any file in the codebase |
-| `Grep` | Search for patterns across files |
-| `Glob` | Find files by pattern |
-| `Bash` | Run git commands, find, etc. |
-| `mcp__serena__*` | Access project memories, symbols |
+## MEMORY SAFETY
+- Buffer overflows, null pointer dereferences
+- Memory leaks (especially error paths)
+- Stack usage, integer overflow/underflow
 
-This means it can **VERIFY** issues, not just suspect them.
+## ERROR HANDLING
+- Input validation at trust boundaries
+- Error propagation and resource cleanup
+- Defensive programming patterns
+
+## CONCURRENCY
+- Race conditions, thread safety
+- ISR constraints (fast, non-blocking)
+- Shared data protection, volatile usage
+
+## ARCHITECTURE
+- Module coupling and cohesion
+- Abstraction quality, API consistency
+- Testability, maintainability
+
+## HARDWARE (if applicable)
+- I/O state correctness, timing
+- Volatile usage for registers
+
+## STANDARDS
+- Coding style consistency
+- MISRA-C guidelines (where applicable)
+
+INVESTIGATION PROCESS:
+1. Read relevant files to understand context
+2. Search for patterns related to the focus area
+3. Verify issues with evidence (file:line references)
+4. Provide concrete fixes, not vague suggestions
+```
 
 ---
 
@@ -159,45 +165,63 @@ This means it can **VERIFY** issues, not just suspect them.
 
 ```
 ═══════════════════════════════════════════════════════════════
-DEEP REVIEW - Tier 3 (Full Tool Access)
+DEEP INSPECT COMPLETE
 ═══════════════════════════════════════════════════════════════
-Model: qwen3-coder (code quality)
-Directory: /path/to/project
-Prompt: security audit
-═══════════════════════════════════════════════════════════════
-
-[Model investigates using tools...]
+Model: [model]
+Focus: [focus]
 
 ## Investigation Summary
-I checked the following:
-- Scanned all .c files for buffer operations
-- Reviewed memory allocation patterns
-- Checked error handling in critical paths
-- Verified interrupt safety markers
+Files examined: [list]
+Patterns searched: [list]
 
-## Verified Findings
+## Grade: [A-F]
+[justification]
 
-### Critical Issues (VERIFIED)
-| # | File:Line | Issue | Evidence | Fix |
-|---|-----------|-------|----------|-----|
-| 1 | src/parser.c:45 | Buffer overflow | buf[64] receives up to 128 bytes | Add bounds check |
+## Risk: [CRITICAL/HIGH/MEDIUM/LOW]
 
-### Warnings (VERIFIED)
-...
+## Critical Issues (VERIFIED)
+| # | Location | Issue | Evidence | Fix |
+|---|----------|-------|----------|-----|
 
-## Verdict
-REQUEST_CHANGES - 1 critical issue must be fixed
+## Warnings (VERIFIED)
+| # | Location | Issue | Evidence | Fix |
+|---|----------|-------|----------|-----|
 
+## Suggestions
+| # | Location | Suggestion | Benefit |
+|---|----------|------------|---------|
+
+## Positive Observations
+- [good practices found]
+
+## Summary
+[2-3 sentences]
 ═══════════════════════════════════════════════════════════════
-DEEP REVIEW COMPLETE
-═══════════════════════════════════════════════════════════════
+```
+
+---
+
+## Usage Examples
+
+```bash
+# Security audit
+/kln:deepInspect qwen security audit focusing on buffer handling
+
+# Architecture review
+/kln:deepInspect kimi analyze module structure and coupling
+
+# Standards compliance
+/kln:deepInspect glm MISRA-C compliance check
+
+# Default model (qwen)
+/kln:deepInspect find memory safety issues in crypto module
 ```
 
 ---
 
 ## Notes
 
-- **Duration**: Deep reviews take longer (2-5 minutes) because the model investigates
-- **Settings**: Your native Claude settings are automatically restored after the review
+- **Duration**: 2-5 minutes (model investigates using tools)
+- **Settings**: Automatically restored after review
 - **LiteLLM**: Must be running (`start-nano-proxy`)
-- **Parallel**: While the review runs, your main session is paused waiting for results
+- **Available models**: qwen, deepseek, kimi, glm, minimax, hermes

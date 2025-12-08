@@ -1,14 +1,13 @@
 ---
-name: review
-description: Route code review to local LLM via LiteLLM with grades, risk assessment, and structured output
+name: quickReview
+description: Fast code review via LiteLLM API with grades and risk assessment
 allowed-tools: Read, Bash, Grep, Glob, mcp__serena__write_memory, mcp__serena__read_memory, mcp__serena__list_memories
-argument-hint: "[model] [focus-prompt] — models: qwen (bugs), deepseek (architecture), glm (standards)"
+argument-hint: "[model] [focus] — models: qwen, deepseek, glm, minimax, kimi, hermes"
 ---
 
-# Code Review via LiteLLM
+# Quick Review - API Method
 
-Route a comprehensive code review to a local LLM model via LiteLLM proxy.
-Returns **graded assessment** with risk levels and actionable improvements.
+Fast code review via LiteLLM API. All models use the same comprehensive checklist.
 
 **Arguments:** $ARGUMENTS
 
@@ -16,11 +15,14 @@ Returns **graded assessment** with risk levels and actionable improvements.
 
 ## Model Selection
 
-| Alias | LiteLLM Model | Specialty | Best For |
-|-------|---------------|-----------|----------|
-| `qwen` | `qwen3-coder` | Code quality, bugs | Memory safety, logic errors, buffer overflows |
-| `deepseek` | `deepseek-v3-thinking` | Architecture | Module coupling, design patterns, abstraction |
-| `glm` | `glm-4.6-thinking` | Standards | MISRA-C, coding standards, compliance |
+| Alias | Model |
+|-------|-------|
+| `qwen` | qwen3-coder |
+| `deepseek` | deepseek-v3-thinking |
+| `kimi` | kimi-k2-thinking |
+| `glm` | glm-4.6-thinking |
+| `minimax` | minimax-m2 |
+| `hermes` | hermes-4-70b |
 
 **Default:** `qwen` if no model specified
 
@@ -29,22 +31,19 @@ Returns **graded assessment** with risk levels and actionable improvements.
 ## Step 1: Parse Arguments
 
 From $ARGUMENTS, extract:
-- **Model**: First word if it's `qwen`, `deepseek`, or `glm` — otherwise default to `qwen`
+- **Model**: First word if it matches a model alias, otherwise default to `qwen`
 - **Focus**: Everything after the model (or entire string if no model specified)
 
 Examples:
-- `qwen memory safety audit` → model=qwen, focus="memory safety audit"
-- `deepseek evaluate coupling` → model=deepseek, focus="evaluate coupling"
-- `check for buffer overflows` → model=qwen (default), focus="check for buffer overflows"
+- `qwen memory safety` → model=qwen, focus="memory safety"
+- `glm check error handling` → model=glm, focus="check error handling"
+- `look for race conditions` → model=qwen (default), focus="look for race conditions"
 
 ---
 
 ## Step 2: Gather Code Context
 
-Execute these bash commands:
-
 ```bash
-# Create context
 echo "=== REVIEW CONTEXT ==="
 echo "Date: $(date)"
 echo "Directory: $(pwd)"
@@ -61,84 +60,53 @@ git log --oneline -3 2>/dev/null
 
 ---
 
-## Step 3: Check for Previous Lessons (Optional)
+## Step 3: Build Review Request
 
-If Serena is available, check for relevant past reviews:
+### System Prompt (UNIFIED - Same for ALL models)
+
 ```
-mcp__serena__list_memories
-```
+You are an expert embedded systems code reviewer.
 
-Look for `review-*.md` files that might contain relevant lessons.
+REVIEW ALL of these areas, with extra attention to the user's focus:
 
----
+## CORRECTNESS
+- Logic errors, edge cases, off-by-one
+- Algorithm correctness, state management
+- Variable initialization, single responsibility
 
-## Step 4: Build Review Request
-
-### System Prompt (Model-Specific)
-
-**For QWEN (qwen3-coder):**
-```
-You are an expert embedded systems code reviewer for Zephyr RTOS / nRF5340.
-
-EXPERTISE: Memory safety, bug detection, defensive programming
-
-REVIEW CHECKLIST:
-- Buffer overflow vulnerabilities
-- Null pointer dereferences
+## MEMORY SAFETY
+- Buffer overflows, null pointer dereferences
 - Memory leaks (especially error paths)
-- Integer overflow/underflow
-- Race conditions in ISR context
-- Incorrect volatile usage
-- Stack overflow risks
-- Resource cleanup failures
+- Stack usage, integer overflow/underflow
+- Static vs dynamic allocation
 
-EMBEDDED PRINCIPLES:
-- Every byte matters (static allocation only)
-- Every cycle matters (profile first)
-- Interrupts must be fast and safe
-- Hardware can fail - code defensively
-```
+## ERROR HANDLING
+- Input validation at trust boundaries
+- Error propagation and resource cleanup
+- Defensive programming patterns
+- All error paths tested
 
-**For DEEPSEEK (deepseek-v3-thinking):**
-```
-You are an expert firmware architect for Zephyr RTOS / nRF5340.
+## CONCURRENCY
+- Race conditions, thread safety
+- ISR constraints (fast, non-blocking)
+- Shared data protection, volatile usage
+- Deadlock potential
 
-EXPERTISE: System design, module structure, API design
+## ARCHITECTURE
+- Module coupling and cohesion
+- Abstraction quality, API consistency
+- Dependency direction (no circular)
+- Testability, maintainability
 
-REVIEW CHECKLIST:
-- Module boundaries and coupling
-- Abstraction layers (HAL → Driver → Service → App)
-- Dependency direction (inward, not circular)
-- State management patterns
-- Configuration design
-- API consistency
+## HARDWARE (if applicable)
+- I/O state correctness, timing
+- Volatile usage for registers
+- Power/reset handling
 
-ARCHITECTURE PRINCIPLES:
-- Hardware abstraction enables portability
-- Dependency injection enables testing
-- Clear interfaces reduce coupling
-- Event-driven where appropriate
-```
-
-**For GLM (glm-4.6-thinking):**
-```
-You are an expert compliance reviewer for safety-critical embedded systems.
-
-EXPERTISE: MISRA-C:2012, coding standards, safety analysis
-
-REVIEW CHECKLIST:
-- MISRA-C:2012 mandatory rule violations
-- MISRA-C:2012 required rule violations
-- Naming conventions
-- Function complexity
-- Dead/unreachable code
-- Magic numbers
-
-KEY MISRA RULES:
-- 9.1: Variables initialized before use
-- 17.2: No recursive functions
-- 21.3: No dynamic memory
-- 11.3: No pointer type casts
+## STANDARDS
+- Coding style consistency
+- Documentation quality
+- MISRA-C guidelines (where applicable)
 ```
 
 ### User Prompt Template
@@ -146,7 +114,7 @@ KEY MISRA RULES:
 ```
 REVIEW REQUEST
 ==============
-Focus: [USER_FOCUS_PROMPT]
+Focus: [USER_FOCUS]
 
 CODE CHANGES:
 [GIT_DIFF_CONTENT]
@@ -156,76 +124,62 @@ FILES AFFECTED:
 
 ---
 
-Provide a STRUCTURED REVIEW with these exact sections:
+Provide a STRUCTURED REVIEW:
 
-## Overall Grade: [A/B/C/D/F]
-[Brief justification for grade]
+## Grade: [A/B/C/D/F]
+[1-2 sentence justification]
 
-## Risk Assessment
-| Level | Score | Justification |
-|-------|-------|---------------|
-| Overall Risk | [CRITICAL/HIGH/MEDIUM/LOW] | [why] |
-| Security Risk | [CRITICAL/HIGH/MEDIUM/LOW] | [why] |
-| Stability Risk | [CRITICAL/HIGH/MEDIUM/LOW] | [why] |
+## Risk: [CRITICAL/HIGH/MEDIUM/LOW]
 
-## Critical Issues (MUST FIX - blocks merge)
-| # | File:Line | Issue | Severity | Fix |
-|---|-----------|-------|----------|-----|
-| 1 | [location] | [description] | CRITICAL | [how to fix] |
+## Critical Issues (MUST FIX)
+| # | Location | Issue | Fix |
+|---|----------|-------|-----|
 
 ## Warnings (SHOULD FIX)
-| # | File:Line | Issue | Severity | Fix |
-|---|-----------|-------|----------|-----|
-| 1 | [location] | [description] | HIGH/MEDIUM | [how to fix] |
+| # | Location | Issue | Fix |
+|---|----------|-------|-----|
 
 ## Suggestions (NICE TO HAVE)
-| # | File:Line | Suggestion | Benefit |
-|---|-----------|------------|---------|
-| 1 | [location] | [suggestion] | [why] |
+| # | Location | Suggestion | Benefit |
+|---|----------|------------|---------|
 
-## Code Practices Assessment
+## Code Practices
 | Practice | Status | Notes |
 |----------|--------|-------|
-| Memory Safety | ✅/⚠️/❌ | [notes] |
-| Error Handling | ✅/⚠️/❌ | [notes] |
-| Naming Conventions | ✅/⚠️/❌ | [notes] |
-| Documentation | ✅/⚠️/❌ | [notes] |
-| Testability | ✅/⚠️/❌ | [notes] |
-
-## Potential Risks
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| [risk] | [High/Med/Low] | [High/Med/Low] | [how to mitigate] |
-
-## Potential Improvements
-| Priority | Improvement | Effort | Impact |
-|----------|-------------|--------|--------|
-| HIGH | [what to improve] | [hours] | [benefit] |
+| Memory Safety | [ok/warn/fail] | |
+| Error Handling | [ok/warn/fail] | |
+| Concurrency | [ok/warn/fail] | |
+| Architecture | [ok/warn/fail] | |
+| Standards | [ok/warn/fail] | |
 
 ## Positive Observations
-- [Good practice 1]
-- [Good practice 2]
+- [Good practices found]
 
 ## Summary
-[2-3 sentence summary of review findings and recommended actions]
+[2-3 sentences: key findings and recommended action]
 ```
 
 ---
 
-## Step 5: Call LiteLLM API
+## Step 4: Call LiteLLM API
 
-Execute the review via curl:
+Map alias to model name:
+- qwen → qwen3-coder
+- deepseek → deepseek-v3-thinking
+- glm → glm-4.6-thinking
+- minimax → minimax-m2
+- kimi → kimi-k2-thinking
+- hermes → hermes-4-70b
 
 ```bash
-# Set model based on selection (qwen/deepseek/glm)
-MODEL="qwen3-coder"  # or deepseek-v3-thinking or glm-4.6-thinking
+MODEL="[mapped-model-name]"
 
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "'$MODEL'",
     "messages": [
-      {"role": "system", "content": "[SYSTEM_PROMPT_FOR_SELECTED_MODEL]"},
+      {"role": "system", "content": "[SYSTEM_PROMPT]"},
       {"role": "user", "content": "[USER_PROMPT_WITH_DIFF]"}
     ],
     "temperature": 0.3,
@@ -233,23 +187,21 @@ curl -s http://localhost:4000/chat/completions \
   }' | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content'
 ```
 
-If the API fails, report:
-- Check LiteLLM: `curl http://localhost:4000/health`
-- Check models: `curl http://localhost:4000/models`
-
 ---
 
-## Step 6: Display and Optionally Persist
+## Step 5: Display Results
 
-### Display Results
-Show the complete review report to the user.
+Show the complete review, then summarize:
 
-### Optional: Save Review
-If the user wants to save the review, call:
 ```
-mcp__serena__write_memory
-  memory_file_name: "code-review-YYYY-MM-DD-[model]-[short-focus].md"
-  content: [The complete review output]
+═══════════════════════════════════════════════════
+REVIEW COMPLETE
+═══════════════════════════════════════════════════
+Model: [model used]
+Grade: [A-F]
+Risk: [CRITICAL/HIGH/MEDIUM/LOW]
+Critical: [count] | Warnings: [count] | Suggestions: [count]
+═══════════════════════════════════════════════════
 ```
 
 ---
@@ -257,34 +209,15 @@ mcp__serena__write_memory
 ## Quick Reference
 
 ```bash
-# Bug hunting
-/kln:quickReview qwen check for buffer overflows and null pointer issues
+# General review
+/kln:quickReview qwen review recent changes
 
-# Architecture review
-/kln:quickReview deepseek evaluate module coupling and abstraction quality
+# Specific focus
+/kln:quickReview glm check memory safety and error handling
 
-# Standards compliance
-/kln:quickReview glm MISRA-C:2012 compliance audit
+# Different model
+/kln:quickReview kimi review architecture patterns
 
-# Default (qwen)
-/kln:quickReview look for memory safety issues
-```
-
----
-
-## Output Summary Format
-
-After the review completes, summarize:
-
-```
-═══════════════════════════════════════════════════
-REVIEW COMPLETE
-═══════════════════════════════════════════════════
-📊 Grade: [A-F]
-⚠️  Risk Level: [CRITICAL/HIGH/MEDIUM/LOW]
-🔴 Critical Issues: [count]
-🟡 Warnings: [count]
-🟢 Suggestions: [count]
-✅ Positive Observations: [count]
-═══════════════════════════════════════════════════
+# Default model (qwen)
+/kln:quickReview look for race conditions
 ```
