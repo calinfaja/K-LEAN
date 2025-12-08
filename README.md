@@ -49,6 +49,30 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 - **Session folders**: Each Claude instance gets its own output folder
 - **Sync verification**: Check scripts/commands/config against backup
 
+## Installation
+
+### One-Line Install (New Machine)
+```bash
+git clone https://github.com/yourusername/claudeAgentic.git
+cd claudeAgentic/review-system-backup
+./install.sh --full
+```
+
+### Options
+```bash
+./install.sh --full      # Complete installation
+./install.sh --minimal   # Scripts only
+./install.sh --check     # Verify installation
+./update.sh              # Pull updates and reinstall
+./test.sh                # Run test suite (14 tests)
+```
+
+### Prerequisites
+- Claude Code CLI
+- Python 3.9+
+- LiteLLM (`pipx install litellm`)
+- NanoGPT API key (https://nano-gpt.com)
+
 ## Quick Start
 
 ```bash
@@ -56,7 +80,7 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 healthcheck
 
 # Run code review
-/kln:review qwen security vulnerabilities
+/kln:quickReview qwen security vulnerabilities
 
 # Capture knowledge
 GoodJob https://example.com/docs focus on authentication
