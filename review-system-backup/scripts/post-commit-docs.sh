@@ -84,6 +84,13 @@ $DIFF_STAT"
 
     ~/.claude/scripts/fact-extract.sh "$COMMIT_INFO" "commit" "$COMMIT_MSG" "$WORK_DIR" &
 
+    # Log to timeline (direct, not via fact-extract since that's async)
+    TIMELINE_FILE="$WORK_DIR/.knowledge-db/timeline.txt"
+    if [ -d "$WORK_DIR/.knowledge-db" ] || [ -d "$WORK_DIR/.serena" ]; then
+        mkdir -p "$WORK_DIR/.knowledge-db"
+        echo "$(date '+%m-%d %H:%M') | commit | $COMMIT_HASH: $COMMIT_MSG" >> "$TIMELINE_FILE"
+    fi
+
     echo "📝 Post-commit Serena documentation started. Results: $RESULT_FILE"
     echo "📚 Auto-extracting facts from commit..."
 fi
