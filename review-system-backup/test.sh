@@ -99,6 +99,30 @@ else
     test_fail "Timeline file missing"
 fi
 
+# Test 8: Nano profile
+echo -e "\n=== Test 8: Nano Profile ==="
+NANO_DIR="$HOME/.claude-nano"
+if [ -d "$NANO_DIR" ]; then
+    test_pass "Nano profile directory exists"
+    if [ -f "$NANO_DIR/settings.json" ]; then
+        test_pass "Nano settings.json exists"
+    else
+        test_fail "Nano settings.json missing"
+    fi
+    if [ -L "$NANO_DIR/commands" ]; then
+        test_pass "Commands symlink exists"
+    else
+        test_fail "Commands symlink missing"
+    fi
+    if [ -L "$NANO_DIR/scripts" ]; then
+        test_pass "Scripts symlink exists"
+    else
+        test_fail "Scripts symlink missing"
+    fi
+else
+    test_fail "Nano profile directory missing"
+fi
+
 # Summary
 echo ""
 echo "═══════════════════════════════════════════════════════════"

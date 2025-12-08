@@ -130,7 +130,7 @@ OUTPUT FORMAT:
 ## Verdict: [APPROVE/REQUEST_CHANGES]
 "
 
-# Function to run a single review
+# Function to run a single review using isolated config via CLAUDE_CONFIG_DIR
 run_review() {
     local model_name=$1
     local config_dir=$2
@@ -141,11 +141,15 @@ run_review() {
 
     cd "$WORK_DIR"
 
-    # Use settings-nanogpt.json to route through LiteLLM, then specify model explicitly
-    cp ~/.claude/settings-nanogpt.json ~/.claude/settings.json 2>/dev/null || true
+    # Symlink shared resources to the temp config dir
+    ln -sf ~/.claude/commands "$config_dir/commands" 2>/dev/null || true
+    ln -sf ~/.claude/scripts "$config_dir/scripts" 2>/dev/null || true
+    ln -sf ~/.claude/hooks "$config_dir/hooks" 2>/dev/null || true
+    ln -sf ~/.claude/CLAUDE.md "$config_dir/CLAUDE.md" 2>/dev/null || true
+    ln -sf ~/.claude/.credentials.json "$config_dir/.credentials.json" 2>/dev/null || true
 
-    # Run with explicit model via --model flag
-    claude --model "$litellm_model" --print "$SYSTEM_PROMPT
+    # Run with CLAUDE_CONFIG_DIR pointing to isolated config (no settings file race!)
+    CLAUDE_CONFIG_DIR="$config_dir" claude --model "$litellm_model" --print "$SYSTEM_PROMPT
 
 USER REQUEST: $PROMPT
 
@@ -156,21 +160,16 @@ Investigate using your tools. Be thorough." > "$output_file" 2>&1
     echo "[$(date +%H:%M:%S)] $model_name review complete"
 }
 
-# Backup original settings
-cp ~/.claude/settings.json ~/.claude/settings-parallel-backup.json
+# No backup needed - each review uses its own isolated config directory
 
 # Run all 3 in parallel with explicit LiteLLM model names
 # Using reliable models: qwen (code), kimi (architecture), glm (standards)
+# No delays needed - each has its own config dir, no race conditions!
 run_review "QWEN" "$CONFIG_DIR_BASE/qwen" "$OUTPUT_QWEN" "qwen3-coder" &
 PID_QWEN=$!
 
-# Small delay to avoid race on settings file
-sleep 2
-
 run_review "KIMI" "$CONFIG_DIR_BASE/kimi" "$OUTPUT_KIMI" "kimi-k2-thinking" &
 PID_KIMI=$!
-
-sleep 2
 
 run_review "GLM" "$CONFIG_DIR_BASE/glm" "$OUTPUT_GLM" "glm-4.6-thinking" &
 PID_GLM=$!
@@ -195,9 +194,7 @@ wait $PID_GLM
 GLM_EXIT=$?
 echo "✓ GLM complete (exit: $GLM_EXIT)"
 
-# Restore original settings
-cp ~/.claude/settings-parallel-backup.json ~/.claude/settings.json
-rm -f ~/.claude/settings-parallel-backup.json
+# No restore needed - we used isolated config directories
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"

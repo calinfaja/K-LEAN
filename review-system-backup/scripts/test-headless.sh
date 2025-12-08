@@ -69,24 +69,18 @@ if ! echo "$HEALTH_RESP" | jq -e '.choices[0]' > /dev/null 2>&1; then
 fi
 echo "✅ Model '$MODEL' is healthy"
 
-# Step 3: Switch to NanoGPT settings
+# Step 3: Use NanoGPT profile via CLAUDE_CONFIG_DIR
 echo ""
-echo "[3/4] Switching to NanoGPT configuration..."
-SETTINGS_FILE="$HOME/.claude/settings.json"
-BACKUP_FILE="$HOME/.claude/settings-test-backup.json"
-NANO_SETTINGS="$HOME/.claude/settings-nanogpt.json"
+echo "[3/4] Using NanoGPT profile..."
+NANO_CONFIG_DIR="$HOME/.claude-nano"
 
-if [ ! -f "$NANO_SETTINGS" ]; then
-    echo "❌ NanoGPT settings not found at $NANO_SETTINGS"
+if [ ! -d "$NANO_CONFIG_DIR" ]; then
+    echo "❌ NanoGPT profile not found at $NANO_CONFIG_DIR"
+    echo "Run the installer to set up profiles: ./install.sh --full"
     exit 1
 fi
 
-# Backup current settings
-cp "$SETTINGS_FILE" "$BACKUP_FILE"
-
-# Switch to nano settings
-cp "$NANO_SETTINGS" "$SETTINGS_FILE"
-echo "✅ Switched to NanoGPT settings (backup saved)"
+echo "✅ Using nano profile (no settings switching needed)"
 
 # Step 4: Run headless Claude
 echo ""
@@ -96,8 +90,8 @@ echo ""
 
 START_TIME=$(date +%s.%N)
 
-# Run Claude with explicit model
-claude --model "$MODEL" --print -p "$PROMPT" 2>&1
+# Run Claude with explicit model using nano profile
+CLAUDE_CONFIG_DIR="$NANO_CONFIG_DIR" claude --model "$MODEL" --print -p "$PROMPT" 2>&1
 
 EXIT_CODE=$?
 END_TIME=$(date +%s.%N)
@@ -106,9 +100,7 @@ DURATION=$(echo "$END_TIME - $START_TIME" | bc)
 echo ""
 echo "─────────────────────────────────────────────────────────────────"
 
-# Restore original settings
-cp "$BACKUP_FILE" "$SETTINGS_FILE"
-rm -f "$BACKUP_FILE"
+# No restore needed - we used CLAUDE_CONFIG_DIR
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"

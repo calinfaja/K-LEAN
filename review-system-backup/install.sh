@@ -168,6 +168,40 @@ install_litellm_config() {
     fi
 }
 
+# Install nano profile (for claude-nano command)
+install_nano_profile() {
+    local NANO_DIR="${HOME}/.claude-nano"
+
+    log_info "Setting up nano profile..."
+
+    # Create nano profile directory
+    ensure_dir "$NANO_DIR"
+
+    # Create settings.json with nano configuration
+    cat > "$NANO_DIR/settings.json" << 'EOF'
+{
+  "defaultModel": "qwen3-coder",
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:4000",
+    "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "qwen3-coder",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v3-thinking",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6-thinking"
+  }
+}
+EOF
+
+    # Create symlinks to shared resources
+    ln -sf "$CLAUDE_DIR/commands" "$NANO_DIR/commands" 2>/dev/null || true
+    ln -sf "$CLAUDE_DIR/scripts" "$NANO_DIR/scripts" 2>/dev/null || true
+    ln -sf "$CLAUDE_DIR/hooks" "$NANO_DIR/hooks" 2>/dev/null || true
+    ln -sf "$CLAUDE_DIR/CLAUDE.md" "$NANO_DIR/CLAUDE.md" 2>/dev/null || true
+    ln -sf "$CLAUDE_DIR/.credentials.json" "$NANO_DIR/.credentials.json" 2>/dev/null || true
+
+    log_success "Nano profile ready at $NANO_DIR"
+    log_info "Use 'claude-nano' to run with NanoGPT models"
+}
+
 # Verify installation
 verify_installation() {
     log_info "Verifying installation..."
@@ -224,6 +258,14 @@ verify_installation() {
         echo -e "${YELLOW}NOT RUNNING${NC}"
     fi
 
+    # Check nano profile
+    echo -n "  Nano Profile: "
+    if [ -d "${HOME}/.claude-nano" ] && [ -f "${HOME}/.claude-nano/settings.json" ]; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${YELLOW}NOT INSTALLED${NC}"
+    fi
+
     if [ $errors -eq 0 ]; then
         log_success "Installation verified successfully"
         return 0
@@ -243,6 +285,7 @@ install_full() {
     install_config
     install_knowledge
     install_litellm_config
+    install_nano_profile
 
     echo ""
     verify_installation
@@ -250,10 +293,14 @@ install_full() {
     echo ""
     log_success "K-LEAN v$VERSION installed successfully!"
     echo ""
+    echo "Profile system:"
+    echo "  claude        - Native Anthropic (default)"
+    echo "  claude-nano   - NanoGPT via LiteLLM"
+    echo ""
     echo "Next steps:"
-    echo "  1. Start LiteLLM: ~/.claude/scripts/start-litellm.sh"
-    echo "  2. Test models: healthcheck"
-    echo "  3. Try a review: /kln:quickReview qwen"
+    echo "  1. Add to ~/.bashrc: alias claude-nano='CLAUDE_CONFIG_DIR=~/.claude-nano claude'"
+    echo "  2. Start LiteLLM: ~/.claude/scripts/start-litellm.sh"
+    echo "  3. Test: claude-nano (for NanoGPT) or claude (for native)"
 }
 
 # Minimal installation
