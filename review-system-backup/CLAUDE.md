@@ -54,6 +54,26 @@ Or you can search programmatically:
 }
 ```
 
+## Profile System
+
+K-LEAN supports two profiles for different API backends:
+
+| Command | Profile | Description |
+|---------|---------|-------------|
+| `claude` | Native | Uses Anthropic API directly |
+| `claude-nano` | NanoGPT | Uses LiteLLM proxy at localhost:4000 |
+
+Both can run simultaneously in different terminals.
+
+### Check Current Profile
+```bash
+claude-status
+```
+
+### Profile Directories
+- Native: `~/.claude/`
+- NanoGPT: `~/.claude-nano/` (symlinks to shared resources)
+
 ## Review System
 
 Multi-model code review system using LiteLLM proxy at localhost:4000.

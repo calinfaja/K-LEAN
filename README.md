@@ -48,6 +48,24 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 - **Health check + fallback**: Auto-routes to healthy models
 - **Session folders**: Each Claude instance gets its own output folder
 - **Sync verification**: Check scripts/commands/config against backup
+- **Profile system**: Run native and nano modes simultaneously
+
+## Profile System
+
+K-LEAN uses `CLAUDE_CONFIG_DIR` for clean profile separation:
+
+```bash
+claude        # Native Anthropic (default)
+claude-nano   # NanoGPT via LiteLLM proxy
+claude-status # Show current profile
+```
+
+Both can run **simultaneously** in different terminals - no more settings file switching!
+
+```
+~/.claude/           # Native profile
+~/.claude-nano/      # NanoGPT profile (symlinks to shared resources)
+```
 
 ## Installation
 
@@ -60,11 +78,17 @@ cd claudeAgentic/review-system-backup
 
 ### Options
 ```bash
-./install.sh --full      # Complete installation
+./install.sh --full      # Complete installation (includes nano profile)
 ./install.sh --minimal   # Scripts only
 ./install.sh --check     # Verify installation
 ./update.sh              # Pull updates and reinstall
-./test.sh                # Run test suite (14 tests)
+./test.sh                # Run test suite (18 tests)
+```
+
+### Post-Install: Add to ~/.bashrc
+```bash
+alias claude-nano='CLAUDE_CONFIG_DIR=~/.claude-nano claude'
+alias claude-status='if [ -n "$CLAUDE_CONFIG_DIR" ]; then echo "Profile: nano"; else echo "Profile: native"; fi'
 ```
 
 ### Prerequisites
@@ -109,18 +133,25 @@ asyncDeepReview security audit
 ├── docs/                           # Documentation
 ├── review-system-backup/           # Backup of all scripts/commands/config
 │   ├── scripts/
-│   ├── commands/                   # SuperClaude commands backup
-│   ├── commands-kln/               # Custom /kln: commands backup
+│   ├── commands/kln/               # Custom /kln: commands
+│   ├── commands/sc/                # SuperClaude commands
 │   └── config/
 └── NEXT_FEATURES/                  # Feature ideas
 
-~/.claude/                          # Active Claude configuration
+~/.claude/                          # Native profile (default)
 ├── scripts/                        # All executable scripts
 ├── commands/
-│   ├── sc/                         # SuperClaude commands (30)
-│   └── kln/                        # Custom review commands (12)
-├── settings.json                   # Hooks and configuration
+│   ├── sc/                         # SuperClaude commands (31)
+│   └── kln/                        # Custom review commands (13)
+├── hooks/                          # Event hooks
+├── settings.json                   # Native API configuration
 └── CLAUDE.md                       # System instructions
+
+~/.claude-nano/                     # NanoGPT profile
+├── settings.json                   # LiteLLM proxy configuration
+├── commands -> ~/.claude/commands  # Symlink
+├── scripts -> ~/.claude/scripts    # Symlink
+└── hooks -> ~/.claude/hooks        # Symlink
 
 ~/.venvs/knowledge-db/              # txtai virtual environment
 /tmp/claude-reviews/                # Review outputs
