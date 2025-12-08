@@ -57,6 +57,11 @@ fi
 # Ensure knowledge-db directory exists
 mkdir -p "$PROJECT_ROOT/.knowledge-db"
 
+# Log to timeline (chronological event tracking)
+log_timeline() {
+    echo "$(date '+%m-%d %H:%M') | $1 | $2" >> "$PROJECT_ROOT/.knowledge-db/timeline.txt"
+}
+
 # Truncate content to save tokens (max 3000 chars)
 TRUNCATED_CONTENT=$(echo "$CONTENT" | head -c 3000)
 
@@ -162,6 +167,7 @@ fi
 
     # Extract and store each fact
     FACT_COUNT=$(echo "$JSON" | jq '.facts | length')
+    STORED=0
 
     for i in $(seq 0 $((FACT_COUNT - 1))); do
         FACT=$(echo "$JSON" | jq ".facts[$i]")
@@ -171,8 +177,15 @@ fi
             '. + {relevance_score: ($score | tonumber), found_date: $date, auto_extracted: true}')
 
         # Store in knowledge-db
-        echo "$FACT" | "$PYTHON" "$KNOWLEDGE_DB" add - 2>/dev/null
+        if echo "$FACT" | "$PYTHON" "$KNOWLEDGE_DB" add - 2>/dev/null; then
+            STORED=$((STORED + 1))
+        fi
     done
+
+    # Log to timeline if facts were stored
+    if [ $STORED -gt 0 ]; then
+        log_timeline "$SOURCE_TYPE" "$FOCUS ($STORED facts, score: $SCORE)"
+    fi
 
 ) &
 
