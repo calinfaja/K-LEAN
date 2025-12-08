@@ -1,0 +1,35 @@
+# K-LEAN .gitignore
+# ==================
+
+# Environment files (contain API keys)
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Backups
+*.bak
+backups/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Knowledge DB (project-specific)
+.knowledge-db/
+
+# Temporary files
+*.tmp
+*.temp

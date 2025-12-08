@@ -153,19 +153,44 @@ install_knowledge() {
     log_success "Knowledge database system ready"
 }
 
-# Install LiteLLM configuration
+# Install LiteLLM configuration (modular approach with .env)
 install_litellm_config() {
     local config_dir="${HOME}/.config/litellm"
     ensure_dir "$config_dir"
 
-    if [ -f "$SCRIPT_DIR/config/nanogpt.yaml" ]; then
-        if [ ! -f "$config_dir/nanogpt.yaml" ]; then
-            cp "$SCRIPT_DIR/config/nanogpt.yaml" "$config_dir/nanogpt.yaml"
-            log_success "Installed LiteLLM configuration"
-        else
-            log_info "LiteLLM config already exists - keeping current"
-        fi
+    log_info "Setting up LiteLLM configuration..."
+
+    # Install config.yaml (uses os.environ/ for secrets)
+    if [ -f "$SCRIPT_DIR/config/litellm/config.yaml" ]; then
+        cp "$SCRIPT_DIR/config/litellm/config.yaml" "$config_dir/config.yaml"
+        log_success "Installed config.yaml"
     fi
+
+    # Install .env.example template
+    if [ -f "$SCRIPT_DIR/config/litellm/.env.example" ]; then
+        cp "$SCRIPT_DIR/config/litellm/.env.example" "$config_dir/.env.example"
+        log_success "Installed .env.example template"
+    fi
+
+    # Create .env from template if it doesn't exist
+    if [ ! -f "$config_dir/.env" ]; then
+        if [ -f "$config_dir/.env.example" ]; then
+            cp "$config_dir/.env.example" "$config_dir/.env"
+            log_warn "Created .env from template - edit with your API keys!"
+            log_info "  Edit: $config_dir/.env"
+        fi
+    else
+        log_info "Keeping existing .env file"
+    fi
+
+    # Legacy: migrate from old nanogpt.yaml if present
+    if [ -f "$config_dir/nanogpt.yaml" ] && [ ! -f "$config_dir/config.yaml.bak" ]; then
+        mv "$config_dir/nanogpt.yaml" "$config_dir/nanogpt.yaml.bak"
+        log_info "Backed up old nanogpt.yaml → nanogpt.yaml.bak"
+    fi
+
+    log_success "LiteLLM config ready"
+    log_info "Start proxy: ~/.claude/scripts/litellm-start.sh"
 }
 
 # Install nano profile (for claude-nano command)
