@@ -196,23 +196,15 @@ echo "Starting headless Claude with LiteLLM..."
 echo "(The reviewing model has full tool access and will investigate)"
 echo ""
 
-# Save current settings and switch to review config
-ORIGINAL_SETTINGS="$HOME/.claude/settings.json"
-BACKUP_SETTINGS="$HOME/.claude/settings-pre-review-backup.json"
-REVIEW_SETTINGS="$HOME/.claude/settings-nanogpt.json"
+# Use nano profile via CLAUDE_CONFIG_DIR (no settings switching needed)
+NANO_CONFIG_DIR="$HOME/.claude-nano"
 
-# Backup current settings
-cp "$ORIGINAL_SETTINGS" "$BACKUP_SETTINGS"
-
-# Switch to LiteLLM settings
-cp "$REVIEW_SETTINGS" "$ORIGINAL_SETTINGS"
-
-# Run the headless review
+# Run the headless review using nano profile
 cd "$WORK_DIR"
 
 # Use --print for non-interactive output
-# Capture output for fact extraction
-REVIEW_OUTPUT=$(claude --model "$CLAUDE_MODEL" --print "$FULL_PROMPT")
+# CLAUDE_CONFIG_DIR points to nano profile with LiteLLM settings
+REVIEW_OUTPUT=$(CLAUDE_CONFIG_DIR="$NANO_CONFIG_DIR" claude --model "$CLAUDE_MODEL" --print "$FULL_PROMPT")
 REVIEW_EXIT_CODE=$?
 
 # Display the output
@@ -220,10 +212,6 @@ echo "$REVIEW_OUTPUT"
 
 # Auto-extract facts from review (Tier 1)
 ~/.claude/scripts/fact-extract.sh "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
-
-# Restore original settings
-cp "$BACKUP_SETTINGS" "$ORIGINAL_SETTINGS"
-rm -f "$BACKUP_SETTINGS"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
