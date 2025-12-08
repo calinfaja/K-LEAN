@@ -22,7 +22,7 @@ echo "────────────────────────�
 HEALTHY_COUNT=0
 
 # All 6 models from nanogpt.yaml
-MODELS="coding-qwen architecture-deepseek tools-glm research-minimax agent-kimi scripting-hermes"
+MODELS="qwen3-coder deepseek-v3-thinking glm-4.6-thinking minimax-m2 kimi-k2-thinking hermes-4-70b"
 
 for model in $MODELS; do
     resp=$(curl -s --max-time 15 http://localhost:4000/chat/completions \

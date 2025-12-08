@@ -59,42 +59,42 @@ Create `~/.config/litellm/nanogpt.yaml`:
 ```yaml
 model_list:
   # Qwen 3 Coder - Code quality specialist
-  - model_name: coding-qwen
+  - model_name: qwen3-coder
     litellm_params:
       model: openai/Qwen/Qwen3-Coder
       api_base: https://api.nano-gpt.com/v1
       api_key: os.environ/NANOGPT_API_KEY
 
   # DeepSeek V3 - Architecture specialist (thinking model)
-  - model_name: architecture-deepseek
+  - model_name: deepseek-v3-thinking
     litellm_params:
       model: openai/deepseek-chat
       api_base: https://api.nano-gpt.com/v1
       api_key: os.environ/NANOGPT_API_KEY
 
   # GLM 4.6 - Standards specialist (thinking model)
-  - model_name: tools-glm
+  - model_name: glm-4.6-thinking
     litellm_params:
       model: openai/glm-z1-air
       api_base: https://api.nano-gpt.com/v1
       api_key: os.environ/NANOGPT_API_KEY
 
   # MiniMax M2 - Research specialist
-  - model_name: research-minimax
+  - model_name: minimax-m2
     litellm_params:
       model: openai/MiniMax-M2-Large
       api_base: https://api.nano-gpt.com/v1
       api_key: os.environ/NANOGPT_API_KEY
 
   # Kimi K2 - Agent specialist (thinking model)
-  - model_name: agent-kimi
+  - model_name: kimi-k2-thinking
     litellm_params:
       model: openai/kimi-k2-0711-preview
       api_base: https://api.nano-gpt.com/v1
       api_key: os.environ/NANOGPT_API_KEY
 
   # Hermes 4 - Scripting specialist
-  - model_name: scripting-hermes
+  - model_name: hermes-4-70b
     litellm_params:
       model: openai/hermes-4-mini
       api_base: https://api.nano-gpt.com/v1

@@ -6,9 +6,9 @@
 # Usage: deep-review.sh <model> "<prompt>" [working_dir]
 #
 # Models:
-#   qwen     -> coding-qwen      - Code quality, bugs (RELIABLE)
-#   kimi     -> agent-kimi       - Architecture, planning (RELIABLE)
-#   glm      -> tools-glm        - Standards/compliance (RELIABLE)
+#   qwen     -> qwen3-coder      - Code quality, bugs (RELIABLE)
+#   kimi     -> kimi-k2-thinking       - Architecture, planning (RELIABLE)
+#   glm      -> glm-4.6-thinking        - Standards/compliance (RELIABLE)
 #   deepseek -> NOT RECOMMENDED for tool use (empty output issue)
 #
 
@@ -21,7 +21,7 @@ PROMPT="${2:-Review the codebase for issues}"
 WORK_DIR="${3:-$(pwd)}"
 
 # Model priority for fallback (only reliable models for tool use)
-MODELS_PRIORITY="coding-qwen agent-kimi tools-glm"
+MODELS_PRIORITY="qwen3-coder kimi-k2-thinking glm-4.6-thinking"
 
 # Health check function (test actual model response)
 check_model_health() {
@@ -54,20 +54,20 @@ find_healthy_model() {
 get_model_info() {
     case "$1" in
         qwen|code|bugs)
-            echo "coding-qwen"
+            echo "qwen3-coder"
             ;;
         kimi|arch|architecture|planning)
-            echo "agent-kimi"
+            echo "kimi-k2-thinking"
             ;;
         glm|standards|misra|compliance)
-            echo "tools-glm"
+            echo "glm-4.6-thinking"
             ;;
         deepseek)
             echo "WARNING: deepseek not recommended for tool use" >&2
-            echo "architecture-deepseek"
+            echo "deepseek-v3-thinking"
             ;;
         *)
-            echo "coding-qwen"
+            echo "qwen3-coder"
             ;;
     esac
 }
@@ -75,9 +75,9 @@ get_model_info() {
 # Get Claude model name from LiteLLM model name
 litellm_to_claude() {
     case "$1" in
-        coding-qwen) echo "sonnet" ;;
-        architecture-deepseek) echo "haiku" ;;
-        tools-glm) echo "opus" ;;
+        qwen3-coder) echo "sonnet" ;;
+        deepseek-v3-thinking) echo "haiku" ;;
+        glm-4.6-thinking) echo "opus" ;;
         *) echo "sonnet" ;;
     esac
 }
@@ -85,10 +85,10 @@ litellm_to_claude() {
 # Get model description
 get_model_desc() {
     case "$1" in
-        coding-qwen) echo "coding-qwen (code quality, bugs)" ;;
-        agent-kimi) echo "agent-kimi (architecture, planning)" ;;
-        tools-glm) echo "tools-glm (standards, compliance)" ;;
-        architecture-deepseek) echo "architecture-deepseek (NOT RECOMMENDED)" ;;
+        qwen3-coder) echo "qwen3-coder (code quality, bugs)" ;;
+        kimi-k2-thinking) echo "kimi-k2-thinking (architecture, planning)" ;;
+        glm-4.6-thinking) echo "glm-4.6-thinking (standards, compliance)" ;;
+        deepseek-v3-thinking) echo "deepseek-v3-thinking (NOT RECOMMENDED)" ;;
         *) echo "$1" ;;
     esac
 }

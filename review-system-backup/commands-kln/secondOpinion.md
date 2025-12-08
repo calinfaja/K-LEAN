@@ -25,9 +25,9 @@ Uses LiteLLM directly (not through Claude Code) so your primary session stays on
 
 | Alias | Model | Best For |
 |-------|-------|----------|
-| `qwen` | coding-qwen | Code quality, bugs, memory safety |
-| `deepseek` | architecture-deepseek | Architecture, design decisions |
-| `glm` | tools-glm | Standards, MISRA, compliance |
+| `qwen` | qwen3-coder | Code quality, bugs, memory safety |
+| `deepseek` | deepseek-v3-thinking | Architecture, design decisions |
+| `glm` | glm-4.6-thinking | Standards, MISRA, compliance |
 
 **Default:** `qwen`
 
@@ -97,7 +97,7 @@ Include this prominently in the context.
 
 ### System Prompt (Model-Specific)
 
-**QWEN (coding-qwen):**
+**QWEN (qwen3-coder):**
 ```
 You are an independent code reviewer providing a SECOND OPINION on embedded systems code.
 You are reviewing work done by another AI (Claude). Be constructive but thorough.
@@ -133,7 +133,7 @@ OUTPUT FORMAT:
 [APPROVE / APPROVE_WITH_CHANGES / REQUEST_CHANGES / NEEDS_DISCUSSION]
 ```
 
-**DEEPSEEK (architecture-deepseek):**
+**DEEPSEEK (deepseek-v3-thinking):**
 ```
 You are an independent software architect providing a SECOND OPINION on system design.
 You are reviewing architectural decisions made by another AI (Claude).
@@ -165,7 +165,7 @@ OUTPUT FORMAT:
 [APPROVE / REFACTOR_SUGGESTED / MAJOR_REDESIGN_NEEDED]
 ```
 
-**GLM (tools-glm):**
+**GLM (glm-4.6-thinking):**
 ```
 You are an independent compliance reviewer providing a SECOND OPINION on code standards.
 You are reviewing code for MISRA-C and embedded best practices.
@@ -235,7 +235,7 @@ Be thorough but constructive. If you disagree with the approach, explain why and
 ## Step 4: Call LiteLLM
 
 ```bash
-MODEL="coding-qwen"  # or architecture-deepseek / tools-glm
+MODEL="qwen3-coder"  # or deepseek-v3-thinking / glm-4.6-thinking
 
 # Build the full context (Claude should construct this from gathered data)
 CONTEXT="[CONSTRUCTED FROM STEPS ABOVE]"

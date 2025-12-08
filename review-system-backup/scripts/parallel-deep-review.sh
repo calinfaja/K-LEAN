@@ -41,7 +41,7 @@ check_model_health() {
 # Avoided: deepseek (empty output), hermes (hallucinates), minimax (timeout)
 echo "Checking model health..."
 HEALTHY_MODELS=""
-for model in coding-qwen agent-kimi tools-glm; do
+for model in qwen3-coder kimi-k2-thinking glm-4.6-thinking; do
     if check_model_health "$model"; then
         echo "✓ $model - healthy"
         HEALTHY_MODELS="$HEALTHY_MODELS $model"
@@ -71,13 +71,13 @@ echo ""
 # QWEN (runs as sonnet)
 cat > "$CONFIG_DIR_BASE/qwen/settings.json" << 'EOF'
 {
-  "defaultModel": "coding-qwen",
+  "defaultModel": "qwen3-coder",
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "coding-qwen",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "coding-qwen",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "coding-qwen"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "qwen3-coder",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "qwen3-coder",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "qwen3-coder"
   }
 }
 EOF
@@ -85,13 +85,13 @@ EOF
 # KIMI (runs as haiku) - reliable for tool use
 cat > "$CONFIG_DIR_BASE/kimi/settings.json" << 'EOF'
 {
-  "defaultModel": "agent-kimi",
+  "defaultModel": "kimi-k2-thinking",
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "agent-kimi",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "agent-kimi",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "agent-kimi"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "kimi-k2-thinking",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "kimi-k2-thinking",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "kimi-k2-thinking"
   }
 }
 EOF
@@ -99,13 +99,13 @@ EOF
 # GLM (runs as opus)
 cat > "$CONFIG_DIR_BASE/glm/settings.json" << 'EOF'
 {
-  "defaultModel": "tools-glm",
+  "defaultModel": "glm-4.6-thinking",
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "tools-glm",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "tools-glm",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "tools-glm"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6-thinking",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.6-thinking",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6-thinking"
   }
 }
 EOF
@@ -161,18 +161,18 @@ cp ~/.claude/settings.json ~/.claude/settings-parallel-backup.json
 
 # Run all 3 in parallel with explicit LiteLLM model names
 # Using reliable models: qwen (code), kimi (architecture), glm (standards)
-run_review "QWEN" "$CONFIG_DIR_BASE/qwen" "$OUTPUT_QWEN" "coding-qwen" &
+run_review "QWEN" "$CONFIG_DIR_BASE/qwen" "$OUTPUT_QWEN" "qwen3-coder" &
 PID_QWEN=$!
 
 # Small delay to avoid race on settings file
 sleep 2
 
-run_review "KIMI" "$CONFIG_DIR_BASE/kimi" "$OUTPUT_KIMI" "agent-kimi" &
+run_review "KIMI" "$CONFIG_DIR_BASE/kimi" "$OUTPUT_KIMI" "kimi-k2-thinking" &
 PID_KIMI=$!
 
 sleep 2
 
-run_review "GLM" "$CONFIG_DIR_BASE/glm" "$OUTPUT_GLM" "tools-glm" &
+run_review "GLM" "$CONFIG_DIR_BASE/glm" "$OUTPUT_GLM" "glm-4.6-thinking" &
 PID_GLM=$!
 
 # Wait for all to complete

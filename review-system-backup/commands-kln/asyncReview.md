@@ -42,7 +42,7 @@ echo "=== FILES CHANGED ===" && git diff --name-only HEAD~1..HEAD 2>/dev/null
 
 3. Call LiteLLM API:
 ```bash
-MODEL="coding-qwen"  # or architecture-deepseek or tools-glm based on selection
+MODEL="qwen3-coder"  # or deepseek-v3-thinking or glm-4.6-thinking based on selection
 curl -s http://localhost:4000/chat/completions \
   -H "Content-Type: application/json" \
   -d '{

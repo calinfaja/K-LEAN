@@ -16,15 +16,15 @@ OUTPUT_DIR="$SESSION_DIR"
 TIME_STAMP=$(date +%H%M%S)
 
 # Model priority order for fallback
-MODELS_PRIORITY="coding-qwen architecture-deepseek tools-glm"
+MODELS_PRIORITY="qwen3-coder deepseek-v3-thinking glm-4.6-thinking"
 
 # Map model aliases to LiteLLM names
 get_litellm_model() {
     case "$1" in
-        qwen) echo "coding-qwen" ;;
-        deepseek) echo "architecture-deepseek" ;;
-        glm) echo "tools-glm" ;;
-        *) echo "coding-qwen" ;;
+        qwen) echo "qwen3-coder" ;;
+        deepseek) echo "deepseek-v3-thinking" ;;
+        glm) echo "glm-4.6-thinking" ;;
+        *) echo "qwen3-coder" ;;
     esac
 }
 
