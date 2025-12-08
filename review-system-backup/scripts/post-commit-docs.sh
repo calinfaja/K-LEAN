@@ -71,7 +71,21 @@ Output a summary of what you updated."
 
     ) > "$RESULT_FILE" 2>&1 &
 
+    # Auto-extract facts from commit (Tier 2)
+    # Build commit info for extraction
+    COMMIT_INFO="Commit: $COMMIT_HASH
+Message: $COMMIT_MSG
+
+Changed Files:
+$CHANGED_FILES
+
+Diff Stats:
+$DIFF_STAT"
+
+    ~/.claude/scripts/fact-extract.sh "$COMMIT_INFO" "commit" "$COMMIT_MSG" "$WORK_DIR" &
+
     echo "📝 Post-commit Serena documentation started. Results: $RESULT_FILE"
+    echo "📚 Auto-extracting facts from commit..."
 fi
 
 exit 0

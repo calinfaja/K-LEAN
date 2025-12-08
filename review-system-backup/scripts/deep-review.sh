@@ -211,9 +211,15 @@ cp "$REVIEW_SETTINGS" "$ORIGINAL_SETTINGS"
 cd "$WORK_DIR"
 
 # Use --print for non-interactive output
-claude --model "$CLAUDE_MODEL" --print "$FULL_PROMPT"
-
+# Capture output for fact extraction
+REVIEW_OUTPUT=$(claude --model "$CLAUDE_MODEL" --print "$FULL_PROMPT")
 REVIEW_EXIT_CODE=$?
+
+# Display the output
+echo "$REVIEW_OUTPUT"
+
+# Auto-extract facts from review (Tier 1)
+~/.claude/scripts/fact-extract.sh "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
 
 # Restore original settings
 cp "$BACKUP_SETTINGS" "$ORIGINAL_SETTINGS"
