@@ -160,10 +160,20 @@ install_litellm_config() {
 
     log_info "Setting up LiteLLM configuration..."
 
-    # Install config.yaml (uses os.environ/ for secrets)
+    # Install provider templates
     if [ -f "$SCRIPT_DIR/config/litellm/config.yaml" ]; then
         cp "$SCRIPT_DIR/config/litellm/config.yaml" "$config_dir/config.yaml"
-        log_success "Installed config.yaml"
+        log_success "Installed NanoGPT config template"
+    fi
+
+    if [ -f "$SCRIPT_DIR/config/litellm/openrouter.yaml" ]; then
+        cp "$SCRIPT_DIR/config/litellm/openrouter.yaml" "$config_dir/openrouter.yaml"
+        log_success "Installed OpenRouter config template"
+    fi
+
+    if [ -f "$SCRIPT_DIR/config/litellm/ollama.yaml" ]; then
+        cp "$SCRIPT_DIR/config/litellm/ollama.yaml" "$config_dir/ollama.yaml"
+        log_success "Installed Ollama config template"
     fi
 
     # Install .env.example template
@@ -191,6 +201,17 @@ install_litellm_config() {
 
     log_success "LiteLLM config ready"
     log_info "Start proxy: ~/.claude/scripts/litellm-start.sh"
+}
+
+# Interactive LiteLLM setup wizard
+setup_litellm_interactive() {
+    log_info "Running LiteLLM setup wizard..."
+
+    if [ -x "$CLAUDE_DIR/scripts/setup-litellm.sh" ]; then
+        "$CLAUDE_DIR/scripts/setup-litellm.sh"
+    else
+        log_warn "setup-litellm.sh not found or not executable"
+    fi
 }
 
 # Install nano profile (for claude-nano command)
@@ -311,6 +332,14 @@ install_full() {
     install_knowledge
     install_litellm_config
     install_nano_profile
+
+    # Optionally run LiteLLM setup wizard
+    echo ""
+    read -p "Setup LiteLLM provider now? [y/N] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        setup_litellm_interactive
+    fi
 
     echo ""
     verify_installation
