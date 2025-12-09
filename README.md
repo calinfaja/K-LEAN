@@ -140,7 +140,7 @@ asyncDeepReview security audit
 | [docs/COMMANDS_REFERENCE.md](docs/COMMANDS_REFERENCE.md) | All commands and keywords |
 | [docs/REVIEW_SYSTEM.md](docs/REVIEW_SYSTEM.md) | Multi-model review architecture |
 | [docs/KNOWLEDGE_SYSTEM.md](docs/KNOWLEDGE_SYSTEM.md) | Semantic knowledge database |
-| [TOON_PROJECT_COMPLETE.md](TOON_PROJECT_COMPLETE.md) | TOON format integration - production ready |
+| [docs/TOON_PROJECT_COMPLETE.md](docs/TOON_PROJECT_COMPLETE.md) | TOON format integration - production ready |
 | [docs/TOON_TECHNICAL_SPEC.md](docs/TOON_TECHNICAL_SPEC.md) | TOON format API reference |
 
 ## Directory Structure
