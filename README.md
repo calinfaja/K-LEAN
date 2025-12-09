@@ -43,6 +43,7 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 - **Automatic fact generation**: Extract patterns from reviews and commits using native Haiku
 - **Semantic search**: `FindKnowledge <query>`
 - **Headless integration**: Review scripts inject relevant prior knowledge
+- **TOON Integration**: Token-Oriented Object Notation format for 2-10% token reduction on extractions
 
 ### Infrastructure
 - **Health check + fallback**: Auto-routes to healthy models
@@ -139,6 +140,8 @@ asyncDeepReview security audit
 | [docs/COMMANDS_REFERENCE.md](docs/COMMANDS_REFERENCE.md) | All commands and keywords |
 | [docs/REVIEW_SYSTEM.md](docs/REVIEW_SYSTEM.md) | Multi-model review architecture |
 | [docs/KNOWLEDGE_SYSTEM.md](docs/KNOWLEDGE_SYSTEM.md) | Semantic knowledge database |
+| [TOON_PROJECT_COMPLETE.md](TOON_PROJECT_COMPLETE.md) | TOON format integration - production ready |
+| [docs/TOON_TECHNICAL_SPEC.md](docs/TOON_TECHNICAL_SPEC.md) | TOON format API reference |
 
 ## Directory Structure
 
