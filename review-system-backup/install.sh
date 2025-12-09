@@ -153,6 +153,35 @@ install_knowledge() {
     log_success "Knowledge database system ready"
 }
 
+# Setup knowledge server auto-start
+install_knowledge_server_autostart() {
+    log_info "Setting up knowledge server auto-start..."
+
+    local bashrc="${HOME}/.bashrc"
+    local marker="# K-LEAN Knowledge Server Auto-Start"
+
+    # Check if already installed
+    if grep -q "$marker" "$bashrc" 2>/dev/null; then
+        log_info "Knowledge server auto-start already configured"
+        return 0
+    fi
+
+    # Add auto-start to bashrc
+    cat >> "$bashrc" << 'EOF'
+
+# K-LEAN Knowledge Server Auto-Start
+# Keeps txtai embeddings in memory for fast searches (~30ms vs ~17s)
+if [ ! -S /tmp/knowledge-server.sock ]; then
+    if [ -f ~/.claude/scripts/knowledge-server.py ]; then
+        (cd ~ && nohup ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-server.py start > /tmp/knowledge-server.log 2>&1 &)
+    fi
+fi
+EOF
+
+    log_success "Knowledge server auto-start added to ~/.bashrc"
+    log_info "Server will start on next terminal open"
+}
+
 # Install LiteLLM configuration (modular approach with .env)
 install_litellm_config() {
     local config_dir="${HOME}/.config/litellm"
@@ -330,6 +359,7 @@ install_full() {
     install_hooks
     install_config
     install_knowledge
+    install_knowledge_server_autostart
     install_litellm_config
     install_nano_profile
 
@@ -352,8 +382,8 @@ install_full() {
     echo "  claude-nano   - NanoGPT via LiteLLM"
     echo ""
     echo "Next steps:"
-    echo "  1. Add to ~/.bashrc: alias claude-nano='CLAUDE_CONFIG_DIR=~/.claude-nano claude'"
-    echo "  2. Start LiteLLM: ~/.claude/scripts/start-litellm.sh"
+    echo "  1. Reload shell: source ~/.bashrc"
+    echo "  2. Start LiteLLM: ~/.claude/scripts/litellm-start.sh"
     echo "  3. Test: claude-nano (for NanoGPT) or claude (for native)"
 }
 
