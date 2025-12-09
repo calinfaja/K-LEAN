@@ -146,8 +146,8 @@ install_knowledge() {
     # Install Python dependencies
     log_info "Installing Python dependencies..."
     "$VENV_DIR/bin/pip" install -q --upgrade pip 2>/dev/null
-    "$VENV_DIR/bin/pip" install -q txtai sentence-transformers 2>/dev/null || {
-        log_warn "Failed to install txtai - knowledge search may not work"
+    "$VENV_DIR/bin/pip" install -q txtai sentence-transformers python-toon 2>/dev/null || {
+        log_warn "Failed to install dependencies - knowledge search may not work"
     }
 
     log_success "Knowledge database system ready"
