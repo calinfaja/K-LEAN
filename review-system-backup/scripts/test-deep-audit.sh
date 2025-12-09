@@ -7,7 +7,7 @@
 #
 # Options:
 #   --all           Test all 6 models (default: 3 reliable)
-#   --yolo          Run with --dangerously-skip-permissions
+#   --unsafe        Disable audit mode (allow write operations - NOT RECOMMENDED)
 #   --commits N     Use last N commits for diff (default: 1)
 #   --model MODEL   Test single model only
 #   --parallel      Run all tests in parallel
@@ -17,7 +17,7 @@
 # Examples:
 #   test-deep-audit.sh                    # Test 3 reliable models on last commit
 #   test-deep-audit.sh --all              # Test all 6 models
-#   test-deep-audit.sh --yolo             # Test with yolo mode
+#   test-deep-audit.sh --unsafe           # Test without audit restrictions (NOT RECOMMENDED)
 #   test-deep-audit.sh --model qwen       # Test qwen only
 #   test-deep-audit.sh --compare HEAD~3 HEAD  # Custom commit range
 
@@ -28,7 +28,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORK_DIR="${PWD}"
 OUTPUT_DIR="/tmp/deep-audit-test-$(date +%Y%m%d-%H%M%S)"
 TIMEOUT=300
-YOLO_MODE=false
+AUDIT_MODE=true  # Default: read-only audit mode (safe)
 PARALLEL_MODE=false
 TEST_ALL=false
 SINGLE_MODEL=""
@@ -104,8 +104,8 @@ while [[ $# -gt 0 ]]; do
             TEST_ALL=true
             shift
             ;;
-        --yolo)
-            YOLO_MODE=true
+        --unsafe)
+            AUDIT_MODE=false
             shift
             ;;
         --parallel)
@@ -192,9 +192,55 @@ run_model_test() {
         return 1
     fi
 
-    # Create isolated config directory
+    # Create isolated config directory with audit permissions
     mkdir -p "$config_dir"
-    cat > "$config_dir/settings.json" << EOF
+
+    # Build settings with or without audit mode
+    if [ "$AUDIT_MODE" = true ]; then
+        cat > "$config_dir/settings.json" << EOF
+{
+  "defaultModel": "$litellm_name",
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:4000",
+    "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "$litellm_name",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "$litellm_name",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "$litellm_name"
+  },
+  "permissions": {
+    "allow": [
+      "Read", "Glob", "Grep", "LS", "Agent", "Task",
+      "WebFetch", "WebSearch",
+      "mcp__tavily__tavily-search", "mcp__tavily__tavily-extract",
+      "mcp__context7__resolve-library-id", "mcp__context7__get-library-docs",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__serena__list_dir", "mcp__serena__find_file", "mcp__serena__search_for_pattern",
+      "mcp__serena__get_symbols_overview", "mcp__serena__find_symbol",
+      "mcp__serena__find_referencing_symbols", "mcp__serena__list_memories",
+      "mcp__serena__read_memory", "mcp__serena__get_current_config",
+      "mcp__serena__think_about_collected_information",
+      "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)",
+      "Bash(git show:*)", "Bash(git blame:*)", "Bash(git branch:*)",
+      "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(wc:*)",
+      "Bash(find:*)", "Bash(ls:*)", "Bash(tree:*)", "Bash(grep:*)",
+      "Bash(rg:*)", "Bash(jq:*)", "Bash(curl -s:*)"
+    ],
+    "deny": [
+      "Write", "Edit", "NotebookEdit",
+      "Bash(rm:*)", "Bash(mv:*)", "Bash(cp:*)", "Bash(mkdir:*)",
+      "Bash(chmod:*)", "Bash(chown:*)",
+      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
+      "Bash(git checkout:*)", "Bash(git reset:*)", "Bash(git revert:*)",
+      "Bash(npm install:*)", "Bash(pip install:*)", "Bash(sudo:*)",
+      "mcp__serena__replace_symbol_body", "mcp__serena__insert_after_symbol",
+      "mcp__serena__insert_before_symbol", "mcp__serena__rename_symbol",
+      "mcp__serena__write_memory", "mcp__serena__delete_memory", "mcp__serena__edit_memory"
+    ]
+  }
+}
+EOF
+    else
+        cat > "$config_dir/settings.json" << EOF
 {
   "defaultModel": "$litellm_name",
   "env": {
@@ -206,6 +252,7 @@ run_model_test() {
   }
 }
 EOF
+    fi
 
     # Symlink shared resources
     ln -sf ~/.claude/commands "$config_dir/commands" 2>/dev/null || true
@@ -240,11 +287,9 @@ $diff_content
 
 Be concise. Focus on actual issues, not style."
 
-    # Build claude command
-    local claude_cmd="claude --model $litellm_name --print"
-    if [ "$YOLO_MODE" = true ]; then
-        claude_cmd="$claude_cmd --dangerously-skip-permissions"
-    fi
+    # Build claude command - always use --dangerously-skip-permissions
+    # Security is enforced by allowed/denied tools in settings.json (audit mode)
+    local claude_cmd="claude --model $litellm_name --dangerously-skip-permissions --print"
 
     # Run with timing
     local start_time=$(date +%s.%N)
@@ -286,7 +331,7 @@ generate_report() {
 **Date**: $(date '+%Y-%m-%d %H:%M:%S')
 **Working Directory**: $WORK_DIR
 **Commit Range**: $COMMIT_RANGE
-**Yolo Mode**: $YOLO_MODE
+**Audit Mode** (read-only): $AUDIT_MODE
 **Timeout**: ${TIMEOUT}s
 
 ## Performance Summary
@@ -357,18 +402,32 @@ EOF
         fi
     done
 
-    # Add yolo comparison if enabled
-    if [ "$YOLO_MODE" = true ]; then
+    # Add audit mode information
+    if [ "$AUDIT_MODE" = true ]; then
         cat >> "$report_file" << EOF
-## Yolo Mode Analysis
+## Audit Mode (Read-Only)
 
-Tests were run with \`--dangerously-skip-permissions\` flag.
-This skips tool permission prompts, allowing faster execution.
+Tests run with \`--dangerously-skip-permissions\` + restricted allowedTools.
+This provides safe, fast automation with read-only access.
 
-**Impact on performance:**
-- Reduced user interaction delays
-- Tools execute immediately without confirmation
-- Suitable for automated testing only
+**Security:**
+- ALLOWED: Read, Grep, Glob, WebSearch, WebFetch, git read ops, MCP search tools
+- DENIED: Write, Edit, rm, mv, git commit/push, any destructive operations
+
+**Benefits:**
+- No permission prompts (fast execution)
+- Cannot modify code or files
+- Safe for automated reviews
+
+EOF
+    else
+        cat >> "$report_file" << EOF
+## Unsafe Mode (NOT RECOMMENDED)
+
+Tests run WITHOUT audit mode restrictions.
+Claude has full access to all tools including destructive operations.
+
+**Warning:** Only use in isolated test environments!
 
 EOF
     fi
@@ -386,7 +445,7 @@ main() {
     echo "  Working Dir: $WORK_DIR"
     echo "  Output Dir: $OUTPUT_DIR"
     echo "  Commit Range: $COMMIT_RANGE"
-    echo "  Yolo Mode: $YOLO_MODE"
+    echo "  Audit Mode: $AUDIT_MODE (read-only with full search/research access)"
     echo "  Parallel: $PARALLEL_MODE"
     echo "  Timeout: ${TIMEOUT}s"
     echo ""

@@ -1,9 +1,14 @@
 #!/bin/bash
 #
 # Parallel Deep Review - Runs 3 headless Claude instances with different LiteLLM models
-# Each instance has FULL TOOL ACCESS and runs in an isolated config directory
+# READ-ONLY AUDIT MODE: Full read/search/research access, NO write/edit/delete
+# Uses --dangerously-skip-permissions with restricted allowedTools for safe automation
 #
 # Usage: parallel-deep-review.sh "<prompt>" [working_dir]
+#
+# Security: Each instance runs in audit mode with:
+#   - ALLOWED: Read, Grep, Glob, WebSearch, WebFetch, git read ops, MCP search tools
+#   - DENIED: Write, Edit, rm, mv, git commit/push, any destructive operations
 #
 
 set -e
@@ -67,48 +72,61 @@ echo ""
 echo "Starting 3 parallel review instances..."
 echo ""
 
-# Create settings for each model - ALL model overrides needed!
-# QWEN (runs as sonnet)
-cat > "$CONFIG_DIR_BASE/qwen/settings.json" << 'EOF'
+# Function to create audit settings for a model
+# Audit mode: full read access, NO write/edit/delete
+create_audit_settings() {
+    local config_dir="$1"
+    local model="$2"
+    cat > "$config_dir/settings.json" << EOF
 {
-  "defaultModel": "qwen3-coder",
+  "defaultModel": "$model",
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:4000",
     "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "qwen3-coder",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "qwen3-coder",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "qwen3-coder"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "$model",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "$model",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "$model"
+  },
+  "permissions": {
+    "allow": [
+      "Read", "Glob", "Grep", "LS", "Agent", "Task",
+      "WebFetch", "WebSearch",
+      "mcp__tavily__tavily-search", "mcp__tavily__tavily-extract",
+      "mcp__context7__resolve-library-id", "mcp__context7__get-library-docs",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__serena__list_dir", "mcp__serena__find_file", "mcp__serena__search_for_pattern",
+      "mcp__serena__get_symbols_overview", "mcp__serena__find_symbol",
+      "mcp__serena__find_referencing_symbols", "mcp__serena__list_memories",
+      "mcp__serena__read_memory", "mcp__serena__get_current_config",
+      "mcp__serena__think_about_collected_information",
+      "mcp__serena__think_about_task_adherence",
+      "mcp__serena__think_about_whether_you_are_done",
+      "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)",
+      "Bash(git show:*)", "Bash(git blame:*)", "Bash(git branch:*)",
+      "Bash(cat:*)", "Bash(head:*)", "Bash(tail:*)", "Bash(wc:*)",
+      "Bash(find:*)", "Bash(ls:*)", "Bash(tree:*)", "Bash(grep:*)",
+      "Bash(rg:*)", "Bash(jq:*)", "Bash(curl -s:*)"
+    ],
+    "deny": [
+      "Write", "Edit", "NotebookEdit",
+      "Bash(rm:*)", "Bash(mv:*)", "Bash(cp:*)", "Bash(mkdir:*)",
+      "Bash(chmod:*)", "Bash(chown:*)",
+      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
+      "Bash(git checkout:*)", "Bash(git reset:*)", "Bash(git revert:*)",
+      "Bash(npm install:*)", "Bash(pip install:*)", "Bash(sudo:*)",
+      "mcp__serena__replace_symbol_body", "mcp__serena__insert_after_symbol",
+      "mcp__serena__insert_before_symbol", "mcp__serena__rename_symbol",
+      "mcp__serena__write_memory", "mcp__serena__delete_memory", "mcp__serena__edit_memory"
+    ]
   }
 }
 EOF
+}
 
-# KIMI (runs as haiku) - reliable for tool use
-cat > "$CONFIG_DIR_BASE/kimi/settings.json" << 'EOF'
-{
-  "defaultModel": "kimi-k2-thinking",
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:4000",
-    "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "kimi-k2-thinking",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "kimi-k2-thinking",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "kimi-k2-thinking"
-  }
-}
-EOF
-
-# GLM (runs as opus)
-cat > "$CONFIG_DIR_BASE/glm/settings.json" << 'EOF'
-{
-  "defaultModel": "glm-4.6-thinking",
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:4000",
-    "ANTHROPIC_AUTH_TOKEN": "sk-litellm-static-key",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6-thinking",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.6-thinking",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6-thinking"
-  }
-}
-EOF
+# Create audit settings for each model
+create_audit_settings "$CONFIG_DIR_BASE/qwen" "qwen3-coder"
+create_audit_settings "$CONFIG_DIR_BASE/kimi" "kimi-k2-thinking"
+create_audit_settings "$CONFIG_DIR_BASE/glm" "glm-4.6-thinking"
 
 # Common system prompt for investigators
 SYSTEM_PROMPT="You are an independent code reviewer with FULL TOOL ACCESS.
@@ -149,7 +167,8 @@ run_review() {
     ln -sf ~/.claude/.credentials.json "$config_dir/.credentials.json" 2>/dev/null || true
 
     # Run with CLAUDE_CONFIG_DIR pointing to isolated config (no settings file race!)
-    CLAUDE_CONFIG_DIR="$config_dir" claude --model "$litellm_model" --print "$SYSTEM_PROMPT
+    # --dangerously-skip-permissions with restricted allowedTools = safe audit mode
+    CLAUDE_CONFIG_DIR="$config_dir" claude --model "$litellm_model" --dangerously-skip-permissions --print "$SYSTEM_PROMPT
 
 USER REQUEST: $PROMPT
 
