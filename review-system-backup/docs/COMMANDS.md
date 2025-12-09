@@ -61,13 +61,30 @@ GoodJob https://blog.example.com/auth focus on OAuth section
 SaveThis <lesson>
 ```
 
-Captures a lesson learned to the knowledge database.
+Direct save to knowledge DB (no AI evaluation, always saves).
 
 **Examples:**
 ```bash
 SaveThis connection pooling improves database performance 10x
 SaveThis always sanitize user input before SQL queries
 ```
+
+```bash
+SaveInfo <content>
+```
+
+Smart save with AI relevance evaluation using Claude Haiku. Only saves if relevance score ≥ 0.7.
+
+**Examples:**
+```bash
+SaveInfo Thinking models return reasoning_content instead of content field
+SaveInfo K-LEAN review outputs are saved to .claude/kln/ with timestamps
+```
+
+| Keyword | AI Evaluation | Threshold | Use Case |
+|---------|---------------|-----------|----------|
+| `SaveThis` | ❌ No | Always saves | You're certain it's valuable |
+| `SaveInfo` | ✅ Haiku | score ≥ 0.7 | Let AI decide if worth saving |
 
 ### Knowledge Search
 

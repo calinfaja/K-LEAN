@@ -75,11 +75,28 @@ GoodJob https://docs.example.com/api
 GoodJob https://blog.example.com/tutorial focus on authentication section
 ```
 
-**SaveThis** - Capture lessons learned:
+**SaveThis** - Direct save (no AI evaluation):
 ```bash
 SaveThis connection pooling improves database performance 10x
 SaveThis always validate user input before SQL queries
 ```
+
+**SaveInfo** - Smart save with AI relevance evaluation:
+```bash
+SaveInfo K-LEAN review outputs are now saved to .claude/kln/ with timestamped markdown files
+SaveInfo Thinking models return reasoning_content instead of content field
+```
+
+| Keyword | AI Evaluation | Threshold | Use Case |
+|---------|---------------|-----------|----------|
+| `SaveThis` | ❌ No | Always saves | You're certain it's valuable |
+| `SaveInfo` | ✅ Haiku | score ≥ 0.7 | Let AI decide if worth saving |
+
+**SaveInfo evaluation criteria:**
+- Is it reusable (not just task-specific)?
+- Would it help in future sessions?
+- Is it specific enough to be actionable?
+- Did it take effort to discover?
 
 ### Automatic Capture
 

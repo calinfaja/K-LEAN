@@ -6,7 +6,8 @@
 # Keywords handled:
 #   - healthcheck         → Run health check on all 6 models
 #   - GoodJob <url>       → Capture URL to knowledge DB
-#   - SaveThis <lesson>   → Save lesson learned to knowledge DB
+#   - SaveThis <lesson>   → Save lesson learned directly (no AI eval)
+#   - SaveInfo <content>  → Smart save with AI relevance evaluation
 #   - FindKnowledge <q>   → Search knowledge DB
 #   - asyncDeepReview     → 3 models with tools (background)
 #   - asyncConsensus      → 3 models quick review (background)
@@ -82,7 +83,7 @@ if echo "$USER_PROMPT" | grep -qi "^GoodJob "; then
 fi
 
 #------------------------------------------------------------------------------
-# SAVETHIS <lesson>
+# SAVETHIS <lesson> - Direct save (no AI evaluation)
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
     # Extract the lesson
@@ -115,6 +116,31 @@ EOF
     echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
 
     echo "{\"systemMessage\": \"✅ Lesson saved to knowledge DB\"}"
+    exit 0
+fi
+
+#------------------------------------------------------------------------------
+# SAVEINFO <content> - Smart save with AI relevance evaluation
+#------------------------------------------------------------------------------
+if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
+    # Extract the content
+    CONTENT=$(echo "$USER_PROMPT" | sed -E 's/^SaveInfo[[:space:]]+//i')
+
+    if [ -z "$CONTENT" ]; then
+        echo "{\"systemMessage\": \"⚠️ Usage: SaveInfo <content to evaluate and save>\"}"
+        exit 0
+    fi
+
+    echo "🤖 Evaluating content for knowledge capture..." >&2
+
+    if [ -x "$SCRIPTS_DIR/smart-capture.sh" ]; then
+        # Run smart capture (uses Haiku to evaluate relevance)
+        "$SCRIPTS_DIR/smart-capture.sh" "$CONTENT" "$PROJECT_DIR" &
+
+        echo "{\"systemMessage\": \"🤖 Evaluating content with AI...\\nIf relevant (score ≥ 0.7), it will be saved automatically.\\nCheck timeline: ~/.claude/scripts/timeline-query.sh today\"}"
+    else
+        echo "{\"systemMessage\": \"⚠️ smart-capture.sh not found at $SCRIPTS_DIR\"}"
+    fi
     exit 0
 fi
 
