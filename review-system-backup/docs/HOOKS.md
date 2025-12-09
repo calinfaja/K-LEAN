@@ -61,7 +61,8 @@ Runs before Claude processes user input. Used for keyword detection and async di
 |---------|--------|
 | `healthcheck` | Check all 6 model health |
 | `GoodJob <url>` | Capture URL to knowledge DB |
-| `SaveThis <text>` | Capture lesson to knowledge DB |
+| `SaveThis <text>` | Direct save to knowledge DB (no AI eval) |
+| `SaveInfo <text>` | Smart save with Haiku evaluation (score ≥ 0.7) |
 | `FindKnowledge <query>` | Search knowledge DB |
 | `asyncDeepReview <focus>` | 3 models with tools (background) |
 | `asyncConsensus <focus>` | 3 models quick review (background) |
