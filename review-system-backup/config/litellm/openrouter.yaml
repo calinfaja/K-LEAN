@@ -1,0 +1,55 @@
+# K-LEAN LiteLLM Configuration - OpenRouter
+# ==========================================
+# API key is loaded from environment variable (see .env)
+# Usage: source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml
+
+litellm_settings:
+  drop_params: true
+
+# Model aliases
+model_alias_map:
+  "claude-sonnet-4-5-20250929": "qwen3-coder"
+  "claude-3-5-sonnet-20241022": "qwen3-coder"
+  "claude-3-haiku-20240307": "qwen3-coder"
+  "claude-3-opus-20240229": "qwen3-coder"
+  "sonnet": "qwen3-coder"
+  "haiku": "qwen3-coder"
+  "opus": "qwen3-coder"
+
+model_list:
+  # OpenRouter: Diverse model selection via single provider
+  - model_name: qwen3-coder
+    litellm_params:
+      model: openrouter/qwen/qwen3-coder
+      api_key: os.environ/OPENROUTER_API_KEY
+      drop_params: true
+
+  - model_name: deepseek-v3-thinking
+    litellm_params:
+      model: openrouter/deepseek/deepseek-v3.2:exp-thinking
+      api_key: os.environ/OPENROUTER_API_KEY
+      drop_params: true
+
+  - model_name: glm-4.6-thinking
+    litellm_params:
+      model: openrouter/glm/glm-4.6:thinking
+      api_key: os.environ/OPENROUTER_API_KEY
+      drop_params: true
+
+  - model_name: minimax-m2
+    litellm_params:
+      model: openrouter/minimax/minimax-m2
+      api_key: os.environ/OPENROUTER_API_KEY
+      drop_params: true
+
+  - model_name: kimi-k2-thinking
+    litellm_params:
+      model: openrouter/moonshot/kimi-k2-thinking
+      api_key: os.environ/OPENROUTER_API_KEY
+      drop_params: true
+
+  - model_name: hermes-4-70b
+    litellm_params:
+      model: openrouter/nousresearch/hermes-4-70b
+      api_key: os.environ/OPENROUTER_API_KEY
+      drop_params: true

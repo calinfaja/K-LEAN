@@ -33,22 +33,47 @@ cd claudeAgentic/review-system-backup
 pipx install litellm
 ```
 
-### Step 2: Get NanoGPT API Key
-
-1. Go to https://nano-gpt.com
-2. Create account and get API key
-3. The installer will prompt for this
-
-### Step 3: Run Installer
+### Step 2: Run Installer
 
 ```bash
 ./install.sh --full
 ```
 
+The installer will:
+- Install scripts, commands, and hooks
+- Setup knowledge database system
+- Create nano profile
+- Configure LiteLLM (optional interactive wizard)
+
+### Step 3: Configure LiteLLM Provider
+
+The installer runs an interactive setup wizard:
+
+```
+Select your provider:
+  1) NanoGPT (recommended, 6 models)
+  2) OpenRouter (diverse model selection)
+  3) Ollama (local, no API key needed)
+  4) Skip setup (use existing config)
+```
+
+**Provider Options:**
+
+| Provider | API Key | Cost | Setup |
+|----------|---------|------|-------|
+| **NanoGPT** | $0.50/1M tokens | Lowest | https://nano-gpt.com |
+| **OpenRouter** | $0-10/month | Low-Mid | https://openrouter.ai |
+| **Ollama** | None | Free | `ollama pull mistral-nemo` |
+
 ### Step 4: Start LiteLLM
 
 ```bash
-~/.claude/scripts/start-litellm.sh
+~/.claude/scripts/litellm-start.sh
+```
+
+Or manually:
+```bash
+source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml
 ```
 
 ### Step 5: Setup Profile Aliases
@@ -59,12 +84,11 @@ Add to `~/.bashrc`:
 # K-LEAN Profile System
 alias claude-nano='CLAUDE_CONFIG_DIR=~/.claude-nano claude'
 alias claude-status='if [ -n "$CLAUDE_CONFIG_DIR" ]; then echo "Profile: nano ($CLAUDE_CONFIG_DIR)"; else echo "Profile: native (~/.claude/)"; fi'
-alias start-nano-proxy='~/.claude/scripts/start-litellm.sh'
 ```
 
 Then reload: `source ~/.bashrc`
 
-### Step 6: Verify
+### Step 6: Verify Installation
 
 ```bash
 ./test.sh        # Should show 18 tests passed
@@ -95,13 +119,39 @@ claude-nano
 
 ### LiteLLM not starting
 ```bash
+# Check if port 4000 is in use
 lsof -i :4000
-litellm --config ~/.config/litellm/nanogpt.yaml --debug
+
+# Start with debug output
+source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml --debug
+```
+
+### Reconfigure LiteLLM provider
+```bash
+# Run setup wizard again
+~/.claude/scripts/setup-litellm.sh
+
+# Or choose provider directly
+~/.claude/scripts/setup-litellm.sh nanogpt
+~/.claude/scripts/setup-litellm.sh openrouter
+~/.claude/scripts/setup-litellm.sh ollama
 ```
 
 ### Knowledge DB errors
 ```bash
-~/.venvs/knowledge-db/bin/pip install --upgrade txtai
+~/.venvs/knowledge-db/bin/pip install --upgrade txtai sentence-transformers
+```
+
+### Models not showing in healthcheck
+```bash
+# Verify LiteLLM is running
+curl http://localhost:4000/v1/models
+
+# Check config file
+cat ~/.config/litellm/config.yaml
+
+# Verify .env file has API keys
+cat ~/.config/litellm/.env
 ```
 
 ## Updating
