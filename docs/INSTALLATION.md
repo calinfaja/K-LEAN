@@ -115,6 +115,21 @@ claude
 claude-nano
 ```
 
+## Knowledge Server
+
+The installer configures the knowledge server to auto-start on terminal open. This keeps txtai embeddings in memory for fast searches (~30ms vs ~17s cold start).
+
+```bash
+# Check if running
+ls -la /tmp/knowledge-server.sock
+
+# Manual start (if needed)
+cd ~/claudeAgentic && ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-server.py start &
+
+# Test fast search
+~/.claude/scripts/knowledge-query.sh "authentication"
+```
+
 ## Troubleshooting
 
 ### LiteLLM not starting

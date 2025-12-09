@@ -7,11 +7,31 @@ A semantic knowledge database is available for storing and retrieving valuable i
 ### Location
 - Each project has its own knowledge DB at `.knowledge-db/` in the project root
 - Scripts are at `~/.claude/scripts/knowledge-*.py`
+- Server daemon keeps embeddings in memory for fast search (~30ms vs ~17s cold start)
+
+### Knowledge Server (Auto-Start)
+
+The knowledge server runs automatically on terminal startup (configured in ~/.bashrc).
+
+```bash
+# Check server status
+ls -la /tmp/knowledge-server.sock  # Socket exists = running
+
+# Manual start (if needed)
+cd ~/claudeAgentic && ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-server.py start &
+
+# Stop server
+~/.claude/scripts/knowledge-server.py stop
+```
 
 ### Before Web Searches
 **Always check the knowledge DB first** to avoid re-researching topics:
 
 ```bash
+# Fast query via server (recommended, ~30ms)
+~/.claude/scripts/knowledge-query.sh "<topic>"
+
+# Direct query (slower, ~17s cold start)
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<topic>"
 ```
 
