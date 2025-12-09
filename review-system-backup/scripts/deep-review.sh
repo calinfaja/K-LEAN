@@ -71,6 +71,12 @@ get_model_info() {
             echo "WARNING: deepseek not recommended for tool use" >&2
             echo "deepseek-v3-thinking"
             ;;
+        minimax|research)
+            echo "minimax-m2"
+            ;;
+        hermes|scripting)
+            echo "hermes-4-70b"
+            ;;
         *)
             echo "qwen3-coder"
             ;;
@@ -94,6 +100,8 @@ get_model_desc() {
         kimi-k2-thinking) echo "kimi-k2-thinking (architecture, planning)" ;;
         glm-4.6-thinking) echo "glm-4.6-thinking (standards, compliance)" ;;
         deepseek-v3-thinking) echo "deepseek-v3-thinking (NOT RECOMMENDED)" ;;
+        minimax-m2) echo "minimax-m2 (research)" ;;
+        hermes-4-70b) echo "hermes-4-70b (scripting)" ;;
         *) echo "$1" ;;
     esac
 }

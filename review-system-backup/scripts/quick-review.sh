@@ -21,6 +21,9 @@ get_litellm_model() {
         qwen) echo "qwen3-coder" ;;
         deepseek) echo "deepseek-v3-thinking" ;;
         glm) echo "glm-4.6-thinking" ;;
+        kimi) echo "kimi-k2-thinking" ;;
+        minimax) echo "minimax-m2" ;;
+        hermes) echo "hermes-4-70b" ;;
         *) echo "qwen3-coder" ;;
     esac
 }
