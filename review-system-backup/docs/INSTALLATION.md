@@ -10,6 +10,7 @@ Complete setup guide for the K-LEAN Multi-Model Code Review and Knowledge Captur
 | Python | 3.9+ | `python3 --version` |
 | Git | Any | `git --version` |
 | curl | Any | `curl --version` |
+| jq | Any | `jq --version` |
 
 ## Quick Install
 
@@ -224,6 +225,46 @@ cat ~/.config/litellm/.env
 ./update.sh
 ```
 
+## TOON Adapter
+
+The TOON (Token-Oriented Object Notation) adapter provides ~18% character reduction for knowledge transmission.
+
+**Installation:**
+```bash
+~/.venvs/knowledge-db/bin/pip install python-toon
+```
+
+**Verify:**
+```bash
+cd ~/claudeAgentic/review-system-backup/scripts
+~/.venvs/knowledge-db/bin/python -c "from toon_adapter import KnowledgeTOONAdapter; print('✅ TOON loaded')"
+```
+
+**Troubleshooting TOON:**
+```bash
+# If import fails, ensure you're in the scripts directory
+cd ~/claudeAgentic/review-system-backup/scripts
+
+# If python-toon not found
+~/.venvs/knowledge-db/bin/pip install python-toon
+```
+
+## Persistent Output
+
+Review outputs are saved to `.claude/kln/` in each project:
+
+```
+<project>/.claude/kln/
+├── quickReview/          # /kln:quickReview outputs
+├── quickCompare/         # /kln:quickCompare outputs
+├── deepInspect/          # /kln:deepInspect outputs
+└── asyncDeepAudit/       # /kln:asyncDeepAudit outputs
+```
+
+**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.md`
+
+This directory is automatically gitignored via `.claude/` pattern.
+
 ## Uninstalling
 
 ```bash
@@ -231,3 +272,28 @@ cat ~/.config/litellm/.env
 ```
 
 Backups preserved in ~/.claude/backups/
+
+## Post-Installation Verification
+
+Run the full test suite:
+
+```bash
+# Infrastructure tests
+curl -s http://localhost:4000/v1/models | jq '.data | length'  # Should show 6
+ls ~/.venvs/knowledge-db/bin/python                             # Should exist
+ls ~/.claude/scripts/quick-review.sh                            # Should exist
+
+# Knowledge system tests
+~/.claude/scripts/knowledge-query.sh "test"                     # Should respond
+
+# TOON adapter tests
+cd ~/claudeAgentic/review-system-backup/scripts
+~/.venvs/knowledge-db/bin/python -c "
+from toon_adapter import KnowledgeTOONAdapter
+facts = [{'title': 'Test', 'summary': 'Test', 'source': 'manual', 'tags': ['test'], 'relevance_score': 0.8}]
+toon = KnowledgeTOONAdapter.json_to_toon(facts)
+restored = KnowledgeTOONAdapter.toon_to_json(toon)
+assert facts == restored
+print('✅ TOON round-trip OK')
+"
+```
