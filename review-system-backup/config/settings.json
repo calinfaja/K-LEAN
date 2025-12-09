@@ -1,3 +1,49 @@
 {
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": false,
+  "model": "haiku",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/user-prompt-handler.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-bash-handler.sh",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-web-handler.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__tavily__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-web-handler.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
 }
