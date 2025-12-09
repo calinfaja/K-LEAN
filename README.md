@@ -174,8 +174,9 @@ asyncDeepReview security audit
 ## Requirements
 
 - Claude Code CLI
-- LiteLLM proxy with NanoGPT API key
-- Python 3.10+ with txtai
+- Python 3.9+
+- LiteLLM (`pipx install litellm`)
+- API key for chosen provider (NanoGPT, OpenRouter, or local Ollama)
 - jq, curl, bc (for scripts)
 - Serena MCP server (optional)
 

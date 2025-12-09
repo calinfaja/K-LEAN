@@ -54,6 +54,22 @@ Or you can search programmatically:
 }
 ```
 
+## LiteLLM Configuration
+
+Setup wizard for multi-provider LiteLLM configuration:
+
+```bash
+~/.claude/scripts/setup-litellm.sh
+```
+
+**Supported Providers:**
+- NanoGPT (recommended, $0.50/1M tokens)
+- OpenRouter (diverse models, $0-10/month)
+- Ollama (local, free, no API key)
+
+Configs stored at: `~/.config/litellm/`
+API keys: `~/.config/litellm/.env` (secure, chmod 600)
+
 ## Profile System
 
 K-LEAN supports two profiles for different API backends:
