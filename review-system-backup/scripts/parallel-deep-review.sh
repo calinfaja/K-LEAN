@@ -16,10 +16,11 @@ set -e
 PROMPT="${1:-Review the codebase for issues}"
 WORK_DIR="${2:-$(pwd)}"
 
-# Session-based output directory (each Claude instance gets its own folder)
+# Persistent output directory in project's .claude/kln/asyncDeepAudit/
 source ~/.claude/scripts/session-helper.sh
-OUTPUT_DIR="$SESSION_DIR"
-TIME_STAMP=$(date +%H%M%S)
+OUTPUT_DIR=$(get_output_dir "asyncDeepAudit" "$WORK_DIR")
+TIME_STAMP=$(date +%Y-%m-%d_%H-%M-%S)
+OUTPUT_FILE="$OUTPUT_DIR/${TIME_STAMP}_parallel_$(echo "$PROMPT" | tr ' ' '-' | tr -cd '[:alnum:]-_' | head -c 30).md"
 
 # Create isolated config directories for each model
 CONFIG_DIR_BASE="/tmp/claude-review-config-$TIME_STAMP"
@@ -27,10 +28,12 @@ mkdir -p "$CONFIG_DIR_BASE/qwen"
 mkdir -p "$CONFIG_DIR_BASE/kimi"
 mkdir -p "$CONFIG_DIR_BASE/glm"
 
-# Output files
-OUTPUT_QWEN="$OUTPUT_DIR/deep-qwen-$TIME_STAMP.txt"
-OUTPUT_KIMI="$OUTPUT_DIR/deep-kimi-$TIME_STAMP.txt"
-OUTPUT_GLM="$OUTPUT_DIR/deep-glm-$TIME_STAMP.txt"
+# Temp output files (will be merged into single markdown)
+TEMP_OUTPUT_DIR="/tmp/parallel-review-$$"
+mkdir -p "$TEMP_OUTPUT_DIR"
+OUTPUT_QWEN="$TEMP_OUTPUT_DIR/qwen.txt"
+OUTPUT_KIMI="$TEMP_OUTPUT_DIR/kimi.txt"
+OUTPUT_GLM="$TEMP_OUTPUT_DIR/glm.txt"
 
 # Health check function (test actual model response)
 check_model_health() {
@@ -220,40 +223,76 @@ echo "════════════════════════�
 echo "ALL REVIEWS COMPLETE"
 echo "═══════════════════════════════════════════════════════════════════"
 
-# Display results
+# Build combined markdown output file
+{
+    echo "# Parallel Deep Audit: $PROMPT"
+    echo ""
+    echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "**Directory:** $WORK_DIR"
+    echo "**Models:** qwen3-coder (code), kimi-k2-thinking (architecture), glm-4.6-thinking (standards)"
+    echo ""
+    echo "---"
+} > "$OUTPUT_FILE"
+
+# Display and save results
+ALL_CONTENT=""
+
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
 echo "QWEN REVIEW (Code Quality, Bugs)"
 echo "═══════════════════════════════════════════════════════════════════"
-cat "$OUTPUT_QWEN"
+if [ -f "$OUTPUT_QWEN" ]; then
+    QWEN_CONTENT=$(cat "$OUTPUT_QWEN")
+    ALL_CONTENT="$ALL_CONTENT\n$QWEN_CONTENT"
+    echo "$QWEN_CONTENT"
+    {
+        echo ""
+        echo "## QWEN (Code Quality, Bugs)"
+        echo ""
+        echo "$QWEN_CONTENT"
+    } >> "$OUTPUT_FILE"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
 echo "KIMI REVIEW (Architecture, Planning)"
 echo "═══════════════════════════════════════════════════════════════════"
-cat "$OUTPUT_KIMI"
+if [ -f "$OUTPUT_KIMI" ]; then
+    KIMI_CONTENT=$(cat "$OUTPUT_KIMI")
+    ALL_CONTENT="$ALL_CONTENT\n$KIMI_CONTENT"
+    echo "$KIMI_CONTENT"
+    {
+        echo ""
+        echo "## KIMI (Architecture, Planning)"
+        echo ""
+        echo "$KIMI_CONTENT"
+    } >> "$OUTPUT_FILE"
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
 echo "GLM REVIEW (Standards, Compliance)"
 echo "═══════════════════════════════════════════════════════════════════"
-cat "$OUTPUT_GLM"
+if [ -f "$OUTPUT_GLM" ]; then
+    GLM_CONTENT=$(cat "$OUTPUT_GLM")
+    ALL_CONTENT="$ALL_CONTENT\n$GLM_CONTENT"
+    echo "$GLM_CONTENT"
+    {
+        echo ""
+        echo "## GLM (Standards, Compliance)"
+        echo ""
+        echo "$GLM_CONTENT"
+    } >> "$OUTPUT_FILE"
+fi
+
+# Cleanup temp files
+rm -rf "$TEMP_OUTPUT_DIR"
+rm -rf "$CONFIG_DIR_BASE"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════════"
-echo "REVIEW FILES SAVED TO:"
-echo "  $OUTPUT_QWEN"
-echo "  $OUTPUT_KIMI"
-echo "  $OUTPUT_GLM"
+echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════════"
 
 # Auto-extract facts from all reviews (Tier 1)
-# Combine all review outputs for extraction
-ALL_CONTENT=""
-[ -f "$OUTPUT_QWEN" ] && ALL_CONTENT="$ALL_CONTENT\n$(cat "$OUTPUT_QWEN")"
-[ -f "$OUTPUT_KIMI" ] && ALL_CONTENT="$ALL_CONTENT\n$(cat "$OUTPUT_KIMI")"
-[ -f "$OUTPUT_GLM" ] && ALL_CONTENT="$ALL_CONTENT\n$(cat "$OUTPUT_GLM")"
 [ -n "$ALL_CONTENT" ] && ~/.claude/scripts/fact-extract.sh "$ALL_CONTENT" "review" "$PROMPT" "$WORK_DIR"
-
-# Cleanup temp configs
-rm -rf "$CONFIG_DIR_BASE"

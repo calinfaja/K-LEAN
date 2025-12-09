@@ -9,10 +9,10 @@ MODEL="${1:-qwen}"
 FOCUS="${2:-General code review}"
 WORK_DIR="${3:-$(pwd)}"
 
-# Session-based output directory (each Claude instance gets its own folder)
+# Persistent output directory in project's .claude/kln/quickReview/
 source ~/.claude/scripts/session-helper.sh
-OUTPUT_DIR="$SESSION_DIR"
-TIME_STAMP=$(date +%H%M%S)
+OUTPUT_DIR=$(get_output_dir "quickReview" "$WORK_DIR")
+OUTPUT_FILENAME=$(generate_filename "$MODEL" "$FOCUS" ".md")
 
 MODELS_PRIORITY="qwen3-coder deepseek-v3-thinking glm-4.6-thinking"
 
@@ -104,13 +104,27 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
     \"max_tokens\": 1500
   }")
 
-OUTPUT_FILE="$OUTPUT_DIR/quick-$LITELLM_MODEL-$TIME_STAMP.json"
-echo "$RESPONSE" > "$OUTPUT_FILE"
+OUTPUT_FILE="$OUTPUT_DIR/$OUTPUT_FILENAME"
+
+# Save as markdown with metadata header
+{
+    echo "# Quick Review: $FOCUS"
+    echo ""
+    echo "**Model:** $LITELLM_MODEL"
+    echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "**Directory:** $WORK_DIR"
+    echo ""
+    echo "---"
+    echo ""
+} > "$OUTPUT_FILE"
 
 # Handle both regular and thinking models
 CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
 [ -z "$CONTENT" ] && CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.reasoning_content // empty')
 [ -z "$CONTENT" ] && { echo "ERROR: No response"; echo "$RESPONSE"; exit 1; }
+
+# Append content to markdown file
+echo "$CONTENT" >> "$OUTPUT_FILE"
 
 echo ""
 echo "$CONTENT"
