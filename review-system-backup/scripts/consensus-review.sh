@@ -9,10 +9,11 @@
 FOCUS="${1:-General code review}"
 WORK_DIR="${2:-$(pwd)}"
 
-# Session-based output directory (each Claude instance gets its own folder)
+# Persistent output directory in project's .claude/kln/quickCompare/
 source ~/.claude/scripts/session-helper.sh
-OUTPUT_DIR="$SESSION_DIR"
-TIME_STAMP=$(date +%H%M%S)
+OUTPUT_DIR=$(get_output_dir "quickCompare" "$WORK_DIR")
+TIME_STAMP=$(date +%Y-%m-%d_%H-%M-%S)
+OUTPUT_FILE="$OUTPUT_DIR/${TIME_STAMP}_consensus_$(echo "$FOCUS" | tr ' ' '-' | tr -cd '[:alnum:]-_' | head -c 30).md"
 
 # Health check
 check_model_health() {
@@ -87,12 +88,16 @@ fi
 # Launch healthy models in parallel
 PIDS=""
 
+# Temp files for JSON responses
+TEMP_DIR="/tmp/consensus-$$"
+mkdir -p "$TEMP_DIR"
+
 if echo "$HEALTHY_MODELS" | grep -q "qwen3-coder"; then
     SYSTEM_QWEN="Code reviewer: bugs, memory safety.$KNOWLEDGE_SUFFIX"
     curl -s --max-time 90 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"qwen3-coder\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_QWEN" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" &
+      > "$TEMP_DIR/qwen.json" &
     PID_QWEN=$!
     PIDS="$PIDS $PID_QWEN"
 fi
@@ -102,7 +107,7 @@ if echo "$HEALTHY_MODELS" | grep -q "deepseek-v3-thinking"; then
     curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"deepseek-v3-thinking\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_DS" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" &
+      > "$TEMP_DIR/deepseek.json" &
     PID_DEEPSEEK=$!
     PIDS="$PIDS $PID_DEEPSEEK"
 fi
@@ -112,7 +117,7 @@ if echo "$HEALTHY_MODELS" | grep -q "glm-4.6-thinking"; then
     curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
       -d "{\"model\": \"glm-4.6-thinking\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_GLM" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" &
+      > "$TEMP_DIR/glm.json" &
     PID_GLM=$!
     PIDS="$PIDS $PID_GLM"
 fi
@@ -122,7 +127,6 @@ for pid in $PIDS; do
     wait $pid
 done
 
-# Display results for healthy models only
 # Helper to extract content from regular or thinking models
 get_response() {
     # Check content first, if empty check reasoning_content (for thinking models)
@@ -134,39 +138,75 @@ get_response() {
     fi
 }
 
-if [ -f "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json" ]; then
+# Start building the markdown output file
+{
+    echo "# Consensus Review: $FOCUS"
+    echo ""
+    echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "**Directory:** $WORK_DIR"
+    echo "**Models:** qwen3-coder, deepseek-v3-thinking, glm-4.6-thinking"
+    echo ""
+    echo "---"
+} > "$OUTPUT_FILE"
+
+# Display and save results for healthy models only
+ALL_CONTENT=""
+
+if [ -f "$TEMP_DIR/qwen.json" ]; then
+    QWEN_CONTENT=$(get_response "$TEMP_DIR/qwen.json")
+    ALL_CONTENT="$ALL_CONTENT\n$QWEN_CONTENT"
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "QWEN (Code Quality)"
     echo "═══════════════════════════════════════════════════════════════"
-    get_response "$OUTPUT_DIR/consensus-qwen-$TIME_STAMP.json"
+    echo "$QWEN_CONTENT"
+    {
+        echo ""
+        echo "## QWEN (Code Quality)"
+        echo ""
+        echo "$QWEN_CONTENT"
+    } >> "$OUTPUT_FILE"
 fi
 
-if [ -f "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json" ]; then
+if [ -f "$TEMP_DIR/deepseek.json" ]; then
+    DS_CONTENT=$(get_response "$TEMP_DIR/deepseek.json")
+    ALL_CONTENT="$ALL_CONTENT\n$DS_CONTENT"
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "DEEPSEEK (Architecture)"
     echo "═══════════════════════════════════════════════════════════════"
-    get_response "$OUTPUT_DIR/consensus-deepseek-$TIME_STAMP.json"
+    echo "$DS_CONTENT"
+    {
+        echo ""
+        echo "## DEEPSEEK (Architecture)"
+        echo ""
+        echo "$DS_CONTENT"
+    } >> "$OUTPUT_FILE"
 fi
 
-if [ -f "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json" ]; then
+if [ -f "$TEMP_DIR/glm.json" ]; then
+    GLM_CONTENT=$(get_response "$TEMP_DIR/glm.json")
+    ALL_CONTENT="$ALL_CONTENT\n$GLM_CONTENT"
     echo ""
     echo "═══════════════════════════════════════════════════════════════"
     echo "GLM (Standards)"
     echo "═══════════════════════════════════════════════════════════════"
-    get_response "$OUTPUT_DIR/consensus-glm-$TIME_STAMP.json"
+    echo "$GLM_CONTENT"
+    {
+        echo ""
+        echo "## GLM (Standards)"
+        echo ""
+        echo "$GLM_CONTENT"
+    } >> "$OUTPUT_FILE"
 fi
+
+# Cleanup temp files
+rm -rf "$TEMP_DIR"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "Results saved to: $OUTPUT_DIR/consensus-*-$TIME_STAMP.json"
+echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
 
 # Auto-extract facts from all reviews (Tier 1)
-# Combine all responses for extraction
-ALL_CONTENT=""
-for f in "$OUTPUT_DIR"/consensus-*-$TIME_STAMP.json; do
-    [ -f "$f" ] && ALL_CONTENT="$ALL_CONTENT\n$(get_response "$f")"
-done
 [ -n "$ALL_CONTENT" ] && ~/.claude/scripts/fact-extract.sh "$ALL_CONTENT" "review" "$FOCUS" "$WORK_DIR"

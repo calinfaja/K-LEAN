@@ -25,6 +25,11 @@ MODEL="${1:-qwen}"
 PROMPT="${2:-Review the codebase for issues}"
 WORK_DIR="${3:-$(pwd)}"
 
+# Persistent output directory in project's .claude/kln/deepInspect/
+source ~/.claude/scripts/session-helper.sh
+OUTPUT_DIR=$(get_output_dir "deepInspect" "$WORK_DIR")
+OUTPUT_FILENAME=$(generate_filename "$MODEL" "$PROMPT" ".md")
+
 # Model priority for fallback (only reliable models for tool use)
 MODELS_PRIORITY="qwen3-coder kimi-k2-thinking glm-4.6-thinking"
 
@@ -276,6 +281,20 @@ REVIEW_EXIT_CODE=$?
 # Cleanup audit config
 rm -rf "$AUDIT_CONFIG_DIR"
 
+# Save to persistent markdown file
+OUTPUT_FILE="$OUTPUT_DIR/$OUTPUT_FILENAME"
+{
+    echo "# Deep Inspect: $PROMPT"
+    echo ""
+    echo "**Model:** $MODEL_DESC"
+    echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')"
+    echo "**Directory:** $WORK_DIR"
+    echo ""
+    echo "---"
+    echo ""
+    echo "$REVIEW_OUTPUT"
+} > "$OUTPUT_FILE"
+
 # Display the output
 echo "$REVIEW_OUTPUT"
 
@@ -285,6 +304,7 @@ echo "$REVIEW_OUTPUT"
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "DEEP REVIEW COMPLETE"
+echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
 
 exit $REVIEW_EXIT_CODE
