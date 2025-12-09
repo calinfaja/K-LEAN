@@ -130,6 +130,44 @@ cd ~/claudeAgentic && ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowled
 ~/.claude/scripts/knowledge-query.sh "authentication"
 ```
 
+## Testing Models
+
+Test the deep audit system with each LiteLLM model:
+
+```bash
+# Test with default 3 reliable models (qwen, kimi, glm)
+~/.claude/scripts/test-deep-audit.sh
+
+# Test all 6 models
+~/.claude/scripts/test-deep-audit.sh --all
+
+# Test with yolo mode (faster, no permission prompts)
+~/.claude/scripts/test-deep-audit.sh --yolo
+
+# Test single model
+~/.claude/scripts/test-deep-audit.sh --model glm
+
+# Test specific commit range
+~/.claude/scripts/test-deep-audit.sh --compare HEAD~3 HEAD
+
+# Run all tests in parallel
+~/.claude/scripts/test-deep-audit.sh --all --parallel --yolo
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--all` | Test all 6 models (default: 3 reliable) |
+| `--yolo` | Skip permission prompts (faster) |
+| `--model NAME` | Test single model (qwen/deepseek/kimi/glm/minimax/hermes) |
+| `--parallel` | Run tests simultaneously |
+| `--timeout N` | Set timeout in seconds (default: 300) |
+| `--compare A B` | Compare specific commits |
+
+**Output:**
+- Results saved to `/tmp/deep-audit-test-YYYYMMDD-HHMMSS/`
+- Generates `comparison-report.md` with performance summary
+
 ## Troubleshooting
 
 ### LiteLLM not starting
