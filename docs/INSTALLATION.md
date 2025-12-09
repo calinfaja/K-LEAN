@@ -203,7 +203,16 @@ source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml 
 
 ### Knowledge DB errors
 ```bash
-~/.venvs/knowledge-db/bin/pip install --upgrade txtai sentence-transformers
+~/.venvs/knowledge-db/bin/pip install --upgrade txtai sentence-transformers python-toon
+```
+
+### TOON adapter errors
+```bash
+# Verify TOON is installed
+~/.venvs/knowledge-db/bin/pip show python-toon
+
+# Test TOON adapter
+~/.claude/scripts/test-toon-adapter.sh
 ```
 
 ### Models not showing in healthcheck
