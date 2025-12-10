@@ -76,6 +76,17 @@ $FOCUS
 
 DO NOT provide generic feedback. Read the files first, then provide specific analysis."
 
+# Determine reasoning effort based on model type
+REASONING_EFFORT="low"
+if echo "$MODEL" | grep -q "thinking"; then
+    REASONING_EFFORT="medium"
+fi
+
+echo "Autonomy: medium | Reasoning: $REASONING_EFFORT"
+echo ""
+
 # Run droid in exec mode with the review prompt
+# --auto medium: Required for tool usage (file reads, reversible commands)
+# -r: Reasoning effort based on model type
 cd "$WORKDIR"
-droid exec --model "custom:$MODEL" "$REVIEW_PROMPT"
+droid exec --auto medium -r "$REASONING_EFFORT" --model "custom:$MODEL" "$REVIEW_PROMPT"

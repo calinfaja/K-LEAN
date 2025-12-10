@@ -79,7 +79,15 @@ $FOCUS
 
 DO NOT provide generic feedback. Read the files first, then provide specific analysis."
 
-        droid exec --model "custom:$model" "$REVIEW_PROMPT" >> "$OUTPUT_FILE" 2>&1
+        # Determine reasoning effort based on model type
+        REASONING="low"
+        if echo "$model" | grep -q "thinking"; then
+            REASONING="medium"
+        fi
+
+        # --auto medium: Required for tool usage
+        # -r: Set reasoning based on model type
+        droid exec --auto medium -r "$REASONING" --model "custom:$model" "$REVIEW_PROMPT" >> "$OUTPUT_FILE" 2>&1
 
         echo "" >> "$OUTPUT_FILE"
         echo "---" >> "$OUTPUT_FILE"
