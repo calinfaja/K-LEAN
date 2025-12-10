@@ -10,7 +10,6 @@ Complete setup guide for the K-LEAN Multi-Model Code Review and Knowledge Captur
 | Python | 3.9+ | `python3 --version` |
 | Git | Any | `git --version` |
 | curl | Any | `curl --version` |
-| jq | Any | `jq --version` |
 
 ## Quick Install
 
@@ -44,6 +43,7 @@ The installer will:
 - Install scripts, commands, and hooks
 - Setup knowledge database system
 - Create nano profile
+- Install Factory Droid specialists (8 droids)
 - Configure LiteLLM (optional interactive wizard)
 
 ### Step 3: Configure LiteLLM Provider
@@ -87,7 +87,32 @@ alias claude-status='if [ -n "$CLAUDE_CONFIG_DIR" ]; then echo "Profile: nano ($
 
 Then reload: `source ~/.bashrc`
 
-### Step 6: Verify Installation
+### Step 6: Install Factory Droid (Optional)
+
+Factory Droid provides fast agentic code reviews with built-in tools.
+
+```bash
+# Install Factory Droid CLI
+curl -fsSL https://app.factory.ai/cli | sh
+
+# Export your Factory API key
+export FACTORY_API_KEY="fk-your-key"
+
+# Verify droid installation (8 specialists)
+ls ~/.factory/droids/
+```
+
+The installer automatically copies 8 specialist droids:
+- `orchestrator` - Master coordinator
+- `code-reviewer` - Quality gatekeeper
+- `security-auditor` - OWASP compliance
+- `debugger` - Root cause analysis
+- `arm-cortex-expert` - Embedded systems specialist
+- `c-pro` - C systems programming
+- `rust-expert` - Safe embedded Rust
+- `performance-engineer` - Optimization
+
+### Step 7: Verify Installation
 
 ```bash
 ./test.sh        # Should show 18 tests passed
@@ -204,7 +229,16 @@ source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml 
 
 ### Knowledge DB errors
 ```bash
-~/.venvs/knowledge-db/bin/pip install --upgrade txtai sentence-transformers
+~/.venvs/knowledge-db/bin/pip install --upgrade txtai sentence-transformers python-toon
+```
+
+### TOON adapter errors
+```bash
+# Verify TOON is installed
+~/.venvs/knowledge-db/bin/pip show python-toon
+
+# Test TOON adapter
+~/.claude/scripts/test-toon-adapter.sh
 ```
 
 ### Models not showing in healthcheck
@@ -225,46 +259,6 @@ cat ~/.config/litellm/.env
 ./update.sh
 ```
 
-## TOON Adapter
-
-The TOON (Token-Oriented Object Notation) adapter provides ~18% character reduction for knowledge transmission.
-
-**Installation:**
-```bash
-~/.venvs/knowledge-db/bin/pip install python-toon
-```
-
-**Verify:**
-```bash
-cd ~/claudeAgentic/review-system-backup/scripts
-~/.venvs/knowledge-db/bin/python -c "from toon_adapter import KnowledgeTOONAdapter; print('✅ TOON loaded')"
-```
-
-**Troubleshooting TOON:**
-```bash
-# If import fails, ensure you're in the scripts directory
-cd ~/claudeAgentic/review-system-backup/scripts
-
-# If python-toon not found
-~/.venvs/knowledge-db/bin/pip install python-toon
-```
-
-## Persistent Output
-
-Review outputs are saved to `.claude/kln/` in each project:
-
-```
-<project>/.claude/kln/
-├── quickReview/          # /kln:quickReview outputs
-├── quickCompare/         # /kln:quickCompare outputs
-├── deepInspect/          # /kln:deepInspect outputs
-└── asyncDeepAudit/       # /kln:asyncDeepAudit outputs
-```
-
-**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.md`
-
-This directory is automatically gitignored via `.claude/` pattern.
-
 ## Uninstalling
 
 ```bash
@@ -272,28 +266,3 @@ This directory is automatically gitignored via `.claude/` pattern.
 ```
 
 Backups preserved in ~/.claude/backups/
-
-## Post-Installation Verification
-
-Run the full test suite:
-
-```bash
-# Infrastructure tests
-curl -s http://localhost:4000/v1/models | jq '.data | length'  # Should show 6
-ls ~/.venvs/knowledge-db/bin/python                             # Should exist
-ls ~/.claude/scripts/quick-review.sh                            # Should exist
-
-# Knowledge system tests
-~/.claude/scripts/knowledge-query.sh "test"                     # Should respond
-
-# TOON adapter tests
-cd ~/claudeAgentic/review-system-backup/scripts
-~/.venvs/knowledge-db/bin/python -c "
-from toon_adapter import KnowledgeTOONAdapter
-facts = [{'title': 'Test', 'summary': 'Test', 'source': 'manual', 'tags': ['test'], 'relevance_score': 0.8}]
-toon = KnowledgeTOONAdapter.json_to_toon(facts)
-restored = KnowledgeTOONAdapter.toon_to_json(toon)
-assert facts == restored
-print('✅ TOON round-trip OK')
-"
-```

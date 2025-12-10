@@ -32,6 +32,7 @@ usage() {
     echo "  --commands    Install/update slash commands only"
     echo "  --hooks       Install/update hooks only"
     echo "  --knowledge   Install/update knowledge system only"
+    echo "  --droids      Install/update Factory Droid specialists only"
     echo "  --check       Verify installation without changes"
     echo "  --uninstall   Remove K-LEAN (keeps backups)"
     echo "  -h, --help    Show this help message"
@@ -243,6 +244,58 @@ setup_litellm_interactive() {
     fi
 }
 
+# Install Factory Droid specialists
+install_droids() {
+    local FACTORY_DIR="${HOME}/.factory/droids"
+    local DROID_SOURCE="$SCRIPT_DIR/droids"
+
+    log_info "Installing Factory Droid specialists..."
+
+    # Create Factory droids directory
+    ensure_dir "$FACTORY_DIR"
+
+    # List of 8 specialist droids (embedded/Linux focus)
+    local DROIDS=(
+        "orchestrator.md"
+        "code-reviewer.md"
+        "security-auditor.md"
+        "debugger.md"
+        "arm-cortex-expert.md"
+        "c-pro.md"
+        "rust-expert.md"
+        "performance-engineer.md"
+    )
+
+    local installed=0
+
+    if [ -d "$DROID_SOURCE" ]; then
+        for droid in "${DROIDS[@]}"; do
+            if [ -f "$DROID_SOURCE/$droid" ]; then
+                cp "$DROID_SOURCE/$droid" "$FACTORY_DIR/$droid"
+                ((installed++))
+            fi
+        done
+    else
+        log_warn "Droid source directory not found: $DROID_SOURCE"
+        log_info "Droids can be installed manually from: https://github.com/aeitroc/Droid-CLI-Orchestrator"
+    fi
+
+    if [ $installed -gt 0 ]; then
+        log_success "Installed $installed Factory Droid specialists"
+        log_info "Available droids:"
+        log_info "  orchestrator     - Master coordinator for complex tasks"
+        log_info "  code-reviewer    - Quality gatekeeper"
+        log_info "  security-auditor - OWASP compliance"
+        log_info "  debugger         - Root cause analysis"
+        log_info "  arm-cortex-expert - Embedded/microcontroller specialist"
+        log_info "  c-pro            - C systems programming"
+        log_info "  rust-expert      - Safe systems programming"
+        log_info "  performance-engineer - Optimization specialist"
+    else
+        log_warn "No droids installed - Factory Droid may not be fully functional"
+    fi
+}
+
 # Install nano profile (for claude-nano command)
 install_nano_profile() {
     local NANO_DIR="${HOME}/.claude-nano"
@@ -341,6 +394,17 @@ verify_installation() {
         echo -e "${YELLOW}NOT INSTALLED${NC}"
     fi
 
+    # Check Factory Droids
+    echo -n "  Factory Droids: "
+    local droid_count=$(ls -1 "${HOME}/.factory/droids"/*.md 2>/dev/null | wc -l)
+    if [ "$droid_count" -ge 8 ]; then
+        echo -e "${GREEN}OK ($droid_count specialists)${NC}"
+    elif [ "$droid_count" -gt 0 ]; then
+        echo -e "${YELLOW}PARTIAL ($droid_count specialists)${NC}"
+    else
+        echo -e "${YELLOW}NOT INSTALLED${NC}"
+    fi
+
     if [ $errors -eq 0 ]; then
         log_success "Installation verified successfully"
         return 0
@@ -362,6 +426,7 @@ install_full() {
     install_knowledge_server_autostart
     install_litellm_config
     install_nano_profile
+    install_droids
 
     # Optionally run LiteLLM setup wizard
     echo ""
@@ -443,6 +508,9 @@ main() {
             ;;
         --knowledge)
             install_knowledge
+            ;;
+        --droids)
+            install_droids
             ;;
         --check)
             verify_installation

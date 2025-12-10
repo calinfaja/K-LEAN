@@ -43,6 +43,7 @@ The installer will:
 - Install scripts, commands, and hooks
 - Setup knowledge database system
 - Create nano profile
+- Install Factory Droid specialists (8 droids)
 - Configure LiteLLM (optional interactive wizard)
 
 ### Step 3: Configure LiteLLM Provider
@@ -86,7 +87,32 @@ alias claude-status='if [ -n "$CLAUDE_CONFIG_DIR" ]; then echo "Profile: nano ($
 
 Then reload: `source ~/.bashrc`
 
-### Step 6: Verify Installation
+### Step 6: Install Factory Droid (Optional)
+
+Factory Droid provides fast agentic code reviews with built-in tools.
+
+```bash
+# Install Factory Droid CLI
+curl -fsSL https://app.factory.ai/cli | sh
+
+# Export your Factory API key
+export FACTORY_API_KEY="fk-your-key"
+
+# Verify droid installation (8 specialists)
+ls ~/.factory/droids/
+```
+
+The installer automatically copies 8 specialist droids:
+- `orchestrator` - Master coordinator
+- `code-reviewer` - Quality gatekeeper
+- `security-auditor` - OWASP compliance
+- `debugger` - Root cause analysis
+- `arm-cortex-expert` - Embedded systems specialist
+- `c-pro` - C systems programming
+- `rust-expert` - Safe embedded Rust
+- `performance-engineer` - Optimization
+
+### Step 7: Verify Installation
 
 ```bash
 ./test.sh        # Should show 18 tests passed
