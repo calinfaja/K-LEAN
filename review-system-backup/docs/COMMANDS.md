@@ -8,19 +8,20 @@ Complete reference for all K-LEAN slash commands and keywords.
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `/kln:quickReview` | Single model API review | `/kln:quickReview qwen security` |
-| `/kln:quickCompare` | 3 models parallel (qwen, deepseek, glm) | `/kln:quickCompare architecture` |
-| `/kln:quickConsult` | Get second opinion on question | `/kln:quickConsult kimi "is this safe?"` |
-| `/kln:deepInspect` | Single model with full tool access | `/kln:deepInspect qwen full audit` |
+| `/kln:quickReview` | Single model API review (exact name) | `/kln:quickReview qwen3-coder security` |
+| `/kln:quickCompare` | First 5 healthy models in parallel | `/kln:quickCompare architecture` |
+| `/kln:quickConsult` | Get second opinion on question | `/kln:quickConsult kimi-k2-thinking "is this safe?"` |
+| `/kln:deepInspect` | Single model with full tool access | `/kln:deepInspect qwen3-coder full audit` |
+| `/kln:models` | List available LiteLLM models | `/kln:models` |
 
 ### Async Commands (Background)
 
 | Command | Description | Usage |
 |---------|-------------|-------|
-| `/kln:asyncQuickReview` | Quick review in background | `/kln:asyncQuickReview qwen security` |
-| `/kln:asyncQuickCompare` | 3-model compare in background | `/kln:asyncQuickCompare security` |
-| `/kln:asyncDeepAudit` | 3 models with tools in background | `/kln:asyncDeepAudit architecture` |
-| `/kln:asyncQuickConsult` | Consult in background | `/kln:asyncQuickConsult glm "question"` |
+| `/kln:asyncQuickReview` | Quick review in background | `/kln:asyncQuickReview qwen3-coder security` |
+| `/kln:asyncQuickCompare` | Multi-model compare in background | `/kln:asyncQuickCompare security` |
+| `/kln:asyncDeepAudit` | 3 healthy models with tools in background | `/kln:asyncDeepAudit architecture` |
+| `/kln:asyncQuickConsult` | Consult in background | `/kln:asyncQuickConsult kimi-k2-thinking "question"` |
 
 ### Utility Commands
 

@@ -1,13 +1,14 @@
 #!/bin/bash
 #
-# Consensus Review - 3 models in parallel with health check
-# Skips unhealthy models, runs what's available
+# Consensus Review - Multiple models in parallel with dynamic discovery
+# Uses first 5 healthy models from LiteLLM API
 #
 # Usage: consensus-review.sh "<focus>" [working_dir]
 #
 
 FOCUS="${1:-General code review}"
 WORK_DIR="${2:-$(pwd)}"
+SCRIPTS_DIR="$(dirname "$0")"
 
 # Persistent output directory in project's .claude/kln/quickCompare/
 source ~/.claude/scripts/session-helper.sh
@@ -15,33 +16,22 @@ OUTPUT_DIR=$(get_output_dir "quickCompare" "$WORK_DIR")
 TIME_STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 OUTPUT_FILE="$OUTPUT_DIR/${TIME_STAMP}_consensus_$(echo "$FOCUS" | tr ' ' '-' | tr -cd '[:alnum:]-_' | head -c 30).md"
 
-# Health check
-check_model_health() {
-    local resp=$(curl -s --max-time 5 http://localhost:4000/chat/completions \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"$1\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
-    echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1
-}
-
-# Check proxy
-curl -s --max-time 3 http://localhost:4000/models > /dev/null 2>&1 || { echo "ERROR: LiteLLM not running"; exit 1; }
-
 echo "═══════════════════════════════════════════════════════════════"
-echo "CONSENSUS REVIEW - Checking model health..."
+echo "CONSENSUS REVIEW - Getting healthy models..."
 echo "═══════════════════════════════════════════════════════════════"
 
-# Check which models are healthy
-HEALTHY_MODELS=""
-for model in qwen3-coder deepseek-v3-thinking glm-4.6-thinking; do
-    if check_model_health "$model"; then
-        echo "✓ $model - healthy"
-        HEALTHY_MODELS="$HEALTHY_MODELS $model"
-    else
-        echo "✗ $model - unhealthy (skipping)"
-    fi
-done
+# Get first 5 healthy models dynamically
+HEALTHY_MODELS=$("$SCRIPTS_DIR/get-healthy-models.sh" 5 2>/dev/null)
 
-[ -z "$HEALTHY_MODELS" ] && { echo "ERROR: No healthy models"; exit 1; }
+if [ -z "$HEALTHY_MODELS" ]; then
+    echo "ERROR: No healthy models found" >&2
+    echo "Check if LiteLLM proxy is running: start-nano-proxy" >&2
+    exit 1
+fi
+
+MODEL_COUNT=$(echo "$HEALTHY_MODELS" | wc -l)
+echo "Found $MODEL_COUNT healthy models:"
+echo "$HEALTHY_MODELS" | while read model; do echo "  ✓ $model"; done
 
 echo ""
 echo "Focus: $FOCUS"
@@ -92,35 +82,20 @@ PIDS=""
 TEMP_DIR="/tmp/consensus-$$"
 mkdir -p "$TEMP_DIR"
 
-if echo "$HEALTHY_MODELS" | grep -q "qwen3-coder"; then
-    SYSTEM_QWEN="Code reviewer: bugs, memory safety.$KNOWLEDGE_SUFFIX"
-    curl -s --max-time 90 http://localhost:4000/chat/completions \
-      -H "Content-Type: application/json" \
-      -d "{\"model\": \"qwen3-coder\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_QWEN" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$TEMP_DIR/qwen.json" &
-    PID_QWEN=$!
-    PIDS="$PIDS $PID_QWEN"
-fi
+# System prompt for all models
+SYSTEM_PROMPT="Concise code reviewer.$KNOWLEDGE_SUFFIX"
 
-if echo "$HEALTHY_MODELS" | grep -q "deepseek-v3-thinking"; then
-    SYSTEM_DS="Architect: design, coupling.$KNOWLEDGE_SUFFIX"
+# Launch each healthy model in parallel
+while IFS= read -r model; do
+    [ -z "$model" ] && continue
+    SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
     curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"deepseek-v3-thinking\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_DS" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$TEMP_DIR/deepseek.json" &
-    PID_DEEPSEEK=$!
-    PIDS="$PIDS $PID_DEEPSEEK"
-fi
-
-if echo "$HEALTHY_MODELS" | grep -q "glm-4.6-thinking"; then
-    SYSTEM_GLM="Compliance: MISRA, standards.$KNOWLEDGE_SUFFIX"
-    curl -s --max-time 120 http://localhost:4000/chat/completions \
-      -H "Content-Type: application/json" \
-      -d "{\"model\": \"glm-4.6-thinking\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_GLM" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
-      > "$TEMP_DIR/glm.json" &
-    PID_GLM=$!
-    PIDS="$PIDS $PID_GLM"
-fi
+      -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      > "$TEMP_DIR/$SAFE_NAME.json" &
+    PIDS="$PIDS $!"
+    echo "  Launched: $model"
+done <<< "$HEALTHY_MODELS"
 
 # Wait for all
 for pid in $PIDS; do
@@ -138,67 +113,44 @@ get_response() {
     fi
 }
 
+# Build model list for header
+MODELS_LIST=$(echo "$HEALTHY_MODELS" | tr '\n' ', ' | sed 's/, $//')
+
 # Start building the markdown output file
 {
     echo "# Consensus Review: $FOCUS"
     echo ""
     echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')"
     echo "**Directory:** $WORK_DIR"
-    echo "**Models:** qwen3-coder, deepseek-v3-thinking, glm-4.6-thinking"
+    echo "**Models:** $MODELS_LIST"
     echo ""
     echo "---"
 } > "$OUTPUT_FILE"
 
-# Display and save results for healthy models only
+# Display and save results for each model dynamically
 ALL_CONTENT=""
 
-if [ -f "$TEMP_DIR/qwen.json" ]; then
-    QWEN_CONTENT=$(get_response "$TEMP_DIR/qwen.json")
-    ALL_CONTENT="$ALL_CONTENT\n$QWEN_CONTENT"
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "QWEN (Code Quality)"
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "$QWEN_CONTENT"
-    {
-        echo ""
-        echo "## QWEN (Code Quality)"
-        echo ""
-        echo "$QWEN_CONTENT"
-    } >> "$OUTPUT_FILE"
-fi
+while IFS= read -r model; do
+    [ -z "$model" ] && continue
+    SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
+    JSON_FILE="$TEMP_DIR/$SAFE_NAME.json"
 
-if [ -f "$TEMP_DIR/deepseek.json" ]; then
-    DS_CONTENT=$(get_response "$TEMP_DIR/deepseek.json")
-    ALL_CONTENT="$ALL_CONTENT\n$DS_CONTENT"
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "DEEPSEEK (Architecture)"
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "$DS_CONTENT"
-    {
+    if [ -f "$JSON_FILE" ]; then
+        MODEL_CONTENT=$(get_response "$JSON_FILE")
+        ALL_CONTENT="$ALL_CONTENT\n$MODEL_CONTENT"
         echo ""
-        echo "## DEEPSEEK (Architecture)"
-        echo ""
-        echo "$DS_CONTENT"
-    } >> "$OUTPUT_FILE"
-fi
-
-if [ -f "$TEMP_DIR/glm.json" ]; then
-    GLM_CONTENT=$(get_response "$TEMP_DIR/glm.json")
-    ALL_CONTENT="$ALL_CONTENT\n$GLM_CONTENT"
-    echo ""
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "GLM (Standards)"
-    echo "═══════════════════════════════════════════════════════════════"
-    echo "$GLM_CONTENT"
-    {
-        echo ""
-        echo "## GLM (Standards)"
-        echo ""
-        echo "$GLM_CONTENT"
-    } >> "$OUTPUT_FILE"
-fi
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "$model"
+        echo "═══════════════════════════════════════════════════════════════"
+        echo "$MODEL_CONTENT"
+        {
+            echo ""
+            echo "## $model"
+            echo ""
+            echo "$MODEL_CONTENT"
+        } >> "$OUTPUT_FILE"
+    fi
+done <<< "$HEALTHY_MODELS"
 
 # Cleanup temp files
 rm -rf "$TEMP_DIR"

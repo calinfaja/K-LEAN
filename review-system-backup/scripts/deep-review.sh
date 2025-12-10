@@ -3,14 +3,10 @@
 # Deep Review Script - Runs Claude headless with LiteLLM models
 # READ-ONLY AUDIT MODE: Full read/search/research access, NO write/edit/delete
 # Uses --dangerously-skip-permissions with restricted allowedTools for safe automation
+# Uses dynamic model discovery from LiteLLM API
 #
 # Usage: deep-review.sh <model> "<prompt>" [working_dir]
-#
-# Models:
-#   qwen     -> qwen3-coder      - Code quality, bugs (RELIABLE)
-#   kimi     -> kimi-k2-thinking       - Architecture, planning (RELIABLE)
-#   glm      -> glm-4.6-thinking        - Standards/compliance (RELIABLE)
-#   deepseek -> NOT RECOMMENDED for tool use (empty output issue)
+# Run get-models.sh to see available models
 #
 # Security: Runs in audit mode with:
 #   - ALLOWED: Read, Grep, Glob, WebSearch, WebFetch, git read ops, MCP search tools
@@ -20,113 +16,53 @@
 set -e
 
 # Arguments
-# Default to qwen (most reliable for tool use)
-MODEL="${1:-qwen}"
+MODEL="${1:-}"
 PROMPT="${2:-Review the codebase for issues}"
 WORK_DIR="${3:-$(pwd)}"
+SCRIPTS_DIR="$(dirname "$0")"
 
 # Persistent output directory in project's .claude/kln/deepInspect/
 source ~/.claude/scripts/session-helper.sh
-OUTPUT_DIR=$(get_output_dir "deepInspect" "$WORK_DIR")
-OUTPUT_FILENAME=$(generate_filename "$MODEL" "$PROMPT" ".md")
 
-# Model priority for fallback (only reliable models for tool use)
-MODELS_PRIORITY="qwen3-coder kimi-k2-thinking glm-4.6-thinking"
-
-# Health check function (test actual model response)
-check_model_health() {
-    local model="$1"
-    local resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
-    echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1
-}
-
-# Find healthy model with fallback
-find_healthy_model() {
-    local preferred="$1"
-    if check_model_health "$preferred"; then
-        echo "$preferred"
-        return 0
-    fi
-    echo "⚠️  $preferred unhealthy, trying fallback..." >&2
-    for m in $MODELS_PRIORITY; do
-        if [ "$m" != "$preferred" ] && check_model_health "$m"; then
-            echo "✓ Using $m" >&2
-            echo "$m"
-            return 0
-        fi
-    done
-    return 1
-}
-
-# Map model alias to LiteLLM model name and Claude model name
-get_model_info() {
-    case "$1" in
-        qwen|code|bugs)
-            echo "qwen3-coder"
-            ;;
-        kimi|arch|architecture|planning)
-            echo "kimi-k2-thinking"
-            ;;
-        glm|standards|misra|compliance)
-            echo "glm-4.6-thinking"
-            ;;
-        deepseek)
-            echo "WARNING: deepseek not recommended for tool use" >&2
-            echo "deepseek-v3-thinking"
-            ;;
-        minimax|research)
-            echo "minimax-m2"
-            ;;
-        hermes|scripting)
-            echo "hermes-4-70b"
-            ;;
-        *)
-            echo "qwen3-coder"
-            ;;
-    esac
-}
-
-# Get Claude model name from LiteLLM model name
-litellm_to_claude() {
-    case "$1" in
-        qwen3-coder) echo "sonnet" ;;
-        deepseek-v3-thinking) echo "haiku" ;;
-        glm-4.6-thinking) echo "opus" ;;
-        *) echo "sonnet" ;;
-    esac
-}
-
-# Get model description
-get_model_desc() {
-    case "$1" in
-        qwen3-coder) echo "qwen3-coder (code quality, bugs)" ;;
-        kimi-k2-thinking) echo "kimi-k2-thinking (architecture, planning)" ;;
-        glm-4.6-thinking) echo "glm-4.6-thinking (standards, compliance)" ;;
-        deepseek-v3-thinking) echo "deepseek-v3-thinking (NOT RECOMMENDED)" ;;
-        minimax-m2) echo "minimax-m2 (research)" ;;
-        hermes-4-70b) echo "hermes-4-70b (scripting)" ;;
-        *) echo "$1" ;;
-    esac
-}
-
-# Get preferred model info (now returns just LiteLLM name)
-PREFERRED_LITELLM=$(get_model_info "$MODEL")
-
-# Find healthy model
-echo "Checking model health..."
-LITELLM_MODEL=$(find_healthy_model "$PREFERRED_LITELLM")
-if [ -z "$LITELLM_MODEL" ]; then
-    echo "ERROR: No healthy models available"
-    echo "Check if LiteLLM proxy is running: start-nano-proxy"
+# Validate model is specified
+if [ -z "$MODEL" ]; then
+    echo "ERROR: No model specified" >&2
+    echo "Usage: deep-review.sh <model> \"<prompt>\" [working_dir]" >&2
+    echo "" >&2
+    echo "Available models:" >&2
+    "$SCRIPTS_DIR/get-models.sh" >&2
     exit 1
 fi
 
-# Use LiteLLM model name directly (don't convert to Claude aliases)
-# The settings-nanogpt.json routes via LiteLLM, so use LiteLLM names
+# Validate model exists in LiteLLM
+if ! "$SCRIPTS_DIR/validate-model.sh" "$MODEL" 2>/dev/null; then
+    echo "ERROR: Invalid model '$MODEL'" >&2
+    echo "Available models:" >&2
+    "$SCRIPTS_DIR/get-models.sh" >&2
+    exit 1
+fi
+
+# Check model health with fallback
+echo "Checking model health..."
+if ! "$SCRIPTS_DIR/health-check-model.sh" "$MODEL" 2>/dev/null; then
+    echo "⚠️  Model $MODEL unhealthy, trying fallback..." >&2
+    LITELLM_MODEL=$("$SCRIPTS_DIR/get-healthy-models.sh" 1 2>/dev/null | head -1)
+    if [ -z "$LITELLM_MODEL" ]; then
+        echo "ERROR: No healthy models available" >&2
+        echo "Check if LiteLLM proxy is running: start-nano-proxy" >&2
+        exit 1
+    fi
+    echo "✓ Using $LITELLM_MODEL" >&2
+else
+    LITELLM_MODEL="$MODEL"
+fi
+
+OUTPUT_DIR=$(get_output_dir "deepInspect" "$WORK_DIR")
+OUTPUT_FILENAME=$(generate_filename "$LITELLM_MODEL" "$PROMPT" ".md")
+
+# Use LiteLLM model name directly
 CLAUDE_MODEL="$LITELLM_MODEL"
-MODEL_DESC=$(get_model_desc "$LITELLM_MODEL")
+MODEL_DESC="$LITELLM_MODEL"
 
 # Build the system context for the review
 SYSTEM_CONTEXT="You are an independent code reviewer with FULL TOOL ACCESS.

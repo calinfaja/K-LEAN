@@ -56,17 +56,15 @@ ASYNC VARIANTS ─────────────────────�
 └───────────────────────────┴───────────────────────────┴──────────────────────┘
 
 MODELS ────────────────────────────────────────────────────────────────────────
-  All 6 models use the SAME unified prompt - review ALL areas:
+  Models are discovered DYNAMICALLY from LiteLLM API!
+  Use /kln:models to see available models.
 
-  qwen ........... qwen3-coder ............. Default model
-  deepseek ....... deepseek-v3-thinking .... Good for architecture
-  kimi ........... kimi-k2-thinking ........ Good for planning
-  glm ............ glm-4.6-thinking ........ Good for standards
-  minimax ........ minimax-m2 .............. Research focus
-  hermes ......... hermes-4-70b ............ Scripting focus
+  Single-model commands: Specify exact LiteLLM model name
+  Multi-model commands: Automatically use first N healthy models
+    - quickCompare: 5 healthy models
+    - deepAudit:    3 healthy models (headless is resource-heavy)
 
-  Default for single-model: qwen
-  Default for multi-model: qwen, kimi, glm
+  Run /kln:models to see current available models.
 
 REVIEW CHECKLIST (All models check ALL areas) ─────────────────────────────────
   CORRECTNESS ... Logic errors, edge cases, algorithm correctness
@@ -90,29 +88,28 @@ KNOWLEDGE SYSTEM ─────────────────────
   FindKnowledge <query> .... Search semantic knowledge database
 
 UTILITIES ─────────────────────────────────────────────────────────────────────
-  healthcheck .............. Type in prompt to check all 6 models
+  /kln:models .............. List available LiteLLM models
+  healthcheck .............. Type in prompt to check model health
   /kln:help ................ This reference guide
 
 EXAMPLES ──────────────────────────────────────────────────────────────────────
-  # Quick review with default model
-  /kln:quickReview check memory safety
+  # List available models
+  /kln:models
 
-  # Quick review with specific model
-  /kln:quickReview deepseek review architecture patterns
+  # Quick review (use exact model names from /kln:models)
+  /kln:quickReview qwen3-coder check memory safety
+  /kln:quickReview deepseek-v3-thinking review architecture patterns
 
-  # Multi-model comparison
+  # Multi-model comparison (auto-selects 5 healthy models)
   /kln:quickCompare security audit
 
-  # Custom model selection for comparison
-  /kln:quickCompare qwen,deepseek,glm check error handling
-
   # Get second opinion
-  /kln:quickConsult kimi Is this state machine approach correct?
+  /kln:quickConsult kimi-k2-thinking Is this state machine approach correct?
 
-  # Deep inspection
-  /kln:deepInspect qwen full security audit of crypto module
+  # Deep inspection (use exact model names)
+  /kln:deepInspect qwen3-coder full security audit of crypto module
 
-  # Full audit with tools
+  # Full audit (auto-selects 3 healthy models)
   /kln:deepAudit pre-release quality check
 
   # Async (background) review
@@ -122,7 +119,7 @@ EXAMPLES ───────────────────────�
   /kln:createReport BLE Implementation Complete
 
 ═══════════════════════════════════════════════════════════════════════════════
-  Output:  /tmp/claude-reviews/{session}/
+  Output:  .claude/kln/{quickReview,quickCompare,deepInspect,asyncDeepAudit}/
   Docs:    ~/claudeAgentic/docs/
   Scripts: ~/.claude/scripts/
 ═══════════════════════════════════════════════════════════════════════════════

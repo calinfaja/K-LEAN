@@ -37,8 +37,9 @@ A comprehensive code review and semantic knowledge capture system for Claude Cod
 
 | Feature | Description |
 |---------|-------------|
+| **Dynamic Model Discovery** | Auto-detect models from LiteLLM API, no hardcoding |
 | **Multi-Model Reviews** | 6 models via NanoGPT, health-check with fallback |
-| **3-Tier System** | Quick → Consensus → Deep (with full tool access) |
+| **4-Tier System** | Quick → Consensus → Deep Inspect → Deep Audit |
 | **Knowledge Capture** | Manual (`GoodJob`, `SaveThis`) + auto-capture hooks |
 | **Semantic Search** | Fast txtai queries (~30ms via server daemon) |
 | **TOON Compression** | ~18% token reduction for LLM transmission |
@@ -54,17 +55,18 @@ git clone https://github.com/calinfaja/K-LEAN-Companion.git
 cd K-LEAN-Companion/review-system-backup
 ./install.sh --full
 
-# Verify
-healthcheck                              # Check all 6 models
+# See available models
+/kln:models                              # List all models from LiteLLM
 
-# Run reviews
-/kln:quickReview qwen security           # Single model review
-/kln:quickCompare architecture           # 3 models in parallel
-/kln:deepInspect qwen full audit         # Headless with tools
+# Run reviews (use exact model names from /kln:models)
+/kln:quickReview qwen3-coder security           # Single model review
+/kln:quickCompare architecture                  # Auto: 5 healthy models
+/kln:deepInspect qwen3-coder full audit         # Headless with tools
 
 # Capture knowledge
 GoodJob https://docs.example.com         # Capture URL
 SaveThis learned X improves Y            # Capture lesson
+SaveInfo pattern for secure authentication     # Smart capture with eval
 
 # Search knowledge
 FindKnowledge authentication patterns    # Semantic search
@@ -108,14 +110,20 @@ FindKnowledge authentication patterns    # Semantic search
 
 ## Models Available
 
-| Alias | LiteLLM Model | Specialization |
-|-------|---------------|----------------|
-| `qwen` | qwen3-coder | Code quality, bugs |
-| `deepseek` | deepseek-v3-thinking | Architecture, design |
-| `glm` | glm-4.6-thinking | Standards, MISRA |
-| `minimax` | minimax-m2 | Research |
-| `kimi` | kimi-k2-thinking | Agent tasks |
-| `hermes` | hermes-4-70b | Scripting |
+Models are **dynamically discovered** from LiteLLM. Run `/kln:models` to see available models.
+
+Common models (if configured in LiteLLM):
+
+| LiteLLM Model | Specialization |
+|---------------|----------------|
+| qwen3-coder | Code quality, bugs |
+| deepseek-v3-thinking | Architecture, design |
+| glm-4.6-thinking | Standards, MISRA |
+| minimax-m2 | Research |
+| kimi-k2-thinking | Agent tasks |
+| hermes-4-70b | Scripting |
+
+**Note:** Use exact model names from `/kln:models` output. Aliases removed - auto-discovery replaces them.
 
 ## Requirements
 

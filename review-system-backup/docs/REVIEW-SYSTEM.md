@@ -34,14 +34,33 @@ Multi-model code review architecture using LiteLLM proxy to route requests to va
 
 ## Models
 
-| Alias | LiteLLM Model | Best For | Reliability |
-|-------|---------------|----------|-------------|
-| `qwen` | qwen3-coder | Code quality, bugs, security | ⭐⭐⭐ High |
-| `deepseek` | deepseek-v3-thinking | Architecture, design patterns | ⭐⭐ Medium |
-| `glm` | glm-4.6-thinking | Standards, MISRA, compliance | ⭐⭐⭐ High |
-| `kimi` | kimi-k2-thinking | Agent tasks, planning | ⭐⭐⭐ High |
-| `minimax` | minimax-m2 | Research, exploration | ⭐⭐ Medium |
-| `hermes` | hermes-4-70b | Scripting, automation | ⭐⭐ Medium |
+Models are discovered **dynamically** from the LiteLLM API. No more hardcoded aliases!
+
+### Listing Available Models
+
+```bash
+# Command
+/kln:models
+
+# Or script directly
+~/.claude/scripts/get-models.sh
+```
+
+### Model Usage
+
+- **Single-model commands:** Specify exact LiteLLM model name (e.g., `qwen3-coder`, `glm-4.6-thinking`)
+- **Multi-model commands:** Automatically select first N healthy models
+  - `quickCompare`: First 5 healthy models
+  - `deepAudit`: First 3 healthy models (headless is resource-heavy)
+
+### Helper Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `get-models.sh` | List all models from LiteLLM API |
+| `get-healthy-models.sh [N]` | Get first N healthy models |
+| `health-check-model.sh <model>` | Check if specific model is healthy |
+| `validate-model.sh <model>` | Validate model name exists |
 
 **Note:** "Thinking" models output `<think>` tags with reasoning - this is expected behavior.
 
@@ -49,12 +68,12 @@ Multi-model code review architecture using LiteLLM proxy to route requests to va
 
 ### Quick Review (Tier 1)
 
-Single model review via LiteLLM API:
+Single model review via LiteLLM API (use exact model names):
 
 ```bash
-/kln:quickReview qwen security vulnerabilities
-/kln:quickReview glm MISRA compliance
-/kln:quickReview deepseek architecture review
+/kln:quickReview qwen3-coder security vulnerabilities
+/kln:quickReview glm-4.6-thinking MISRA compliance
+/kln:quickReview deepseek-v3-thinking architecture review
 ```
 
 **Output:**
@@ -74,17 +93,17 @@ Three models in parallel for consensus:
 /kln:quickCompare error handling
 ```
 
-**Models used:** qwen, deepseek, glm (with health-check fallback)
+**Models used:** First 5 healthy models from LiteLLM (dynamic discovery)
 
 **Script:** `~/.claude/scripts/consensus-review.sh`
 
 ### Deep Inspect (Tier 2)
 
-Single model with full tool access via headless Claude:
+Single model with full tool access via headless Claude (use exact model names):
 
 ```bash
-/kln:deepInspect qwen comprehensive security audit
-/kln:deepInspect glm MISRA C compliance check
+/kln:deepInspect qwen3-coder comprehensive security audit
+/kln:deepInspect glm-4.6-thinking MISRA C compliance check
 ```
 
 **Capabilities:**
@@ -100,12 +119,14 @@ Single model with full tool access via headless Claude:
 
 ### Async Deep Audit (Tier 2)
 
-Three models with tools, running in background:
+Multiple models with tools, running in background (uses first 3 healthy models):
 
 ```bash
 /kln:asyncDeepAudit security patterns
 /kln:asyncDeepAudit architecture review
 ```
+
+**Models used:** First 3 healthy models from LiteLLM (dynamic discovery)
 
 **Script:** `~/.claude/scripts/parallel-deep-review.sh`
 
@@ -134,15 +155,22 @@ All reviews are saved to the project's `.claude/kln/` folder:
 
 ## Health Check & Fallback
 
-Each script performs health checks before running:
+Health checks are now handled by dedicated helper scripts:
 
 ```bash
-# Check model health
-curl -s http://localhost:4000/chat/completions \
-  -d '{"model": "qwen3-coder", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5}'
+# Check specific model health
+~/.claude/scripts/health-check-model.sh qwen3-coder
+
+# Get first N healthy models
+~/.claude/scripts/get-healthy-models.sh 3
+
+# Validate model name
+~/.claude/scripts/validate-model.sh qwen3-coder
 ```
 
-**Fallback priority:** qwen3-coder → deepseek-v3-thinking → glm-4.6-thinking
+**Fallback behavior:**
+- Single-model commands: Fall back to first healthy model from API
+- Multi-model commands: Use all healthy models (up to configured limit)
 
 If preferred model is unhealthy, automatically falls back to next healthy model.
 
