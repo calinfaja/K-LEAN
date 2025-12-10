@@ -1,56 +1,53 @@
 #!/bin/bash
 #
 # Quick Review - Single model with health check + fallback
+# Uses dynamic model discovery from LiteLLM API
 #
 # Usage: quick-review.sh <model> "<focus>" [working_dir]
+# Run get-models.sh to see available models
 #
 
-MODEL="${1:-qwen}"
+MODEL="${1:-}"
 FOCUS="${2:-General code review}"
 WORK_DIR="${3:-$(pwd)}"
+SCRIPTS_DIR="$(dirname "$0")"
 
 # Persistent output directory in project's .claude/kln/quickReview/
 source ~/.claude/scripts/session-helper.sh
+
+# Validate model is specified
+if [ -z "$MODEL" ]; then
+    echo "ERROR: No model specified" >&2
+    echo "Usage: quick-review.sh <model> \"<focus>\" [working_dir]" >&2
+    echo "" >&2
+    echo "Available models:" >&2
+    "$SCRIPTS_DIR/get-models.sh" >&2
+    exit 1
+fi
+
+# Validate model exists in LiteLLM
+if ! "$SCRIPTS_DIR/validate-model.sh" "$MODEL" 2>/dev/null; then
+    echo "ERROR: Invalid model '$MODEL'" >&2
+    echo "Available models:" >&2
+    "$SCRIPTS_DIR/get-models.sh" >&2
+    exit 1
+fi
+
+# Check model health with fallback
+if ! "$SCRIPTS_DIR/health-check-model.sh" "$MODEL" 2>/dev/null; then
+    echo "⚠️  Model $MODEL unhealthy, trying fallback..." >&2
+    LITELLM_MODEL=$("$SCRIPTS_DIR/get-healthy-models.sh" 1 2>/dev/null | head -1)
+    if [ -z "$LITELLM_MODEL" ]; then
+        echo "ERROR: No healthy models available" >&2
+        exit 1
+    fi
+    echo "✓ Using $LITELLM_MODEL" >&2
+else
+    LITELLM_MODEL="$MODEL"
+fi
+
 OUTPUT_DIR=$(get_output_dir "quickReview" "$WORK_DIR")
-OUTPUT_FILENAME=$(generate_filename "$MODEL" "$FOCUS" ".md")
-
-MODELS_PRIORITY="qwen3-coder deepseek-v3-thinking glm-4.6-thinking"
-
-get_litellm_model() {
-    case "$1" in
-        qwen) echo "qwen3-coder" ;;
-        deepseek) echo "deepseek-v3-thinking" ;;
-        glm) echo "glm-4.6-thinking" ;;
-        kimi) echo "kimi-k2-thinking" ;;
-        minimax) echo "minimax-m2" ;;
-        hermes) echo "hermes-4-70b" ;;
-        *) echo "qwen3-coder" ;;
-    esac
-}
-
-check_model_health() {
-    local resp=$(curl -s --max-time 5 http://localhost:4000/chat/completions \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"$1\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
-    echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1
-}
-
-find_healthy_model() {
-    check_model_health "$1" && { echo "$1"; return 0; }
-    echo "⚠️  $1 unhealthy, trying fallback..." >&2
-    for m in $MODELS_PRIORITY; do
-        [ "$m" != "$1" ] && check_model_health "$m" && { echo "✓ Using $m" >&2; echo "$m"; return 0; }
-    done
-    return 1
-}
-
-# Check proxy
-curl -s --max-time 3 http://localhost:4000/models > /dev/null 2>&1 || { echo "ERROR: LiteLLM not running"; exit 1; }
-
-# Find healthy model
-PREFERRED=$(get_litellm_model "$MODEL")
-LITELLM_MODEL=$(find_healthy_model "$PREFERRED")
-[ -z "$LITELLM_MODEL" ] && { echo "ERROR: No healthy models"; exit 1; }
+OUTPUT_FILENAME=$(generate_filename "$LITELLM_MODEL" "$FOCUS" ".md")
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "QUICK REVIEW - $LITELLM_MODEL"

@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# Parallel Deep Review - Runs 3 headless Claude instances with different LiteLLM models
+# Parallel Deep Review - Runs headless Claude instances with LiteLLM models
+# Uses dynamic model discovery - runs first 3 healthy models (headless is resource-heavy)
 # READ-ONLY AUDIT MODE: Full read/search/research access, NO write/edit/delete
 # Uses --dangerously-skip-permissions with restricted allowedTools for safe automation
 #
@@ -15,6 +16,7 @@ set -e
 
 PROMPT="${1:-Review the codebase for issues}"
 WORK_DIR="${2:-$(pwd)}"
+SCRIPTS_DIR="$(dirname "$0")"
 
 # Persistent output directory in project's .claude/kln/asyncDeepAudit/
 source ~/.claude/scripts/session-helper.sh
@@ -22,48 +24,35 @@ OUTPUT_DIR=$(get_output_dir "asyncDeepAudit" "$WORK_DIR")
 TIME_STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 OUTPUT_FILE="$OUTPUT_DIR/${TIME_STAMP}_parallel_$(echo "$PROMPT" | tr ' ' '-' | tr -cd '[:alnum:]-_' | head -c 30).md"
 
-# Create isolated config directories for each model
-CONFIG_DIR_BASE="/tmp/claude-review-config-$TIME_STAMP"
-mkdir -p "$CONFIG_DIR_BASE/qwen"
-mkdir -p "$CONFIG_DIR_BASE/kimi"
-mkdir -p "$CONFIG_DIR_BASE/glm"
+echo "═══════════════════════════════════════════════════════════════════"
+echo "PARALLEL DEEP REVIEW - Getting healthy models..."
+echo "═══════════════════════════════════════════════════════════════════"
 
-# Temp output files (will be merged into single markdown)
-TEMP_OUTPUT_DIR="/tmp/parallel-review-$$"
-mkdir -p "$TEMP_OUTPUT_DIR"
-OUTPUT_QWEN="$TEMP_OUTPUT_DIR/qwen.txt"
-OUTPUT_KIMI="$TEMP_OUTPUT_DIR/kimi.txt"
-OUTPUT_GLM="$TEMP_OUTPUT_DIR/glm.txt"
-
-# Health check function (test actual model response)
-check_model_health() {
-    local model="$1"
-    local resp=$(curl -s --max-time 10 http://localhost:4000/chat/completions \
-        -H "Content-Type: application/json" \
-        -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
-    echo "$resp" | jq -e '.choices[0]' > /dev/null 2>&1
-}
-
-# Check which models are healthy
-# Using qwen, kimi, glm - these are proven reliable for tool use
-# Avoided: deepseek (empty output), hermes (hallucinates), minimax (timeout)
-echo "Checking model health..."
-HEALTHY_MODELS=""
-for model in qwen3-coder kimi-k2-thinking glm-4.6-thinking; do
-    if check_model_health "$model"; then
-        echo "✓ $model - healthy"
-        HEALTHY_MODELS="$HEALTHY_MODELS $model"
-    else
-        echo "✗ $model - unhealthy (will skip)"
-    fi
-done
+# Get first 3 healthy models (headless instances are resource-heavy)
+HEALTHY_MODELS=$("$SCRIPTS_DIR/get-healthy-models.sh" 3 2>/dev/null)
 
 if [ -z "$HEALTHY_MODELS" ]; then
-    echo "ERROR: No healthy models available"
-    echo "Check if LiteLLM proxy is running: start-nano-proxy"
+    echo "ERROR: No healthy models available" >&2
+    echo "Check if LiteLLM proxy is running: start-nano-proxy" >&2
     exit 1
 fi
+
+MODEL_COUNT=$(echo "$HEALTHY_MODELS" | wc -l)
+echo "Found $MODEL_COUNT healthy models:"
+echo "$HEALTHY_MODELS" | while read model; do echo "  ✓ $model"; done
 echo ""
+
+# Create config and temp directories
+CONFIG_DIR_BASE="/tmp/claude-review-config-$TIME_STAMP"
+TEMP_OUTPUT_DIR="/tmp/parallel-review-$$"
+mkdir -p "$TEMP_OUTPUT_DIR"
+
+# Create config directory for each model
+while IFS= read -r model; do
+    [ -z "$model" ] && continue
+    SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
+    mkdir -p "$CONFIG_DIR_BASE/$SAFE_NAME"
+done <<< "$HEALTHY_MODELS"
 
 echo "═══════════════════════════════════════════════════════════════════"
 echo "PARALLEL DEEP REVIEW - 3 Models with Full Tool Access"
@@ -126,10 +115,12 @@ create_audit_settings() {
 EOF
 }
 
-# Create audit settings for each model
-create_audit_settings "$CONFIG_DIR_BASE/qwen" "qwen3-coder"
-create_audit_settings "$CONFIG_DIR_BASE/kimi" "kimi-k2-thinking"
-create_audit_settings "$CONFIG_DIR_BASE/glm" "glm-4.6-thinking"
+# Create audit settings for each healthy model
+while IFS= read -r model; do
+    [ -z "$model" ] && continue
+    SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
+    create_audit_settings "$CONFIG_DIR_BASE/$SAFE_NAME" "$model"
+done <<< "$HEALTHY_MODELS"
 
 # Common system prompt for investigators
 SYSTEM_PROMPT="You are an independent code reviewer with FULL TOOL ACCESS.
@@ -184,37 +175,30 @@ Investigate using your tools. Be thorough." > "$output_file" 2>&1
 
 # No backup needed - each review uses its own isolated config directory
 
-# Run all 3 in parallel with explicit LiteLLM model names
-# Using reliable models: qwen (code), kimi (architecture), glm (standards)
+# Run all healthy models in parallel
 # No delays needed - each has its own config dir, no race conditions!
-run_review "QWEN" "$CONFIG_DIR_BASE/qwen" "$OUTPUT_QWEN" "qwen3-coder" &
-PID_QWEN=$!
-
-run_review "KIMI" "$CONFIG_DIR_BASE/kimi" "$OUTPUT_KIMI" "kimi-k2-thinking" &
-PID_KIMI=$!
-
-run_review "GLM" "$CONFIG_DIR_BASE/glm" "$OUTPUT_GLM" "glm-4.6-thinking" &
-PID_GLM=$!
+declare -A PIDS
+while IFS= read -r model; do
+    [ -z "$model" ] && continue
+    SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
+    OUTPUT_TXT="$TEMP_OUTPUT_DIR/$SAFE_NAME.txt"
+    run_review "$model" "$CONFIG_DIR_BASE/$SAFE_NAME" "$OUTPUT_TXT" "$model" &
+    PIDS[$model]=$!
+done <<< "$HEALTHY_MODELS"
 
 # Wait for all to complete
 echo ""
 echo "Waiting for all reviews to complete (this may take 2-5 minutes each)..."
-echo "  QWEN (PID: $PID_QWEN)"
-echo "  KIMI (PID: $PID_KIMI)"
-echo "  GLM (PID: $PID_GLM)"
+for model in "${!PIDS[@]}"; do
+    echo "  $model (PID: ${PIDS[$model]})"
+done
 echo ""
 
-wait $PID_QWEN
-QWEN_EXIT=$?
-echo "✓ QWEN complete (exit: $QWEN_EXIT)"
-
-wait $PID_KIMI
-KIMI_EXIT=$?
-echo "✓ KIMI complete (exit: $KIMI_EXIT)"
-
-wait $PID_GLM
-GLM_EXIT=$?
-echo "✓ GLM complete (exit: $GLM_EXIT)"
+for model in "${!PIDS[@]}"; do
+    wait ${PIDS[$model]}
+    EXIT_CODE=$?
+    echo "✓ $model complete (exit: $EXIT_CODE)"
+done
 
 # No restore needed - we used isolated config directories
 
@@ -223,67 +207,44 @@ echo "════════════════════════�
 echo "ALL REVIEWS COMPLETE"
 echo "═══════════════════════════════════════════════════════════════════"
 
+# Build model list for header
+MODELS_LIST=$(echo "$HEALTHY_MODELS" | tr '\n' ', ' | sed 's/, $//')
+
 # Build combined markdown output file
 {
     echo "# Parallel Deep Audit: $PROMPT"
     echo ""
     echo "**Date:** $(date '+%Y-%m-%d %H:%M:%S')"
     echo "**Directory:** $WORK_DIR"
-    echo "**Models:** qwen3-coder (code), kimi-k2-thinking (architecture), glm-4.6-thinking (standards)"
+    echo "**Models:** $MODELS_LIST"
     echo ""
     echo "---"
 } > "$OUTPUT_FILE"
 
-# Display and save results
+# Display and save results for each model dynamically
 ALL_CONTENT=""
 
-echo ""
-echo "═══════════════════════════════════════════════════════════════════"
-echo "QWEN REVIEW (Code Quality, Bugs)"
-echo "═══════════════════════════════════════════════════════════════════"
-if [ -f "$OUTPUT_QWEN" ]; then
-    QWEN_CONTENT=$(cat "$OUTPUT_QWEN")
-    ALL_CONTENT="$ALL_CONTENT\n$QWEN_CONTENT"
-    echo "$QWEN_CONTENT"
-    {
-        echo ""
-        echo "## QWEN (Code Quality, Bugs)"
-        echo ""
-        echo "$QWEN_CONTENT"
-    } >> "$OUTPUT_FILE"
-fi
+while IFS= read -r model; do
+    [ -z "$model" ] && continue
+    SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
+    OUTPUT_TXT="$TEMP_OUTPUT_DIR/$SAFE_NAME.txt"
 
-echo ""
-echo "═══════════════════════════════════════════════════════════════════"
-echo "KIMI REVIEW (Architecture, Planning)"
-echo "═══════════════════════════════════════════════════════════════════"
-if [ -f "$OUTPUT_KIMI" ]; then
-    KIMI_CONTENT=$(cat "$OUTPUT_KIMI")
-    ALL_CONTENT="$ALL_CONTENT\n$KIMI_CONTENT"
-    echo "$KIMI_CONTENT"
-    {
-        echo ""
-        echo "## KIMI (Architecture, Planning)"
-        echo ""
-        echo "$KIMI_CONTENT"
-    } >> "$OUTPUT_FILE"
-fi
-
-echo ""
-echo "═══════════════════════════════════════════════════════════════════"
-echo "GLM REVIEW (Standards, Compliance)"
-echo "═══════════════════════════════════════════════════════════════════"
-if [ -f "$OUTPUT_GLM" ]; then
-    GLM_CONTENT=$(cat "$OUTPUT_GLM")
-    ALL_CONTENT="$ALL_CONTENT\n$GLM_CONTENT"
-    echo "$GLM_CONTENT"
-    {
-        echo ""
-        echo "## GLM (Standards, Compliance)"
-        echo ""
-        echo "$GLM_CONTENT"
-    } >> "$OUTPUT_FILE"
-fi
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════"
+    echo "$model"
+    echo "═══════════════════════════════════════════════════════════════════"
+    if [ -f "$OUTPUT_TXT" ]; then
+        MODEL_CONTENT=$(cat "$OUTPUT_TXT")
+        ALL_CONTENT="$ALL_CONTENT\n$MODEL_CONTENT"
+        echo "$MODEL_CONTENT"
+        {
+            echo ""
+            echo "## $model"
+            echo ""
+            echo "$MODEL_CONTENT"
+        } >> "$OUTPUT_FILE"
+    fi
+done <<< "$HEALTHY_MODELS"
 
 # Cleanup temp files
 rm -rf "$TEMP_OUTPUT_DIR"
