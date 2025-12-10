@@ -6,22 +6,29 @@ Complete reference for all K-LEAN slash commands and keywords.
 
 ### Review Commands
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/kln:quickReview` | Single model API review (exact name) | `/kln:quickReview qwen3-coder security` |
-| `/kln:quickCompare` | First 5 healthy models in parallel | `/kln:quickCompare architecture` |
-| `/kln:quickConsult` | Get second opinion on question | `/kln:quickConsult kimi-k2-thinking "is this safe?"` |
-| `/kln:deepInspect` | Single model with full tool access | `/kln:deepInspect qwen3-coder full audit` |
-| `/kln:models` | List available LiteLLM models | `/kln:models` |
+| Command | Method | Time | Description | Usage |
+|---------|--------|------|-------------|-------|
+| `/kln:quickReview` | API | ~30s | Single model API review | `/kln:quickReview qwen security` |
+| `/kln:quickCompare` | API | ~60s | 3 models in parallel | `/kln:quickCompare architecture` |
+| `/kln:deepInspect` | CLI | ~3min | Single model with full tools | `/kln:deepInspect qwen full audit` |
+| `/kln:deepAudit` | CLI | ~5min | 3 models with full tools | `/kln:deepAudit security` |
+| `/kln:droid` | DROID | ~30s | Fast agentic review | `/kln:droid qwen security` |
+| `/kln:droidAudit` | DROID | ~1min | 3 droids in parallel | `/kln:droidAudit architecture` |
+| `/kln:droidExecute` | DROID | ~30s | Specialized droid | `/kln:droidExecute qwen arm-cortex-expert Review ISRs` |
+| `/kln:quickConsult` | API | ~60s | Get second opinion | `/kln:quickConsult kimi "is this safe?"` |
+| `/kln:models` | - | - | List available models | `/kln:models` |
 
 ### Async Commands (Background)
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/kln:asyncQuickReview` | Quick review in background | `/kln:asyncQuickReview qwen3-coder security` |
-| `/kln:asyncQuickCompare` | Multi-model compare in background | `/kln:asyncQuickCompare security` |
-| `/kln:asyncDeepAudit` | 3 healthy models with tools in background | `/kln:asyncDeepAudit architecture` |
-| `/kln:asyncQuickConsult` | Consult in background | `/kln:asyncQuickConsult kimi-k2-thinking "question"` |
+| Sync Command | Async Variant | Description |
+|--------------|---------------|-------------|
+| `/kln:quickReview` | `/kln:asyncQuickReview` | Review while you keep coding |
+| `/kln:quickCompare` | `/kln:asyncQuickCompare` | Multi-model compare in background |
+| `/kln:quickConsult` | `/kln:asyncQuickConsult` | Get opinion in background |
+| `/kln:deepAudit` | `/kln:asyncDeepAudit` | Full audit in background |
+| `/kln:droid` | `/kln:asyncDroid` | Fast droid in background |
+| `/kln:droidAudit` | `/kln:asyncDroidAudit` | Parallel droids in background |
+| `/kln:createReport` | `/kln:asyncCreateReport` | Document session in background |
 
 ### Utility Commands
 
@@ -137,10 +144,14 @@ Available for all review commands:
 |---------|------------------|
 | `/kln:quickReview` | `.claude/kln/quickReview/` |
 | `/kln:quickCompare` | `.claude/kln/quickCompare/` |
+| `/kln:quickConsult` | `.claude/kln/quickConsult/` |
 | `/kln:deepInspect` | `.claude/kln/deepInspect/` |
-| `/kln:asyncDeepAudit` | `.claude/kln/asyncDeepAudit/` |
+| `/kln:deepAudit` | `.claude/kln/deepAudit/` |
+| `/kln:droid` | `.claude/kln/droid/` |
+| `/kln:droidAudit` | `.claude/kln/droidAudit/` |
+| `/kln:droidExecute` | `.claude/kln/droidExecute/` |
 
-**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.md`
+**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.txt`
 
 ## Command Examples
 
@@ -199,6 +210,27 @@ SaveThis never trust user input - always validate and sanitize
 FindKnowledge injection prevention patterns
 ```
 
+## Specialist Droids (for /kln:droidExecute)
+
+| Droid | Expertise |
+|-------|-----------|
+| `orchestrator` | System architecture, task coordination, memory system |
+| `code-reviewer` | Code quality, OWASP Top 10, SOLID principles |
+| `security-auditor` | Vulnerabilities, auth flows, encryption |
+| `debugger` | Root cause analysis, error tracing |
+| `arm-cortex-expert` | ARM Cortex-M, DMA, ISRs, cache coherency, FreeRTOS |
+| `c-pro` | C99/C11, POSIX, memory management, MISRA |
+| `rust-expert` | Ownership, lifetimes, no_std embedded Rust |
+| `performance-engineer` | Profiling, optimization, benchmarks |
+
+**Example usage:**
+```bash
+/kln:droidExecute qwen code-reviewer Check error handling in main.c
+/kln:droidExecute glm arm-cortex-expert Review ISR priorities
+/kln:droidExecute deepseek security-auditor Audit authentication flow
+/kln:droidExecute kimi rust-expert Check unsafe blocks
+```
+
 ## Command Files
 
 Located at `~/.claude/commands/kln/`:
@@ -209,12 +241,19 @@ Located at `~/.claude/commands/kln/`:
 ├── quickCompare.md
 ├── quickConsult.md
 ├── deepInspect.md
+├── deepAudit.md
+├── droid.md
+├── droidAudit.md
+├── droidExecute.md
 ├── asyncQuickReview.md
 ├── asyncQuickCompare.md
-├── asyncDeepAudit.md
 ├── asyncQuickConsult.md
+├── asyncDeepAudit.md
+├── asyncDroid.md
+├── asyncDroidAudit.md
 ├── createReport.md
-├── backgroundReport.md
+├── asyncCreateReport.md
+├── models.md
 └── help.md
 ```
 
@@ -224,8 +263,12 @@ Located at `~/.claude/commands/kln/`:
 |---------|--------|
 | quickReview | `~/.claude/scripts/quick-review.sh` |
 | quickCompare | `~/.claude/scripts/consensus-review.sh` |
+| quickConsult | `~/.claude/scripts/second-opinion.sh` |
 | deepInspect | `~/.claude/scripts/deep-review.sh` |
-| asyncDeepAudit | `~/.claude/scripts/parallel-deep-review.sh` |
+| deepAudit | `~/.claude/scripts/parallel-deep-review.sh` |
+| droid | `~/.claude/scripts/droid-review.sh` |
+| droidAudit | `~/.claude/scripts/parallel-droid-review.sh` |
+| droidExecute | `~/.claude/scripts/droid-execute.sh` |
 
 ## Troubleshooting
 

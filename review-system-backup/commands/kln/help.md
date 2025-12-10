@@ -25,14 +25,18 @@ COMMAND CATEGORIES ────────────────────�
   DOCUMENT .. Capture knowledge (Lessons, TODOs)
 
 REVIEW COMMANDS ──────────────────────────────────────── All models, all areas
-┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
-│ Command                   │ Models │ Method │ Time   │ Description          │
-├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
-│ /kln:quickReview <m> <f>  │ 1      │ API    │ ~30s   │ Fast code review     │
-│ /kln:quickCompare <f>     │ 3      │ API    │ ~60s   │ Multi-model consensus│
-│ /kln:deepInspect <m> <f>  │ 1      │ CLI    │ ~3min  │ Thorough with tools  │
-│ /kln:deepAudit <f>        │ 3      │ CLI    │ ~5min  │ Full audit with tools│
-└───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
+┌─────────────────────────────┬────────┬────────┬────────┬────────────────────┐
+│ Command                     │ Models │ Method │ Time   │ Description        │
+├─────────────────────────────┼────────┼────────┼────────┼────────────────────┤
+│ /kln:quickReview <m> <f>    │ 1      │ API    │ ~30s   │ Fast code review   │
+│ /kln:quickCompare <f>       │ 3      │ API    │ ~60s   │ Multi-model review │
+│ /kln:deepInspect <m> <f>    │ 1      │ CLI    │ ~3min  │ Deep with tools    │
+│ /kln:deepAudit <f>          │ 3      │ CLI    │ ~5min  │ Full audit + tools │
+├─────────────────────────────┼────────┼────────┼────────┼────────────────────┤
+│ /kln:droid <m> <f>          │ 1      │ DROID  │ ~30s   │ Fast agentic review│
+│ /kln:droidAudit <f>         │ 3      │ DROID  │ ~1min  │ Parallel droids    │
+│ /kln:droidExecute <m> <d> <p>│ 1     │ DROID  │ ~30s   │ Specialized role   │
+└─────────────────────────────┴────────┴────────┴────────┴────────────────────┘
 
 CONSULT COMMAND ──────────────────────────────────────── Challenge decisions
 ┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
@@ -52,6 +56,8 @@ ASYNC VARIANTS ─────────────────────�
 │ /kln:quickConsult         │ /kln:asyncQuickConsult    │ Opinion + keep coding│
 │ /kln:quickCompare         │ /kln:asyncQuickCompare    │ Compare + keep coding│
 │ /kln:deepAudit            │ /kln:asyncDeepAudit       │ Full audit + go      │
+│ /kln:droid                │ /kln:asyncDroid           │ Fast droid + go      │
+│ /kln:droidAudit           │ /kln:asyncDroidAudit      │ Parallel droid + go  │
 │ /kln:createReport         │ /kln:asyncCreateReport    │ Document + keep going│
 └───────────────────────────┴───────────────────────────┴──────────────────────┘
 
@@ -76,11 +82,25 @@ REVIEW CHECKLIST (All models check ALL areas) ───────────�
   STANDARDS ..... Coding style, MISRA guidelines
 
 EXECUTION METHODS ─────────────────────────────────────────────────────────────
-  API = curl → LiteLLM:4000 → NanoGPT
-        Fast (~30-60s), no file access, all 6 models
+  API   = curl → LiteLLM:4000 → NanoGPT
+          Fast (~30-60s), no file access, all 6 models
 
-  CLI = claude --model → Headless Claude instance
-        Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
+  CLI   = claude --model → Headless Claude instance
+          Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
+
+  DROID = Factory Droid → LiteLLM:4000 → NanoGPT
+          Fast (~30s-1min), built-in agentic tools (search, navigate)
+          Best for parallel execution, much faster than CLI
+
+DROID TYPES (for /kln:droidExecute) ───────────────────────────────────────────
+  orchestrator        System architect & high-level design
+  code-reviewer       Code quality & best practices expert
+  security-auditor    Security vulnerability specialist
+  debugger            Root cause analysis & bug hunting
+  arm-cortex-expert   ARM Cortex-M embedded systems specialist
+  c-pro               C language expert for embedded systems
+  rust-expert         Rust language & safety expert
+  performance-engineer Performance optimization & profiling
 
 KNOWLEDGE SYSTEM ──────────────────────────────────────────────────────────────
   GoodJob <url> [focus] .... Capture knowledge from URL to database
@@ -112,8 +132,19 @@ EXAMPLES ───────────────────────�
   # Full audit (auto-selects 3 healthy models)
   /kln:deepAudit pre-release quality check
 
+  # Factory Droid reviews (FAST agentic - recommended)
+  /kln:droid qwen3-coder security audit
+  /kln:droidAudit comprehensive review   # 3 models in parallel (~1min)
+
+  # Specialized droid roles (expert system prompts)
+  /kln:droidExecute qwen code-reviewer Review error handling in main.c
+  /kln:droidExecute deepseek security-auditor Audit authentication system
+  /kln:droidExecute glm arm-cortex-expert Review interrupt priorities
+  /kln:droidExecute hermes performance-engineer Optimize memory usage
+
   # Async (background) review
   /kln:asyncDeepAudit comprehensive review → continue coding → check later
+  /kln:asyncDroidAudit parallel audit → continue coding → check later
 
   # Document session
   /kln:createReport BLE Implementation Complete
