@@ -171,11 +171,19 @@ OUTPUT_DIR=$(get_output_dir "droidExecute")
 WORK_DIR=$(pwd)
 PROJECT_ROOT=$(find_project_root "$WORK_DIR")
 
+# Determine reasoning effort for display
+REASONING_DISPLAY="low"
+if echo "$MODEL" | grep -q "thinking"; then
+    REASONING_DISPLAY="medium"
+fi
+
 echo "=== Droid Execute ===" >&2
-echo "Model:    $MODEL" >&2
-echo "Droid:    $DROID" >&2
-echo "Project:  $PROJECT_ROOT" >&2
-echo "Output:   $OUTPUT_DIR" >&2
+echo "Model:      $MODEL" >&2
+echo "Droid:      $DROID" >&2
+echo "Autonomy:   medium (file reads + reversible commands)" >&2
+echo "Reasoning:  $REASONING_DISPLAY" >&2
+echo "Project:    $PROJECT_ROOT" >&2
+echo "Output:     $OUTPUT_DIR" >&2
 echo "====================" >&2
 echo "" >&2
 
@@ -274,8 +282,17 @@ export LITELLM_BASE_URL
 # Execute droid and capture output
 EXEC_START=$(date +%s)
 
+# Determine reasoning effort based on model type
+# Thinking models (with -thinking suffix) use medium reasoning, others use low
+REASONING_EFFORT="low"
+if echo "$MODEL" | grep -q "thinking"; then
+    REASONING_EFFORT="medium"
+fi
+
 # All droid types use exec mode with specialized prompts
-droid exec --model "custom:$MODEL" -f "$TEMP_PROMPT_FILE" 2>&1 | tee "$OUTPUT_FILE"
+# --auto medium: Allow file reads + reversible commands (required for tools to work)
+# -r: Set reasoning effort based on model type
+droid exec --auto medium -r "$REASONING_EFFORT" --model "custom:$MODEL" -f "$TEMP_PROMPT_FILE" 2>&1 | tee "$OUTPUT_FILE"
 
 EXEC_END=$(date +%s)
 EXEC_TIME=$((EXEC_END - EXEC_START))
