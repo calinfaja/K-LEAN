@@ -30,7 +30,22 @@ from typing import Optional, List, Dict, Any
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from knowledge_hybrid_search import HybridSearch
+# Import with fallback for hyphenated module name
+try:
+    from knowledge_hybrid_search import HybridSearch
+except ImportError:
+    # Try alternative import for hyphenated filename
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "hybrid_search",
+        str(Path(__file__).parent / "knowledge-hybrid-search.py")
+    )
+    if spec and spec.loader:
+        hybrid_search = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hybrid_search)
+        HybridSearch = hybrid_search.HybridSearch
+    else:
+        raise ImportError("Could not load knowledge-hybrid-search module")
 
 
 class ContextInjector:
