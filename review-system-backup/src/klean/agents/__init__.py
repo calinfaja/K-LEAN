@@ -7,5 +7,11 @@ Each droid is designed for specific code analysis tasks.
 from .security_auditor import SecurityAuditorDroid
 from .architect_reviewer import ArchitectReviewerDroid
 from .performance_analyzer import PerformanceAnalyzerDroid
+from .cryptolib_analyzer import CryptolibImplementationDroid
 
-__all__ = ["SecurityAuditorDroid", "ArchitectReviewerDroid", "PerformanceAnalyzerDroid"]
+__all__ = [
+    "SecurityAuditorDroid",
+    "ArchitectReviewerDroid",
+    "PerformanceAnalyzerDroid",
+    "CryptolibImplementationDroid",
+]
