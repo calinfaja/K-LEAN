@@ -25,18 +25,14 @@ COMMAND CATEGORIES ────────────────────�
   DOCUMENT .. Capture knowledge (Lessons, TODOs)
 
 REVIEW COMMANDS ──────────────────────────────────────── All models, all areas
-┌─────────────────────────────┬────────┬────────┬────────┬────────────────────┐
-│ Command                     │ Models │ Method │ Time   │ Description        │
-├─────────────────────────────┼────────┼────────┼────────┼────────────────────┤
-│ /kln:quickReview <m> <f>    │ 1      │ API    │ ~30s   │ Fast code review   │
-│ /kln:quickCompare <f>       │ 3      │ API    │ ~60s   │ Multi-model review │
-│ /kln:deepInspect <m> <f>    │ 1      │ CLI    │ ~3min  │ Deep with tools    │
-│ /kln:deepAudit <f>          │ 3      │ CLI    │ ~5min  │ Full audit + tools │
-├─────────────────────────────┼────────┼────────┼────────┼────────────────────┤
-│ /kln:droid <m> <f>          │ 1      │ DROID  │ ~30s   │ Fast agentic review│
-│ /kln:droidAudit <f>         │ 3      │ DROID  │ ~1min  │ Parallel droids    │
-│ /kln:droidExecute <m> <d> <p>│ 1     │ DROID  │ ~30s   │ Specialized role   │
-└─────────────────────────────┴────────┴────────┴────────┴────────────────────┘
+┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
+│ Command                   │ Models │ Method │ Time   │ Description          │
+├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
+│ /kln:quickReview <m> <f>  │ 1      │ API    │ ~30s   │ Fast code review     │
+│ /kln:quickCompare <f>     │ 3      │ API    │ ~60s   │ Multi-model consensus│
+│ /kln:deepInspect <m> <f>  │ 1      │ CLI    │ ~3min  │ Thorough with tools  │
+│ /kln:deepAudit <f>        │ 3      │ CLI    │ ~5min  │ Full audit with tools│
+└───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
 
 CONSULT COMMAND ──────────────────────────────────────── Challenge decisions
 ┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
@@ -56,21 +52,21 @@ ASYNC VARIANTS ─────────────────────�
 │ /kln:quickConsult         │ /kln:asyncQuickConsult    │ Opinion + keep coding│
 │ /kln:quickCompare         │ /kln:asyncQuickCompare    │ Compare + keep coding│
 │ /kln:deepAudit            │ /kln:asyncDeepAudit       │ Full audit + go      │
-│ /kln:droid                │ /kln:asyncDroid           │ Fast droid + go      │
-│ /kln:droidAudit           │ /kln:asyncDroidAudit      │ Parallel droid + go  │
 │ /kln:createReport         │ /kln:asyncCreateReport    │ Document + keep going│
 └───────────────────────────┴───────────────────────────┴──────────────────────┘
 
 MODELS ────────────────────────────────────────────────────────────────────────
-  Models are discovered DYNAMICALLY from LiteLLM API!
-  Use /kln:models to see available models.
+  All 6 models use the SAME unified prompt - review ALL areas:
 
-  Single-model commands: Specify exact LiteLLM model name
-  Multi-model commands: Automatically use first N healthy models
-    - quickCompare: 5 healthy models
-    - deepAudit:    3 healthy models (headless is resource-heavy)
+  qwen ........... qwen3-coder ............. Default model
+  deepseek ....... deepseek-v3-thinking .... Good for architecture
+  kimi ........... kimi-k2-thinking ........ Good for planning
+  glm ............ glm-4.6-thinking ........ Good for standards
+  minimax ........ minimax-m2 .............. Research focus
+  hermes ......... hermes-4-70b ............ Scripting focus
 
-  Run /kln:models to see current available models.
+  Default for single-model: qwen
+  Default for multi-model: qwen, kimi, glm
 
 REVIEW CHECKLIST (All models check ALL areas) ─────────────────────────────────
   CORRECTNESS ... Logic errors, edge cases, algorithm correctness
@@ -82,25 +78,11 @@ REVIEW CHECKLIST (All models check ALL areas) ───────────�
   STANDARDS ..... Coding style, MISRA guidelines
 
 EXECUTION METHODS ─────────────────────────────────────────────────────────────
-  API   = curl → LiteLLM:4000 → NanoGPT
-          Fast (~30-60s), no file access, all 6 models
+  API = curl → LiteLLM:4000 → NanoGPT
+        Fast (~30-60s), no file access, all 6 models
 
-  CLI   = claude --model → Headless Claude instance
-          Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
-
-  DROID = Factory Droid → LiteLLM:4000 → NanoGPT
-          Fast (~30s-1min), built-in agentic tools (search, navigate)
-          Best for parallel execution, much faster than CLI
-
-DROID TYPES (for /kln:droidExecute) ───────────────────────────────────────────
-  orchestrator        System architect & high-level design
-  code-reviewer       Code quality & best practices expert
-  security-auditor    Security vulnerability specialist
-  debugger            Root cause analysis & bug hunting
-  arm-cortex-expert   ARM Cortex-M embedded systems specialist
-  c-pro               C language expert for embedded systems
-  rust-expert         Rust language & safety expert
-  performance-engineer Performance optimization & profiling
+  CLI = claude --model → Headless Claude instance
+        Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
 
 KNOWLEDGE SYSTEM ──────────────────────────────────────────────────────────────
   GoodJob <url> [focus] .... Capture knowledge from URL to database
@@ -108,49 +90,39 @@ KNOWLEDGE SYSTEM ─────────────────────
   FindKnowledge <query> .... Search semantic knowledge database
 
 UTILITIES ─────────────────────────────────────────────────────────────────────
-  /kln:models .............. List available LiteLLM models
-  healthcheck .............. Type in prompt to check model health
+  healthcheck .............. Type in prompt to check all 6 models
   /kln:help ................ This reference guide
 
 EXAMPLES ──────────────────────────────────────────────────────────────────────
-  # List available models
-  /kln:models
+  # Quick review with default model
+  /kln:quickReview check memory safety
 
-  # Quick review (use exact model names from /kln:models)
-  /kln:quickReview qwen3-coder check memory safety
-  /kln:quickReview deepseek-v3-thinking review architecture patterns
+  # Quick review with specific model
+  /kln:quickReview deepseek review architecture patterns
 
-  # Multi-model comparison (auto-selects 5 healthy models)
+  # Multi-model comparison
   /kln:quickCompare security audit
 
+  # Custom model selection for comparison
+  /kln:quickCompare qwen,deepseek,glm check error handling
+
   # Get second opinion
-  /kln:quickConsult kimi-k2-thinking Is this state machine approach correct?
+  /kln:quickConsult kimi Is this state machine approach correct?
 
-  # Deep inspection (use exact model names)
-  /kln:deepInspect qwen3-coder full security audit of crypto module
+  # Deep inspection
+  /kln:deepInspect qwen full security audit of crypto module
 
-  # Full audit (auto-selects 3 healthy models)
+  # Full audit with tools
   /kln:deepAudit pre-release quality check
-
-  # Factory Droid reviews (FAST agentic - recommended)
-  /kln:droid qwen3-coder security audit
-  /kln:droidAudit comprehensive review   # 3 models in parallel (~1min)
-
-  # Specialized droid roles (expert system prompts)
-  /kln:droidExecute qwen code-reviewer Review error handling in main.c
-  /kln:droidExecute deepseek security-auditor Audit authentication system
-  /kln:droidExecute glm arm-cortex-expert Review interrupt priorities
-  /kln:droidExecute hermes performance-engineer Optimize memory usage
 
   # Async (background) review
   /kln:asyncDeepAudit comprehensive review → continue coding → check later
-  /kln:asyncDroidAudit parallel audit → continue coding → check later
 
   # Document session
   /kln:createReport BLE Implementation Complete
 
 ═══════════════════════════════════════════════════════════════════════════════
-  Output:  .claude/kln/{quickReview,quickCompare,deepInspect,asyncDeepAudit}/
+  Output:  /tmp/claude-reviews/{session}/
   Docs:    ~/claudeAgentic/docs/
   Scripts: ~/.claude/scripts/
 ═══════════════════════════════════════════════════════════════════════════════

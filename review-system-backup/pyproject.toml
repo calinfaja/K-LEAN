@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k-lean"
+version = "4.0.0"
+description = "Multi-model code review and knowledge capture system for Claude Code"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "Calin Faja", email = "calin@example.com"}
+]
+keywords = ["claude", "code-review", "ai", "llm", "cli", "knowledge-base"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "click>=8.0.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+knowledge = [
+    "txtai>=7.0.0",
+    "sentence-transformers>=2.0.0",
+]
+toon = [
+    "python-toon>=0.1.0",
+]
+all = [
+    "k-lean[knowledge,toon]",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+k-lean = "klean.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/calinfaja/k-lean"
+Documentation = "https://github.com/calinfaja/k-lean#readme"
+Repository = "https://github.com/calinfaja/k-lean"
+Issues = "https://github.com/calinfaja/k-lean/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+klean = [
+    "data/**/*",
+]
+
+# Ruff configuration
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+ignore = ["E501"]
+
+# Black configuration
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+# Pytest configuration
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
