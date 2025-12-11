@@ -207,18 +207,8 @@ def install(dev: bool, component: str, yes: bool):
             installed["commands_kln"] = count
             console.print(f"  [green]Installed {count} /kln: commands[/green]")
 
-        # SC commands (if they exist)
-        source_commands_sc = source_commands.parent / "commands" / "sc" if dev else source_commands / "sc"
-        if not dev:
-            source_commands_sc = source_base / "commands" / "sc"
-        else:
-            source_commands_sc = source_commands.parent / "commands" / "sc"
-
-        sc_dst = CLAUDE_DIR / "commands" / "sc"
-        if source_commands_sc.exists():
-            count = copy_files(source_commands_sc, sc_dst, "*.md", symlink=dev)
-            installed["commands_sc"] = count
-            console.print(f"  [green]Installed {count} /sc: commands[/green]")
+        # SC commands are optional and from external system - skip by default
+        # Users can manage SC commands separately
 
     # Install hooks
     if component in ["all", "hooks"]:
@@ -384,12 +374,13 @@ def status():
     else:
         table.add_row("KLN Commands", "[red]NOT INSTALLED[/red]", "")
 
+    # SC commands (external system - informational only)
     sc_dir = CLAUDE_DIR / "commands" / "sc"
     if sc_dir.exists():
         count = len(list(sc_dir.glob("*.md")))
-        table.add_row("SC Commands", f"OK ({count})", "/sc:help")
+        table.add_row("SC Commands", f"OK ({count})", "(external)")
     else:
-        table.add_row("SC Commands", "[yellow]NOT INSTALLED[/yellow]", "optional")
+        table.add_row("SC Commands", "[dim]NOT AVAILABLE[/dim]", "(external system)")
 
     # Hooks
     hooks_dir = CLAUDE_DIR / "hooks"
