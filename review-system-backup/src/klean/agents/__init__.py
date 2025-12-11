@@ -4,4 +4,6 @@ This module provides implementations of specialized droids using the Agent SDK.
 Each droid is designed for specific code analysis tasks.
 """
 
-__all__ = []
+from .security_auditor import SecurityAuditorDroid
+
+__all__ = ["SecurityAuditorDroid"]
