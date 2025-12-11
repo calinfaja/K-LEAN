@@ -85,8 +85,85 @@ fi
 echo "Autonomy: medium | Reasoning: $REASONING_EFFORT"
 echo ""
 
+# Setup auto-save to project .claude folder
+CLAUDE_DIR="$WORKDIR/.claude"
+REVIEWS_DIR="$CLAUDE_DIR/reviews"
+DROID_OUTPUTS_DIR="$CLAUDE_DIR/droid-outputs/$MODEL"
+
+# Create directory structure if it doesn't exist
+mkdir -p "$REVIEWS_DIR/by-date" "$REVIEWS_DIR/by-model" "$REVIEWS_DIR/by-focus"
+mkdir -p "$DROID_OUTPUTS_DIR"
+
+# Create timestamp and filename
+TIMESTAMP=$(date +%s)
+DATE=$(date +%Y-%m-%d)
+TIME=$(date +%H-%M-%S)
+FOCUS_SLUG=$(echo "$FOCUS" | tr ' ' '_' | tr -cd '[:alnum:]_-' | cut -c1-30)
+FILENAME="${TIME}_${MODEL}_${FOCUS_SLUG}.md"
+
+# Paths for saving
+BY_DATE_PATH="$REVIEWS_DIR/by-date/$DATE"
+BY_MODEL_PATH="$REVIEWS_DIR/by-model/$MODEL"
+BY_FOCUS_PATH="$REVIEWS_DIR/by-focus/$FOCUS_SLUG"
+DROID_OUTPUT_PATH="$DROID_OUTPUTS_DIR/$FILENAME"
+
+# Create subdirectories
+mkdir -p "$BY_DATE_PATH" "$BY_MODEL_PATH" "$BY_FOCUS_PATH"
+
 # Run droid in exec mode with the review prompt
 # --auto medium: Required for tool usage (file reads, reversible commands)
 # -r: Reasoning effort based on model type
+# Capture output to file
 cd "$WORKDIR"
-droid exec --auto medium -r "$REASONING_EFFORT" --model "custom:$MODEL" "$REVIEW_PROMPT"
+{
+    echo "# Droid Review Report"
+    echo ""
+    echo "**Generated**: $DATE $TIME"
+    echo "**Model**: $MODEL"
+    echo "**Focus**: $FOCUS"
+    echo "**Directory**: $WORKDIR"
+    echo ""
+    echo "---"
+    echo ""
+    droid exec --auto medium -r "$REASONING_EFFORT" --model "custom:$MODEL" "$REVIEW_PROMPT" 2>&1
+} | tee "$DROID_OUTPUT_PATH"
+
+# Create symlinks for cross-reference organization
+ln -sf "../../droid-outputs/$MODEL/$FILENAME" "$BY_DATE_PATH/$FILENAME" 2>/dev/null || true
+ln -sf "../../droid-outputs/$MODEL/$FILENAME" "$BY_MODEL_PATH/$FILENAME" 2>/dev/null || true
+ln -sf "../../droid-outputs/$MODEL/$FILENAME" "$BY_FOCUS_PATH/$FILENAME" 2>/dev/null || true
+
+# Create/update review index
+INDEX_FILE="$REVIEWS_DIR/INDEX.md"
+{
+    echo "# Droid Reviews Index"
+    echo ""
+    echo "**Last Updated**: $(date '+%Y-%m-%d %H:%M:%S')"
+    echo ""
+    echo "## Summary"
+    echo "- **Total Reviews**: $(find "$DROID_OUTPUTS_DIR" -name "*.md" 2>/dev/null | wc -l)"
+    echo "- **By Model**: $(ls -1 "$REVIEWS_DIR/by-model" 2>/dev/null | wc -l)"
+    echo "- **By Focus**: $(ls -1 "$REVIEWS_DIR/by-focus" 2>/dev/null | wc -l)"
+    echo ""
+    echo "## Latest Reviews"
+    echo ""
+    find "$DROID_OUTPUTS_DIR" -name "*.md" -type f 2>/dev/null | sort -r | head -10 | while read -r review; do
+        rel_path=$(echo "$review" | sed "s|$DROID_OUTPUTS_DIR/||")
+        mtime=$(stat -c %y "$review" 2>/dev/null | cut -d' ' -f1)
+        echo "- \`$rel_path\` ($mtime)"
+    done
+} > "$INDEX_FILE"
+
+# Emit knowledge event
+if command -v ~/.claude/scripts/knowledge-events.py &>/dev/null; then
+    ~/.claude/scripts/knowledge-events.py emit "knowledge:droid_review" \
+        --model "$MODEL" \
+        --focus "$FOCUS" \
+        --path "$DROID_OUTPUT_PATH" \
+        --timestamp "$TIMESTAMP" 2>/dev/null || true
+fi
+
+echo ""
+echo "=== Review Saved ==="
+echo "Location: $DROID_OUTPUT_PATH"
+echo "Index: $INDEX_FILE"
