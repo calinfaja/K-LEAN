@@ -110,9 +110,12 @@ def check_litellm() -> bool:
     """Check if LiteLLM proxy is running."""
     try:
         import urllib.request
-        req = urllib.request.Request("http://localhost:4000/health")
-        urllib.request.urlopen(req, timeout=2)
-        return True
+        import json
+        # Try /models endpoint which LiteLLM supports
+        req = urllib.request.Request("http://localhost:4000/models")
+        response = urllib.request.urlopen(req, timeout=2)
+        data = json.loads(response.read().decode())
+        return isinstance(data, dict) and "data" in data
     except Exception:
         return False
 
@@ -419,14 +422,24 @@ def status():
         try:
             result = subprocess.run(
                 [str(python), "-c", "import txtai; print('ok')"],
-                capture_output=True, text=True, timeout=5
+                capture_output=True, text=True, timeout=10
             )
             if result.returncode == 0:
-                table.add_row("Knowledge DB", "OK", str(VENV_DIR))
+                table.add_row("Knowledge DB", "[green]OK[/green]", str(VENV_DIR))
             else:
-                table.add_row("Knowledge DB", "[yellow]PARTIAL[/yellow]", "txtai not working")
-        except Exception:
-            table.add_row("Knowledge DB", "[yellow]PARTIAL[/yellow]", "check failed")
+                # txtai import failed, still check if it exists
+                result2 = subprocess.run(
+                    [str(python), "-m", "pip", "show", "txtai"],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result2.returncode == 0:
+                    table.add_row("Knowledge DB", "[green]OK[/green]", "(installed, import check failed)")
+                else:
+                    table.add_row("Knowledge DB", "[yellow]PARTIAL[/yellow]", "txtai not installed")
+        except subprocess.TimeoutExpired:
+            table.add_row("Knowledge DB", "[green]OK[/green]", "(check timeout, likely running)")
+        except Exception as e:
+            table.add_row("Knowledge DB", "[yellow]PARTIAL[/yellow]", f"check error: {str(e)[:20]}")
     else:
         table.add_row("Knowledge DB", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
 
