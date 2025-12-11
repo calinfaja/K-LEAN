@@ -7,20 +7,39 @@ A semantic knowledge database is available for storing and retrieving valuable i
 ### Location
 - Each project has its own knowledge DB at `.knowledge-db/` in the project root
 - Scripts are at `~/.claude/scripts/knowledge-*.py`
+- Server daemon keeps embeddings in memory for fast search (~30ms vs ~17s cold start)
+
+### Knowledge Server (Auto-Start)
+
+The knowledge server runs automatically on terminal startup (configured in ~/.bashrc).
+
+```bash
+# Check server status
+ls -la /tmp/knowledge-server.sock  # Socket exists = running
+
+# Manual start (if needed)
+cd ~/claudeAgentic && ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-server.py start &
+
+# Stop server
+~/.claude/scripts/knowledge-server.py stop
+```
 
 ### Before Web Searches
 **Always check the knowledge DB first** to avoid re-researching topics:
 
 ```bash
+# Fast query via server (recommended, ~30ms)
+~/.claude/scripts/knowledge-query.sh "<topic>"
+
+# Direct query (slower, ~17s cold start)
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<topic>"
 ```
 
 ### Capturing Knowledge
 
 **Manual capture** - when you find something valuable:
-- User types: `GoodJob <url>` or `GoodJob <url> <instructions>` - capture URL
-- User types: `SaveThis <lesson learned>` - always save lesson
-- User types: `SaveInfo <text>` - smart save with AI evaluation (Haiku)
+- User types: `GoodJob <url>` or `GoodJob <url> <instructions>`
+- User types: `SaveThis <lesson learned>`
 
 **Automatic capture** - runs after WebFetch/WebSearch via hooks
 
@@ -55,6 +74,22 @@ Or you can search programmatically:
 }
 ```
 
+## LiteLLM Configuration
+
+Setup wizard for multi-provider LiteLLM configuration:
+
+```bash
+~/.claude/scripts/setup-litellm.sh
+```
+
+**Supported Providers:**
+- NanoGPT (recommended, $0.50/1M tokens)
+- OpenRouter (diverse models, $0-10/month)
+- Ollama (local, free, no API key)
+
+Configs stored at: `~/.config/litellm/`
+API keys: `~/.config/litellm/.env` (secure, chmod 600)
+
 ## Profile System
 
 K-LEAN supports two profiles for different API backends:
@@ -77,26 +112,21 @@ claude-status
 
 ## Review System
 
-Multi-model code review system using LiteLLM proxy at localhost:4000 with dynamic model discovery.
+Multi-model code review system using LiteLLM proxy at localhost:4000.
 
-### Commands
-- `/kln:models` - List available models from LiteLLM
-- `/kln:quickReview <model> <focus>` - Single model review
-- `/kln:quickCompare <focus>` - 5 healthy models in parallel
-- `/kln:deepInspect <model> <focus>` - Single model with tools
-- `/kln:asyncDeepAudit <focus>` - 3 models with tools (background)
+### Keywords
+- `healthcheck` - Check all 6 models
+- `asyncDeepReview <focus>` - 3 models with tools (background)
+- `asyncConsensus <focus>` - 3 models quick review (background)
+- `asyncReview <model> <focus>` - Single model quick (background)
 
-### Models Available (Dynamic Discovery)
-
-Run `/kln:models` to see available models. Common models if configured in LiteLLM:
-- qwen3-coder - Code quality, bugs
-- deepseek-v3-thinking - Architecture, design
-- glm-4.6-thinking - Standards, compliance
-- minimax-m2 - Research
-- kimi-k2-thinking - Agent tasks
-- hermes-4-70b - Scripting
-
-**Note:** Use exact model names. Aliases removed in favor of auto-discovery.
+### Models Available
+- `qwen` - Code quality, bugs
+- `deepseek` - Architecture, design
+- `glm` - Standards, compliance
+- `minimax` - Research
+- `kimi` - Agent tasks
+- `hermes` - Scripting
 
 ## Timeline System (Chronological Progress)
 
