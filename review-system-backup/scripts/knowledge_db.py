@@ -116,6 +116,11 @@ class KnowledgeDB:
                 - project_context: Related project/topic
                 - what_worked: For solutions, what worked
                 - constraints: Any limitations
+                - confidence_score (optional): 0-1 confidence, default 0.7
+                - tags (optional): List of searchable tags
+                - usage_count (optional): Times referenced, default 0
+                - last_used (optional): ISO timestamp of last use
+                - source_quality (optional): high|medium|low, default medium
 
         Returns:
             Entry ID (UUID)
@@ -133,12 +138,20 @@ class KnowledgeDB:
         if "summary" not in entry:
             raise ValueError("Entry must have 'summary' field")
 
-        # Build searchable text from key fields
+        # Add default metadata fields if not provided
+        entry.setdefault("confidence_score", 0.7)
+        entry.setdefault("tags", [])
+        entry.setdefault("usage_count", 0)
+        entry.setdefault("last_used", None)
+        entry.setdefault("source_quality", "medium")
+
+        # Build searchable text from key fields (including tags)
         searchable_parts = [
             entry.get("title", ""),
             entry.get("summary", ""),
             entry.get("problem_solved", ""),
             " ".join(entry.get("key_concepts", [])),
+            " ".join(entry.get("tags", [])),
             entry.get("what_worked", ""),
         ]
         searchable_text = " ".join(filter(None, searchable_parts))
@@ -172,7 +185,7 @@ class KnowledgeDB:
             return []
 
         # Use SQL query to get full content with metadata
-        sql_query = f"select id, text, title, summary, url, type, problem_solved, key_concepts, relevance_score, what_worked, constraints, found_date, score from txtai where similar('{query}') limit {limit}"
+        sql_query = f"select id, text, title, summary, url, type, problem_solved, key_concepts, relevance_score, what_worked, constraints, found_date, confidence_score, tags, usage_count, last_used, source_quality, score from txtai where similar('{query}') limit {limit}"
 
         try:
             results = self.embeddings.search(sql_query)
@@ -180,23 +193,41 @@ class KnowledgeDB:
             # Fallback to simple search if SQL fails
             results = self.embeddings.search(query, limit=limit)
 
+        # Load JSONL entries for enrichment (to get proper JSON fields like tags/key_concepts)
+        jsonl_entries = {}
+        if self.jsonl_path.exists():
+            with open(self.jsonl_path) as f:
+                for line in f:
+                    if line.strip():
+                        entry = json.loads(line)
+                        jsonl_entries[entry.get("id")] = entry
+
         # Format results
         formatted = []
         for result in results:
             if isinstance(result, dict):
+                entry_id = result.get("id")
+                # Enrich with data from JSONL (especially list/JSON fields)
+                jsonl_entry = jsonl_entries.get(entry_id, {})
+
                 formatted.append({
                     "score": result.get("score", 0),
-                    "id": result.get("id"),
+                    "id": entry_id,
                     "title": result.get("title", ""),
                     "summary": result.get("summary", ""),
                     "url": result.get("url", ""),
                     "type": result.get("type", ""),
                     "problem_solved": result.get("problem_solved", ""),
-                    "key_concepts": result.get("key_concepts", []),
+                    "key_concepts": jsonl_entry.get("key_concepts", []),  # From JSONL
                     "relevance_score": result.get("relevance_score", 0),
                     "what_worked": result.get("what_worked", ""),
                     "constraints": result.get("constraints", ""),
                     "found_date": result.get("found_date", ""),
+                    "confidence_score": result.get("confidence_score", 0.7),
+                    "tags": jsonl_entry.get("tags", []),  # From JSONL
+                    "usage_count": result.get("usage_count", 0),
+                    "last_used": result.get("last_used"),
+                    "source_quality": result.get("source_quality", "medium"),
                 })
             elif isinstance(result, tuple):
                 # Handle tuple format (id, score)
@@ -265,6 +296,7 @@ class KnowledgeDB:
         """
         Rebuild the txtai index from JSONL backup.
         This reads all entries from entries.jsonl and creates a fresh index.
+        Also migrates old schema entries with default values for new fields.
 
         Returns:
             Number of entries indexed
@@ -299,11 +331,20 @@ class KnowledgeDB:
         documents = []
         for entry in entries:
             entry_id = entry.get("id") or str(uuid.uuid4())
+
+            # Migrate old schema: add defaults for new fields
+            entry.setdefault("confidence_score", 0.7)
+            entry.setdefault("tags", [])
+            entry.setdefault("usage_count", 0)
+            entry.setdefault("last_used", None)
+            entry.setdefault("source_quality", "medium")
+
             searchable_parts = [
                 entry.get("title", ""),
                 entry.get("summary", ""),
                 entry.get("problem_solved", ""),
                 " ".join(entry.get("key_concepts", [])),
+                " ".join(entry.get("tags", [])),
                 entry.get("what_worked", ""),
             ]
             searchable_text = " ".join(filter(None, searchable_parts))
