@@ -85,8 +85,11 @@ class PerformanceAnalyzerDroid(SDKDroid):
             # Load code to analyze
             code_content = await self._load_code(path)
 
-            # Turn 1: Identify bottlenecks and hot paths
-            turn1_result = await self._turn1_bottleneck_identification(code_content, depth)
+            # Phase 5: Inject relevant KB context
+            kb_context = await self._inject_kb_context(path)
+
+            # Turn 1: Identify bottlenecks and hot paths (with KB context)
+            turn1_result = await self._turn1_bottleneck_identification(code_content, depth, kb_context)
 
             # Turn 2: Analyze algorithmic complexity
             turn2_result = await self._turn2_complexity_analysis(turn1_result)
@@ -177,13 +180,14 @@ class PerformanceAnalyzerDroid(SDKDroid):
             raise FileNotFoundError(f"Path not found: {path}")
 
     async def _turn1_bottleneck_identification(
-        self, code: str, depth: str
+        self, code: str, depth: str, kb_context: str = ""
     ) -> Dict[str, Any]:
         """Turn 1: Identify performance bottlenecks and hot paths.
 
         Args:
             code: Code content to analyze
             depth: Analysis depth level
+            kb_context: Context from knowledge base with related performance patterns
 
         Returns:
             Dict with identified bottlenecks and hot paths
@@ -197,11 +201,14 @@ class PerformanceAnalyzerDroid(SDKDroid):
         # Limit code size to avoid token overflow
         code_snippet = code[:4000] if len(code) > 4000 else code
 
+        # Prepend KB context if available
+        context_section = f"\n## Related Performance Knowledge\n{kb_context}\n\n" if kb_context else ""
+
         prompt = f"""Analyze this Python code for performance bottlenecks and hot paths.
 
 Analysis depth: {depth_instructions.get(depth, 'medium')}
 
-CODE TO ANALYZE:
+{context_section}CODE TO ANALYZE:
 ```python
 {code_snippet}
 ```
@@ -584,3 +591,58 @@ Return JSON with:
                 "quick_wins": [],
                 "error": str(e),
             }
+
+    async def _inject_kb_context(self, path: str) -> str:
+        """Inject relevant KB context for performance analysis.
+
+        Args:
+            path: File being analyzed
+
+        Returns:
+            Formatted context string or empty string if no context available
+        """
+        try:
+            # Try to import and use context injector
+            import sys
+            from pathlib import Path as PathlibPath
+
+            scripts_dir = PathlibPath.home() / ".claude" / "scripts"
+            if not scripts_dir.exists():
+                return ""
+
+            # Try dynamic import of knowledge-context-injector.py
+            try:
+                import importlib.util
+                spec = importlib.util.spec_from_file_location(
+                    "context_injector",
+                    str(scripts_dir / "knowledge-context-injector.py")
+                )
+                if spec and spec.loader:
+                    context_injector_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(context_injector_module)
+                    ContextInjector = context_injector_module.ContextInjector
+
+                    # Get context
+                    injector = ContextInjector()
+                    context = injector.inject_context(path, limit=5)
+                    return context
+            except Exception:
+                # Fallback: direct script call
+                pass
+
+            # Try calling the script directly
+            import subprocess
+            result = subprocess.run(
+                [sys.executable, str(scripts_dir / "knowledge-context-injector.py"), path, "--limit", "5"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+
+        except Exception:
+            # Silently fail - KB context is optional enhancement
+            pass
+
+        return ""
