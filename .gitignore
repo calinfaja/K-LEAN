@@ -68,3 +68,10 @@ env/
 Thumbs.db
 .DS_Store
 ehthumbs.db
+
+# Configuration files with secrets
+.env
+.env.local
+.env.*.local
+config/settings*.json
+~/.config/litellm/.env
