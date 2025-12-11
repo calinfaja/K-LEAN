@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -125,11 +126,56 @@ def check_command_exists(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
+def check_knowledge_server() -> bool:
+    """Check if knowledge server is running via socket."""
+    try:
+        socket_path = Path("/tmp/knowledge-server.sock")
+        return socket_path.exists() and socket_path.is_socket()
+    except Exception:
+        return False
+
+
+def start_knowledge_server() -> bool:
+    """Start knowledge server in background if not running."""
+    if check_knowledge_server():
+        return True  # Already running
+
+    try:
+        knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
+        if not knowledge_script.exists():
+            return False
+
+        # Start server in background
+        subprocess.Popen(
+            [sys.executable, str(knowledge_script), "start"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True  # Detach from parent process
+        )
+
+        # Wait for socket to appear (max 3 seconds)
+        for _ in range(30):
+            time.sleep(0.1)
+            if check_knowledge_server():
+                return True
+
+        return False
+    except Exception:
+        return False
+
+
+def ensure_knowledge_server() -> None:
+    """Ensure knowledge server is running, start if needed (silent)."""
+    if not check_knowledge_server():
+        start_knowledge_server()
+
+
 @click.group()
 @click.version_option(version=__version__, prog_name="k-lean")
 def main():
     """K-LEAN: Multi-model code review and knowledge capture system for Claude Code."""
-    pass
+    # Auto-start knowledge server if not running
+    ensure_knowledge_server()
 
 
 @main.command()
