@@ -58,6 +58,11 @@ if [ "$TOOL_NAME" = "WebFetch" ]; then
 
         echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
 
+        # Emit capture event (Phase 4)
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:captured" "{\"source\": \"web_fetch\", \"url\": \"$URL\", \"type\": \"web\"}" 2>/dev/null &
+        fi
+
         # Log to timeline
         TIMELINE_FILE="$KNOWLEDGE_DIR/timeline.txt"
         TIMESTAMP_SHORT=$(date '+%m-%d %H:%M')
@@ -94,6 +99,11 @@ if [ "$TOOL_NAME" = "WebSearch" ]; then
             }')
 
         echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
+
+        # Emit capture event (Phase 4)
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:captured" "{\"source\": \"web_search\", \"query\": \"$QUERY\", \"type\": \"search\"}" 2>/dev/null &
+        fi
 
         # Log to timeline
         TIMELINE_FILE="$KNOWLEDGE_DIR/timeline.txt"
@@ -134,6 +144,11 @@ if [ "$TOOL_NAME" = "mcp__tavily__tavily-search" ]; then
 
         echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
 
+        # Emit capture event (Phase 4)
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:captured" "{\"source\": \"tavily_search\", \"query\": \"$QUERY\", \"topic\": \"$TOPIC\", \"type\": \"tavily-search\"}" 2>/dev/null &
+        fi
+
         # Log to timeline
         TIMELINE_FILE="$KNOWLEDGE_DIR/timeline.txt"
         TIMESTAMP_SHORT=$(date '+%m-%d %H:%M')
@@ -172,6 +187,11 @@ if [ "$TOOL_NAME" = "mcp__tavily__tavily-extract" ]; then
             }')
 
         echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
+
+        # Emit capture event (Phase 4)
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:captured" "{\"source\": \"tavily_extract\", \"urls\": \"$URLS\", \"type\": \"tavily-extract\"}" 2>/dev/null &
+        fi
 
         # Log to timeline
         TIMELINE_FILE="$KNOWLEDGE_DIR/timeline.txt"

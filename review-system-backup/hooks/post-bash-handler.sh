@@ -43,6 +43,11 @@ if echo "$COMMAND" | grep -qE "git commit|git merge|git rebase"; then
         TIMESTAMP=$(date '+%m-%d %H:%M')
         echo "$TIMESTAMP | commit | $COMMIT_HASH: $COMMIT_MSG" >> "$TIMELINE_FILE"
 
+        # Emit event (Phase 4)
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>/dev/null &
+        fi
+
         # Extract facts from commit (async)
         if [ -x "$SCRIPTS_DIR/fact-extract.sh" ]; then
             # Get commit diff for fact extraction

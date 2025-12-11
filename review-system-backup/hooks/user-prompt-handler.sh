@@ -145,7 +145,7 @@ if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
 fi
 
 #------------------------------------------------------------------------------
-# FINDKNOWLEDGE <query>
+# FINDKNOWLEDGE <query> - Now uses hybrid search (Phase 2)
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
     # Extract the query
@@ -156,11 +156,24 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
         exit 0
     fi
 
-    echo "🔍 Searching knowledge DB for: $QUERY" >&2
+    echo "🔍 Searching knowledge DB with hybrid search: $QUERY" >&2
 
-    if [ -x "$SCRIPTS_DIR/knowledge-query.sh" ]; then
-        RESULT=$("$SCRIPTS_DIR/knowledge-query.sh" "$QUERY" 2>&1)
+    # PHASE 2: Use hybrid search (semantic + keyword + tag)
+    if [ -x "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
+        # Use hybrid search engine (semantic + keyword + tag fallback)
+        RESULT=$(/home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
+
+        # Emit search event (Phase 4)
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
+        fi
+
         # Escape for JSON
+        RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
+        echo "{\"systemMessage\": $RESULT_ESCAPED}"
+    elif [ -x "$SCRIPTS_DIR/knowledge-query.sh" ]; then
+        # Fallback to old search
+        RESULT=$("$SCRIPTS_DIR/knowledge-query.sh" "$QUERY" 2>&1)
         RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
         echo "{\"systemMessage\": $RESULT_ESCAPED}"
     else
