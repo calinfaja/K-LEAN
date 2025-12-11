@@ -134,14 +134,25 @@ asyncDeepReview security audit
 
 ## Documentation
 
+**[Complete Documentation Index](docs/INDEX.md)** - Full navigation of all K-LEAN documentation
+
+### Quick Links
+
 | Document | Description |
 |----------|-------------|
-| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Step-by-step setup guide for new machines |
-| [docs/COMMANDS_REFERENCE.md](docs/COMMANDS_REFERENCE.md) | All commands and keywords |
-| [docs/REVIEW_SYSTEM.md](docs/REVIEW_SYSTEM.md) | Multi-model review architecture |
-| [docs/KNOWLEDGE_SYSTEM.md](docs/KNOWLEDGE_SYSTEM.md) | Semantic knowledge database |
-| [docs/TOON_PROJECT_COMPLETE.md](docs/TOON_PROJECT_COMPLETE.md) | TOON format integration - production ready |
-| [docs/TOON_TECHNICAL_SPEC.md](docs/TOON_TECHNICAL_SPEC.md) | TOON format API reference |
+| [Quick Start Guide](docs/guides/QUICK_START.md) | Get started in 5 minutes |
+| [Installation Guide](docs/guides/INSTALLATION.md) | Step-by-step setup for new machines |
+| [User Guide](docs/guides/USER_GUIDE.md) | Complete command reference and workflows |
+| [System Architecture](docs/architecture/SYSTEMS.md) | How K-LEAN works internally |
+| [Droid System](docs/architecture/DROIDS.md) | Factory Droid specialists and integration |
+| [CryptoLib Usage Guide](docs/guides/CRYPTOLIB_USAGE_GUIDE.md) | Using the CryptoLib Implementation Droid |
+
+### All Documentation Sections
+
+- **[docs/guides/](docs/guides/)** - User guides and tutorials
+- **[docs/architecture/](docs/architecture/)** - System architecture and design
+- **[docs/specs/](docs/specs/)** - Technical specifications
+- **[docs/reports/](docs/reports/)** - Implementation reports and results
 
 ## Directory Structure
 
