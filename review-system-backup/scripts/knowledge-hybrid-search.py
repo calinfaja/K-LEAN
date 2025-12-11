@@ -368,8 +368,8 @@ class HybridSearch:
             semantic = entry_dict.pop("semantic_score", 0)
             keyword = entry_dict.pop("keyword_score", 0)
             tag_score = entry_dict.pop("tag_score", 0)
-            usage = entry_dict.get("usage_count", 0)
-            confidence = entry_dict.get("confidence_score", 0.7)
+            usage = entry_dict.get("usage_count") or 0
+            confidence = entry_dict.get("confidence_score") or 0.7
 
             # Hybrid ranking formula
             # 40% semantic + 30% keyword + 15% tag + 10% usage + 5% confidence
@@ -377,7 +377,7 @@ class HybridSearch:
                 0.40 * semantic
                 + 0.30 * keyword
                 + 0.15 * tag_score
-                + 0.10 * min(usage / 10, 1.0)  # Cap usage at 10
+                + 0.10 * min(usage / 10, 1.0) if usage else 0  # Cap usage at 10
                 + 0.05 * confidence
             )
 
