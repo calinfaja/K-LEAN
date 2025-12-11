@@ -44,4 +44,16 @@ def tool(
     return decorator
 
 
-__all__ = ["tool"]
+# Import all tools
+from .grep_tool import grep_codebase
+from .read_tool import read_file
+from .search_knowledge_tool import search_knowledge
+from .test_tool import run_tests
+
+__all__ = [
+    "tool",
+    "grep_codebase",
+    "read_file",
+    "search_knowledge",
+    "run_tests",
+]
