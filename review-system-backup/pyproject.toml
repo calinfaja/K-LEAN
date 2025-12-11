@@ -38,11 +38,14 @@ knowledge = [
     "txtai>=7.0.0",
     "sentence-transformers>=2.0.0",
 ]
+agent-sdk = [
+    "anthropic>=0.34.0,<1.0.0",
+]
 toon = [
     "python-toon>=0.1.0",
 ]
 all = [
-    "k-lean[knowledge,toon]",
+    "k-lean[knowledge,agent-sdk,toon]",
 ]
 dev = [
     "pytest>=7.0.0",
