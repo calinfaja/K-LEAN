@@ -266,13 +266,12 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
                     ["bash", str(start_script), str(port)],
                     stdout=log,
                     stderr=log,
-                    start_new_session=True,
-                    env={**os.environ, "LITELLM_LOG": str(log_file)}
+                    start_new_session=True
                 )
                 pid_file.write_text(str(process.pid))
 
-            # Wait for proxy to be ready
-            for i in range(50):  # 5 seconds max
+            # Wait for proxy to be ready (LiteLLM takes ~10s to initialize)
+            for i in range(150):  # 15 seconds max
                 time.sleep(0.1)
                 if check_litellm():
                     return True
