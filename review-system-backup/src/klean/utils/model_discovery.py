@@ -1,109 +1,109 @@
-"""Model discovery utilities for Agent SDK droids.
+"""Model discovery utilities for K-LEAN.
 
-This module provides utilities to discover available models from LiteLLM
-and select appropriate models for different droid types.
+Discovers models from LiteLLM and provides task-based selection.
 """
 
 import json
-from typing import Dict, List, Optional
+import os
+from typing import Dict, List, Optional, Any
+
+# Minimal model metadata (tier, speed tok/s, primary use)
+MODEL_DEFAULTS = {
+    "qwen3-coder":        {"tier": "elite",     "speed": 35, "use": "coding"},
+    "devstral-2":         {"tier": "elite",     "speed": 32, "use": "coding"},
+    "deepseek-r1":        {"tier": "reasoning", "speed": 15, "use": "architecture"},
+    "deepseek-v3-thinking": {"tier": "reasoning", "speed": 20, "use": "architecture"},
+    "glm-4.6-thinking":   {"tier": "reasoning", "speed": 11, "use": "standards"},
+    "kimi-k2":            {"tier": "agent",     "speed": 28, "use": "agents"},
+    "kimi-k2-thinking":   {"tier": "agent",     "speed": 20, "use": "agents"},
+    "llama-4-scout":      {"tier": "speed",     "speed": 47, "use": "fast"},
+    "llama-4-maverick":   {"tier": "context",   "speed": 28, "use": "large-repos"},
+    "minimax-m2":         {"tier": "specialist", "speed": 23, "use": "research"},
+    "hermes-4-70b":       {"tier": "specialist", "speed": 20, "use": "scripting"},
+    "qwen3-235b":         {"tier": "value",     "speed": 16, "use": "general"},
+}
+
+# Task -> preferred models mapping
+TASK_MODELS = {
+    "coding":       ["qwen3-coder", "devstral-2", "llama-4-scout"],
+    "architecture": ["deepseek-v3-thinking", "deepseek-r1", "glm-4.6-thinking"],
+    "reasoning":    ["deepseek-r1", "deepseek-v3-thinking", "glm-4.6-thinking"],
+    "security":     ["qwen3-coder", "glm-4.6-thinking", "deepseek-v3-thinking"],
+    "agent":        ["kimi-k2", "kimi-k2-thinking", "qwen3-coder"],
+    "fast":         ["llama-4-scout", "kimi-k2", "qwen3-coder"],
+    "context":      ["llama-4-maverick", "llama-4-scout", "minimax-m2"],
+    "scripting":    ["hermes-4-70b", "qwen3-coder", "llama-4-scout"],
+    "general":      ["qwen3-coder", "llama-4-scout", "deepseek-v3-thinking"],
+}
 
 
 def get_available_models() -> List[str]:
-    """Get list of available models from LiteLLM proxy.
-
-    Checks if LiteLLM is running at localhost:4000 and returns available models.
-    Falls back to empty list if LiteLLM is unavailable.
-
-    Returns:
-        List of model IDs available on LiteLLM (e.g., ['qwen3-coder', 'deepseek-v3-thinking'])
-    """
+    """Get available models from LiteLLM proxy."""
     try:
         import urllib.request
-
         req = urllib.request.Request("http://localhost:4000/models")
         response = urllib.request.urlopen(req, timeout=2)
         data = json.loads(response.read().decode())
-
         if isinstance(data, dict) and "data" in data:
-            return [model.get("id") for model in data["data"] if "id" in model]
-
-        return []
+            return [m.get("id") for m in data["data"] if "id" in m]
     except Exception:
-        return []
+        pass
+    return []
 
 
-def get_model_for_task(task_type: str) -> Optional[str]:
-    """Select best available model for a specific task type.
+def get_model_metadata() -> Dict[str, Dict[str, Any]]:
+    """Get model metadata from config or defaults."""
+    metadata = {}
 
-    Model selection strategy:
-    - code_quality: qwen3-coder (best for code analysis)
-    - architecture: deepseek-v3-thinking (best for design analysis)
-    - security: qwen3-coder (best for security issues)
-    - performance: deepseek-v3-thinking (best for performance analysis)
-    - general: First available model
+    # Try loading from config
+    config_path = os.path.expanduser("~/.config/litellm/config.yaml")
+    if os.path.exists(config_path):
+        try:
+            import yaml
+            with open(config_path) as f:
+                config = yaml.safe_load(f)
+            for model in config.get("model_list", []):
+                name = model.get("model_name")
+                info = model.get("model_info", {})
+                if name:
+                    metadata[name] = info
+        except Exception:
+            pass
 
-    Args:
-        task_type: Type of task (code_quality, architecture, security, performance, general)
+    # Merge with defaults
+    for name, defaults in MODEL_DEFAULTS.items():
+        if name not in metadata:
+            metadata[name] = defaults
 
-    Returns:
-        Model ID to use, or None if no models available
-    """
+    return metadata
+
+
+def get_model_for_task(task: str) -> Optional[str]:
+    """Select best model for a task type."""
     available = get_available_models()
-
     if not available:
         return None
 
-    # Define preferred models for each task type
-    preferences = {
-        "code_quality": ["qwen3-coder", "glm-4.6-thinking", "hermes-4-70b"],
-        "architecture": ["deepseek-v3-thinking", "qwen3-coder", "kimi-k2-thinking"],
-        "security": ["qwen3-coder", "deepseek-v3-thinking", "glm-4.6-thinking"],
-        "performance": ["deepseek-v3-thinking", "qwen3-coder", "hermes-4-70b"],
-        "general": available,  # Use first available for general tasks
-    }
-
-    # Get preferred models for this task type
-    preferred = preferences.get(task_type, available)
-
-    # Return first preferred model that's available
+    preferred = TASK_MODELS.get(task, available)
     for model in preferred:
         if model in available:
             return model
 
-    # Fallback to any available model
     return available[0] if available else None
 
 
 def is_litellm_available() -> bool:
-    """Check if LiteLLM proxy is available and running.
-
-    Returns:
-        True if LiteLLM is available at localhost:4000, False otherwise
-    """
+    """Check if LiteLLM is running."""
     return len(get_available_models()) > 0
 
 
-def get_model_info() -> Dict[str, any]:
-    """Get comprehensive model information from LiteLLM.
-
-    Returns:
-        Dict with keys:
-            - available: bool (is LiteLLM running)
-            - models: List[str] (available model IDs)
-            - recommended: Dict[str, str] (recommended model for each task type)
-    """
+def get_model_info() -> Dict[str, Any]:
+    """Get summary of available models."""
     available = get_available_models()
-    is_available = len(available) > 0
-
-    recommendations = {}
-    if is_available:
-        for task_type in ["code_quality", "architecture", "security", "performance"]:
-            model = get_model_for_task(task_type)
-            if model:
-                recommendations[task_type] = model
+    metadata = get_model_metadata()
 
     return {
-        "available": is_available,
+        "available": len(available) > 0,
         "models": available,
-        "recommended": recommendations,
+        "metadata": {m: metadata.get(m, {}) for m in available},
     }
