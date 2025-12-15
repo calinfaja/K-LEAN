@@ -47,16 +47,6 @@
         ]
       },
       {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/post-edit-quality.sh",
-            "timeout": 10
-          }
-        ]
-      },
-      {
         "matcher": ".*",
         "hooks": [
           {
