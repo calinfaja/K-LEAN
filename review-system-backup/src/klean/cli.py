@@ -145,8 +145,13 @@ def check_knowledge_server() -> bool:
         return False
 
 
-def start_knowledge_server() -> bool:
-    """Start knowledge server in background if not running."""
+def start_knowledge_server(wait: bool = True) -> bool:
+    """Start knowledge server in background if not running.
+
+    Args:
+        wait: If True, wait up to 30s for server to start (loads index ~20s).
+              If False, start in background and return immediately.
+    """
     if check_knowledge_server():
         return True  # Already running
 
@@ -155,16 +160,23 @@ def start_knowledge_server() -> bool:
         if not knowledge_script.exists():
             return False
 
+        # Use the venv python if available
+        venv_python = VENV_DIR / "bin" / "python"
+        python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+
         # Start server in background
         subprocess.Popen(
-            [sys.executable, str(knowledge_script), "start"],
+            [python_cmd, str(knowledge_script), "start"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True  # Detach from parent process
         )
 
-        # Wait for socket to appear (max 3 seconds)
-        for _ in range(30):
+        if not wait:
+            return True  # Started, but not confirmed
+
+        # Wait for socket to appear (max 30 seconds - index loading takes ~20s)
+        for _ in range(300):
             time.sleep(0.1)
             if check_knowledge_server():
                 return True
@@ -223,13 +235,19 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
     if check_litellm():
         return True
 
-    # Find start script
-    start_script = CLAUDE_DIR / "scripts" / "litellm-start.sh"
-    if not start_script.exists():
-        start_script = CLAUDE_DIR / "scripts" / "start-litellm.sh"
+    # Find start script (consolidated to single script)
+    start_script = CLAUDE_DIR / "scripts" / "start-litellm.sh"
 
     if not start_script.exists():
-        console.print("[red]Error: LiteLLM start script not found[/red]")
+        console.print("[red]Error: start-litellm.sh not found[/red]")
+        console.print("   Run: k-lean install")
+        return False
+
+    # Check .env exists
+    env_file = CONFIG_DIR / ".env"
+    if not env_file.exists():
+        console.print("[red]Error: ~/.config/litellm/.env not found[/red]")
+        console.print("   Copy from .env.example and add your API key")
         return False
 
     # Check for litellm binary
