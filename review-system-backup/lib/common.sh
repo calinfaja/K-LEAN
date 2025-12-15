@@ -142,6 +142,36 @@ create_venv() {
     fi
 }
 
+# Debug logging to ~/.klean/logs/debug.log (JSON Lines format)
+# Usage: log_debug "component" "event" "key1=val1" "key2=val2"
+log_debug() {
+    local component="${1:-shell}"
+    local event="${2:-unknown}"
+    shift 2 || true
+
+    local log_dir="$HOME/.klean/logs"
+    local log_file="$log_dir/debug.log"
+
+    # Ensure directory exists
+    [ -d "$log_dir" ] || mkdir -p "$log_dir"
+
+    # Build JSON with timestamp
+    local ts=$(date -Iseconds)
+    local json="{\"ts\":\"$ts\",\"component\":\"$component\",\"event\":\"$event\""
+
+    # Add extra key=value pairs
+    for kv in "$@"; do
+        local key="${kv%%=*}"
+        local val="${kv#*=}"
+        # Escape quotes in value
+        val=$(echo "$val" | sed 's/"/\\"/g')
+        json="$json,\"$key\":\"$val\""
+    done
+
+    json="$json}"
+    echo "$json" >> "$log_file"
+}
+
 # Check if LiteLLM is running
 check_litellm() {
     curl -s --max-time 2 http://localhost:4000/v1/models &>/dev/null

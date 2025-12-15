@@ -4,6 +4,9 @@
 
 set -e
 
+SCRIPT_DIR="$(dirname "$0")"
+source "$SCRIPT_DIR/../lib/common.sh" 2>/dev/null || true
+
 FOCUS="${1:-Comprehensive code review for bugs, security, architecture, and best practices}"
 WORKDIR="${2:-$(pwd)}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -44,6 +47,9 @@ if [ -z "$FACTORY_API_KEY" ]; then
     echo "Run: export FACTORY_API_KEY=fk-YOUR_KEY"
     exit 1
 fi
+
+# Log parallel audit start
+type log_debug &>/dev/null && log_debug "droid" "parallel_start" "models=${MODELS[*]}" "focus=$FOCUS" "dir=$WORKDIR"
 
 echo "=== Factory Droid Parallel Audit ==="
 echo "Focus: $FOCUS"
@@ -210,6 +216,9 @@ echo "=== Auto-Save Details ==="
 echo "Project Location: $CLAUDE_DIR"
 echo "Reviews stored in: $OUTPUT_DIR"
 echo "Master index: $PARALLEL_INDEX"
+
+# Log parallel audit complete
+type log_debug &>/dev/null && log_debug "droid" "parallel_complete" "models=${MODELS[*]}" "output=$OUTPUT_DIR" "failed=$FAILED"
 
 if [ $FAILED -gt 0 ]; then
     echo ""

@@ -1,192 +1,86 @@
 # Claude System Configuration
 
-## Knowledge Database System
+## Quick Commands (Type these directly)
 
-A semantic knowledge database is available for storing and retrieving valuable information found during research and development.
+| Shortcut | Action |
+|----------|--------|
+| `healthcheck` | Check all 6 LiteLLM models |
+| `qreview <model> <focus>` | Quick single-model review |
+| `dreview <model> <focus>` | Deep review with tools |
+| `droid <model> <type> <task>` | Execute Factory droid |
+| `GoodJob <url>` | Capture web knowledge |
+| `SaveThis <lesson>` | Save a lesson learned |
+| `FindKnowledge <query>` | Search knowledge DB |
 
-### Location
-- Each project has its own knowledge DB at `.knowledge-db/` in the project root
-- Scripts are at `~/.claude/scripts/knowledge-*.py`
-- Server daemon keeps embeddings in memory for fast search (~30ms vs ~17s cold start)
+## Knowledge Database
 
-### Knowledge Server (Auto-Start)
-
-The knowledge server runs automatically on terminal startup (configured in ~/.bashrc).
-
-```bash
-# Check server status
-ls -la /tmp/knowledge-server.sock  # Socket exists = running
-
-# Manual start (if needed)
-cd ~/claudeAgentic && ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-server.py start &
-
-# Stop server
-~/.claude/scripts/knowledge-server.py stop
-```
-
-### Before Web Searches
-**Always check the knowledge DB first** to avoid re-researching topics:
+Fast semantic search for stored knowledge (URLs, solutions, lessons).
 
 ```bash
-# Fast query via server (recommended, ~30ms)
+# Query via server (~30ms)
 ~/.claude/scripts/knowledge-query.sh "<topic>"
 
-# Direct query (slower, ~17s cold start)
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<topic>"
+# Direct query (~17s cold)
+~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
 ```
 
-### Capturing Knowledge
+**Storage**: `.knowledge-db/` per project | **Server**: Auto-starts via ~/.bashrc
 
-**Manual capture** - when you find something valuable:
-- User types: `GoodJob <url>` or `GoodJob <url> <instructions>`
-- User types: `SaveThis <lesson learned>`
+## Review System
 
-**Automatic capture** - runs after WebFetch/WebSearch via hooks
+Multi-model review via LiteLLM proxy (localhost:4000).
 
-### Searching Knowledge
+| Keyword | Description |
+|---------|-------------|
+| `asyncDeepReview <focus>` | 3 models with tools (bg) |
+| `asyncConsensus <focus>` | 3 models quick (bg) |
+| `asyncReview <model> <focus>` | Single model quick (bg) |
 
-User can type: `FindKnowledge <query>` to search the knowledge DB
+**Models**: qwen (quality), deepseek (arch), glm (standards), minimax (research), kimi (agents), hermes (scripts)
 
-Or you can search programmatically:
+## K-LEAN CLI
+
 ```bash
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>" --format inject
+k-lean status     # Component status
+k-lean doctor -f  # Diagnose + auto-fix
+k-lean start      # Start services
+k-lean debug      # Monitoring dashboard
+k-lean models     # List with health
 ```
 
-### What Gets Stored
-- Web findings (URLs, documentation, tutorials)
-- Code solutions that worked
-- Lessons learned
-- Technical constraints discovered
-- Best practices
+## Profiles
 
-### Schema
-```json
-{
-  "title": "Short descriptive title",
-  "summary": "What was found",
-  "type": "web|code|solution|lesson",
-  "url": "Source URL if applicable",
-  "problem_solved": "What problem this solves",
-  "key_concepts": ["searchable", "keywords"],
-  "relevance_score": 0.0-1.0,
-  "what_worked": "For solutions",
-  "constraints": "Limitations"
-}
+| Command | Profile | Backend |
+|---------|---------|---------|
+| `claude` | Native | Anthropic API |
+| `claude-nano` | NanoGPT | LiteLLM localhost:4000 |
+
+Check: `claude-status`
+
+## Timeline
+
+Chronological log at `.knowledge-db/timeline.txt`
+
+```bash
+~/.claude/scripts/timeline-query.sh [today|week|commits|reviews|<search>]
 ```
 
-## LiteLLM Configuration
-
-Setup wizard for multi-provider LiteLLM configuration:
+## LiteLLM Setup
 
 ```bash
 ~/.claude/scripts/setup-litellm.sh
 ```
 
-**Supported Providers:**
-- NanoGPT (recommended, $0.50/1M tokens)
-- OpenRouter (diverse models, $0-10/month)
-- Ollama (local, free, no API key)
+Providers: NanoGPT ($0.50/1M), OpenRouter, Ollama (local)
 
-Configs stored at: `~/.config/litellm/`
-API keys: `~/.config/litellm/.env` (secure, chmod 600)
+## Serena Memories
 
-## Profile System
+Curated insights via `mcp__serena__*_memory` tools:
+- `lessons-learned` - Gotchas, patterns
+- `architecture-review-system` - System docs
 
-K-LEAN supports two profiles for different API backends:
+## Hooks
 
-| Command | Profile | Description |
-|---------|---------|-------------|
-| `claude` | Native | Uses Anthropic API directly |
-| `claude-nano` | NanoGPT | Uses LiteLLM proxy at localhost:4000 |
-
-Both can run simultaneously in different terminals.
-
-### Check Current Profile
-```bash
-claude-status
-```
-
-### Profile Directories
-- Native: `~/.claude/`
-- NanoGPT: `~/.claude-nano/` (symlinks to shared resources)
-
-## Review System
-
-Multi-model code review system using LiteLLM proxy at localhost:4000.
-
-### Keywords
-- `healthcheck` - Check all 6 models
-- `asyncDeepReview <focus>` - 3 models with tools (background)
-- `asyncConsensus <focus>` - 3 models quick review (background)
-- `asyncReview <model> <focus>` - Single model quick (background)
-
-### Models Available
-- `qwen` - Code quality, bugs
-- `deepseek` - Architecture, design
-- `glm` - Standards, compliance
-- `minimax` - Research
-- `kimi` - Agent tasks
-- `hermes` - Scripting
-
-## Timeline System (Chronological Progress)
-
-A timeline log tracks all significant events across sessions.
-
-### Location
-- `.knowledge-db/timeline.txt` in each project root
-
-### What Gets Logged Automatically
-- Reviews completed (with fact count and focus)
-- Git commits (hash and message)
-- Facts extracted from reviews/commits
-
-### Querying Timeline
-
-```bash
-# Last 20 events
-tail -20 .knowledge-db/timeline.txt
-
-# Events from today
-grep "$(date '+%m-%d')" .knowledge-db/timeline.txt
-
-# All commits
-grep "| commit |" .knowledge-db/timeline.txt
-
-# All security-related events
-grep -i security .knowledge-db/timeline.txt
-
-# Full timeline helper
-~/.claude/scripts/timeline-query.sh [today|week|commits|reviews|<search>]
-```
-
-### Timeline Format
-```
-MM-DD HH:MM | type | description
-12-08 17:30 | review | security audit (3 facts, score: 0.8)
-12-08 17:45 | commit | abc123: Fix XSS vulnerability
-```
-
-## Serena Memories (Curated Knowledge)
-
-For high-value, curated insights, use Serena memories:
-
-### Available Memories
-- `lessons-learned` - Gotchas, patterns, tips discovered
-- `architecture-review-system` - System documentation
-- `session-log` - Session progress notes (manual)
-
-### When to Update
-After significant discoveries:
-```
-Use mcp__serena__edit_memory to append to lessons-learned:
-### NEW PATTERN: <title>
-**Date**: <today>
-**Context**: <what led to this>
-<description>
-```
-
-## Hooks Active
-
-- **UserPromptSubmit**: Async review dispatch, GoodJob capture, health check
-- **PostToolUse (Bash)**: Post-commit documentation + timeline logging
-- **PostToolUse (WebFetch/WebSearch)**: Auto-capture to knowledge DB
+- **UserPromptSubmit**: Review dispatch, GoodJob, healthcheck
+- **PostToolUse (Bash)**: Post-commit docs, timeline
+- **PostToolUse (Web*)**: Auto-capture to knowledge DB
