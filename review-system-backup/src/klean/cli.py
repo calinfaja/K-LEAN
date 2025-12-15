@@ -5,23 +5,33 @@ Usage:
     k-lean install [--dev] [--component COMPONENT]
     k-lean uninstall
     k-lean status
+    k-lean doctor [--auto-fix]
+    k-lean start [--service SERVICE]
+    k-lean stop [--service SERVICE]
+    k-lean debug [--follow] [--filter COMPONENT]
     k-lean version
 """
 
+import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 import click
 from rich.console import Console
+from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
+from rich.layout import Layout
 
-from klean import __version__, CLAUDE_DIR, FACTORY_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR
+from klean import __version__, CLAUDE_DIR, FACTORY_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR, KLEAN_DIR, LOGS_DIR, PIDS_DIR
 
 console = Console()
 
@@ -168,6 +178,228 @@ def ensure_knowledge_server() -> None:
     """Ensure knowledge server is running, start if needed (silent)."""
     if not check_knowledge_server():
         start_knowledge_server()
+
+
+def ensure_klean_dirs() -> None:
+    """Ensure K-LEAN directories exist."""
+    KLEAN_DIR.mkdir(parents=True, exist_ok=True)
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    PIDS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def get_litellm_pid_file() -> Path:
+    """Get path to LiteLLM PID file."""
+    return PIDS_DIR / "litellm.pid"
+
+
+def get_knowledge_pid_file() -> Path:
+    """Get path to Knowledge server PID file."""
+    return PIDS_DIR / "knowledge.pid"
+
+
+def check_litellm_detailed() -> Dict[str, Any]:
+    """Check LiteLLM status with detailed info."""
+    result = {"running": False, "port": 4000, "models": [], "error": None}
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://localhost:4000/models")
+        response = urllib.request.urlopen(req, timeout=3)
+        data = json.loads(response.read().decode())
+        if isinstance(data, dict) and "data" in data:
+            result["running"] = True
+            result["models"] = [m.get("id", "unknown") for m in data.get("data", [])]
+    except urllib.error.URLError as e:
+        result["error"] = f"Connection refused (proxy not running)"
+    except Exception as e:
+        result["error"] = str(e)
+    return result
+
+
+def start_litellm(background: bool = True, port: int = 4000) -> bool:
+    """Start LiteLLM proxy server."""
+    ensure_klean_dirs()
+
+    # Check if already running
+    if check_litellm():
+        return True
+
+    # Find start script
+    start_script = CLAUDE_DIR / "scripts" / "litellm-start.sh"
+    if not start_script.exists():
+        start_script = CLAUDE_DIR / "scripts" / "start-litellm.sh"
+
+    if not start_script.exists():
+        console.print("[red]Error: LiteLLM start script not found[/red]")
+        return False
+
+    # Check for litellm binary
+    if not shutil.which("litellm"):
+        console.print("[red]Error: litellm not installed. Run: pip install litellm[/red]")
+        return False
+
+    log_file = LOGS_DIR / "litellm.log"
+    pid_file = get_litellm_pid_file()
+
+    try:
+        if background:
+            # Start in background with nohup
+            with open(log_file, 'a') as log:
+                process = subprocess.Popen(
+                    ["bash", str(start_script), str(port)],
+                    stdout=log,
+                    stderr=log,
+                    start_new_session=True,
+                    env={**os.environ, "LITELLM_LOG": str(log_file)}
+                )
+                pid_file.write_text(str(process.pid))
+
+            # Wait for proxy to be ready
+            for i in range(50):  # 5 seconds max
+                time.sleep(0.1)
+                if check_litellm():
+                    return True
+
+            return False
+        else:
+            # Run in foreground
+            subprocess.run(["bash", str(start_script), str(port)])
+            return True
+    except Exception as e:
+        console.print(f"[red]Error starting LiteLLM: {e}[/red]")
+        return False
+
+
+def stop_litellm() -> bool:
+    """Stop LiteLLM proxy server."""
+    pid_file = get_litellm_pid_file()
+
+    # Try to kill by PID file
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            os.kill(pid, signal.SIGTERM)
+            pid_file.unlink()
+            time.sleep(0.5)
+            return True
+        except (ProcessLookupError, ValueError):
+            pid_file.unlink()
+
+    # Try to find and kill litellm process
+    try:
+        result = subprocess.run(
+            ["pkill", "-f", "litellm.*--port"],
+            capture_output=True
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def stop_knowledge_server() -> bool:
+    """Stop knowledge server."""
+    knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
+    if knowledge_script.exists():
+        try:
+            subprocess.run(
+                [sys.executable, str(knowledge_script), "stop"],
+                capture_output=True,
+                timeout=5
+            )
+            return True
+        except Exception:
+            pass
+
+    # Try to kill by socket
+    socket_path = Path("/tmp/knowledge-server.sock")
+    if socket_path.exists():
+        try:
+            socket_path.unlink()
+        except Exception:
+            pass
+
+    return True
+
+
+def log_debug_event(component: str, event: str, **kwargs) -> None:
+    """Log a debug event to the unified log file."""
+    ensure_klean_dirs()
+    log_file = LOGS_DIR / "debug.log"
+
+    entry = {
+        "ts": datetime.now().isoformat(),
+        "component": component,
+        "event": event,
+        **kwargs
+    }
+
+    try:
+        with open(log_file, 'a') as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass  # Silent fail for logging
+
+
+def read_debug_log(lines: int = 50, component: Optional[str] = None) -> List[Dict]:
+    """Read recent entries from debug log."""
+    log_file = LOGS_DIR / "debug.log"
+    if not log_file.exists():
+        return []
+
+    entries = []
+    try:
+        with open(log_file, 'r') as f:
+            all_lines = f.readlines()
+            for line in all_lines[-lines * 2:]:  # Read extra to filter
+                try:
+                    entry = json.loads(line.strip())
+                    if component is None or entry.get("component") == component:
+                        entries.append(entry)
+                except json.JSONDecodeError:
+                    continue
+    except Exception:
+        pass
+
+    return entries[-lines:]
+
+
+def discover_models() -> List[str]:
+    """Discover available models from LiteLLM proxy."""
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://localhost:4000/models")
+        response = urllib.request.urlopen(req, timeout=3)
+        data = json.loads(response.read().decode())
+        if isinstance(data, dict) and "data" in data:
+            return [m.get("id", "unknown") for m in data.get("data", [])]
+    except Exception:
+        pass
+    return []
+
+
+def get_model_health() -> Dict[str, str]:
+    """Check health of each model."""
+    health = {}
+    health_script = CLAUDE_DIR / "scripts" / "health-check-model.sh"
+
+    models = discover_models()
+    for model in models:
+        try:
+            if health_script.exists():
+                result = subprocess.run(
+                    ["bash", str(health_script), model],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                health[model] = "OK" if result.returncode == 0 else "FAIL"
+            else:
+                health[model] = "UNKNOWN"
+        except subprocess.TimeoutExpired:
+            health[model] = "TIMEOUT"
+        except Exception:
+            health[model] = "ERROR"
+
+    return health
 
 
 @click.group()
@@ -520,12 +752,14 @@ def version():
 
 
 @main.command()
-def doctor():
-    """Diagnose common issues with K-LEAN installation."""
+@click.option("--auto-fix", "-f", is_flag=True, help="Automatically start stopped services")
+def doctor(auto_fix: bool):
+    """Diagnose and optionally fix K-LEAN installation issues."""
     print_banner()
     console.print("\n[bold]Running diagnostics...[/bold]\n")
 
     issues = []
+    fixes_applied = []
 
     # Check Claude directory
     if not CLAUDE_DIR.exists():
@@ -568,22 +802,356 @@ def doctor():
                 if item.is_symlink() and not item.resolve().exists():
                     issues.append(("ERROR", f"Broken symlink: {item}"))
 
-    # Report
-    if not issues:
-        console.print("[green]No issues found![/green]")
+    # Service checks with auto-fix
+    console.print("[bold]Service Status:[/bold]")
+
+    # Check LiteLLM
+    litellm_status = check_litellm_detailed()
+    if litellm_status["running"]:
+        console.print(f"  [green]✓[/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
     else:
+        if auto_fix:
+            console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
+            if start_litellm():
+                console.print("  [green]✓[/green] LiteLLM Proxy: STARTED")
+                fixes_applied.append("Started LiteLLM proxy")
+            else:
+                issues.append(("ERROR", "Failed to start LiteLLM proxy"))
+                console.print("  [red]✗[/red] LiteLLM Proxy: FAILED TO START")
+        else:
+            issues.append(("WARNING", "LiteLLM proxy not running"))
+            console.print("  [red]✗[/red] LiteLLM Proxy: NOT RUNNING")
+
+    # Check Knowledge Server
+    if check_knowledge_server():
+        console.print("  [green]✓[/green] Knowledge Server: RUNNING")
+    else:
+        if auto_fix:
+            console.print("  [yellow]○[/yellow] Knowledge Server: NOT RUNNING - Starting...")
+            if start_knowledge_server():
+                console.print("  [green]✓[/green] Knowledge Server: STARTED")
+                fixes_applied.append("Started Knowledge server")
+            else:
+                issues.append(("ERROR", "Failed to start Knowledge server"))
+                console.print("  [red]✗[/red] Knowledge Server: FAILED TO START")
+        else:
+            issues.append(("WARNING", "Knowledge server not running"))
+            console.print("  [red]✗[/red] Knowledge Server: NOT RUNNING")
+
+    console.print("")
+
+    # Report issues
+    if issues:
+        console.print("[bold]Issues Found:[/bold]")
         for level, message in issues:
             if level == "CRITICAL":
-                console.print(f"[bold red]CRITICAL:[/bold red] {message}")
+                console.print(f"  [bold red]CRITICAL:[/bold red] {message}")
             elif level == "ERROR":
-                console.print(f"[red]ERROR:[/red] {message}")
+                console.print(f"  [red]ERROR:[/red] {message}")
             elif level == "WARNING":
-                console.print(f"[yellow]WARNING:[/yellow] {message}")
+                console.print(f"  [yellow]WARNING:[/yellow] {message}")
             else:
-                console.print(f"[blue]INFO:[/blue] {message}")
-
+                console.print(f"  [blue]INFO:[/blue] {message}")
         console.print(f"\n[bold]Found {len(issues)} issue(s)[/bold]")
-        console.print("Run [cyan]k-lean install --dev[/cyan] to fix most issues")
+    else:
+        console.print("[green]No issues found![/green]")
+
+    if fixes_applied:
+        console.print(f"\n[bold green]Auto-fixes applied:[/bold green]")
+        for fix in fixes_applied:
+            console.print(f"  • {fix}")
+
+    if not auto_fix and any(level in ["WARNING", "ERROR"] for level, _ in issues):
+        console.print("\n[cyan]Tip:[/cyan] Run [bold]k-lean doctor --auto-fix[/bold] to auto-start services")
+
+
+@main.command()
+@click.option("--service", "-s",
+              type=click.Choice(["all", "litellm", "knowledge"]),
+              default="all", help="Service to start")
+@click.option("--port", "-p", default=4000, help="LiteLLM proxy port")
+def start(service: str, port: int):
+    """Start K-LEAN services (LiteLLM proxy and Knowledge server)."""
+    print_banner()
+    console.print("\n[bold]Starting services...[/bold]\n")
+
+    started = []
+    failed = []
+
+    if service in ["all", "litellm"]:
+        if check_litellm():
+            console.print("[green]✓[/green] LiteLLM Proxy: Already running")
+        else:
+            console.print("[yellow]○[/yellow] Starting LiteLLM Proxy...")
+            if start_litellm(background=True, port=port):
+                console.print(f"[green]✓[/green] LiteLLM Proxy: Started on port {port}")
+                started.append("LiteLLM")
+                log_debug_event("cli", "service_start", service="litellm", port=port)
+            else:
+                console.print("[red]✗[/red] LiteLLM Proxy: Failed to start")
+                failed.append("LiteLLM")
+
+    if service in ["all", "knowledge"]:
+        if check_knowledge_server():
+            console.print("[green]✓[/green] Knowledge Server: Already running")
+        else:
+            console.print("[yellow]○[/yellow] Starting Knowledge Server...")
+            if start_knowledge_server():
+                console.print("[green]✓[/green] Knowledge Server: Started")
+                started.append("Knowledge")
+                log_debug_event("cli", "service_start", service="knowledge")
+            else:
+                console.print("[red]✗[/red] Knowledge Server: Failed to start")
+                failed.append("Knowledge")
+
+    console.print("")
+    if started:
+        console.print(f"[green]Started {len(started)} service(s)[/green]")
+    if failed:
+        console.print(f"[red]Failed to start {len(failed)} service(s)[/red]")
+
+
+@main.command()
+@click.option("--service", "-s",
+              type=click.Choice(["all", "litellm", "knowledge"]),
+              default="all", help="Service to stop")
+def stop(service: str):
+    """Stop K-LEAN services."""
+    print_banner()
+    console.print("\n[bold]Stopping services...[/bold]\n")
+
+    stopped = []
+
+    if service in ["all", "litellm"]:
+        if stop_litellm():
+            console.print("[green]✓[/green] LiteLLM Proxy: Stopped")
+            stopped.append("LiteLLM")
+            log_debug_event("cli", "service_stop", service="litellm")
+        else:
+            console.print("[yellow]○[/yellow] LiteLLM Proxy: Was not running")
+
+    if service in ["all", "knowledge"]:
+        if stop_knowledge_server():
+            console.print("[green]✓[/green] Knowledge Server: Stopped")
+            stopped.append("Knowledge")
+            log_debug_event("cli", "service_stop", service="knowledge")
+        else:
+            console.print("[yellow]○[/yellow] Knowledge Server: Was not running")
+
+    console.print(f"\n[green]Stopped {len(stopped)} service(s)[/green]")
+
+
+@main.command()
+@click.option("--follow", "-f", is_flag=True, help="Follow log output in real-time")
+@click.option("--filter", "-F", "component_filter",
+              type=click.Choice(["all", "litellm", "knowledge", "droid", "cli"]),
+              default="all", help="Filter by component")
+@click.option("--lines", "-n", default=20, help="Number of lines to show")
+def debug(follow: bool, component_filter: str, lines: int):
+    """Debug dashboard showing K-LEAN activity and service status."""
+    print_banner()
+    ensure_klean_dirs()
+
+    def render_dashboard() -> Panel:
+        """Render the debug dashboard."""
+        # Service Status Section
+        litellm_info = check_litellm_detailed()
+        knowledge_running = check_knowledge_server()
+
+        services_text = Text()
+        services_text.append("Services: ", style="bold")
+
+        if litellm_info["running"]:
+            services_text.append("✓ LiteLLM", style="green")
+            services_text.append(f" ({len(litellm_info['models'])} models) ", style="dim")
+        else:
+            services_text.append("✗ LiteLLM", style="red")
+            services_text.append(" (stopped) ", style="dim")
+
+        if knowledge_running:
+            services_text.append("✓ Knowledge", style="green")
+        else:
+            services_text.append("✗ Knowledge", style="red")
+
+        # Models Section (if LiteLLM running)
+        models_text = ""
+        if litellm_info["running"] and litellm_info["models"]:
+            models_text = "\nModels: " + ", ".join(litellm_info["models"][:8])
+            if len(litellm_info["models"]) > 8:
+                models_text += f" (+{len(litellm_info['models']) - 8} more)"
+
+        # Recent Activity Section
+        filter_comp = None if component_filter == "all" else component_filter
+        entries = read_debug_log(lines=lines, component=filter_comp)
+
+        activity_lines = []
+        for entry in entries[-lines:]:
+            ts = entry.get("ts", "")[:19].replace("T", " ")
+            comp = entry.get("component", "???").upper()[:10].ljust(10)
+            event = entry.get("event", "")
+
+            # Format based on component
+            if entry.get("component") == "litellm":
+                model = entry.get("model", "")
+                tokens = entry.get("tokens", "")
+                latency = entry.get("latency_ms", "")
+                detail = f"{model}: {tokens} tok ({latency}ms)" if model else event
+            elif entry.get("component") == "droid":
+                droid = entry.get("droid", "")
+                detail = f"{droid}" if droid else event
+            elif entry.get("component") == "knowledge":
+                query = entry.get("query", "")
+                results = entry.get("results", "")
+                detail = f'"{query}" ({results} results)' if query else event
+            else:
+                detail = event
+
+            activity_lines.append(f"  {ts} [{comp}] {detail}")
+
+        if not activity_lines:
+            activity_lines = ["  (No recent activity)"]
+
+        activity_text = "\nRecent Activity:\n" + "\n".join(activity_lines[-15:])
+
+        # Paths Section
+        paths_text = f"""
+Paths:
+  Claude Dir: {CLAUDE_DIR}
+  K-LEAN Dir: {KLEAN_DIR}
+  Logs: {LOGS_DIR}
+  Config: {CONFIG_DIR}"""
+
+        full_text = str(services_text) + models_text + activity_text + paths_text
+
+        return Panel(
+            full_text,
+            title="[bold cyan]K-LEAN Debug Dashboard[/bold cyan]",
+            subtitle=f"[dim]{datetime.now().strftime('%H:%M:%S')}[/dim]",
+            border_style="cyan"
+        )
+
+    if follow:
+        console.print("[dim]Press Ctrl+C to exit[/dim]\n")
+        try:
+            with Live(render_dashboard(), refresh_per_second=2, console=console) as live:
+                while True:
+                    time.sleep(0.5)
+                    live.update(render_dashboard())
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Dashboard closed[/yellow]")
+    else:
+        console.print(render_dashboard())
+
+        # Also show log file locations
+        console.print("\n[bold]Log Files:[/bold]")
+        log_files = [
+            ("Debug Log", LOGS_DIR / "debug.log"),
+            ("LiteLLM Log", LOGS_DIR / "litellm.log"),
+        ]
+        for name, path in log_files:
+            if path.exists():
+                size = path.stat().st_size
+                console.print(f"  {name}: {path} ({size:,} bytes)")
+            else:
+                console.print(f"  {name}: [dim]not created yet[/dim]")
+
+
+@main.command()
+def models():
+    """List available models from LiteLLM proxy."""
+    print_banner()
+
+    if not check_litellm():
+        console.print("\n[red]LiteLLM proxy is not running![/red]")
+        console.print("Start it with: [cyan]k-lean start --service litellm[/cyan]")
+        return
+
+    models_list = discover_models()
+
+    if not models_list:
+        console.print("\n[yellow]No models found[/yellow]")
+        return
+
+    table = Table(title="Available Models")
+    table.add_column("Model ID", style="cyan")
+    table.add_column("Status", style="green")
+
+    console.print("\n[dim]Checking model health...[/dim]")
+    health = get_model_health()
+
+    for model in models_list:
+        status = health.get(model, "UNKNOWN")
+        if status == "OK":
+            status_str = "[green]OK[/green]"
+        elif status == "FAIL":
+            status_str = "[red]FAIL[/red]"
+        elif status == "TIMEOUT":
+            status_str = "[yellow]TIMEOUT[/yellow]"
+        else:
+            status_str = "[dim]UNKNOWN[/dim]"
+        table.add_row(model, status_str)
+
+    console.print(table)
+    console.print(f"\n[bold]Total:[/bold] {len(models_list)} models available")
+
+
+@main.command()
+@click.argument("model", required=False)
+@click.argument("prompt", required=False)
+def test_model(model: Optional[str], prompt: Optional[str]):
+    """Test a model with a quick prompt."""
+    if not check_litellm():
+        console.print("[red]LiteLLM proxy is not running![/red]")
+        return
+
+    models_list = discover_models()
+
+    if not model:
+        console.print("[bold]Available models:[/bold]")
+        for m in models_list:
+            console.print(f"  • {m}")
+        console.print("\nUsage: [cyan]k-lean test-model <model> [prompt][/cyan]")
+        return
+
+    if model not in models_list:
+        console.print(f"[red]Model '{model}' not found[/red]")
+        console.print(f"Available: {', '.join(models_list)}")
+        return
+
+    if not prompt:
+        prompt = "Say 'Hello from K-LEAN!' in exactly 5 words."
+
+    console.print(f"\n[bold]Testing model:[/bold] {model}")
+    console.print(f"[bold]Prompt:[/bold] {prompt}\n")
+
+    try:
+        import urllib.request
+        data = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 100
+        }).encode()
+
+        req = urllib.request.Request(
+            "http://localhost:4000/chat/completions",
+            data=data,
+            headers={"Content-Type": "application/json"}
+        )
+
+        start_time = time.time()
+        response = urllib.request.urlopen(req, timeout=30)
+        elapsed = time.time() - start_time
+
+        result = json.loads(response.read().decode())
+        content = result.get("choices", [{}])[0].get("message", {}).get("content", "No response")
+
+        console.print(f"[green]Response:[/green] {content}")
+        console.print(f"[dim]Latency: {elapsed:.2f}s[/dim]")
+
+        log_debug_event("cli", "test_model", model=model, latency_ms=int(elapsed * 1000))
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
 
 
 if __name__ == "__main__":
