@@ -33,6 +33,7 @@ usage() {
     echo "  --hooks       Install/update hooks only"
     echo "  --knowledge   Install/update knowledge system only"
     echo "  --droids      Install/update Factory Droid specialists only"
+    echo "  --statusline  Install/update K-LEAN statusline only"
     echo "  --check       Verify installation without changes"
     echo "  --uninstall   Remove K-LEAN (keeps backups)"
     echo "  -h, --help    Show this help message"
@@ -296,6 +297,35 @@ install_droids() {
     fi
 }
 
+# Install K-LEAN statusline
+install_statusline() {
+    log_info "Installing K-LEAN statusline..."
+
+    # Copy statusline script
+    if [ -f "$SCRIPT_DIR/scripts/klean-statusline.py" ]; then
+        cp "$SCRIPT_DIR/scripts/klean-statusline.py" "$CLAUDE_DIR/scripts/"
+        chmod +x "$CLAUDE_DIR/scripts/klean-statusline.py"
+        log_success "Installed klean-statusline.py"
+    else
+        log_warn "klean-statusline.py not found in source"
+        return 1
+    fi
+
+    # Configure settings.json with statusline
+    if [ -f "$CLAUDE_DIR/settings.json" ]; then
+        # Check if statusLine already configured
+        if ! grep -q '"statusLine"' "$CLAUDE_DIR/settings.json" 2>/dev/null; then
+            # Add statusLine config before the closing brace
+            sed -i 's/}$/,\n  "statusLine": {\n    "type": "command",\n    "command": "~\/.claude\/scripts\/klean-statusline.py",\n    "padding": 0\n  }\n}/' "$CLAUDE_DIR/settings.json"
+            log_success "Configured statusline in settings.json"
+        else
+            log_info "Statusline already configured in settings.json"
+        fi
+    else
+        log_warn "settings.json not found - statusline not configured"
+    fi
+}
+
 # Install nano profile (for claude-nano command)
 install_nano_profile() {
     local NANO_DIR="${HOME}/.claude-nano"
@@ -370,6 +400,14 @@ verify_installation() {
         ((errors++))
     fi
 
+    # Check Statusline
+    echo -n "  Statusline: "
+    if [ -x "$CLAUDE_DIR/scripts/klean-statusline.py" ]; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${YELLOW}NOT INSTALLED${NC}"
+    fi
+
     # Check Python venv
     echo -n "  Knowledge DB: "
     if [ -d "$VENV_DIR" ] && "$VENV_DIR/bin/python" -c "import txtai" 2>/dev/null; then
@@ -422,6 +460,7 @@ install_full() {
     install_commands
     install_hooks
     install_config
+    install_statusline
     install_knowledge
     install_knowledge_server_autostart
     install_litellm_config
@@ -511,6 +550,9 @@ main() {
             ;;
         --droids)
             install_droids
+            ;;
+        --statusline)
+            install_statusline
             ;;
         --check)
             verify_installation
