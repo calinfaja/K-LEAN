@@ -1062,14 +1062,17 @@ def create_progress_bar(value: int, max_value: int, width: int = 20, color: str 
 
 
 @main.command()
-@click.option("--follow", "-f", is_flag=True, help="Follow log output in real-time")
-@click.option("--filter", "-F", "component_filter",
+@click.option("--follow/--no-follow", "-f/-F", default=True, help="Live updating (default: on)")
+@click.option("--filter", "component_filter",
               type=click.Choice(["all", "litellm", "knowledge", "droid", "cli"]),
               default="all", help="Filter by component")
 @click.option("--lines", "-n", default=20, help="Number of lines to show")
 @click.option("--compact", "-c", is_flag=True, help="Compact single-line output")
-def debug(follow: bool, component_filter: str, lines: int, compact: bool):
-    """Real-time monitoring dashboard for K-LEAN services and activity."""
+@click.option("--interval", "-i", default=2, help="Refresh interval in seconds")
+def debug(follow: bool, component_filter: str, lines: int, compact: bool, interval: int):
+    """Real-time monitoring dashboard for K-LEAN services and activity.
+
+    Live updating is ON by default. Use --no-follow for single snapshot."""
     ensure_klean_dirs()
 
     # Compact mode - single line for hooks/scripts
@@ -1088,62 +1091,78 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool):
         knowledge_ok = check_knowledge_server()
         litellm_latency = measure_service_latency("litellm") if litellm_info["running"] else None
 
-        table = Table(box=None, show_header=False, padding=(0, 1))
-        table.add_column("Service", style="bold")
-        table.add_column("Status", width=12)
-        table.add_column("Info", style="dim")
+        lines = []
 
         # LiteLLM
         if litellm_info["running"]:
-            latency_str = f"{litellm_latency}ms" if litellm_latency else ""
-            table.add_row(
-                "LiteLLM Proxy",
-                "[green]● RUNNING[/green]",
-                f":{4000} {latency_str}"
-            )
+            latency_str = f" {litellm_latency}ms" if litellm_latency else ""
+            lines.append(f"[bold]LiteLLM[/bold]  [green]● ON[/green]{latency_str}")
         else:
-            table.add_row("LiteLLM Proxy", "[red]● STOPPED[/red]", "k-lean start")
+            lines.append("[bold]LiteLLM[/bold]  [red]● OFF[/red]")
 
         # Knowledge DB
         if knowledge_ok:
-            table.add_row("Knowledge DB", "[green]● RUNNING[/green]", "socket")
+            lines.append("[bold]Knowledge[/bold] [green]● ON[/green]")
         else:
-            table.add_row("Knowledge DB", "[red]● STOPPED[/red]", "k-lean start")
+            lines.append("[bold]Knowledge[/bold] [red]● OFF[/red]")
 
-        return Panel(table, title="[bold]Services[/bold]", border_style="blue")
+        return Panel("\n".join(lines), title="[bold]Services[/bold]", border_style="blue")
+
+    # Cache for model latencies (to avoid slow API calls every refresh)
+    model_latency_cache = {}
+    last_latency_check = [0]  # Use list for mutable closure
 
     def render_models_panel() -> Panel:
-        """Render models status panel."""
+        """Render models status panel with cached latencies."""
         models = discover_models()
         if not models:
-            return Panel("[dim]No models available[/dim]", title="[bold]Models[/bold]", border_style="yellow")
+            return Panel("[dim]No models available - is LiteLLM running?[/dim]",
+                        title="[bold]Models[/bold]", border_style="yellow")
 
         table = Table(box=None, show_header=True, padding=(0, 1))
-        table.add_column("Model", style="cyan")
-        table.add_column("Status", width=8)
-        table.add_column("Latency", width=8, justify="right")
+        table.add_column("Model", style="cyan", width=20)
+        table.add_column("", width=2)
+        table.add_column("Latency", width=10, justify="right", style="dim")
 
-        # Quick health check - just test top 2 models to keep it fast
+        # Only do latency checks every 30 seconds to avoid slowdown
+        now = time.time()
+        should_check_latency = (now - last_latency_check[0]) > 30
+
         for model in models[:6]:
-            # Simple availability check
-            try:
-                import urllib.request
-                start = time.time()
-                data = json.dumps({
-                    "model": model,
-                    "messages": [{"role": "user", "content": "hi"}],
-                    "max_tokens": 1
-                }).encode()
-                req = urllib.request.Request(
-                    "http://localhost:4000/chat/completions",
-                    data=data,
-                    headers={"Content-Type": "application/json"}
-                )
-                urllib.request.urlopen(req, timeout=5)
-                latency = int((time.time() - start) * 1000)
-                table.add_row(model[:18], "[green]●[/green]", f"{latency}ms")
-            except Exception:
-                table.add_row(model[:18], "[red]●[/red]", "-")
+            short_name = model[:18] if len(model) > 18 else model
+
+            if should_check_latency and model not in model_latency_cache:
+                # Quick ping - just check if model responds
+                try:
+                    import urllib.request
+                    start = time.time()
+                    data = json.dumps({
+                        "model": model,
+                        "messages": [{"role": "user", "content": "1"}],
+                        "max_tokens": 1
+                    }).encode()
+                    req = urllib.request.Request(
+                        "http://localhost:4000/chat/completions",
+                        data=data,
+                        headers={"Content-Type": "application/json"}
+                    )
+                    urllib.request.urlopen(req, timeout=10)
+                    latency = int((time.time() - start) * 1000)
+                    model_latency_cache[model] = latency
+                except Exception:
+                    model_latency_cache[model] = None
+
+            # Display from cache
+            latency = model_latency_cache.get(model)
+            if latency is not None:
+                table.add_row(short_name, "[green]●[/green]", f"{latency}ms")
+            elif model in model_latency_cache:
+                table.add_row(short_name, "[red]●[/red]", "timeout")
+            else:
+                table.add_row(short_name, "[yellow]○[/yellow]", "...")
+
+        if should_check_latency:
+            last_latency_check[0] = now
 
         return Panel(table, title=f"[bold]Models ({len(models)})[/bold]", border_style="green")
 
@@ -1153,12 +1172,19 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool):
 
         lines_out = []
 
-        # Session info
+        # Session info with duration
         if stats["session_start"]:
             start_time = stats["session_start"][:19].replace("T", " ")
-            lines_out.append(f"[bold]Session:[/bold] Started {start_time}")
+            try:
+                from datetime import datetime
+                start_dt = datetime.fromisoformat(stats["session_start"][:19])
+                duration = datetime.now() - start_dt
+                mins = int(duration.total_seconds() // 60)
+                lines_out.append(f"[bold]Session:[/bold] {mins}m ago")
+            except:
+                lines_out.append(f"[bold]Session:[/bold] {start_time}")
         else:
-            lines_out.append("[bold]Session:[/bold] No activity yet")
+            lines_out.append("[bold]Session:[/bold] No activity")
 
         lines_out.append("")
 
@@ -1170,16 +1196,22 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool):
         lines_out.append(f"[bold]Requests:[/bold] {total}")
         if total > 0:
             success_rate = int((success / total) * 100)
-            lines_out.append(f"  Success: {create_progress_bar(success_rate, 100, 15)} {success_rate}%")
-            lines_out.append(f"  Avg latency: {avg_latency}ms")
+            color = "green" if success_rate >= 90 else "yellow" if success_rate >= 70 else "red"
+            lines_out.append(f"  [{color}]{create_progress_bar(success_rate, 100, 15)} {success_rate}%[/{color}]")
+            # Format latency nicely
+            if avg_latency > 1000:
+                lines_out.append(f"  Avg: [cyan]{avg_latency/1000:.1f}s[/cyan]")
+            else:
+                lines_out.append(f"  Avg: [cyan]{avg_latency}ms[/cyan]")
 
         lines_out.append("")
 
         # Activity counts
         lines_out.append(f"[bold]Activity:[/bold]")
-        lines_out.append(f"  Droids executed: {stats['droids_executed']}")
-        lines_out.append(f"  Knowledge queries: {stats['knowledge_queries']}")
-        lines_out.append(f"  Models used: {len(stats['models_used'])}")
+        lines_out.append(f"  [magenta]Droids:[/magenta] {stats['droids_executed']}")
+        lines_out.append(f"  [cyan]KB queries:[/cyan] {stats['knowledge_queries']}")
+        if stats['models_used']:
+            lines_out.append(f"  [dim]Models: {', '.join(m[:8] for m in list(stats['models_used'])[:3])}[/dim]")
 
         return Panel("\n".join(lines_out), title="[bold]Statistics[/bold]", border_style="magenta")
 
@@ -1248,11 +1280,12 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool):
         # Create layout
         layout = Layout()
 
-        # Header
+        # Header with live clock
         header = Text()
         header.append("K-LEAN ", style="bold cyan")
-        header.append("Monitoring Dashboard", style="bold")
-        header.append(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", style="dim")
+        header.append("Live Dashboard", style="bold")
+        header.append(f"  {datetime.now().strftime('%H:%M:%S')}", style="green")
+        header.append(f"  [Ctrl+C to exit]", style="dim")
 
         # Top section: Services + Models
         top_layout = Layout()
@@ -1279,16 +1312,17 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool):
         return layout
 
     if follow:
-        console.print("[dim]K-LEAN Monitoring Dashboard - Press Ctrl+C to exit[/dim]\n")
+        console.print("[dim]K-LEAN Live Dashboard - Press Ctrl+C to exit[/dim]\n")
         try:
             with Live(render_full_dashboard(), refresh_per_second=1, console=console, screen=True) as live:
                 while True:
-                    time.sleep(1)
+                    time.sleep(interval)
                     live.update(render_full_dashboard())
         except KeyboardInterrupt:
             console.print("\n[yellow]Dashboard closed[/yellow]")
     else:
         console.print(render_full_dashboard())
+        console.print("\n[dim]Tip: Run 'k-lean debug' for live updates (Ctrl+C to exit)[/dim]")
 
 
 @main.command()
