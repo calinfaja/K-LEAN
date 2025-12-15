@@ -1258,22 +1258,96 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
         return Panel("\n".join(activity_lines), title="[bold]Activity Feed[/bold]", border_style="cyan")
 
-    def render_paths_panel() -> Panel:
-        """Render paths info panel."""
-        paths = [
-            f"[bold]Claude:[/bold] {CLAUDE_DIR}",
-            f"[bold]K-LEAN:[/bold] {KLEAN_DIR}",
-            f"[bold]Logs:[/bold] {LOGS_DIR}",
-            f"[bold]Config:[/bold] {CONFIG_DIR}",
-        ]
+    def render_reviews_panel() -> Panel:
+        """Render active and recent reviews panel."""
+        reviews_log = LOGS_DIR / "reviews.log"
 
-        # Add log file sizes
-        debug_log = LOGS_DIR / "debug.log"
-        if debug_log.exists():
-            size = debug_log.stat().st_size
-            paths.append(f"[dim]Debug log: {size:,} bytes[/dim]")
+        if not reviews_log.exists():
+            return Panel("[dim]No reviews yet\nRun a review command to see activity[/dim]",
+                        title="[bold]Reviews[/bold]", border_style="yellow")
 
-        return Panel("\n".join(paths), title="[bold]Paths[/bold]", border_style="dim")
+        # Read last 20 entries
+        try:
+            with open(reviews_log) as f:
+                entries = [json.loads(line) for line in f.readlines()[-20:] if line.strip()]
+        except Exception:
+            entries = []
+
+        if not entries:
+            return Panel("[dim]No review activity[/dim]",
+                        title="[bold]Reviews[/bold]", border_style="yellow")
+
+        # Track active reviews (started but not ended)
+        active = {}
+        completed = []
+
+        for entry in entries:
+            event = entry.get("event", "")
+            cmd = entry.get("cmd", "?")
+            model = entry.get("model", "?")
+            key = f"{cmd}:{model}"
+
+            if event == "start":
+                active[key] = entry
+            elif event == "end":
+                if key in active:
+                    del active[key]
+                completed.append(entry)
+            elif event == "error":
+                if key in active:
+                    del active[key]
+                completed.append(entry)
+
+        lines = []
+
+        # Show active reviews first
+        if active:
+            lines.append("[bold green]● Active:[/bold green]")
+            for key, entry in list(active.items())[-3:]:
+                cmd = entry.get("cmd", "?")[:12]
+                model = entry.get("model", "?")[:10]
+                ts = entry.get("ts", "")[-8:]
+                output = entry.get("output", "")
+                if output:
+                    output = Path(output).name[:20]
+                lines.append(f"  [cyan]{cmd}[/cyan] {model} → {output}")
+
+        # Show recent completed
+        if completed:
+            lines.append("[bold]Recent:[/bold]")
+            for entry in completed[-5:]:
+                ts = entry.get("ts", "")[11:19]
+                cmd = entry.get("cmd", "?")[:10]
+                model = entry.get("model", "?")[:8]
+                status = entry.get("status", "?")
+                duration = entry.get("duration_ms", 0)
+                output = entry.get("output", "")
+
+                if output:
+                    output = Path(output).name[:15]
+
+                # Status color
+                if status == "success":
+                    status_str = "[green]✓[/green]"
+                elif entry.get("event") == "error":
+                    status_str = "[red]✗[/red]"
+                else:
+                    status_str = "[yellow]?[/yellow]"
+
+                # Duration format
+                if duration > 60000:
+                    dur_str = f"{duration//60000}m"
+                elif duration > 0:
+                    dur_str = f"{duration//1000}s"
+                else:
+                    dur_str = ""
+
+                lines.append(f"  {ts} {status_str} [dim]{cmd}[/dim] {dur_str}")
+
+        if not lines:
+            lines.append("[dim]No recent reviews[/dim]")
+
+        return Panel("\n".join(lines), title="[bold]Reviews[/bold]", border_style="yellow")
 
     def render_full_dashboard():
         """Render the complete dashboard layout."""
@@ -1294,11 +1368,17 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
             Layout(render_models_panel(), name="models", ratio=2),
         )
 
-        # Middle section: Stats + Activity
+        # Middle section: Stats + Reviews
         mid_layout = Layout()
         mid_layout.split_row(
             Layout(render_stats_panel(), name="stats", ratio=1),
-            Layout(render_activity_panel(), name="activity", ratio=2),
+            Layout(render_reviews_panel(), name="reviews", ratio=2),
+        )
+
+        # Bottom section: Activity
+        bottom_layout = Layout()
+        bottom_layout.split_row(
+            Layout(render_activity_panel(), name="activity", ratio=1),
         )
 
         # Combine
@@ -1306,7 +1386,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
             Layout(Panel(header, border_style="cyan"), size=3),
             Layout(top_layout, name="top", ratio=2),
             Layout(mid_layout, name="middle", ratio=2),
-            Layout(render_paths_panel(), name="bottom", size=6),
+            Layout(bottom_layout, name="bottom", ratio=2),
         )
 
         return layout
