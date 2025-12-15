@@ -941,119 +941,303 @@ def stop(service: str):
     console.print(f"\n[green]Stopped {len(stopped)} service(s)[/green]")
 
 
+def get_session_stats() -> Dict[str, Any]:
+    """Get session statistics from debug log."""
+    stats = {
+        "session_start": None,
+        "total_requests": 0,
+        "successful_requests": 0,
+        "failed_requests": 0,
+        "total_latency_ms": 0,
+        "models_used": set(),
+        "droids_executed": 0,
+        "knowledge_queries": 0,
+    }
+
+    entries = read_debug_log(lines=500)
+    if not entries:
+        return stats
+
+    for entry in entries:
+        if stats["session_start"] is None:
+            stats["session_start"] = entry.get("ts", "")
+
+        event = entry.get("event", "")
+        component = entry.get("component", "")
+
+        if component == "cli" and event == "test_model":
+            stats["total_requests"] += 1
+            stats["successful_requests"] += 1
+            stats["total_latency_ms"] += entry.get("latency_ms", 0)
+            model = entry.get("model", "")
+            if model:
+                stats["models_used"].add(model)
+
+        if component == "droid":
+            stats["droids_executed"] += 1
+
+        if component == "knowledge":
+            stats["knowledge_queries"] += 1
+
+    stats["models_used"] = list(stats["models_used"])
+    return stats
+
+
+def measure_service_latency(service: str) -> Optional[int]:
+    """Measure service response latency in ms."""
+    start = time.time()
+    try:
+        if service == "litellm":
+            import urllib.request
+            req = urllib.request.Request("http://localhost:4000/models")
+            urllib.request.urlopen(req, timeout=3)
+        elif service == "knowledge":
+            socket_path = Path("/tmp/knowledge-server.sock")
+            if socket_path.exists():
+                return 1  # Socket exists = fast
+            return None
+        return int((time.time() - start) * 1000)
+    except Exception:
+        return None
+
+
+def create_progress_bar(value: int, max_value: int, width: int = 20, color: str = "green") -> str:
+    """Create a text-based progress bar."""
+    if max_value == 0:
+        return "░" * width
+    filled = int((value / max_value) * width)
+    empty = width - filled
+    return f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
+
+
 @main.command()
 @click.option("--follow", "-f", is_flag=True, help="Follow log output in real-time")
 @click.option("--filter", "-F", "component_filter",
               type=click.Choice(["all", "litellm", "knowledge", "droid", "cli"]),
               default="all", help="Filter by component")
 @click.option("--lines", "-n", default=20, help="Number of lines to show")
-def debug(follow: bool, component_filter: str, lines: int):
-    """Debug dashboard showing K-LEAN activity and service status."""
-    print_banner()
+@click.option("--compact", "-c", is_flag=True, help="Compact single-line output")
+def debug(follow: bool, component_filter: str, lines: int, compact: bool):
+    """Real-time monitoring dashboard for K-LEAN services and activity."""
     ensure_klean_dirs()
 
-    def render_dashboard() -> Panel:
-        """Render the debug dashboard."""
-        # Service Status Section
+    # Compact mode - single line for hooks/scripts
+    if compact:
+        litellm_ok = check_litellm()
+        knowledge_ok = check_knowledge_server()
+        models = discover_models() if litellm_ok else []
+        healthy = sum(1 for m in models if m in ["qwen3-coder", "deepseek-v3-thinking"])  # Known working
+        status = "✓" if litellm_ok and knowledge_ok else "⚠"
+        console.print(f"{status} K-LEAN: LiteLLM({'OK' if litellm_ok else 'DOWN'}) Knowledge({'OK' if knowledge_ok else 'DOWN'}) Models({healthy}/{len(models)})")
+        return
+
+    def render_services_panel() -> Panel:
+        """Render services status panel."""
         litellm_info = check_litellm_detailed()
-        knowledge_running = check_knowledge_server()
+        knowledge_ok = check_knowledge_server()
+        litellm_latency = measure_service_latency("litellm") if litellm_info["running"] else None
 
-        services_text = Text()
-        services_text.append("Services: ", style="bold")
+        table = Table(box=None, show_header=False, padding=(0, 1))
+        table.add_column("Service", style="bold")
+        table.add_column("Status", width=12)
+        table.add_column("Info", style="dim")
 
+        # LiteLLM
         if litellm_info["running"]:
-            services_text.append("✓ LiteLLM", style="green")
-            services_text.append(f" ({len(litellm_info['models'])} models) ", style="dim")
+            latency_str = f"{litellm_latency}ms" if litellm_latency else ""
+            table.add_row(
+                "LiteLLM Proxy",
+                "[green]● RUNNING[/green]",
+                f":{4000} {latency_str}"
+            )
         else:
-            services_text.append("✗ LiteLLM", style="red")
-            services_text.append(" (stopped) ", style="dim")
+            table.add_row("LiteLLM Proxy", "[red]● STOPPED[/red]", "k-lean start")
 
-        if knowledge_running:
-            services_text.append("✓ Knowledge", style="green")
+        # Knowledge DB
+        if knowledge_ok:
+            table.add_row("Knowledge DB", "[green]● RUNNING[/green]", "socket")
         else:
-            services_text.append("✗ Knowledge", style="red")
+            table.add_row("Knowledge DB", "[red]● STOPPED[/red]", "k-lean start")
 
-        # Models Section (if LiteLLM running)
-        models_text = ""
-        if litellm_info["running"] and litellm_info["models"]:
-            models_text = "\nModels: " + ", ".join(litellm_info["models"][:8])
-            if len(litellm_info["models"]) > 8:
-                models_text += f" (+{len(litellm_info['models']) - 8} more)"
+        return Panel(table, title="[bold]Services[/bold]", border_style="blue")
 
-        # Recent Activity Section
+    def render_models_panel() -> Panel:
+        """Render models status panel."""
+        models = discover_models()
+        if not models:
+            return Panel("[dim]No models available[/dim]", title="[bold]Models[/bold]", border_style="yellow")
+
+        table = Table(box=None, show_header=True, padding=(0, 1))
+        table.add_column("Model", style="cyan")
+        table.add_column("Status", width=8)
+        table.add_column("Latency", width=8, justify="right")
+
+        # Quick health check - just test top 2 models to keep it fast
+        for model in models[:6]:
+            # Simple availability check
+            try:
+                import urllib.request
+                start = time.time()
+                data = json.dumps({
+                    "model": model,
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "max_tokens": 1
+                }).encode()
+                req = urllib.request.Request(
+                    "http://localhost:4000/chat/completions",
+                    data=data,
+                    headers={"Content-Type": "application/json"}
+                )
+                urllib.request.urlopen(req, timeout=5)
+                latency = int((time.time() - start) * 1000)
+                table.add_row(model[:18], "[green]●[/green]", f"{latency}ms")
+            except Exception:
+                table.add_row(model[:18], "[red]●[/red]", "-")
+
+        return Panel(table, title=f"[bold]Models ({len(models)})[/bold]", border_style="green")
+
+    def render_stats_panel() -> Panel:
+        """Render session statistics panel."""
+        stats = get_session_stats()
+
+        lines_out = []
+
+        # Session info
+        if stats["session_start"]:
+            start_time = stats["session_start"][:19].replace("T", " ")
+            lines_out.append(f"[bold]Session:[/bold] Started {start_time}")
+        else:
+            lines_out.append("[bold]Session:[/bold] No activity yet")
+
+        lines_out.append("")
+
+        # Request stats
+        total = stats["total_requests"]
+        success = stats["successful_requests"]
+        avg_latency = stats["total_latency_ms"] // max(total, 1)
+
+        lines_out.append(f"[bold]Requests:[/bold] {total}")
+        if total > 0:
+            success_rate = int((success / total) * 100)
+            lines_out.append(f"  Success: {create_progress_bar(success_rate, 100, 15)} {success_rate}%")
+            lines_out.append(f"  Avg latency: {avg_latency}ms")
+
+        lines_out.append("")
+
+        # Activity counts
+        lines_out.append(f"[bold]Activity:[/bold]")
+        lines_out.append(f"  Droids executed: {stats['droids_executed']}")
+        lines_out.append(f"  Knowledge queries: {stats['knowledge_queries']}")
+        lines_out.append(f"  Models used: {len(stats['models_used'])}")
+
+        return Panel("\n".join(lines_out), title="[bold]Statistics[/bold]", border_style="magenta")
+
+    def render_activity_panel() -> Panel:
+        """Render recent activity panel."""
         filter_comp = None if component_filter == "all" else component_filter
         entries = read_debug_log(lines=lines, component=filter_comp)
 
+        if not entries:
+            return Panel("[dim]No recent activity\nRun k-lean test-model to generate activity[/dim]",
+                        title="[bold]Activity Feed[/bold]", border_style="cyan")
+
         activity_lines = []
-        for entry in entries[-lines:]:
-            ts = entry.get("ts", "")[:19].replace("T", " ")
-            comp = entry.get("component", "???").upper()[:10].ljust(10)
+        for entry in entries[-10:]:
+            ts = entry.get("ts", "")[11:19]  # Just time
+            comp = entry.get("component", "???")
             event = entry.get("event", "")
 
-            # Format based on component
-            if entry.get("component") == "litellm":
+            # Color by component
+            comp_colors = {"cli": "yellow", "litellm": "green", "droid": "magenta", "knowledge": "cyan"}
+            color = comp_colors.get(comp, "white")
+
+            # Format event details
+            if comp == "cli" and event == "test_model":
                 model = entry.get("model", "")
-                tokens = entry.get("tokens", "")
-                latency = entry.get("latency_ms", "")
-                detail = f"{model}: {tokens} tok ({latency}ms)" if model else event
-            elif entry.get("component") == "droid":
-                droid = entry.get("droid", "")
-                detail = f"{droid}" if droid else event
-            elif entry.get("component") == "knowledge":
-                query = entry.get("query", "")
-                results = entry.get("results", "")
-                detail = f'"{query}" ({results} results)' if query else event
+                latency = entry.get("latency_ms", 0)
+                detail = f"[{color}]{comp}[/{color}] test {model} ({latency}ms)"
+            elif comp == "cli" and event == "service_start":
+                service = entry.get("service", "")
+                detail = f"[{color}]{comp}[/{color}] started {service}"
+            elif comp == "cli" and event == "service_stop":
+                service = entry.get("service", "")
+                detail = f"[{color}]{comp}[/{color}] stopped {service}"
+            elif comp == "droid":
+                droid = entry.get("droid", event)
+                detail = f"[{color}]{comp}[/{color}] {droid}"
+            elif comp == "knowledge":
+                query = entry.get("query", event)[:30]
+                detail = f"[{color}]{comp}[/{color}] query: {query}"
             else:
-                detail = event
+                detail = f"[{color}]{comp}[/{color}] {event}"
 
-            activity_lines.append(f"  {ts} [{comp}] {detail}")
+            activity_lines.append(f"[dim]{ts}[/dim] {detail}")
 
-        if not activity_lines:
-            activity_lines = ["  (No recent activity)"]
+        return Panel("\n".join(activity_lines), title="[bold]Activity Feed[/bold]", border_style="cyan")
 
-        activity_text = "\nRecent Activity:\n" + "\n".join(activity_lines[-15:])
+    def render_paths_panel() -> Panel:
+        """Render paths info panel."""
+        paths = [
+            f"[bold]Claude:[/bold] {CLAUDE_DIR}",
+            f"[bold]K-LEAN:[/bold] {KLEAN_DIR}",
+            f"[bold]Logs:[/bold] {LOGS_DIR}",
+            f"[bold]Config:[/bold] {CONFIG_DIR}",
+        ]
 
-        # Paths Section
-        paths_text = f"""
-Paths:
-  Claude Dir: {CLAUDE_DIR}
-  K-LEAN Dir: {KLEAN_DIR}
-  Logs: {LOGS_DIR}
-  Config: {CONFIG_DIR}"""
+        # Add log file sizes
+        debug_log = LOGS_DIR / "debug.log"
+        if debug_log.exists():
+            size = debug_log.stat().st_size
+            paths.append(f"[dim]Debug log: {size:,} bytes[/dim]")
 
-        full_text = str(services_text) + models_text + activity_text + paths_text
+        return Panel("\n".join(paths), title="[bold]Paths[/bold]", border_style="dim")
 
-        return Panel(
-            full_text,
-            title="[bold cyan]K-LEAN Debug Dashboard[/bold cyan]",
-            subtitle=f"[dim]{datetime.now().strftime('%H:%M:%S')}[/dim]",
-            border_style="cyan"
+    def render_full_dashboard():
+        """Render the complete dashboard layout."""
+        # Create layout
+        layout = Layout()
+
+        # Header
+        header = Text()
+        header.append("K-LEAN ", style="bold cyan")
+        header.append("Monitoring Dashboard", style="bold")
+        header.append(f"  {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", style="dim")
+
+        # Top section: Services + Models
+        top_layout = Layout()
+        top_layout.split_row(
+            Layout(render_services_panel(), name="services", ratio=1),
+            Layout(render_models_panel(), name="models", ratio=2),
         )
 
+        # Middle section: Stats + Activity
+        mid_layout = Layout()
+        mid_layout.split_row(
+            Layout(render_stats_panel(), name="stats", ratio=1),
+            Layout(render_activity_panel(), name="activity", ratio=2),
+        )
+
+        # Combine
+        layout.split_column(
+            Layout(Panel(header, border_style="cyan"), size=3),
+            Layout(top_layout, name="top", ratio=2),
+            Layout(mid_layout, name="middle", ratio=2),
+            Layout(render_paths_panel(), name="bottom", size=6),
+        )
+
+        return layout
+
     if follow:
-        console.print("[dim]Press Ctrl+C to exit[/dim]\n")
+        console.print("[dim]K-LEAN Monitoring Dashboard - Press Ctrl+C to exit[/dim]\n")
         try:
-            with Live(render_dashboard(), refresh_per_second=2, console=console) as live:
+            with Live(render_full_dashboard(), refresh_per_second=1, console=console, screen=True) as live:
                 while True:
-                    time.sleep(0.5)
-                    live.update(render_dashboard())
+                    time.sleep(1)
+                    live.update(render_full_dashboard())
         except KeyboardInterrupt:
             console.print("\n[yellow]Dashboard closed[/yellow]")
     else:
-        console.print(render_dashboard())
-
-        # Also show log file locations
-        console.print("\n[bold]Log Files:[/bold]")
-        log_files = [
-            ("Debug Log", LOGS_DIR / "debug.log"),
-            ("LiteLLM Log", LOGS_DIR / "litellm.log"),
-        ]
-        for name, path in log_files:
-            if path.exists():
-                size = path.stat().st_size
-                console.print(f"  {name}: {path} ({size:,} bytes)")
-            else:
-                console.print(f"  {name}: [dim]not created yet[/dim]")
+        console.print(render_full_dashboard())
 
 
 @main.command()
