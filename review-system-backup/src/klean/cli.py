@@ -138,10 +138,25 @@ def check_command_exists(cmd: str) -> bool:
 
 def check_knowledge_server() -> bool:
     """Check if knowledge server is running via socket."""
+    import socket as sock
+    socket_path = Path("/tmp/knowledge-server.sock")
+
+    if not socket_path.exists():
+        return False
+
+    # Try to actually connect to verify it's alive
     try:
-        socket_path = Path("/tmp/knowledge-server.sock")
-        return socket_path.exists() and socket_path.is_socket()
-    except Exception:
+        client = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
+        client.settimeout(1)
+        client.connect(str(socket_path))
+        client.close()
+        return True
+    except (sock.error, OSError):
+        # Socket exists but no server - clean up stale socket
+        try:
+            socket_path.unlink()
+        except Exception:
+            pass
         return False
 
 
@@ -314,27 +329,46 @@ def stop_litellm() -> bool:
 
 def stop_knowledge_server() -> bool:
     """Stop knowledge server."""
+    socket_path = Path("/tmp/knowledge-server.sock")
+
+    # If not running, nothing to do
+    if not socket_path.exists():
+        return True
+
     knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
     if knowledge_script.exists():
+        # Use the venv python (same as start)
+        venv_python = VENV_DIR / "bin" / "python"
+        python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+
         try:
+            # Note: script may exit with code 1 even on success (PID file cleanup error)
             subprocess.run(
-                [sys.executable, str(knowledge_script), "stop"],
+                [python_cmd, str(knowledge_script), "stop"],
                 capture_output=True,
                 timeout=5
             )
-            return True
+            time.sleep(0.5)  # Give it time to clean up
         except Exception:
             pass
 
-    # Try to kill by socket
-    socket_path = Path("/tmp/knowledge-server.sock")
+    # If script stop didn't work, try pkill
+    if socket_path.exists():
+        try:
+            subprocess.run(["pkill", "-f", "knowledge-server.py"], capture_output=True)
+            time.sleep(0.5)
+        except Exception:
+            pass
+
+    # Clean up socket if still exists
     if socket_path.exists():
         try:
             socket_path.unlink()
         except Exception:
             pass
 
-    return True
+    # Verify it's actually stopped
+    return not check_knowledge_server()
 
 
 def log_debug_event(component: str, event: str, **kwargs) -> None:
