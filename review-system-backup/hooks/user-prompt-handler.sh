@@ -83,21 +83,44 @@ if echo "$USER_PROMPT" | grep -qi "^GoodJob "; then
 fi
 
 #------------------------------------------------------------------------------
-# SAVETHIS <lesson> - Direct save (no AI evaluation)
+# SAVETHIS <lesson> [--type TYPE] [--tags TAGS] [--priority LEVEL]
+# Direct save using knowledge-capture.py
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
-    # Extract the lesson
-    LESSON=$(echo "$USER_PROMPT" | sed -E 's/^SaveThis[[:space:]]+//i')
+    # Extract the full argument string after SaveThis
+    ARGS=$(echo "$USER_PROMPT" | sed -E 's/^SaveThis[[:space:]]+//i')
 
-    if [ -z "$LESSON" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: SaveThis <lesson learned>\"}"
+    if [ -z "$ARGS" ]; then
+        echo "{\"systemMessage\": \"⚠️ Usage: SaveThis <lesson> [--type TYPE] [--tags TAG1,TAG2] [--priority LEVEL]\\nTypes: lesson, finding, solution, pattern, warning, best-practice\\nPriority: low, medium, high, critical\"}"
         exit 0
     fi
 
-    echo "💾 Saving lesson to knowledge DB..." >&2
+    echo "💾 Saving to knowledge DB..." >&2
 
-    # Create knowledge entry
-    ENTRY=$(cat <<EOF
+    # Use knowledge-capture.py with proper interface
+    CAPTURE_SCRIPT="$SCRIPTS_DIR/knowledge-capture.py"
+    PYTHON_BIN="/home/calin/.venvs/knowledge-db/bin/python"
+
+    if [ -x "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
+        # Pass all arguments to knowledge-capture.py
+        # The script handles argparse for --type, --tags, --priority, --url
+        cd "$PROJECT_DIR"
+        RESULT=$($PYTHON_BIN "$CAPTURE_SCRIPT" $ARGS 2>&1)
+        EXIT_CODE=$?
+
+        if [ $EXIT_CODE -eq 0 ]; then
+            RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
+            echo "{\"systemMessage\": $RESULT_ESCAPED}"
+        else
+            echo "{\"systemMessage\": \"❌ Error: $RESULT\"}"
+        fi
+    else
+        # Fallback to simple append if script not available
+        LESSON=$(echo "$ARGS" | sed -E 's/[[:space:]]*--[a-z]+[[:space:]]+[^[:space:]]+//g')
+        KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge-db"
+        mkdir -p "$KNOWLEDGE_DIR"
+
+        ENTRY=$(cat <<EOF
 {
   "title": "Lesson Learned",
   "summary": "$LESSON",
@@ -105,17 +128,13 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
   "source": "manual",
   "found_date": "$(date -Iseconds)",
   "relevance_score": 0.9,
-  "key_concepts": ["lesson", "learned", "tip"]
+  "key_concepts": ["lesson"]
 }
 EOF
 )
-
-    # Append to knowledge DB
-    KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge-db"
-    mkdir -p "$KNOWLEDGE_DIR"
-    echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
-
-    echo "{\"systemMessage\": \"✅ Lesson saved to knowledge DB\"}"
+        echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
+        echo "{\"systemMessage\": \"✅ Lesson saved (fallback mode)\"}"
+    fi
     exit 0
 fi
 
