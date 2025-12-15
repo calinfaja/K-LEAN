@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "description": "K-LEAN MCP Tool Filter - Reduces context consumption by filtering tools",
+  "defaultMode": "allowlist",
+  "servers": {
+    "serena": {
+      "mode": "allowlist",
+      "description": "Semantic code analysis - keep essential tools",
+      "tools": [
+        "find_symbol",
+        "get_symbols_overview",
+        "search_for_pattern",
+        "find_referencing_symbols",
+        "replace_symbol_body",
+        "insert_after_symbol",
+        "insert_before_symbol",
+        "rename_symbol",
+        "read_memory",
+        "write_memory",
+        "list_memories",
+        "edit_memory",
+        "delete_memory",
+        "list_dir",
+        "find_file",
+        "activate_project",
+        "get_current_config",
+        "check_onboarding_performed",
+        "think_about_collected_information",
+        "think_about_task_adherence",
+        "think_about_whether_you_are_done"
+      ]
+    },
+    "tavily": {
+      "mode": "allowlist",
+      "description": "AI web search - both tools needed",
+      "tools": [
+        "tavily-search",
+        "tavily-extract"
+      ]
+    },
+    "context7": {
+      "mode": "allowlist",
+      "description": "Library documentation lookup",
+      "tools": [
+        "resolve-library-id",
+        "get-library-docs"
+      ]
+    },
+    "sequential-thinking": {
+      "mode": "allowlist",
+      "description": "Structured reasoning",
+      "tools": [
+        "sequentialthinking"
+      ]
+    }
+  },
+  "notes": {
+    "usage": "Copy this file to ~/.mcp-funnel.json and configure MCP to use funnel as proxy",
+    "installation": "npm install -g mcp-funnel",
+    "benefit": "Reduces context window usage by hiding unused tool descriptions"
+  }
+}

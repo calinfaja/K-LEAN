@@ -45,9 +45,28 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-edit-quality.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/context-monitor.sh",
+            "timeout": 5
+          }
+        ]
       }
     ]
   },
-  "alwaysThinkingEnabled": false,
-  "model": "haiku"
+  "alwaysThinkingEnabled": false
 }
