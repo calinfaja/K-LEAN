@@ -15,6 +15,10 @@ SCRIPTS_DIR="$(dirname "$0")"
 # Persistent output directory in project's .claude/kln/quickReview/
 source ~/.claude/scripts/session-helper.sh
 source "$SCRIPTS_DIR/../lib/common.sh" 2>/dev/null || true
+source ~/.claude/scripts/review-logger.sh 2>/dev/null || true
+
+# Track timing
+REVIEW_START_MS=$(($(date +%s%N)/1000000))
 
 # Validate model is specified
 if [ -z "$MODEL" ]; then
@@ -52,6 +56,7 @@ OUTPUT_FILENAME=$(generate_filename "$LITELLM_MODEL" "$FOCUS" ".md")
 
 # Log review start
 type log_debug &>/dev/null && log_debug "review" "quick_start" "model=$LITELLM_MODEL" "focus=$FOCUS" "dir=$WORK_DIR"
+type log_review_start &>/dev/null && log_review_start "quickReview" "$LITELLM_MODEL" "$FOCUS" "$OUTPUT_DIR/$OUTPUT_FILENAME"
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "QUICK REVIEW - $LITELLM_MODEL"
@@ -135,7 +140,10 @@ echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
 
 # Log review complete
+REVIEW_END_MS=$(($(date +%s%N)/1000000))
+REVIEW_DURATION_MS=$((REVIEW_END_MS - REVIEW_START_MS))
 type log_debug &>/dev/null && log_debug "review" "quick_complete" "model=$LITELLM_MODEL" "output=$OUTPUT_FILE"
+type log_review_end &>/dev/null && log_review_end "quickReview" "$LITELLM_MODEL" "$OUTPUT_FILE" "success" "$REVIEW_DURATION_MS"
 
 # Auto-extract facts from review (Tier 1)
 ~/.claude/scripts/fact-extract.sh "$CONTENT" "review" "$FOCUS" "$WORK_DIR"
