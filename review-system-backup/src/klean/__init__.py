@@ -20,6 +20,9 @@ CLAUDE_DIR = Path.home() / ".claude"
 FACTORY_DIR = Path.home() / ".factory"
 VENV_DIR = Path.home() / ".venvs" / "knowledge-db"
 CONFIG_DIR = Path.home() / ".config" / "litellm"
+KLEAN_DIR = Path.home() / ".klean"
+LOGS_DIR = KLEAN_DIR / "logs"
+PIDS_DIR = KLEAN_DIR / "pids"
 
 
 def get_version() -> str:
