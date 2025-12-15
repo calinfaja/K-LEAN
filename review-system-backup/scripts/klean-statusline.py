@@ -1,28 +1,21 @@
 #!/usr/bin/env python3
 """
-K-LEAN Status Line for Claude Code
-===================================
-Professional, minimal statusline with 5 key fields:
-1. Model - Current Claude model
-2. Context % - Color-coded context window usage
-3. Workspace - Current directory name
-4. Git - Branch + dirty status
-5. Services - LiteLLM health + Knowledge DB status
+K-LEAN Status Line v2 for Claude Code
+======================================
+Optimized statusline with actionable metrics:
 
-Usage: Configure in ~/.claude/settings.json:
-{
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/scripts/klean-statusline.py",
-    "padding": 0
-  }
-}
+1. Model     - Claude model with tier coloring
+2. Project   - Project root directory
+3. Git       - Branch + dirty state + lines changed
+4. Services  - LiteLLM + Knowledge DB status
+
+Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓
 """
 
 import json
 import os
-import socket
 import subprocess
+import socket
 import sys
 from pathlib import Path
 
@@ -30,12 +23,10 @@ from pathlib import Path
 # ANSI Colors
 # ============================================================================
 class C:
-    """ANSI color codes for terminal output."""
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
 
-    # Foreground
     RED = "\033[31m"
     GREEN = "\033[32m"
     YELLOW = "\033[33m"
@@ -43,25 +34,22 @@ class C:
     MAGENTA = "\033[35m"
     CYAN = "\033[36m"
     WHITE = "\033[37m"
-    BRIGHT_WHITE = "\033[97m"
     BRIGHT_RED = "\033[91m"
     BRIGHT_GREEN = "\033[92m"
     BRIGHT_YELLOW = "\033[93m"
-    BRIGHT_CYAN = "\033[96m"
+    BRIGHT_WHITE = "\033[97m"
 
-# Separator
-SEP = f"{C.DIM}│{C.RESET}"
+SEP = f" {C.DIM}│{C.RESET} "
 
 # ============================================================================
 # Field 1: Model
 # ============================================================================
 def get_model(data: dict) -> str:
-    """Get current model display name."""
+    """Get model display name with tier coloring."""
     model = data.get("model", {})
     display = model.get("display_name", "?")
-
-    # Color based on model tier
     name_lower = display.lower()
+
     if "opus" in name_lower:
         color = C.MAGENTA
     elif "sonnet" in name_lower:
@@ -71,125 +59,120 @@ def get_model(data: dict) -> str:
     else:
         color = C.WHITE
 
-    return f"{color}[{display.lower()}]{C.RESET}"
+    # Shorten display name
+    short = display.lower().replace("claude ", "").replace("-", "")
+    if len(short) > 8:
+        short = short[:8]
+
+    return f"{color}[{short}]{C.RESET}"
 
 # ============================================================================
-# Field 2: Context Percentage
+# Field 2: Project + Current Directory
 # ============================================================================
-def get_context(data: dict) -> str:
-    """Get context window usage percentage with color coding."""
-    ctx = data.get("context_window", {})
-    input_tokens = ctx.get("total_input_tokens", 0)
-    output_tokens = ctx.get("total_output_tokens", 0)
-    window_size = ctx.get("context_window_size", 200000)
-
-    if window_size == 0:
-        return f"{C.DIM}ctx:?%{C.RESET}"
-
-    total = input_tokens + output_tokens
-    percent = (total / window_size) * 100
-
-    # Color coding: green < 70%, yellow 70-85%, red > 85%
-    if percent < 70:
-        color = C.GREEN
-    elif percent < 85:
-        color = C.YELLOW
-    else:
-        color = C.BRIGHT_RED
-
-    return f"{color}ctx:{percent:.0f}%{C.RESET}"
-
-# ============================================================================
-# Field 3: Workspace
-# ============================================================================
-def get_workspace(data: dict) -> str:
-    """Get workspace directory name."""
+def get_project(data: dict) -> str:
+    """Show project/relative_path or just project if in root."""
     workspace = data.get("workspace", {})
-    current_dir = workspace.get("current_dir", os.getcwd())
-    project_dir = workspace.get("project_dir", current_dir)
+    project_dir = workspace.get("project_dir", "")
+    current_dir = workspace.get("current_dir", "")
 
-    # Get just the directory name
-    dir_name = Path(current_dir).name or "/"
+    project = Path(project_dir).name or "?"
 
-    # Highlight if we've navigated away from project root
-    if current_dir != project_dir:
-        # Show relative path from project
+    if current_dir and project_dir and current_dir != project_dir:
         try:
-            rel_path = Path(current_dir).relative_to(project_dir)
-            dir_name = str(rel_path)
+            rel = Path(current_dir).relative_to(project_dir)
+            return f"{C.BRIGHT_WHITE}{project}{C.DIM}/{C.YELLOW}{rel}{C.RESET}"
         except ValueError:
             pass
-        return f"{C.YELLOW}{dir_name}{C.RESET}"
 
-    return f"{C.BRIGHT_WHITE}{dir_name}{C.RESET}"
+    return f"{C.BRIGHT_WHITE}{project}{C.RESET}"
 
 # ============================================================================
-# Field 4: Git Branch + Status (Oh-My-Zsh style)
+# Field 5: Git (Branch + Dirty + Lines Changed)
 # ============================================================================
 def get_git(data: dict) -> str:
-    """Get git branch and status in Oh-My-Zsh style: git:(branch●)"""
+    """Get git branch, dirty state, and lines added/removed."""
     workspace = data.get("workspace", {})
-    cwd = workspace.get("current_dir", os.getcwd())
+    cwd = workspace.get("project_dir", os.getcwd())
 
     try:
-        # Get current branch
-        branch = subprocess.run(
+        # Get branch
+        branch_result = subprocess.run(
             ["git", "branch", "--show-current"],
-            capture_output=True, text=True, timeout=1,
-            cwd=cwd
+            capture_output=True, text=True, timeout=1, cwd=cwd
         )
-        if branch.returncode != 0:
+        if branch_result.returncode != 0:
             return f"{C.DIM}no-git{C.RESET}"
 
-        branch_name = branch.stdout.strip() or "HEAD"
+        branch = branch_result.stdout.strip() or "HEAD"
 
-        # Check for uncommitted changes
-        status = subprocess.run(
+        # Truncate long branch names
+        if len(branch) > 12:
+            branch = branch[:9] + "..."
+
+        # Check dirty state
+        status_result = subprocess.run(
             ["git", "status", "--porcelain"],
-            capture_output=True, text=True, timeout=1,
-            cwd=cwd
+            capture_output=True, text=True, timeout=1, cwd=cwd
+        )
+        dirty = "●" if status_result.stdout.strip() else ""
+
+        # Get lines added/removed (staged + unstaged)
+        diff_result = subprocess.run(
+            ["git", "diff", "--shortstat", "HEAD"],
+            capture_output=True, text=True, timeout=1, cwd=cwd
         )
 
-        dirty = "●" if status.stdout.strip() else ""
+        added, removed = 0, 0
+        diff_out = diff_result.stdout.strip()
+        if diff_out:
+            # Parse "X files changed, Y insertions(+), Z deletions(-)"
+            import re
+            ins_match = re.search(r'(\d+) insertion', diff_out)
+            del_match = re.search(r'(\d+) deletion', diff_out)
+            if ins_match:
+                added = int(ins_match.group(1))
+            if del_match:
+                removed = int(del_match.group(1))
+
+        # Build output
         dirty_colored = f"{C.YELLOW}{dirty}{C.RESET}" if dirty else ""
 
-        # Oh-My-Zsh style: git:(branch●)
-        return f"{C.BLUE}git:({C.BRIGHT_RED}{branch_name}{dirty_colored}{C.BLUE}){C.RESET}"
+        # Lines string
+        if added > 0 or removed > 0:
+            lines_str = f" {C.GREEN}+{added}{C.RESET}{C.RED}-{removed}{C.RESET}"
+        else:
+            lines_str = ""
 
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+        return f"{C.BLUE}git:({C.BRIGHT_RED}{branch}{dirty_colored}{C.BLUE}){C.RESET}{lines_str}"
+
+    except Exception:
         return f"{C.DIM}no-git{C.RESET}"
 
 # ============================================================================
-# Field 5: K-LEAN Services (LiteLLM + Knowledge DB)
+# Field 6: Services (LiteLLM + Knowledge DB)
 # ============================================================================
 def check_litellm() -> tuple[int, bool]:
-    """
-    Check LiteLLM proxy health.
-    Returns (healthy_count, is_running).
-    """
+    """Check LiteLLM proxy health."""
     try:
         import urllib.request
         req = urllib.request.Request(
             "http://localhost:4000/models",
             headers={"Content-Type": "application/json"}
         )
-        with urllib.request.urlopen(req, timeout=1) as resp:
+        with urllib.request.urlopen(req, timeout=0.5) as resp:
             data = json.loads(resp.read().decode())
-            models = data.get("data", [])
-            return len(models), True
+            return len(data.get("data", [])), True
     except Exception:
         return 0, False
 
 def check_knowledge_db() -> bool:
-    """Check if knowledge DB server is running via socket."""
+    """Check if knowledge DB server is running."""
     socket_path = "/tmp/knowledge-server.sock"
-
     if not os.path.exists(socket_path):
         return False
-
     try:
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
+        sock.settimeout(0.3)
         sock.connect(socket_path)
         sock.close()
         return True
@@ -197,50 +180,37 @@ def check_knowledge_db() -> bool:
         return False
 
 def get_services() -> str:
-    """Get K-LEAN services status with clear labels."""
-    # LiteLLM check
+    """Get K-LEAN services status."""
     llm_count, llm_running = check_litellm()
-
-    if not llm_running:
-        llm_str = f"{C.DIM}llm:{C.RED}✗{C.RESET}"
-    elif llm_count >= 3:
-        llm_str = f"{C.DIM}llm:{C.GREEN}{llm_count}{C.RESET}"
-    elif llm_count >= 1:
-        llm_str = f"{C.DIM}llm:{C.YELLOW}{llm_count}{C.RESET}"
-    else:
-        llm_str = f"{C.DIM}llm:{C.RED}0{C.RESET}"
-
-    # Knowledge DB check
     kb_running = check_knowledge_db()
-    if kb_running:
-        kb_str = f"{C.DIM}kb:{C.GREEN}✓{C.RESET}"
-    else:
-        kb_str = f"{C.DIM}kb:{C.RED}✗{C.RESET}"
 
-    return f"{llm_str} {kb_str}"
+    if llm_running and llm_count >= 1:
+        llm = f"{C.GREEN}{llm_count}{C.RESET}"
+    else:
+        llm = f"{C.RED}✗{C.RESET}"
+
+    kb = f"{C.GREEN}✓{C.RESET}" if kb_running else f"{C.RED}✗{C.RESET}"
+
+    return f"{C.DIM}llm:{llm} kb:{kb}{C.RESET}"
 
 # ============================================================================
 # Main
 # ============================================================================
 def main():
-    """Generate statusline from Claude Code JSON input."""
     try:
-        # Read JSON from stdin
         input_data = sys.stdin.read()
         data = json.loads(input_data) if input_data.strip() else {}
-    except (json.JSONDecodeError, Exception):
+    except Exception:
         data = {}
 
-    # Build status line fields
+    # Build fields
     model = get_model(data)
-    context = get_context(data)
-    workspace = get_workspace(data)
+    project = get_project(data)
     git = get_git(data)
     services = get_services()
 
-    # Assemble the line
-    # [opus] ctx:67% │ claudeAgentic │ main● │ ⚡4 📚✓
-    line = f"{model} {context} {SEP} {workspace} {SEP} {git} {SEP} {services}"
+    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓
+    line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}"
 
     print(line)
 
