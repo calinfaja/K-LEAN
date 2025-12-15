@@ -33,6 +33,7 @@ set -e
 # Source session helper for output management
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/session-helper.sh"
+source "$SCRIPT_DIR/../lib/common.sh" 2>/dev/null || true
 
 # Configuration
 LITELLM_BASE_URL="${LITELLM_BASE_URL:-http://localhost:4000}"
@@ -177,6 +178,9 @@ if echo "$MODEL" | grep -q "thinking"; then
     REASONING_DISPLAY="medium"
 fi
 
+# Log execution start
+type log_debug &>/dev/null && log_debug "droid" "execute_start" "model=$MODEL" "droid=$DROID" "project=$PROJECT_ROOT"
+
 echo "=== Droid Execute ===" >&2
 echo "Model:      $MODEL" >&2
 echo "Droid:      $DROID" >&2
@@ -315,5 +319,8 @@ echo "====================" >&2
 echo "Completed in ${EXEC_TIME}s" >&2
 echo "Output saved to: $OUTPUT_FILE" >&2
 echo "====================" >&2
+
+# Log execution complete
+type log_debug &>/dev/null && log_debug "droid" "execute_complete" "model=$MODEL" "droid=$DROID" "duration_s=$EXEC_TIME" "output=$OUTPUT_FILE"
 
 exit 0

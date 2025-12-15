@@ -23,6 +23,7 @@ SCRIPTS_DIR="$(dirname "$0")"
 
 # Persistent output directory in project's .claude/kln/deepInspect/
 source ~/.claude/scripts/session-helper.sh
+source "$SCRIPTS_DIR/../lib/common.sh" 2>/dev/null || true
 
 # Validate model is specified
 if [ -z "$MODEL" ]; then
@@ -138,6 +139,9 @@ WORKING DIRECTORY: $WORK_DIR
 Begin your investigation. Use your tools to verify findings.
 "
 
+# Log review start
+type log_debug &>/dev/null && log_debug "review" "deep_start" "model=$LITELLM_MODEL" "prompt=$PROMPT" "dir=$WORK_DIR"
+
 echo "═══════════════════════════════════════════════════════════════"
 echo "DEEP REVIEW - Tier 3 (Full Tool Access)"
 echo "═══════════════════════════════════════════════════════════════"
@@ -242,5 +246,8 @@ echo "════════════════════════�
 echo "DEEP REVIEW COMPLETE"
 echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
+
+# Log review complete
+type log_debug &>/dev/null && log_debug "review" "deep_complete" "model=$LITELLM_MODEL" "output=$OUTPUT_FILE" "exit_code=$REVIEW_EXIT_CODE"
 
 exit $REVIEW_EXIT_CODE

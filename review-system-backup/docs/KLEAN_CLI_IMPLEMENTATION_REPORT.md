@@ -315,3 +315,61 @@ The K-LEAN CLI has been significantly enhanced with:
 - **Unified Logging**: JSON Lines format for programmatic analysis
 
 These features make K-LEAN production-ready and provide developers with full visibility into the system's operation.
+
+---
+
+## 80/20 Improvements (Phase 2)
+
+Based on Claude Code skills and rules best practices research, the following high-impact improvements were implemented:
+
+### 1. Unified Debug Logging for Shell Scripts
+
+Added `log_debug()` function to `lib/common.sh` for consistent logging across all scripts:
+
+```bash
+# Usage
+log_debug "component" "event" "key1=val1" "key2=val2"
+
+# Example
+log_debug "droid" "execute_start" "model=qwen3-coder" "droid=security-auditor"
+```
+
+**Scripts Updated:**
+- `droid-execute.sh` - Logs execute_start, execute_complete
+- `quick-review.sh` - Logs quick_start, quick_complete
+- `deep-review.sh` - Logs deep_start, deep_complete
+- `parallel-droid-review.sh` - Logs parallel_start, parallel_complete
+
+### 2. Optimized CLAUDE.md
+
+Reduced from 193 lines to 87 lines (55% reduction) while adding quick command shortcuts:
+
+| Shortcut | Action |
+|----------|--------|
+| `healthcheck` | Check all 6 LiteLLM models |
+| `qreview <model> <focus>` | Quick single-model review |
+| `dreview <model> <focus>` | Deep review with tools |
+| `droid <model> <type> <task>` | Execute Factory droid |
+| `GoodJob <url>` | Capture web knowledge |
+| `SaveThis <lesson>` | Save a lesson learned |
+| `FindKnowledge <query>` | Search knowledge DB |
+
+### 3. Best Practices Applied
+
+From Claude Code community research:
+- **CLAUDE.md under 150 lines** - Keeps context focused
+- **Quick shortcuts at top** - Fastest access to common operations
+- **Tables for structured data** - Better scanning
+- **Code blocks for commands** - Easy copy-paste
+
+---
+
+## Files Modified (Phase 2)
+
+1. **lib/common.sh** - Added `log_debug()` function
+2. **scripts/droid-execute.sh** - Added debug logging
+3. **scripts/quick-review.sh** - Added debug logging
+4. **scripts/deep-review.sh** - Added debug logging
+5. **scripts/parallel-droid-review.sh** - Added debug logging
+6. **~/.claude/CLAUDE.md** - Optimized (193→87 lines)
+7. **CLAUDE.md** (project) - Synced with global

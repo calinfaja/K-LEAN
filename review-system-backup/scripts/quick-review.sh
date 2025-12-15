@@ -14,6 +14,7 @@ SCRIPTS_DIR="$(dirname "$0")"
 
 # Persistent output directory in project's .claude/kln/quickReview/
 source ~/.claude/scripts/session-helper.sh
+source "$SCRIPTS_DIR/../lib/common.sh" 2>/dev/null || true
 
 # Validate model is specified
 if [ -z "$MODEL" ]; then
@@ -48,6 +49,9 @@ fi
 
 OUTPUT_DIR=$(get_output_dir "quickReview" "$WORK_DIR")
 OUTPUT_FILENAME=$(generate_filename "$LITELLM_MODEL" "$FOCUS" ".md")
+
+# Log review start
+type log_debug &>/dev/null && log_debug "review" "quick_start" "model=$LITELLM_MODEL" "focus=$FOCUS" "dir=$WORK_DIR"
 
 echo "═══════════════════════════════════════════════════════════════"
 echo "QUICK REVIEW - $LITELLM_MODEL"
@@ -129,6 +133,9 @@ echo ""
 echo "═══════════════════════════════════════════════════════════════"
 echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
+
+# Log review complete
+type log_debug &>/dev/null && log_debug "review" "quick_complete" "model=$LITELLM_MODEL" "output=$OUTPUT_FILE"
 
 # Auto-extract facts from review (Tier 1)
 ~/.claude/scripts/fact-extract.sh "$CONTENT" "review" "$FOCUS" "$WORK_DIR"
