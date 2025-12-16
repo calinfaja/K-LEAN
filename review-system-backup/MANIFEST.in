@@ -1,0 +1,24 @@
+# K-LEAN MANIFEST.in
+# Include these files in source distributions (sdist)
+
+include LICENSE
+include README.md
+include VERSION
+include MANIFEST.in
+include pyproject.toml
+
+# Package data
+recursive-include src/klean/data *
+
+# Documentation
+recursive-include docs *.md
+
+# Exclude development files
+exclude .gitignore
+exclude *.pyc
+exclude __pycache__
+prune build
+prune dist
+prune *.egg-info
+prune .knowledge-db
+prune tests

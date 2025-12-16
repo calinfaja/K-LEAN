@@ -15,8 +15,8 @@ Complete setup guide for the K-LEAN Multi-Model Code Review and Knowledge Captur
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/claudeAgentic.git
-cd claudeAgentic/review-system-backup
+git clone https://github.com/calinfaja/k-lean.git
+cd k-lean
 
 # 2. Run installer
 ./install.sh --full

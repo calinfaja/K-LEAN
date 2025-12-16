@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "k-lean"
-version = "1.0.0"
+version = "2.2.0"
 description = "Multi-model code review and knowledge capture system for Claude Code"
 readme = "README.md"
 license = {text = "MIT"}

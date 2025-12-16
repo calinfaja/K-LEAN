@@ -1,0 +1,154 @@
+# K-LEAN LiteLLM Configuration
+# ============================
+# Top 10 NanoGPT Subscription Models (Benchmark-verified)
+# Run: source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml
+
+litellm_settings:
+  drop_params: true
+
+model_alias_map:
+  "claude-sonnet-4-5-20250929": "qwen3-coder"
+  "claude-3-5-sonnet-20241022": "qwen3-coder"
+  "claude-3-haiku-20240307": "llama-4-scout"
+  "claude-3-opus-20240229": "deepseek-r1"
+  "sonnet": "qwen3-coder"
+  "haiku": "llama-4-scout"
+  "opus": "deepseek-r1"
+
+model_list:
+  # ELITE CODERS
+  - model_name: qwen3-coder
+    litellm_params:
+      model: openai/qwen/qwen3-coder
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: elite
+      speed: 35
+      use: "coding"
+
+  - model_name: devstral-2
+    litellm_params:
+      model: openai/mistralai/devstral-2-123b-instruct-2512
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: elite
+      speed: 32
+      use: "coding"
+
+  # REASONING
+  - model_name: deepseek-r1
+    litellm_params:
+      model: openai/deepseek-ai/DeepSeek-R1-0528
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: reasoning
+      speed: 15
+      use: "architecture"
+
+  - model_name: deepseek-v3-thinking
+    litellm_params:
+      model: openai/deepseek-ai/deepseek-v3.2-exp-thinking
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: reasoning
+      speed: 20
+      use: "architecture"
+
+  - model_name: glm-4.6-thinking
+    litellm_params:
+      model: openai/z-ai/glm-4.6:thinking
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: reasoning
+      speed: 11
+      use: "standards"
+
+  # AGENTS
+  - model_name: kimi-k2
+    litellm_params:
+      model: openai/moonshotai/kimi-k2-instruct
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: agent
+      speed: 28
+      use: "agents"
+
+  - model_name: kimi-k2-thinking
+    litellm_params:
+      model: openai/moonshotai/kimi-k2-thinking
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: agent
+      speed: 20
+      use: "agents"
+
+  # SPEED & VALUE
+  - model_name: llama-4-scout
+    litellm_params:
+      model: openai/meta-llama/llama-4-scout
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: speed
+      speed: 47
+      use: "fast"
+
+  - model_name: llama-4-maverick
+    litellm_params:
+      model: openai/meta-llama/llama-4-maverick
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: context
+      speed: 28
+      use: "large-repos"
+
+  # SPECIALIST
+  - model_name: minimax-m2
+    litellm_params:
+      model: openai/MiniMax-M2
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: specialist
+      speed: 23
+      use: "research"
+
+  - model_name: hermes-4-70b
+    litellm_params:
+      model: openai/nousresearch/hermes-4-70b
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: specialist
+      speed: 20
+      use: "scripting"
+
+  - model_name: qwen3-235b
+    litellm_params:
+      model: openai/Qwen/Qwen3-235B-A22B-Instruct-2507
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+      drop_params: true
+    model_info:
+      tier: value
+      speed: 16
+      use: "general"
