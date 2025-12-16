@@ -142,10 +142,11 @@ class KnowledgeServer:
         if os.path.exists(SOCKET_PATH):
             os.unlink(SOCKET_PATH)
 
-        # Load index first
+        # Load index (optional - server works without, returns "no index" for queries)
         if not self.load_index():
-            print("ERROR: Could not load knowledge-db index")
-            sys.exit(1)
+            print("WARNING: No knowledge-db index found in current project")
+            print("   Server will start but queries will return 'no index'")
+            print("   To create index: k-lean install --component knowledge")
 
         # Create socket
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -158,7 +159,7 @@ class KnowledgeServer:
             f.write(str(os.getpid()))
 
         print(f"Knowledge server started on {SOCKET_PATH}")
-        print(f"Project: {self.project_root}")
+        print(f"Project: {self.project_root or 'none (no index)'}")
         print("Ready for queries (Ctrl+C to stop)")
 
         self.running = True
