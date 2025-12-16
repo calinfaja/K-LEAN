@@ -1,13 +1,24 @@
 # Claude System Configuration
 
-## Quick Commands (Type these directly)
+## K-LEAN v1.0.0-beta Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/kln:quick` | Fast single-model review (~30s) | `/kln:quick security` |
+| `/kln:multi` | Multi-model consensus | `/kln:multi --models 5 arch` |
+| `/kln:deep` | Thorough with SDK tools | `/kln:deep --async security` |
+| `/kln:droid` | Role-based AI workers | `/kln:droid --role coder` |
+| `/kln:rethink` | Fresh debugging perspectives | `/kln:rethink bug` |
+| `/kln:status` | Check models & health | `/kln:status` |
+| `/kln:help` | Complete reference | `/kln:help` |
+
+**Flags**: `--async` (background), `--models N` (count), `--output json/text`
+
+## Quick Commands (Type directly)
 
 | Shortcut | Action |
 |----------|--------|
-| `healthcheck` | Check all 6 LiteLLM models |
-| `qreview <model> <focus>` | Quick single-model review |
-| `dreview <model> <focus>` | Deep review with tools |
-| `droid <model> <type> <task>` | Execute Factory droid |
+| `healthcheck` | Check all LiteLLM models |
 | `GoodJob <url>` | Capture web knowledge |
 | `SaveThis <lesson>` | Save a lesson learned |
 | `FindKnowledge <query>` | Search knowledge DB |
@@ -26,27 +37,21 @@ Fast semantic search for stored knowledge (URLs, solutions, lessons).
 
 **Storage**: `.knowledge-db/` per project | **Server**: Auto-starts via ~/.bashrc
 
-## Review System
-
-Multi-model review via LiteLLM proxy (localhost:4000).
-
-| Keyword | Description |
-|---------|-------------|
-| `asyncDeepReview <focus>` | 3 models with tools (bg) |
-| `asyncConsensus <focus>` | 3 models quick (bg) |
-| `asyncReview <model> <focus>` | Single model quick (bg) |
-
-**Models**: qwen (quality), deepseek (arch), glm (standards), minimax (research), kimi (agents), hermes (scripts)
-
 ## K-LEAN CLI
 
 ```bash
-k-lean status     # Component status
+k-lean status     # Component status (9 commands, 12 models)
 k-lean doctor -f  # Diagnose + auto-fix
 k-lean start      # Start services
 k-lean debug      # Monitoring dashboard
 k-lean models     # List with health
 ```
+
+## Available Models (12)
+
+Auto-discovered from LiteLLM. Use `k-lean models` to see current list.
+
+Common models: `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
 
 ## Profiles
 
