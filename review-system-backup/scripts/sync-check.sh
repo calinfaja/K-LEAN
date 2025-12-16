@@ -204,7 +204,8 @@ echo ""
 
 #=== COMMANDS ===
 echo "=== Commands (/kln:) ==="
-for f in "$REPO_DIR/commands-kln"/*.md; do
+# Use v3 commands (9 consolidated commands)
+for f in "$REPO_DIR/commands-kln-v3"/*.md; do
     [ -f "$f" ] || continue
     NAME=$(basename "$f")
     INSTALLED="$CLAUDE_DIR/commands/kln/$NAME"
@@ -219,7 +220,7 @@ for f in "$REPO_DIR/commands-kln"/*.md; do
 done
 
 if $MODE_ORPHANS; then
-    find_orphans "$CLAUDE_DIR/commands/kln" "$REPO_DIR/commands-kln" "*.md" || true
+    find_orphans "$CLAUDE_DIR/commands/kln" "$REPO_DIR/commands-kln-v3" "*.md" || true
 fi
 echo ""
 

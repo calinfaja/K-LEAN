@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "k-lean"
-version = "2.2.0"
+version = "1.0.0-beta"
 description = "Multi-model code review and knowledge capture system for Claude Code"
 readme = "README.md"
 license = {text = "MIT"}
@@ -31,6 +31,8 @@ classifiers = [
 dependencies = [
     "click>=8.0.0",
     "rich>=13.0.0",
+    "pyyaml>=6.0.0",
+    "httpx>=0.27.0",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,45 @@
+# K-LEAN v3 Configuration
+# Multi-model code review system
+
+version: "3.0"
+
+# LiteLLM endpoint
+litellm:
+  endpoint: "http://localhost:4000"
+  timeout: 120
+
+# Model selection defaults
+models:
+  default_single: "auto"        # "auto" = fastest available
+  default_multi: 3              # Number of models for /kln:multi
+  prefer_thinking: true         # Prefer *-thinking models for deep reviews
+
+# Smart routing - boost these models for matching keywords
+routing:
+  security:
+    - glm-4.6-thinking
+    - qwen3-coder
+  architecture:
+    - deepseek-v3-thinking
+    - kimi-k2-thinking
+  performance:
+    - qwen3-coder
+    - hermes-4-70b
+  standards:
+    - glm-4.6-thinking
+
+# Latency cache settings
+cache:
+  latency_file: "~/.claude/k-lean/cache/latency.json"
+  max_age_hours: 24
+
+# Output settings
+output:
+  dir: "/tmp/claude-reviews"
+  format: "markdown"            # markdown | json | text
+  save_to_knowledge: true       # Auto-save to knowledge DB
+
+# Async settings
+async:
+  poll_interval: 2              # Seconds between status checks
+  max_wait: 600                 # Max seconds to wait
