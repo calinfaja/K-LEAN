@@ -58,7 +58,6 @@
       }
     ]
   },
-  "alwaysThinkingEnabled": false,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/scripts/klean-statusline.py",
