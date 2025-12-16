@@ -1128,7 +1128,16 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         now = time.time()
         should_check_latency = (now - last_latency_check[0]) > 30
 
-        for model in models[:8]:
+        # Sort by best latency (fastest first), unknowns last
+        def sort_key(m):
+            lat = model_latency_cache.get(m)
+            if lat is None:
+                return (1, 99999)  # Timeout/unknown last
+            return (0, lat)
+
+        sorted_models = sorted(models, key=sort_key)
+
+        for model in sorted_models[:8]:
             short_name = model[:18] if len(model) > 18 else model
 
             if should_check_latency and model not in model_latency_cache:
