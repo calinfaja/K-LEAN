@@ -1128,7 +1128,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         now = time.time()
         should_check_latency = (now - last_latency_check[0]) > 30
 
-        for model in models[:6]:
+        for model in models[:8]:
             short_name = model[:18] if len(model) > 18 else model
 
             if should_check_latency and model not in model_latency_cache:
