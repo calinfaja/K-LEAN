@@ -1113,65 +1113,26 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
     last_latency_check = [0]  # Use list for mutable closure
 
     def render_models_panel() -> Panel:
-        """Render models status panel with cached latencies."""
+        """Render models status panel - NO token consumption (uses /models endpoint only)."""
         models = discover_models()
         if not models:
             return Panel("[dim]No models available - is LiteLLM running?[/dim]",
                         title="[bold]Models[/bold]", border_style="yellow")
 
         table = Table(box=None, show_header=True, padding=(0, 1))
-        table.add_column("Model", style="cyan", width=20)
+        table.add_column("Model", style="cyan", width=22)
         table.add_column("", width=2)
-        table.add_column("Latency", width=10, justify="right", style="dim")
 
-        # Only do latency checks every 30 seconds to avoid slowdown
-        now = time.time()
-        should_check_latency = (now - last_latency_check[0]) > 30
+        # Show cached latency if available (from previous k-lean models --test)
+        # Otherwise just show as available (no token cost)
+        for model in models[:8]:
+            short_name = model[:20] if len(model) > 20 else model
+            cached_latency = model_latency_cache.get(model)
 
-        # Sort by best latency (fastest first), unknowns last
-        def sort_key(m):
-            lat = model_latency_cache.get(m)
-            if lat is None:
-                return (1, 99999)  # Timeout/unknown last
-            return (0, lat)
-
-        sorted_models = sorted(models, key=sort_key)
-
-        for model in sorted_models[:8]:
-            short_name = model[:18] if len(model) > 18 else model
-
-            if should_check_latency and model not in model_latency_cache:
-                # Quick ping - just check if model responds
-                try:
-                    import urllib.request
-                    start = time.time()
-                    data = json.dumps({
-                        "model": model,
-                        "messages": [{"role": "user", "content": "1"}],
-                        "max_tokens": 1
-                    }).encode()
-                    req = urllib.request.Request(
-                        "http://localhost:4000/chat/completions",
-                        data=data,
-                        headers={"Content-Type": "application/json"}
-                    )
-                    urllib.request.urlopen(req, timeout=10)
-                    latency = int((time.time() - start) * 1000)
-                    model_latency_cache[model] = latency
-                except Exception:
-                    model_latency_cache[model] = None
-
-            # Display from cache
-            latency = model_latency_cache.get(model)
-            if latency is not None:
-                table.add_row(short_name, "[green]●[/green]", f"{latency}ms")
-            elif model in model_latency_cache:
-                table.add_row(short_name, "[red]●[/red]", "timeout")
+            if cached_latency is not None:
+                table.add_row(short_name, f"[green]●[/green] {cached_latency}ms")
             else:
-                table.add_row(short_name, "[yellow]○[/yellow]", "...")
-
-        if should_check_latency:
-            last_latency_check[0] = now
+                table.add_row(short_name, "[green]●[/green]")
 
         return Panel(table, title=f"[bold]Models ({len(models)})[/bold]", border_style="green")
 
@@ -1415,7 +1376,8 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
 
 @main.command()
-def models():
+@click.option("--test", is_flag=True, help="Test each model with API call (costs tokens)")
+def models(test: bool):
     """List available models from LiteLLM proxy."""
     print_banner()
 
@@ -1434,23 +1396,29 @@ def models():
     table.add_column("Model ID", style="cyan")
     table.add_column("Status", style="green")
 
-    console.print("\n[dim]Checking model health...[/dim]")
-    health = get_model_health()
-
-    for model in models_list:
-        status = health.get(model, "UNKNOWN")
-        if status == "OK":
-            status_str = "[green]OK[/green]"
-        elif status == "FAIL":
-            status_str = "[red]FAIL[/red]"
-        elif status == "TIMEOUT":
-            status_str = "[yellow]TIMEOUT[/yellow]"
-        else:
-            status_str = "[dim]UNKNOWN[/dim]"
-        table.add_row(model, status_str)
+    if test:
+        console.print("\n[dim]Testing models (uses tokens)...[/dim]")
+        health = get_model_health()
+        for model in models_list:
+            status = health.get(model, "UNKNOWN")
+            if status == "OK":
+                status_str = "[green]OK[/green]"
+            elif status == "FAIL":
+                status_str = "[red]FAIL[/red]"
+            elif status == "TIMEOUT":
+                status_str = "[yellow]TIMEOUT[/yellow]"
+            else:
+                status_str = "[dim]UNKNOWN[/dim]"
+            table.add_row(model, status_str)
+    else:
+        # Free listing - just show as available (from /models endpoint)
+        for model in models_list:
+            table.add_row(model, "[green]available[/green]")
 
     console.print(table)
-    console.print(f"\n[bold]Total:[/bold] {len(models_list)} models available")
+    console.print(f"\n[bold]Total:[/bold] {len(models_list)} models")
+    if not test:
+        console.print("[dim]Use --test to verify each model works (costs tokens)[/dim]")
 
 
 @main.command()
