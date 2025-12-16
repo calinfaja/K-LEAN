@@ -1,12 +1,19 @@
 # K-LEAN Installation Guide
 
-Complete setup guide for the K-LEAN Multi-Model Code Review and Knowledge Capture System.
+Complete setup guide for K-LEAN v1.0.0-beta Multi-Model Code Review and Knowledge Capture System.
+
+## What's New in v1.0.0-beta
+
+- **9 consolidated commands** (down from 21)
+- **Auto-discovery model resolution** (no hardcoded aliases)
+- **New `/kln:rethink`** command for debugging fresh perspectives
+- **`--async` flag** replaces separate async command variants
 
 ## Prerequisites
 
 | Requirement | Version | Check Command |
 |-------------|---------|---------------|
-| Claude Code | Latest | `claude --version` |
+| Claude Code | 2.0+ | `claude --version` |
 | Python | 3.9+ | `python3 --version` |
 | Git | Any | `git --version` |
 | curl | Any | `curl --version` |
@@ -115,9 +122,26 @@ The installer automatically copies 8 specialist droids:
 ### Step 7: Verify Installation
 
 ```bash
-./test.sh        # Should show 18 tests passed
-healthcheck      # Check all models
-claude-status    # Should show "Profile: native"
+./test.sh           # Should show 18 tests passed
+k-lean status       # Should show 9 commands, 12 models
+k-lean doctor       # Check for issues
+healthcheck         # Check all models
+```
+
+### Step 8: Test V3 Commands
+
+```bash
+# Quick single-model review
+/kln:quick security
+
+# Multi-model consensus
+/kln:multi --models 3 architecture
+
+# Fresh debugging perspectives
+/kln:rethink "stuck on bug"
+
+# System status
+/kln:status
 ```
 
 ## Profile System

@@ -1,300 +1,239 @@
 # Commands Reference
 
-Complete reference for all K-LEAN slash commands and keywords.
+Complete reference for K-LEAN v1.0.0-beta slash commands.
 
-## Slash Commands (/kln:)
+## V3 Commands (9 total)
 
 ### Review Commands
 
-| Command | Method | Time | Description | Usage |
-|---------|--------|------|-------------|-------|
-| `/kln:quickReview` | API | ~30s | Single model API review | `/kln:quickReview qwen security` |
-| `/kln:quickCompare` | API | ~60s | 3 models in parallel | `/kln:quickCompare architecture` |
-| `/kln:deepInspect` | CLI | ~3min | Single model with full tools | `/kln:deepInspect qwen full audit` |
-| `/kln:deepAudit` | CLI | ~5min | 3 models with full tools | `/kln:deepAudit security` |
-| `/kln:droid` | DROID | ~30s | Fast agentic review | `/kln:droid qwen security` |
-| `/kln:droidAudit` | DROID | ~1min | 3 droids in parallel | `/kln:droidAudit architecture` |
-| `/kln:droidExecute` | DROID | ~30s | Specialized droid | `/kln:droidExecute qwen arm-cortex-expert Review ISRs` |
-| `/kln:quickConsult` | API | ~60s | Get second opinion | `/kln:quickConsult kimi "is this safe?"` |
-| `/kln:models` | - | - | List available models | `/kln:models` |
-
-### Async Commands (Background)
-
-| Sync Command | Async Variant | Description |
-|--------------|---------------|-------------|
-| `/kln:quickReview` | `/kln:asyncQuickReview` | Review while you keep coding |
-| `/kln:quickCompare` | `/kln:asyncQuickCompare` | Multi-model compare in background |
-| `/kln:quickConsult` | `/kln:asyncQuickConsult` | Get opinion in background |
-| `/kln:deepAudit` | `/kln:asyncDeepAudit` | Full audit in background |
-| `/kln:droid` | `/kln:asyncDroid` | Fast droid in background |
-| `/kln:droidAudit` | `/kln:asyncDroidAudit` | Parallel droids in background |
-| `/kln:createReport` | `/kln:asyncCreateReport` | Document session in background |
+| Command | Method | Time | Description |
+|---------|--------|------|-------------|
+| `/kln:quick` | API | ~30s | Fast single-model review |
+| `/kln:multi` | API | ~60s | Multi-model consensus (parallel) |
+| `/kln:deep` | SDK | ~3min | Thorough review with Claude SDK tools |
+| `/kln:droid` | Droid | ~30s | Role-based AI workers |
+| `/kln:rethink` | API | ~60s | Fresh debugging perspectives |
 
 ### Utility Commands
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `/kln:help` | List all /kln: commands | `/kln:help` |
-| `/kln:createReport` | Create session documentation | `/kln:createReport "Session Title"` |
-| `/kln:backgroundReport` | Create report in background | `/kln:backgroundReport "Title"` |
+| Command | Description |
+|---------|-------------|
+| `/kln:doc` | Create session documentation |
+| `/kln:remember` | End-of-session knowledge capture |
+| `/kln:status` | Models, health, system status |
+| `/kln:help` | Complete command reference |
 
-## Keywords (Hook-Triggered)
+## Command Details
 
-These keywords are detected by the UserPromptSubmit hook and trigger automated actions.
+### /kln:quick
 
-### Health Check
-
-```bash
-healthcheck
-```
-
-Checks health of all 6 models via LiteLLM proxy.
-
-### Knowledge Capture
+Fast single-model review via LiteLLM API.
 
 ```bash
-GoodJob <url>
-GoodJob <url> <instructions>
+/kln:quick [--model MODEL] [--async] [--output text|json] <focus>
 ```
-
-Captures a URL to the knowledge database.
 
 **Examples:**
 ```bash
-GoodJob https://docs.example.com/api
-GoodJob https://blog.example.com/auth focus on OAuth section
+/kln:quick security                    # Auto-select model
+/kln:quick --model qwen3-coder memory  # Specific model
+/kln:quick --async architecture        # Background
 ```
+
+### /kln:multi
+
+Multi-model consensus review with parallel execution.
 
 ```bash
-SaveThis <lesson>
+/kln:multi [--models N|list] [--async] <focus>
 ```
-
-Direct save to knowledge DB (no AI evaluation, always saves).
 
 **Examples:**
 ```bash
-SaveThis connection pooling improves database performance 10x
-SaveThis always sanitize user input before SQL queries
+/kln:multi security                              # 3 models (default)
+/kln:multi --models 5 architecture              # 5 models
+/kln:multi --models qwen3-coder,glm-4.6-thinking security
 ```
+
+**Output includes:**
+- Individual reviews per model
+- Consensus grade and risk level
+- HIGH/MEDIUM/LOW confidence findings
+- Ranked issues by agreement
+
+### /kln:deep
+
+Thorough review using Claude SDK with full tool access.
 
 ```bash
-SaveInfo <content>
+/kln:deep [--model MODEL] [--async] <focus>
 ```
-
-Smart save with AI relevance evaluation using Claude Haiku. Only saves if relevance score ≥ 0.7.
 
 **Examples:**
 ```bash
-SaveInfo Thinking models return reasoning_content instead of content field
-SaveInfo K-LEAN review outputs are saved to .claude/kln/ with timestamps
+/kln:deep security audit              # Deep investigation
+/kln:deep --async full review         # Background deep review
 ```
 
-| Keyword | AI Evaluation | Threshold | Use Case |
-|---------|---------------|-----------|----------|
-| `SaveThis` | ❌ No | Always saves | You're certain it's valuable |
-| `SaveInfo` | ✅ Haiku | score ≥ 0.7 | Let AI decide if worth saving |
+### /kln:droid
 
-### Knowledge Search
+Role-based AI workers with specialized expertise.
 
 ```bash
-FindKnowledge <query>
+/kln:droid [--model MODEL] [--role ROLE] [--parallel] <task>
 ```
 
-Searches the knowledge database semantically.
+**Roles:**
+- `reviewer` - Code quality, bugs
+- `architect` - System design, patterns
+- `auditor` - Security, compliance
+- `coder` - Performance, optimization
+- `researcher` - Documentation, exploration
 
 **Examples:**
 ```bash
-FindKnowledge authentication patterns
-FindKnowledge database optimization techniques
+/kln:droid --role security audit auth flow
+/kln:droid --parallel review all modules
 ```
 
-### Async Reviews
+### /kln:rethink
+
+Fresh perspectives when stuck debugging. Uses contrarian techniques.
 
 ```bash
-asyncDeepReview <focus>
-asyncConsensus <focus>
-asyncReview <model> <focus>
+/kln:rethink [--models N|MODEL] [--async] [focus]
 ```
 
-Triggers background review via hooks.
+**Features:**
+- Auto-summarizes current debugging context
+- Applies inversion, assumption challenge, domain shift
+- Multi-model mode ranks ideas by novelty + actionability
 
 **Examples:**
 ```bash
-asyncDeepReview security vulnerabilities
-asyncConsensus code quality
-asyncReview qwen error handling
+/kln:rethink                           # 5 models, auto-context
+/kln:rethink --models deepseek-v3-thinking memory leak
+/kln:rethink --models 3 "bug persists after fix"
 ```
 
-## Model Aliases
+### /kln:doc
 
-Available for all review commands:
-
-| Alias | LiteLLM Model | Specialization |
-|-------|---------------|----------------|
-| `qwen` | qwen3-coder | Code quality, bugs |
-| `deepseek` | deepseek-v3-thinking | Architecture, design |
-| `glm` | glm-4.6-thinking | Standards, MISRA |
-| `kimi` | kimi-k2-thinking | Agent tasks |
-| `minimax` | minimax-m2 | Research |
-| `hermes` | hermes-4-70b | Scripting |
-
-## Output Locations
-
-| Command | Output Directory |
-|---------|------------------|
-| `/kln:quickReview` | `.claude/kln/quickReview/` |
-| `/kln:quickCompare` | `.claude/kln/quickCompare/` |
-| `/kln:quickConsult` | `.claude/kln/quickConsult/` |
-| `/kln:deepInspect` | `.claude/kln/deepInspect/` |
-| `/kln:deepAudit` | `.claude/kln/deepAudit/` |
-| `/kln:droid` | `.claude/kln/droid/` |
-| `/kln:droidAudit` | `.claude/kln/droidAudit/` |
-| `/kln:droidExecute` | `.claude/kln/droidExecute/` |
-
-**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.txt`
-
-## Command Examples
-
-### Security Review
+Create session documentation.
 
 ```bash
-# Quick single-model review
-/kln:quickReview qwen security vulnerabilities in authentication
-
-# Consensus from 3 models
-/kln:quickCompare security audit for user input handling
-
-# Deep investigation with tools
-/kln:deepInspect glm comprehensive security audit with OWASP checks
+/kln:doc [--async] "Session Title"
 ```
 
-### Architecture Review
+### /kln:remember
+
+End-of-session knowledge capture to Serena memory.
 
 ```bash
-# Quick architecture check
-/kln:quickReview deepseek coupling and cohesion analysis
-
-# Deep architecture investigation
-/kln:deepInspect qwen architectural patterns and dependencies
+/kln:remember
 ```
 
-### Compliance Review
+### /kln:status
+
+System status and model health.
 
 ```bash
-# Standards compliance
-/kln:quickReview glm MISRA C compliance check
-
-# Full compliance audit
-/kln:deepInspect glm comprehensive MISRA and coding standards audit
+/kln:status
 ```
 
-### Background Reviews
+Shows:
+- 9 active commands
+- 12 LiteLLM models
+- Service health (LiteLLM proxy, Knowledge DB)
+
+### /kln:help
+
+Complete command reference.
 
 ```bash
-# Run in background while you continue working
-/kln:asyncDeepAudit security patterns
-
-# Check results later via AgentOutputTool
+/kln:help
 ```
 
-### Knowledge Operations
+## Common Flags
+
+| Flag | Description | Commands |
+|------|-------------|----------|
+| `--async, -a` | Run in background | All review commands |
+| `--model, -m` | Specific model | quick, deep, droid |
+| `--models, -n` | Model count or list | multi, rethink |
+| `--output, -o` | Output format (text/json) | quick, multi |
+| `--role` | Worker role | droid |
+| `--parallel` | Parallel execution | droid |
+
+## Model Discovery
+
+Models are auto-discovered from LiteLLM. Use substring matching:
 
 ```bash
-# Capture valuable finding
-GoodJob https://owasp.org/Top10/ focus on injection prevention
-
-# Save lesson learned
-SaveThis never trust user input - always validate and sanitize
-
-# Search for relevant knowledge
-FindKnowledge injection prevention patterns
+/kln:quick --model deepseek security   # Matches deepseek-v3-thinking
+/kln:quick --model qwen security       # Matches qwen3-coder
 ```
 
-## Specialist Droids (for /kln:droidExecute)
+Current models (12):
+- qwen3-coder
+- deepseek-v3-thinking, deepseek-r1
+- glm-4.6-thinking
+- kimi-k2, kimi-k2-thinking
+- minimax-m2
+- hermes-4-70b
+- llama-4-scout, llama-4-maverick
+- devstral-2
+- qwen3-235b
 
-| Droid | Expertise |
-|-------|-----------|
-| `orchestrator` | System architecture, task coordination, memory system |
-| `code-reviewer` | Code quality, OWASP Top 10, SOLID principles |
-| `security-auditor` | Vulnerabilities, auth flows, encryption |
-| `debugger` | Root cause analysis, error tracing |
-| `arm-cortex-expert` | ARM Cortex-M, DMA, ISRs, cache coherency, FreeRTOS |
-| `c-pro` | C99/C11, POSIX, memory management, MISRA |
-| `rust-expert` | Ownership, lifetimes, no_std embedded Rust |
-| `performance-engineer` | Profiling, optimization, benchmarks |
+## Hook-Triggered Keywords
 
-**Example usage:**
-```bash
-/kln:droidExecute qwen code-reviewer Check error handling in main.c
-/kln:droidExecute glm arm-cortex-expert Review ISR priorities
-/kln:droidExecute deepseek security-auditor Audit authentication flow
-/kln:droidExecute kimi rust-expert Check unsafe blocks
-```
+These keywords are detected by hooks:
 
-## Command Files
-
-Located at `~/.claude/commands/kln/`:
-
-```
-~/.claude/commands/kln/
-├── quickReview.md
-├── quickCompare.md
-├── quickConsult.md
-├── deepInspect.md
-├── deepAudit.md
-├── droid.md
-├── droidAudit.md
-├── droidExecute.md
-├── asyncQuickReview.md
-├── asyncQuickCompare.md
-├── asyncQuickConsult.md
-├── asyncDeepAudit.md
-├── asyncDroid.md
-├── asyncDroidAudit.md
-├── createReport.md
-├── asyncCreateReport.md
-├── models.md
-└── help.md
-```
-
-## Scripts Behind Commands
-
-| Command | Script |
+| Keyword | Action |
 |---------|--------|
-| quickReview | `~/.claude/scripts/quick-review.sh` |
-| quickCompare | `~/.claude/scripts/consensus-review.sh` |
-| quickConsult | `~/.claude/scripts/second-opinion.sh` |
-| deepInspect | `~/.claude/scripts/deep-review.sh` |
-| deepAudit | `~/.claude/scripts/parallel-deep-review.sh` |
-| droid | `~/.claude/scripts/droid-review.sh` |
-| droidAudit | `~/.claude/scripts/parallel-droid-review.sh` |
-| droidExecute | `~/.claude/scripts/droid-execute.sh` |
+| `healthcheck` | Check all LiteLLM models |
+| `GoodJob <url>` | Capture URL to knowledge DB |
+| `SaveThis <lesson>` | Direct save to knowledge DB |
+| `FindKnowledge <query>` | Search knowledge DB |
+
+## Migration from Old Commands
+
+| Old Command (removed) | New V3 Command |
+|----------------------|----------------|
+| `/kln:quickReview` | `/kln:quick` |
+| `/kln:asyncQuickReview` | `/kln:quick --async` |
+| `/kln:quickCompare` | `/kln:multi` |
+| `/kln:asyncQuickCompare` | `/kln:multi --async` |
+| `/kln:deepInspect` | `/kln:deep` |
+| `/kln:deepAudit` | `/kln:deep --models 3` |
+| `/kln:asyncDeepAudit` | `/kln:deep --models 3 --async` |
+| `/kln:droidAudit` | `/kln:droid --parallel` |
+| `/kln:droidExecute` | `/kln:droid --role <role>` |
+| `/kln:createReport` | `/kln:doc` |
+| `/kln:models` | `/kln:status` |
 
 ## Troubleshooting
 
 ### Command not found
 
 ```bash
-# Check command files exist
-ls ~/.claude/commands/kln/
+# Check symlinks
+ls -la ~/.claude/commands/kln/
 
-# Verify symlinks if using nano profile
-ls -la ~/.claude-nano/commands
+# Should show 9 files pointing to commands-kln-v3/
 ```
 
-### Review returns error
+### Model error
 
 ```bash
-# Check LiteLLM proxy
-curl http://localhost:4000/v1/models
+# Check LiteLLM health
+curl http://localhost:4000/health
 
-# Check specific model health
-curl -s http://localhost:4000/chat/completions \
-  -d '{"model": "qwen3-coder", "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5}'
+# Check specific model
+k-lean models --test
 ```
 
-### Async command not working
+### Async not working
 
-- Hooks must be configured in `~/.claude/settings.json`
-- Check hook files are executable
-- Verify hook scripts exist at expected paths
+- Verify hooks in `~/.claude/settings.json`
+- Check hook scripts are executable
+- Check `/tmp/claude-reviews/` for logs
