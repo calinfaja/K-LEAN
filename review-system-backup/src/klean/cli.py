@@ -179,24 +179,33 @@ def start_knowledge_server(wait: bool = True) -> bool:
         venv_python = VENV_DIR / "bin" / "python"
         python_cmd = str(venv_python) if venv_python.exists() else sys.executable
 
-        # Start server in background
-        subprocess.Popen(
-            [python_cmd, str(knowledge_script), "start"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True  # Detach from parent process
-        )
+        # Start server in background with log capture
+        ensure_klean_dirs()
+        log_file = LOGS_DIR / "knowledge-server.log"
+
+        with open(log_file, 'a') as log:
+            process = subprocess.Popen(
+                [python_cmd, str(knowledge_script), "start"],
+                stdout=log,
+                stderr=log,
+                start_new_session=True  # Detach from parent process
+            )
 
         if not wait:
             return True  # Started, but not confirmed
 
-        # Wait for socket to appear (max 30 seconds - index loading takes ~20s)
-        for _ in range(300):
+        # Quick check (5s) to catch immediate failures
+        # Index loading takes 20-40s, but we don't block forever
+        for _ in range(50):  # 5 seconds
             time.sleep(0.1)
             if check_knowledge_server():
                 return True
 
-        return False
+        # Process still running but socket not ready = OK, initializing
+        if process.poll() is None:
+            return True  # Started, will be ready soon
+
+        return False  # Process exited = real failure
     except Exception:
         return False
 
@@ -285,13 +294,20 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
                 )
                 pid_file.write_text(str(process.pid))
 
-            # Wait for proxy to be ready (LiteLLM takes ~10s to initialize)
-            for i in range(150):  # 15 seconds max
+            # Wait for proxy to be ready
+            # LiteLLM can take 15-30s on cold start, but we don't block forever
+            # Quick check (5s) to catch immediate failures, then trust it's starting
+            for i in range(50):  # 5 seconds quick check
                 time.sleep(0.1)
                 if check_litellm():
                     return True
 
-            return False
+            # Process is running but not yet responding - that's OK
+            # LiteLLM takes time to initialize, return success
+            if process.poll() is None:  # Process still running
+                return True  # Started, will be ready soon
+
+            return False  # Process exited = real failure
         else:
             # Run in foreground
             subprocess.run(["bash", str(start_script), str(port)])
@@ -457,8 +473,9 @@ def get_model_health() -> Dict[str, str]:
 @click.version_option(version=__version__, prog_name="k-lean")
 def main():
     """K-LEAN: Multi-model code review and knowledge capture system for Claude Code."""
-    # Auto-start knowledge server if not running
-    ensure_knowledge_server()
+    # Services are started explicitly via `k-lean start`
+    # Optional autostart can be configured in ~/.bashrc
+    pass
 
 
 @main.command()
@@ -958,8 +975,11 @@ def start(service: str, port: int):
     console.print("")
     if started:
         console.print(f"[green]Started {len(started)} service(s)[/green]")
+        if "Knowledge" in started:
+            console.print("[dim]Knowledge Server loads index in background (~20-40s)[/dim]")
     if failed:
         console.print(f"[red]Failed to start {len(failed)} service(s)[/red]")
+        console.print("[dim]Check logs: ~/.klean/logs/[/dim]")
 
 
 @main.command()
