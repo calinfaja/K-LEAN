@@ -4,8 +4,6 @@
 # Intercepts user prompts and dispatches to appropriate handlers
 #
 # Keywords handled:
-#   - healthcheck         → Run health check on all 6 models
-#   - GoodJob <url>       → Capture URL to knowledge DB
 #   - SaveThis <lesson>   → Save lesson learned directly (no AI eval)
 #   - SaveInfo <content>  → Smart save with AI relevance evaluation
 #   - FindKnowledge <q>   → Search knowledge DB
@@ -39,48 +37,6 @@ mkdir -p "$REVIEWS_DIR"
 
 # Session ID for output files
 SESSION_ID=$(date +%Y%m%d-%H%M%S)
-
-#------------------------------------------------------------------------------
-# HEALTHCHECK
-#------------------------------------------------------------------------------
-if echo "$USER_PROMPT" | grep -qi "^healthcheck$\|^health check$\|^health-check$"; then
-    echo "🏥 Running health check on all models..." >&2
-
-    if [ -x "$SCRIPTS_DIR/health-check.sh" ]; then
-        RESULT=$("$SCRIPTS_DIR/health-check.sh" 2>&1)
-
-        # Output as system message
-        echo "{\"systemMessage\": \"Health Check Results:\\n$RESULT\"}"
-        exit 0
-    else
-        echo "{\"systemMessage\": \"⚠️ health-check.sh not found at $SCRIPTS_DIR/health-check.sh\"}"
-        exit 0
-    fi
-fi
-
-#------------------------------------------------------------------------------
-# GOODJOB <url> [instructions]
-#------------------------------------------------------------------------------
-if echo "$USER_PROMPT" | grep -qi "^GoodJob "; then
-    # Extract URL and optional instructions
-    URL=$(echo "$USER_PROMPT" | sed -E 's/^GoodJob[[:space:]]+([^[:space:]]+).*/\1/i')
-    INSTRUCTIONS=$(echo "$USER_PROMPT" | sed -E 's/^GoodJob[[:space:]]+[^[:space:]]+[[:space:]]*(.*)/\1/i')
-
-    if [ -z "$URL" ] || [ "$URL" = "$USER_PROMPT" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: GoodJob <url> [instructions]\"}"
-        exit 0
-    fi
-
-    echo "📥 Capturing URL to knowledge DB: $URL" >&2
-
-    if [ -x "$SCRIPTS_DIR/goodjob-dispatch.sh" ]; then
-        RESULT=$("$SCRIPTS_DIR/goodjob-dispatch.sh" "$URL" "$INSTRUCTIONS" "$PROJECT_DIR" 2>&1)
-        echo "{\"systemMessage\": \"$RESULT\"}"
-    else
-        echo "{\"systemMessage\": \"⚠️ goodjob-dispatch.sh not found\"}"
-    fi
-    exit 0
-fi
 
 #------------------------------------------------------------------------------
 # SAVETHIS <lesson> [--type TYPE] [--tags TAGS] [--priority LEVEL]

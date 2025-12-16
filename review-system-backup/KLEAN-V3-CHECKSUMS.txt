@@ -1,0 +1,19 @@
+K-LEAN v3 Backup Verification
+==============================
+
+COMMAND FILES (8 files, 44K total)
+-----------------------------------
+1b91b39327c23bae003cfae616786b57  help.md
+42f369bba2cd5066ccc037b3e6f7dc92  deep.md
+9a17b6b9b578129e6c3f900623d13ed6  remember.md
+b78123e67118c4956eda00e1da4d1176  doc.md
+c31c0b8a5f3caf2c6efd3a0fe4d6cc02  status.md
+cebfcfde3cc8512f174312bdefeceb32  quick.md
+d6853db8a22362c9d2dff10ecc0caded  multi.md
+e21dd3b57ffe384345c17f39cf98606f  droid.md
+
+CORE FILES (3 files, 40K total)
+--------------------------------
+0e30a77cf54b8934656d3f3bcc006638  ./klean_core.py
+1bbb3a925a7439d591f7f379cc151e92  ./config.yaml
+9e38b63367250cba0716985e501b5359  ./prompts/review.md

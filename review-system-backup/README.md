@@ -2,7 +2,7 @@
 
 > Multi-Model Code Review & Knowledge Capture System for Claude Code
 
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-1.0.0--beta-blue.svg)](VERSION)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-yellow.svg)](https://python.org)
 
