@@ -1392,33 +1392,61 @@ def models(test: bool):
         console.print("\n[yellow]No models found[/yellow]")
         return
 
-    table = Table(title="Available Models")
-    table.add_column("Model ID", style="cyan")
-    table.add_column("Status", style="green")
-
     if test:
-        console.print("\n[dim]Testing models (uses tokens)...[/dim]")
-        health = get_model_health()
+        console.print("\n[dim]Testing models (5s timeout, uses tokens)...[/dim]")
+        import urllib.request
+
+        # Test each model and record latency
+        results = []  # [(model, latency_ms or None)]
         for model in models_list:
-            status = health.get(model, "UNKNOWN")
-            if status == "OK":
-                status_str = "[green]OK[/green]"
-            elif status == "FAIL":
-                status_str = "[red]FAIL[/red]"
-            elif status == "TIMEOUT":
-                status_str = "[yellow]TIMEOUT[/yellow]"
+            try:
+                start = time.time()
+                data = json.dumps({
+                    "model": model,
+                    "messages": [{"role": "user", "content": "1"}],
+                    "max_tokens": 1
+                }).encode()
+                req = urllib.request.Request(
+                    "http://localhost:4000/chat/completions",
+                    data=data,
+                    headers={"Content-Type": "application/json"}
+                )
+                urllib.request.urlopen(req, timeout=5)
+                latency = int((time.time() - start) * 1000)
+                results.append((model, latency))
+                console.print(f"  [green]✓[/green] {model}: {latency}ms")
+            except Exception:
+                results.append((model, None))
+                console.print(f"  [red]✗[/red] {model}: FAIL")
+
+        # Sort by latency (fastest first), failures last
+        results.sort(key=lambda x: (x[1] is None, x[1] if x[1] else 99999))
+
+        console.print()
+        table = Table(title="Models by Latency")
+        table.add_column("Model ID", style="cyan")
+        table.add_column("Latency", justify="right")
+
+        for model, latency in results:
+            if latency is not None:
+                table.add_row(model, f"[green]{latency}ms[/green]")
             else:
-                status_str = "[dim]UNKNOWN[/dim]"
-            table.add_row(model, status_str)
+                table.add_row(model, "[red]FAIL[/red]")
+
+        console.print(table)
+        ok_count = sum(1 for _, lat in results if lat is not None)
+        console.print(f"\n[bold]Total:[/bold] {ok_count}/{len(models_list)} models OK")
     else:
-        # Free listing - just show as available (from /models endpoint)
+        table = Table(title="Available Models")
+        table.add_column("Model ID", style="cyan")
+        table.add_column("Status", style="green")
+
         for model in models_list:
             table.add_row(model, "[green]available[/green]")
 
-    console.print(table)
-    console.print(f"\n[bold]Total:[/bold] {len(models_list)} models")
-    if not test:
-        console.print("[dim]Use --test to verify each model works (costs tokens)[/dim]")
+        console.print(table)
+        console.print(f"\n[bold]Total:[/bold] {len(models_list)} models")
+        console.print("[dim]Use --test to measure latency (costs tokens)[/dim]")
 
 
 @main.command()
