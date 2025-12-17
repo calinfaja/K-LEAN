@@ -203,6 +203,11 @@ def check_knowledge_db(workspace: dict) -> bool:
         sock.close()
         return True
     except Exception:
+        # Stale socket - clean it up
+        try:
+            os.unlink(socket_path)
+        except:
+            pass
         return False
 
 def get_services(data: dict) -> str:
