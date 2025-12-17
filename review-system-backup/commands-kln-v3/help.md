@@ -1,6 +1,6 @@
 ---
-title: K-LEAN v3 Help
-description: Comprehensive command reference for K-LEAN v3.0
+name: help
+description: "Command reference - all commands with examples"
 version: 3.0.0
 category: help
 tags: [commands, reference, guide]

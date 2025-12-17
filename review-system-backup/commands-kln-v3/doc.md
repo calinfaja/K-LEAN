@@ -1,6 +1,6 @@
 ---
 name: doc
-description: "Create and persist session documentation"
+description: "Documentation - create and save session notes"
 allowed-tools: Bash, Read, Write, mcp__serena__write_memory
 argument-hint: "[--type TYPE] <title>"
 ---

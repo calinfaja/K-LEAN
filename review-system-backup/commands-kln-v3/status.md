@@ -1,6 +1,6 @@
 ---
-name: /kln:status
-description: Check K-LEAN system status and health
+name: status
+description: "System status - models, health, services"
 allowed-tools: ["Bash", "Read", "Grep", "Glob"]
 argument-hint: "[models|health|help]"
 ---

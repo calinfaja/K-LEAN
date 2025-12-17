@@ -1,6 +1,6 @@
 ---
 name: quick
-description: "Fast single-model code review via LiteLLM API (~30s)"
+description: "Fast review - single model analysis (~30s)"
 allowed-tools: Bash, Read
 argument-hint: "[--model MODEL] [--async] <focus>"
 ---

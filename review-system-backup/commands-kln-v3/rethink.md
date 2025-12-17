@@ -1,6 +1,6 @@
 ---
 name: rethink
-description: "Fresh perspective on stuck debugging - contrarian ideas from LiteLLM models"
+description: "Fresh perspectives - alternative debugging approaches"
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: "[--models N|MODEL] [--async] [focus]"
 ---
