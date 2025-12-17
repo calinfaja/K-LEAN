@@ -1017,6 +1017,125 @@ def doctor(auto_fix: bool):
 
 
 @main.command()
+def test():
+    """Run comprehensive K-LEAN test suite.
+
+    Tests all components: scripts, commands, hooks, services, knowledge DB,
+    nano profile, and Factory droids.
+    """
+    print_banner()
+    console.print("\n[bold]K-LEAN Test Suite[/bold]\n")
+
+    passed = 0
+    failed = 0
+
+    def test_pass(msg: str):
+        nonlocal passed
+        console.print(f"  [green]✓[/green] {msg}")
+        passed += 1
+
+    def test_fail(msg: str):
+        nonlocal failed
+        console.print(f"  [red]✗[/red] {msg}")
+        failed += 1
+
+    # Test 1: Installation structure
+    console.print("[bold]1. Installation Structure[/bold]")
+    test_pass("~/.claude directory") if CLAUDE_DIR.exists() else test_fail("~/.claude missing")
+    test_pass("Scripts directory") if (CLAUDE_DIR / "scripts").exists() else test_fail("Scripts missing")
+    test_pass("Commands directory") if (CLAUDE_DIR / "commands").exists() else test_fail("Commands missing")
+    test_pass("CLAUDE.md") if (CLAUDE_DIR / "CLAUDE.md").exists() else test_fail("CLAUDE.md missing")
+
+    # Test 2: Scripts executable
+    console.print("\n[bold]2. Scripts Executable[/bold]")
+    key_scripts = ["quick-review.sh", "deep-review.sh", "klean-statusline.py", "kb-doctor.sh"]
+    scripts_dir = CLAUDE_DIR / "scripts"
+    for script in key_scripts:
+        script_path = scripts_dir / script
+        if script_path.exists() and os.access(script_path, os.X_OK):
+            test_pass(script)
+        else:
+            test_fail(f"{script} {'not found' if not script_path.exists() else 'not executable'}")
+
+    # Test 3: KLN Commands (V3)
+    console.print("\n[bold]3. V3 Commands[/bold]")
+    kln_commands = ["quick.md", "multi.md", "deep.md", "droid.md", "rethink.md",
+                    "remember.md", "status.md", "help.md", "doc.md"]
+    kln_dir = CLAUDE_DIR / "commands" / "kln"
+    for cmd in kln_commands:
+        test_pass(cmd) if (kln_dir / cmd).exists() else test_fail(f"{cmd} missing")
+
+    # Test 4: Hooks
+    console.print("\n[bold]4. Hooks[/bold]")
+    hooks = ["session-start.sh", "user-prompt-handler.sh", "post-bash-handler.sh"]
+    hooks_dir = CLAUDE_DIR / "hooks"
+    for hook in hooks:
+        hook_path = hooks_dir / hook
+        if hook_path.exists() and os.access(hook_path, os.X_OK):
+            test_pass(hook)
+        else:
+            test_fail(f"{hook} {'not found' if not hook_path.exists() else 'not executable'}")
+
+    # Test 5: LiteLLM
+    console.print("\n[bold]5. LiteLLM Service[/bold]")
+    litellm_status = check_litellm_detailed()
+    if litellm_status["running"]:
+        test_pass(f"LiteLLM running ({len(litellm_status['models'])} models)")
+    else:
+        test_fail("LiteLLM not running")
+
+    # Test 6: Knowledge DB
+    console.print("\n[bold]6. Knowledge System[/bold]")
+    if VENV_DIR.exists():
+        test_pass("Python venv exists")
+        pip = VENV_DIR / "bin" / "pip"
+        if pip.exists():
+            try:
+                # Use pip show instead of import (faster, no model loading)
+                result = subprocess.run([str(pip), "show", "txtai"],
+                                       capture_output=True, timeout=10)
+                if result.returncode == 0:
+                    test_pass("txtai installed")
+                else:
+                    test_fail("txtai not installed")
+            except Exception as e:
+                test_fail(f"txtai check failed: {e}")
+        else:
+            test_fail("pip not found in venv")
+    else:
+        test_fail("Python venv missing")
+
+    # Test 7: Nano Profile
+    console.print("\n[bold]7. Nano Profile[/bold]")
+    nano_dir = Path.home() / ".claude-nano"
+    if nano_dir.exists():
+        test_pass("Nano profile directory")
+        test_pass("settings.json") if (nano_dir / "settings.json").exists() else test_fail("settings.json missing")
+        test_pass("Commands symlink") if (nano_dir / "commands").is_symlink() else test_fail("Commands symlink missing")
+    else:
+        test_fail("Nano profile directory missing")
+
+    # Test 8: Factory Droids
+    console.print("\n[bold]8. Factory Droids[/bold]")
+    droids_dir = FACTORY_DIR / "droids"
+    if droids_dir.exists():
+        droid_count = len(list(droids_dir.glob("*.md")))
+        test_pass(f"{droid_count} droids installed") if droid_count >= 8 else test_fail(f"Only {droid_count}/8 droids")
+    else:
+        test_fail("Droids directory missing")
+
+    # Summary
+    console.print("\n" + "═" * 50)
+    total = passed + failed
+    if failed == 0:
+        console.print(f"[bold green]All {passed} tests passed![/bold green]")
+    else:
+        console.print(f"[bold]Results:[/bold] [green]{passed} passed[/green], [red]{failed} failed[/red]")
+
+    sys.exit(0 if failed == 0 else 1)
+
+
+@main.command()
 @click.option("--service", "-s",
               type=click.Choice(["all", "litellm", "knowledge"]),
               default="litellm", help="Service to start (default: litellm only)")
