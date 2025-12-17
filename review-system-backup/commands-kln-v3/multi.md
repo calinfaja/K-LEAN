@@ -1,6 +1,6 @@
 ---
 name: multi
-description: "Multi-model consensus review - parallel execution via SDK (~60s)"
+description: "Consensus review - 3-5 models in parallel (~60s)"
 allowed-tools: Bash, Read
 argument-hint: "[--models N|list] [--async] <focus>"
 ---

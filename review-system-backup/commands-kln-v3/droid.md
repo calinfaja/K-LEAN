@@ -1,6 +1,6 @@
 ---
 name: droid
-description: "Factory Droid - specialized role-based AI worker with tools"
+description: "Factory Droid - specialist agents (security, architect, performance, devops)"
 allowed-tools: Bash, Read, Grep, Glob, Task
 argument-hint: "[--role ROLE] [--model MODEL] [--parallel] <task>"
 ---

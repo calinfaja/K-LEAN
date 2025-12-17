@@ -1,6 +1,6 @@
 ---
 name: remember
-description: "End-of-session knowledge capture - comprehensive extraction and saving of session learnings"
+description: "Knowledge capture - save session insights before closing"
 allowed-tools: Bash, Read, Grep, mcp__serena__read_memory, mcp__serena__edit_memory
 argument-hint: "[optional focus area]"
 ---

@@ -1,6 +1,6 @@
 ---
 name: deep
-description: "Thorough review with full tool access via Claude SDK (~3min)"
+description: "Deep analysis - full codebase access (~3min)"
 allowed-tools: Bash, Read, Grep, Glob, Task
 argument-hint: "[--models N] [--async] <focus>"
 ---
