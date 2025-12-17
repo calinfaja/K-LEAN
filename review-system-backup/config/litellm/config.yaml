@@ -11,75 +11,75 @@ model_list:
   - model_name: qwen3-coder
     litellm_params:
       model: openai/qwen/qwen3-coder
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: devstral-2
     litellm_params:
       model: openai/mistralai/devstral-2-123b-instruct-2512
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   # Reasoning
   - model_name: deepseek-r1
     litellm_params:
       model: openai/deepseek-ai/DeepSeek-R1-0528
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: deepseek-v3-thinking
     litellm_params:
       model: openai/deepseek-ai/deepseek-v3.2-exp-thinking
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: glm-4.6-thinking
     litellm_params:
       model: openai/z-ai/glm-4.6:thinking
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   # Agents
   - model_name: kimi-k2
     litellm_params:
       model: openai/moonshotai/kimi-k2-instruct
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: kimi-k2-thinking
     litellm_params:
       model: openai/moonshotai/kimi-k2-thinking
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   # Speed
   - model_name: llama-4-scout
     litellm_params:
       model: openai/meta-llama/llama-4-scout
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: llama-4-maverick
     litellm_params:
       model: openai/meta-llama/llama-4-maverick
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   # Specialist
   - model_name: minimax-m2
     litellm_params:
       model: openai/MiniMax-M2
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: hermes-4-70b
     litellm_params:
       model: openai/nousresearch/hermes-4-70b
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
 
   - model_name: qwen3-235b
     litellm_params:
       model: openai/Qwen/Qwen3-235B-A22B-Instruct-2507
-      api_base: "os.environ/NANOGPT_API_BASE"
-      api_key: "os.environ/NANOGPT_API_KEY"
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY

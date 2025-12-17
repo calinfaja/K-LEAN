@@ -30,6 +30,14 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
+# Check for quoted os.environ (common mistake that breaks auth)
+if grep -q '"os.environ/' "$CONFIG_FILE" || grep -q "'os.environ/" "$CONFIG_FILE"; then
+    echo -e "${RED}❌ Config has quoted os.environ/ - this breaks authentication!${NC}"
+    echo "   Fix: Remove quotes around os.environ/... values"
+    echo "   Quick fix: sed -i 's/\"os.environ\\/\\([^\"]*\\)\"/os.environ\\/\\1/g' $CONFIG_FILE"
+    exit 1
+fi
+
 # Load environment variables from .env
 if [ -f "$ENV_FILE" ]; then
     echo "📦 Loading environment from $ENV_FILE"
