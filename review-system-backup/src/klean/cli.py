@@ -136,12 +136,34 @@ def check_command_exists(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
-def check_knowledge_server() -> bool:
-    """Check if knowledge server is running via socket."""
-    import socket as sock
-    socket_path = Path("/tmp/knowledge-server.sock")
+def get_project_socket_path(project_path: Path = None) -> Path:
+    """Get per-project socket path using same hash as knowledge-server.py."""
+    import hashlib
+    if project_path is None:
+        project_path = find_project_root()
+    if not project_path:
+        return None
+    path_str = str(project_path.resolve())
+    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
+    return Path(f"/tmp/kb-{hash_val}.sock")
 
-    if not socket_path.exists():
+
+def find_project_root(start_path: Path = None) -> Path:
+    """Find project root by walking up looking for .knowledge-db."""
+    current = (start_path or Path.cwd()).resolve()
+    while current != current.parent:
+        if (current / ".knowledge-db").exists():
+            return current
+        current = current.parent
+    return None
+
+
+def check_knowledge_server(project_path: Path = None) -> bool:
+    """Check if knowledge server is running for a project via socket."""
+    import socket as sock
+
+    socket_path = get_project_socket_path(project_path)
+    if not socket_path or not socket_path.exists():
         return False
 
     # Try to actually connect to verify it's alive
@@ -160,14 +182,53 @@ def check_knowledge_server() -> bool:
         return False
 
 
-def start_knowledge_server(wait: bool = True) -> bool:
-    """Start knowledge server in background if not running.
+def list_knowledge_servers() -> list:
+    """List all running knowledge servers."""
+    import socket as sock
+    import json
+
+    servers = []
+    for socket_file in Path("/tmp").glob("kb-*.sock"):
+        pid_file = socket_file.with_suffix(".pid")
+        if pid_file.exists():
+            try:
+                pid = int(pid_file.read_text().strip())
+                # Check if process is running
+                os.kill(pid, 0)
+                # Get project info via socket
+                client = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
+                client.settimeout(2)
+                client.connect(str(socket_file))
+                client.sendall(b'{"cmd":"status"}')
+                response = json.loads(client.recv(65536).decode())
+                client.close()
+                servers.append({
+                    "socket": str(socket_file),
+                    "pid": pid,
+                    "project": response.get("project", "unknown"),
+                    "entries": response.get("entries", 0),
+                    "idle": response.get("idle_seconds", 0)
+                })
+            except Exception:
+                pass
+    return servers
+
+
+def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool:
+    """Start knowledge server for a project in background if not running.
 
     Args:
-        wait: If True, wait up to 30s for server to start (loads index ~20s).
+        project_path: Project root (auto-detected from CWD if None)
+        wait: If True, wait up to 60s for server to start (loads index ~20s).
               If False, start in background and return immediately.
     """
-    if check_knowledge_server():
+    if project_path is None:
+        project_path = find_project_root()
+
+    if not project_path:
+        return False  # No project found
+
+    if check_knowledge_server(project_path):
         return True  # Already running
 
     try:
@@ -185,21 +246,23 @@ def start_knowledge_server(wait: bool = True) -> bool:
 
         with open(log_file, 'a') as log:
             process = subprocess.Popen(
-                [python_cmd, str(knowledge_script), "start"],
+                [python_cmd, str(knowledge_script), "start", str(project_path)],
                 stdout=log,
                 stderr=log,
+                cwd=str(project_path),
                 start_new_session=True  # Detach from parent process
             )
 
         if not wait:
             return True  # Started, but not confirmed
 
-        # Quick check (5s) to catch immediate failures
-        # Index loading takes 20-40s, but we don't block forever
-        for _ in range(50):  # 5 seconds
+        # Wait for socket (up to 60s for index loading)
+        socket_path = get_project_socket_path(project_path)
+        for _ in range(600):  # 60 seconds
             time.sleep(0.1)
-            if check_knowledge_server():
-                return True
+            if socket_path and socket_path.exists():
+                if check_knowledge_server(project_path):
+                    return True
 
         # Process still running but socket not ready = OK, initializing
         if process.poll() is None:
@@ -210,10 +273,10 @@ def start_knowledge_server(wait: bool = True) -> bool:
         return False
 
 
-def ensure_knowledge_server() -> None:
-    """Ensure knowledge server is running, start if needed (silent)."""
-    if not check_knowledge_server():
-        start_knowledge_server()
+def ensure_knowledge_server(project_path: Path = None) -> None:
+    """Ensure knowledge server is running for project, start if needed (silent)."""
+    if not check_knowledge_server(project_path):
+        start_knowledge_server(project_path)
 
 
 def ensure_klean_dirs() -> None:
