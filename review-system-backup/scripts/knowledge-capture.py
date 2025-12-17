@@ -203,15 +203,9 @@ Examples:
         init_result = get_knowledge_dir()
         knowledge_dir = init_result.path
 
-        # Show initialization messages (transparent per research)
-        if init_result.newly_created:
-            print(f"✨ Created .knowledge-db/ for this project")
-            print(f"   Tip: Knowledge persists per-project. See /kln:help")
-            print()
-
-        if init_result.server_started:
-            print(f"🚀 Started KB server [kb:✓]")
-            print()
+        # Silent init - only mention if both new dir AND server started
+        if init_result.newly_created and init_result.server_started:
+            print(f"[init: .knowledge-db + server]")
 
         # Create entry
         entry = create_entry(
