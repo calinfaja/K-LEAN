@@ -76,18 +76,20 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
         KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge-db"
         mkdir -p "$KNOWLEDGE_DIR"
 
-        ENTRY=$(cat <<EOF
-{
-  "title": "Lesson Learned",
-  "summary": "$LESSON",
-  "type": "lesson",
-  "source": "manual",
-  "found_date": "$(date -Iseconds)",
-  "relevance_score": 0.9,
-  "key_concepts": ["lesson"]
-}
-EOF
-)
+        # Build compact JSONL entry (single line, properly escaped)
+        ENTRY=$(jq -nc \
+            --arg title "Lesson Learned" \
+            --arg summary "$LESSON" \
+            --arg date "$(date -Iseconds)" \
+            '{
+                title: $title,
+                summary: $summary,
+                type: "lesson",
+                source: "manual",
+                found_date: $date,
+                relevance_score: 0.9,
+                key_concepts: ["lesson"]
+            }')
         echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
         echo "{\"systemMessage\": \"✅ Lesson saved (fallback mode)\"}"
     fi

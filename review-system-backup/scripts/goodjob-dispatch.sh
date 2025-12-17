@@ -79,17 +79,18 @@ elif echo "$PROMPT" | grep -qi "^savethis"; then
 
     echo "Saving lesson learned: $DESCRIPTION"
 
-    # For SaveThis, we create a lesson entry directly
-    JSON=$(cat <<EOF
-{
-    "title": "$(echo "$DESCRIPTION" | head -c 60)",
-    "summary": "$DESCRIPTION",
-    "type": "lesson",
-    "key_concepts": [],
-    "relevance_score": 0.8
-}
-EOF
-)
+    # For SaveThis, we create a lesson entry directly (compact JSON)
+    TITLE=$(echo "$DESCRIPTION" | head -c 60)
+    JSON=$(jq -nc \
+        --arg title "$TITLE" \
+        --arg summary "$DESCRIPTION" \
+        '{
+            title: $title,
+            summary: $summary,
+            type: "lesson",
+            key_concepts: [],
+            relevance_score: 0.8
+        }')
 else
     echo "ERROR: Unknown command. Use 'GoodJob <url>' or 'SaveThis <description>'"
     exit 1
