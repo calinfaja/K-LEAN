@@ -1,18 +1,22 @@
 #!/home/calin/.venvs/knowledge-db/bin/python
 """
-Knowledge Server - Persistent txtai daemon for fast searches
+Knowledge Server - Per-project txtai daemon for fast searches
 
+Each project gets its own server instance with dedicated socket.
 Eliminates cold start by keeping embeddings loaded in memory.
-Communicates via Unix socket for instant (~50ms) searches.
+Auto-shuts down after 1 hour of inactivity to free memory.
 
 Usage:
     Start server:  knowledge-server.py start [project_path]
-    Stop server:   knowledge-server.py stop
-    Status:        knowledge-server.py status
+    Stop server:   knowledge-server.py stop [project_path]
+    Status:        knowledge-server.py status [project_path]
+    List all:      knowledge-server.py list
 
-The server auto-detects project root and loads the knowledge-db index.
+Socket naming: /tmp/kb-{project_hash}.sock
+Each project has isolated index and server process.
 """
 
+import hashlib
 import json
 import os
 import signal
@@ -22,78 +26,87 @@ import threading
 import time
 from pathlib import Path
 
-# Socket configuration
-SOCKET_PATH = "/tmp/knowledge-server.sock"
-PID_FILE = "/tmp/knowledge-server.pid"
+# Configuration
+IDLE_TIMEOUT = 3600  # 1 hour in seconds
+SOCKET_DIR = "/tmp"
+
+
+def get_project_hash(project_path: Path) -> str:
+    """Generate short hash from project path for socket naming."""
+    path_str = str(project_path.resolve())
+    return hashlib.md5(path_str.encode()).hexdigest()[:8]
+
+
+def get_socket_path(project_path: Path) -> str:
+    """Get socket path for a project."""
+    return f"{SOCKET_DIR}/kb-{get_project_hash(project_path)}.sock"
+
+
+def get_pid_path(project_path: Path) -> str:
+    """Get PID file path for a project."""
+    return f"{SOCKET_DIR}/kb-{get_project_hash(project_path)}.pid"
 
 
 def find_project_root(start_path=None):
-    """Find project root by looking for knowledge-db markers.
+    """Find project root by walking up looking for .knowledge-db.
 
-    Search order:
-    1. Walk up from start_path looking for .knowledge-db/index
-    2. Walk up from start_path looking for .knowledge-db (without index)
-    3. Search common project locations for .knowledge-db/index
-    4. Walk up looking for .serena or .claude markers (fallback)
+    Returns the first directory containing .knowledge-db, or None.
     """
     current = Path(start_path or os.getcwd()).resolve()
 
-    # First pass: look for .knowledge-db with actual index
-    check = current
-    while check != check.parent:
-        index_path = check / ".knowledge-db" / "index"
-        if index_path.exists():
-            return check
-        check = check.parent
-
-    # Second pass: look for .knowledge-db without index
-    check = current
-    while check != check.parent:
-        if (check / ".knowledge-db").exists():
-            return check
-        check = check.parent
-
-    # Third: search common project directories for .knowledge-db/index
-    home = Path.home()
-    common_locations = [
-        home / "claudeAgentic",
-        home / "projects",
-        home / "code",
-        home / "dev",
-        home / "src",
-        home / "work",
-    ]
-
-    for loc in common_locations:
-        if loc.exists():
-            index_path = loc / ".knowledge-db" / "index"
-            if index_path.exists():
-                return loc
-
-    # Final fallback: .serena or .claude markers
-    check = current
-    while check != check.parent:
-        if (check / ".serena").exists():
-            return check
-        if (check / ".claude").exists():
-            return check
-        check = check.parent
+    while current != current.parent:
+        if (current / ".knowledge-db").exists():
+            return current
+        current = current.parent
 
     return None
+
+
+def list_running_servers():
+    """List all running knowledge servers."""
+    servers = []
+    for f in Path(SOCKET_DIR).glob("kb-*.sock"):
+        pid_file = f.with_suffix(".pid")
+        if pid_file.exists():
+            try:
+                with open(pid_file) as pf:
+                    pid = int(pf.read().strip())
+                # Check if process is running
+                os.kill(pid, 0)
+                # Get project info via socket
+                info = send_command_to_socket(str(f), {"cmd": "status"})
+                if info and "project" in info:
+                    servers.append({
+                        "socket": str(f),
+                        "pid": pid,
+                        "project": info.get("project", "unknown"),
+                        "load_time": info.get("load_time", 0)
+                    })
+            except (ProcessLookupError, ValueError, FileNotFoundError):
+                # Stale socket/pid, clean up
+                try:
+                    f.unlink()
+                    pid_file.unlink()
+                except:
+                    pass
+    return servers
 
 
 class KnowledgeServer:
     def __init__(self, project_path=None):
         self.project_root = find_project_root(project_path)
+        if not self.project_root:
+            raise ValueError(f"No .knowledge-db found from {project_path or os.getcwd()}")
+
+        self.socket_path = get_socket_path(self.project_root)
+        self.pid_path = get_pid_path(self.project_root)
         self.embeddings = None
         self.running = False
         self.load_time = 0
+        self.last_activity = time.time()
 
     def load_index(self):
         """Load txtai embeddings index."""
-        if not self.project_root:
-            return False
-
         index_path = self.project_root / ".knowledge-db" / "index"
         if not index_path.exists():
             return False
@@ -108,11 +121,13 @@ class KnowledgeServer:
         self.embeddings.load(str(index_path))
 
         self.load_time = time.time() - start
-        print(f"Index loaded in {self.load_time:.2f}s")
+        print(f"Index loaded in {self.load_time:.2f}s ({self.embeddings.count()} entries)")
         return True
 
     def search(self, query, limit=5):
         """Perform semantic search."""
+        self.last_activity = time.time()
+
         if not self.embeddings:
             return {"error": "No index loaded"}
 
@@ -120,13 +135,12 @@ class KnowledgeServer:
         results = self.embeddings.search(query, limit)
         search_time = time.time() - start
 
-        # Format results - txtai returns list of dicts with 'score' already included
+        # Format results
         formatted = []
         for item in results:
             if isinstance(item, dict):
                 formatted.append(item)
             elif isinstance(item, (list, tuple)) and len(item) >= 2:
-                # Legacy format: (score, data)
                 score, data = item[0], item[1]
                 if isinstance(data, dict):
                     data["score"] = score
@@ -144,6 +158,7 @@ class KnowledgeServer:
 
     def handle_client(self, conn):
         """Handle a client connection."""
+        self.last_activity = time.time()
         try:
             data = conn.recv(4096).decode('utf-8')
             if not data:
@@ -157,14 +172,17 @@ class KnowledgeServer:
                 limit = request.get("limit", 5)
                 response = self.search(query, limit)
             elif cmd == "status":
+                idle_time = time.time() - self.last_activity
                 response = {
                     "status": "running",
                     "project": str(self.project_root),
                     "load_time": self.load_time,
-                    "index_loaded": self.embeddings is not None
+                    "index_loaded": self.embeddings is not None,
+                    "idle_seconds": int(idle_time),
+                    "entries": self.embeddings.count() if self.embeddings else 0
                 }
             elif cmd == "ping":
-                response = {"pong": True}
+                response = {"pong": True, "project": str(self.project_root)}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 
@@ -177,30 +195,40 @@ class KnowledgeServer:
         finally:
             conn.close()
 
+    def check_idle_timeout(self):
+        """Check if server should shut down due to inactivity."""
+        idle_time = time.time() - self.last_activity
+        if idle_time > IDLE_TIMEOUT:
+            print(f"\nIdle timeout ({IDLE_TIMEOUT}s) reached. Shutting down...")
+            return True
+        return False
+
     def start(self):
         """Start the server."""
-        # Clean up old socket
-        if os.path.exists(SOCKET_PATH):
-            os.unlink(SOCKET_PATH)
+        # Clean up old socket if exists
+        if os.path.exists(self.socket_path):
+            os.unlink(self.socket_path)
 
-        # Load index (optional - server works without, returns "no index" for queries)
+        # Load index
         if not self.load_index():
-            print("WARNING: No knowledge-db index found in current project")
-            print("   Server will start but queries will return 'no index'")
-            print("   To create index: k-lean install --component knowledge")
+            print("ERROR: No index found in .knowledge-db/index")
+            print("  Create index first with: knowledge_db.py rebuild")
+            sys.exit(1)
 
         # Create socket
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server.bind(SOCKET_PATH)
+        server.bind(self.socket_path)
         server.listen(5)
-        os.chmod(SOCKET_PATH, 0o666)
+        os.chmod(self.socket_path, 0o666)
 
         # Write PID file
-        with open(PID_FILE, 'w') as f:
+        with open(self.pid_path, 'w') as f:
             f.write(str(os.getpid()))
 
-        print(f"Knowledge server started on {SOCKET_PATH}")
-        print(f"Project: {self.project_root or 'none (no index)'}")
+        print(f"Knowledge server started")
+        print(f"  Socket:  {self.socket_path}")
+        print(f"  Project: {self.project_root}")
+        print(f"  Timeout: {IDLE_TIMEOUT}s idle")
         print("Ready for queries (Ctrl+C to stop)")
 
         self.running = True
@@ -208,36 +236,41 @@ class KnowledgeServer:
         def signal_handler(sig, frame):
             print("\nShutting down...")
             self.running = False
-            server.close()
-            if os.path.exists(SOCKET_PATH):
-                os.unlink(SOCKET_PATH)
-            if os.path.exists(PID_FILE):
-                os.unlink(PID_FILE)
-            sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
         while self.running:
             try:
-                server.settimeout(1.0)
+                server.settimeout(60.0)  # Check idle every minute
                 conn, _ = server.accept()
                 threading.Thread(target=self.handle_client, args=(conn,)).start()
             except socket.timeout:
+                if self.check_idle_timeout():
+                    break
                 continue
             except Exception as e:
                 if self.running:
                     print(f"Error: {e}")
 
+        # Cleanup
+        server.close()
+        if os.path.exists(self.socket_path):
+            os.unlink(self.socket_path)
+        if os.path.exists(self.pid_path):
+            os.unlink(self.pid_path)
+        print("Server stopped")
 
-def send_command(cmd_data):
-    """Send command to running server."""
-    if not os.path.exists(SOCKET_PATH):
+
+def send_command_to_socket(socket_path: str, cmd_data: dict):
+    """Send command to a specific socket."""
+    if not os.path.exists(socket_path):
         return None
 
     try:
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        client.connect(SOCKET_PATH)
+        client.settimeout(5.0)
+        client.connect(socket_path)
         client.sendall(json.dumps(cmd_data).encode('utf-8'))
         response = client.recv(65536).decode('utf-8')
         client.close()
@@ -246,51 +279,117 @@ def send_command(cmd_data):
         return {"error": str(e)}
 
 
+def send_command(project_path, cmd_data):
+    """Send command to the server for a project."""
+    socket_path = get_socket_path(project_path)
+    return send_command_to_socket(socket_path, cmd_data)
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: knowledge-server.py [start|stop|status|search <query>]")
+        print("Usage: knowledge-server.py [start|stop|status|list|search <query>] [project_path]")
+        print("\nPer-project knowledge server. Each project gets its own server.")
+        print("\nCommands:")
+        print("  start [path]    Start server for project (auto-detects from CWD)")
+        print("  stop [path]     Stop server for project")
+        print("  status [path]   Show server status for project")
+        print("  list            List all running servers")
+        print("  search <query>  Search in current project's knowledge DB")
         sys.exit(1)
 
     cmd = sys.argv[1]
 
+    if cmd == "list":
+        servers = list_running_servers()
+        if servers:
+            print(f"Running knowledge servers ({len(servers)}):\n")
+            for s in servers:
+                print(f"  {s['project']}")
+                print(f"    PID: {s['pid']}, Load: {s['load_time']:.1f}s")
+                print(f"    Socket: {s['socket']}\n")
+        else:
+            print("No knowledge servers running")
+        return
+
+    # Commands that need a project
+    project_path = sys.argv[2] if len(sys.argv) > 2 else None
+    project_root = find_project_root(project_path)
+
     if cmd == "start":
-        project_path = sys.argv[2] if len(sys.argv) > 2 else None
+        if not project_root:
+            print("ERROR: No .knowledge-db found")
+            print("  Run from a project directory or specify path")
+            sys.exit(1)
+
+        # Check if already running
+        socket_path = get_socket_path(project_root)
+        if os.path.exists(socket_path):
+            result = send_command(project_root, {"cmd": "ping"})
+            if result and result.get("pong"):
+                print(f"Server already running for {project_root}")
+                return
+
         server = KnowledgeServer(project_path)
         server.start()
 
     elif cmd == "stop":
-        if os.path.exists(PID_FILE):
-            with open(PID_FILE) as f:
+        if not project_root:
+            print("ERROR: No .knowledge-db found")
+            sys.exit(1)
+
+        pid_path = get_pid_path(project_root)
+        socket_path = get_socket_path(project_root)
+
+        if os.path.exists(pid_path):
+            with open(pid_path) as f:
                 pid = int(f.read().strip())
             try:
                 os.kill(pid, signal.SIGTERM)
-                print(f"Stopped server (PID {pid})")
+                print(f"Stopped server for {project_root} (PID {pid})")
             except ProcessLookupError:
                 print("Server not running")
-            if os.path.exists(PID_FILE):
-                os.unlink(PID_FILE)
-            if os.path.exists(SOCKET_PATH):
-                os.unlink(SOCKET_PATH)
+            # Cleanup
+            for p in [pid_path, socket_path]:
+                if os.path.exists(p):
+                    os.unlink(p)
         else:
-            print("Server not running")
+            print(f"No server running for {project_root}")
 
     elif cmd == "status":
-        result = send_command({"cmd": "status"})
+        if not project_root:
+            # Show all servers
+            servers = list_running_servers()
+            if servers:
+                print(f"Running servers: {len(servers)}")
+                for s in servers:
+                    print(f"  - {s['project']}")
+            else:
+                print("No servers running")
+            return
+
+        result = send_command(project_root, {"cmd": "status"})
         if result and "error" not in result:
             print(f"Status: {result.get('status', 'unknown')}")
             print(f"Project: {result.get('project', 'none')}")
+            print(f"Entries: {result.get('entries', 0)}")
             print(f"Load time: {result.get('load_time', 0):.2f}s")
+            print(f"Idle: {result.get('idle_seconds', 0)}s")
         else:
-            print("Server not running")
+            print(f"Server not running for {project_root}")
 
     elif cmd == "search":
         if len(sys.argv) < 3:
             print("Usage: knowledge-server.py search <query> [limit]")
             sys.exit(1)
+
+        if not project_root:
+            print("ERROR: No .knowledge-db found")
+            sys.exit(1)
+
         query = sys.argv[2]
         limit = int(sys.argv[3]) if len(sys.argv) > 3 else 5
 
-        result = send_command({"cmd": "search", "query": query, "limit": limit})
+        result = send_command(project_root, {"cmd": "search", "query": query, "limit": limit})
         if result:
             if "error" in result:
                 print(f"Error: {result['error']}")
@@ -301,12 +400,16 @@ def main():
                     title = r.get("title", r.get("id", "?"))
                     print(f"  [{score:.2f}] {title}")
         else:
-            print("Server not running. Start with: knowledge-server.py start")
+            print(f"Server not running for {project_root}")
+            print("Start with: knowledge-server.py start")
 
     elif cmd == "ping":
-        result = send_command({"cmd": "ping"})
+        if not project_root:
+            print("No project found")
+            sys.exit(1)
+        result = send_command(project_root, {"cmd": "ping"})
         if result and result.get("pong"):
-            print("Server is running")
+            print(f"Server running for {result.get('project', project_root)}")
         else:
             print("Server not running")
     else:

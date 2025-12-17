@@ -155,33 +155,31 @@ install_knowledge() {
     log_success "Knowledge database system ready"
 }
 
-# Setup knowledge server auto-start
+# Cleanup old knowledge server auto-start (no longer needed)
+# Per-project servers now auto-start on first query
 install_knowledge_server_autostart() {
-    log_info "Setting up knowledge server auto-start..."
+    log_info "Configuring knowledge server (per-project mode)..."
 
     local bashrc="${HOME}/.bashrc"
-    local marker="# K-LEAN Knowledge Server Auto-Start"
+    local old_marker="# K-LEAN Knowledge Server Auto-Start"
 
-    # Check if already installed
-    if grep -q "$marker" "$bashrc" 2>/dev/null; then
-        log_info "Knowledge server auto-start already configured"
-        return 0
+    # Remove old global auto-start if present (replaced by per-project auto-start)
+    if grep -q "$old_marker" "$bashrc" 2>/dev/null; then
+        log_info "Removing old global auto-start (replaced by per-project mode)..."
+        # Create backup
+        cp "$bashrc" "${bashrc}.bak"
+        # Remove the old auto-start block (marker + 5 lines)
+        sed -i "/$old_marker/,+5d" "$bashrc"
+        log_success "Old auto-start removed from ~/.bashrc"
     fi
 
-    # Add auto-start to bashrc
-    cat >> "$bashrc" << 'EOF'
-
-# K-LEAN Knowledge Server Auto-Start
-# Keeps txtai embeddings in memory for fast searches (~30ms vs ~17s)
-if [ ! -S /tmp/knowledge-server.sock ]; then
-    if [ -f ~/.claude/scripts/knowledge-server.py ]; then
-        (cd ~ && nohup ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-server.py start > /tmp/knowledge-server.log 2>&1 &)
+    # Clean up old global socket if exists
+    if [ -S /tmp/knowledge-server.sock ]; then
+        rm -f /tmp/knowledge-server.sock /tmp/knowledge-server.pid 2>/dev/null
+        log_info "Cleaned up old global socket"
     fi
-fi
-EOF
 
-    log_success "Knowledge server auto-start added to ~/.bashrc"
-    log_info "Server will start on next terminal open"
+    log_success "Knowledge server configured (per-project auto-start on first query)"
 }
 
 # Install LiteLLM configuration (modular approach with .env)
