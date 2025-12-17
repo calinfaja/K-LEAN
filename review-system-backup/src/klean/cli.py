@@ -937,8 +937,38 @@ def doctor(auto_fix: bool):
 
     # Check LiteLLM config
     if CONFIG_DIR.exists():
-        if not (CONFIG_DIR / "config.yaml").exists():
+        config_yaml = CONFIG_DIR / "config.yaml"
+        if not config_yaml.exists():
             issues.append(("INFO", "LiteLLM config.yaml not found - run setup-litellm.sh"))
+        else:
+            # Check for common config errors
+            try:
+                config_content = config_yaml.read_text()
+
+                # Check for quoted os.environ (common mistake that breaks auth)
+                if '"os.environ/' in config_content or "'os.environ/" in config_content:
+                    issues.append(("ERROR", "LiteLLM config has quoted os.environ/ - remove quotes!"))
+                    console.print("  [red]✗[/red] LiteLLM config: Quoted os.environ/ found")
+                    console.print("    [dim]This breaks env var substitution. Edit ~/.config/litellm/config.yaml[/dim]")
+                    console.print("    [dim]Change: api_key: \"os.environ/KEY\" → api_key: os.environ/KEY[/dim]")
+                    if auto_fix:
+                        # Auto-fix by removing quotes around os.environ
+                        import re
+                        fixed = re.sub(r'["\']os\.environ/([^"\']+)["\']', r'os.environ/\1', config_content)
+                        config_yaml.write_text(fixed)
+                        console.print("    [green]✓ Auto-fixed: Removed quotes from os.environ[/green]")
+                        fixes_applied.append("Fixed quoted os.environ in LiteLLM config")
+
+                # Check for hardcoded API keys (security risk)
+                import re
+                # Match patterns like api_key: sk-xxx or api_key: "sk-xxx"
+                hardcoded_keys = re.findall(r'api_key:\s*["\']?(sk-[a-zA-Z0-9]{10,}|[a-zA-Z0-9]{32,})["\']?', config_content)
+                if hardcoded_keys:
+                    issues.append(("CRITICAL", "LiteLLM config has hardcoded API keys! Use os.environ/VAR"))
+                    console.print("  [red]✗[/red] LiteLLM config: Hardcoded API keys detected!")
+                    console.print("    [dim]Never commit API keys. Use: api_key: os.environ/NANOGPT_API_KEY[/dim]")
+            except Exception as e:
+                console.print(f"  [yellow]○[/yellow] Could not validate LiteLLM config: {e}")
 
     # Check Python venv
     if VENV_DIR.exists():
