@@ -98,6 +98,26 @@ k-lean debug        # Monitoring dashboard
 - LiteLLM (`pipx install litellm`)
 - NanoGPT API key (or OpenRouter)
 
+## MCP Servers (Optional)
+
+K-LEAN works with these MCP servers. Install via `claude mcp add`:
+
+```bash
+# Context7 - Documentation lookup (Recommended)
+claude mcp add context7 -- npx -y @upstash/context7-mcp
+
+# Sequential Thinking - Multi-step reasoning (Recommended)
+claude mcp add sequential-thinking -- npx -y @anthropics/mcp-server-sequential-thinking
+
+# Tavily - Web search (requires API key)
+claude mcp add tavily --env TAVILY_API_KEY=your-key -- npx -y @tavily/mcp
+
+# Serena - Semantic code understanding (Python-based)
+# See: https://github.com/oraios/serena
+```
+
+Check installed: `claude mcp list`
+
 ## Changelog
 
 ### v1.0.0-beta (2025-12-16)
