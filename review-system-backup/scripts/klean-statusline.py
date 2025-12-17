@@ -165,9 +165,35 @@ def check_litellm() -> tuple[int, bool]:
     except Exception:
         return 0, False
 
-def check_knowledge_db() -> bool:
-    """Check if knowledge DB server is running."""
-    socket_path = "/tmp/knowledge-server.sock"
+def find_project_root(start_dir: str) -> str | None:
+    """Find project root by walking up looking for .knowledge-db."""
+    current = Path(start_dir)
+    while current != current.parent:
+        if (current / ".knowledge-db").is_dir():
+            return str(current)
+        current = current.parent
+    return None
+
+def get_project_socket_path(project_path: str) -> str:
+    """Get per-project socket path using same hash as knowledge-server.py."""
+    import hashlib
+    path_str = str(Path(project_path).resolve())
+    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
+    return f"/tmp/kb-{hash_val}.sock"
+
+def check_knowledge_db(workspace: dict) -> bool:
+    """Check if per-project knowledge DB server is running."""
+    # Get project directory from workspace data
+    project_dir = workspace.get("project_dir", os.getcwd())
+
+    # Find actual project root (might be different from project_dir)
+    project_root = find_project_root(project_dir)
+    if not project_root:
+        return False  # No .knowledge-db found
+
+    # Get per-project socket path
+    socket_path = get_project_socket_path(project_root)
+
     if not os.path.exists(socket_path):
         return False
     try:
@@ -179,10 +205,11 @@ def check_knowledge_db() -> bool:
     except Exception:
         return False
 
-def get_services() -> str:
+def get_services(data: dict) -> str:
     """Get K-LEAN services status."""
     llm_count, llm_running = check_litellm()
-    kb_running = check_knowledge_db()
+    workspace = data.get("workspace", {})
+    kb_running = check_knowledge_db(workspace)
 
     if llm_running and llm_count >= 1:
         llm = f"{C.GREEN}{llm_count}{C.RESET}"
@@ -207,7 +234,7 @@ def main():
     model = get_model(data)
     project = get_project(data)
     git = get_git(data)
-    services = get_services()
+    services = get_services(data)
 
     # Assemble: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓
     line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}"
