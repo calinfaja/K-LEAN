@@ -1,6 +1,6 @@
-# Claude Agentic Workflow
+# K-LEAN v3.0
 
-A multi-tier code review and semantic knowledge system for Claude Code with LiteLLM routing to local models.
+Knowledge-driven Lightweight Execution & Analysis Network for Claude Code.
 
 ## Overview
 
@@ -9,20 +9,18 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 │  Claude (Native) ─── Primary coding agent                               │
 │       │                                                                 │
 │       ├── Hooks (UserPromptSubmit, PostToolUse)                        │
-│       │       ├── Trigger async reviews, health checks                 │
-│       │       ├── Capture knowledge (GoodJob, SaveThis)                │
+│       │       ├── SaveThis, FindKnowledge, healthcheck                 │
 │       │       └── Auto-capture web research                            │
 │       │                                                                 │
-│       ├── LiteLLM Proxy (localhost:4000)                               │
-│       │       ├── coding-qwen (Qwen 3 Coder)                           │
-│       │       ├── architecture-deepseek (DeepSeek V3)                  │
-│       │       ├── tools-glm (GLM 4.6)                                  │
-│       │       ├── research-minimax (MiniMax M2)                        │
-│       │       ├── agent-kimi (Kimi K2)                                 │
-│       │       └── scripting-hermes (Hermes 4)                          │
+│       ├── LiteLLM Proxy (localhost:4000) - 12 NanoGPT models           │
+│       │       ├── qwen3-coder, devstral-2 (coding)                     │
+│       │       ├── deepseek-r1, deepseek-v3-thinking (reasoning)        │
+│       │       ├── glm-4.6-thinking, kimi-k2-thinking (analysis)        │
+│       │       ├── llama-4-scout, llama-4-maverick (speed)              │
+│       │       └── minimax-m2, hermes-4-70b, qwen3-235b                 │
 │       │                                                                 │
-│       ├── Knowledge DB (txtai + SQLite)                                │
-│       │       └── Per-project semantic search                          │
+│       ├── Knowledge DB (txtai + per-project server)                    │
+│       │       └── Auto-initializes on first SaveThis                   │
 │       │                                                                 │
 │       └── Serena MCP (project docs, memories)                          │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -30,26 +28,31 @@ A multi-tier code review and semantic knowledge system for Claude Code with Lite
 
 ## Features
 
-### Multi-Model Code Review
-- **6 Models**: qwen, deepseek, glm, minimax, kimi, hermes via NanoGPT
-- **3-Tier Reviews**: Quick -> Second Opinion -> Deep Review
-- **Consensus Reviews**: 3 models in parallel, compare findings
-- **Async Execution**: Run reviews in background via hooks
+### V3 Commands
+| Command | Description |
+|---------|-------------|
+| `/kln:quick <focus>` | Fast single-model review (~30s) |
+| `/kln:multi <focus>` | Multi-model consensus (~60s) |
+| `/kln:deep <focus>` | Deep analysis with tools (~3min) |
+| `/kln:droid <task>` | Factory Droid specialists |
+| `/kln:rethink <focus>` | Fresh debugging perspectives |
+| `/kln:doc <title>` | Create session documentation |
+| `/kln:remember` | End-of-session knowledge capture |
+| `/kln:status` | System health and models |
+| `/kln:help` | Command reference |
 
 ### Semantic Knowledge System
 - **Per-project knowledge database** using txtai
-- **Manual capture**: `GoodJob <url>`, `SaveThis <lesson>`
-- **Auto-capture**: PostToolUse hooks on WebFetch/WebSearch
-- **Automatic fact generation**: Extract patterns from reviews and commits using native Haiku
+- **Auto-initializes** on first `SaveThis` command
+- **Manual capture**: `SaveThis <lesson>`
 - **Semantic search**: `FindKnowledge <query>`
-- **Headless integration**: Review scripts inject relevant prior knowledge
-- **TOON Integration**: Token-Oriented Object Notation format for 2-10% token reduction on extractions
+- **Per-project server**: Fast queries via Unix socket
 
 ### Infrastructure
-- **Health check + fallback**: Auto-routes to healthy models
-- **Session folders**: Each Claude instance gets its own output folder
-- **Sync verification**: Check scripts/commands/config against backup
+- **12 NanoGPT models** via LiteLLM proxy
+- **K-LEAN CLI**: `k-lean status`, `k-lean doctor -f`, `k-lean test`
 - **Profile system**: Run native and nano modes simultaneously
+- **Config validation**: Prevents common LiteLLM config errors
 
 ## Profile System
 
@@ -115,21 +118,22 @@ Or reconfigure anytime:
 ## Quick Start
 
 ```bash
-# Check all models
+# Check system health
+k-lean status
 healthcheck
 
 # Run code review
-/kln:quickReview qwen security vulnerabilities
+/kln:quick security vulnerabilities
+/kln:multi --models 3 architecture
 
 # Capture knowledge
-GoodJob https://example.com/docs focus on authentication
-SaveThis learned that connection pooling improves performance 10x
+SaveThis "Connection pooling improves performance 10x"
 
 # Search knowledge
 FindKnowledge authentication patterns
 
-# Run async deep review
-asyncDeepReview security audit
+# Deep analysis
+/kln:deep security audit
 ```
 
 ## Documentation
@@ -169,8 +173,8 @@ asyncDeepReview security audit
 ~/.claude/                          # Native profile (default)
 ├── scripts/                        # All executable scripts
 ├── commands/
-│   ├── sc/                         # SuperClaude commands (31)
-│   └── kln/                        # Custom review commands (13)
+│   ├── sc/                         # SuperClaude commands
+│   └── kln/                        # K-LEAN V3 commands (9)
 ├── hooks/                          # Event hooks
 ├── settings.json                   # Native API configuration
 └── CLAUDE.md                       # System instructions
