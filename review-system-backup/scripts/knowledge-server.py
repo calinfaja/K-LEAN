@@ -28,16 +28,57 @@ PID_FILE = "/tmp/knowledge-server.pid"
 
 
 def find_project_root(start_path=None):
-    """Find project root by looking for knowledge-db markers."""
+    """Find project root by looking for knowledge-db markers.
+
+    Search order:
+    1. Walk up from start_path looking for .knowledge-db/index
+    2. Walk up from start_path looking for .knowledge-db (without index)
+    3. Search common project locations for .knowledge-db/index
+    4. Walk up looking for .serena or .claude markers (fallback)
+    """
     current = Path(start_path or os.getcwd()).resolve()
-    while current != current.parent:
-        if (current / ".knowledge-db").exists():
-            return current
-        if (current / ".serena").exists():
-            return current
-        if (current / ".claude").exists():
-            return current
-        current = current.parent
+
+    # First pass: look for .knowledge-db with actual index
+    check = current
+    while check != check.parent:
+        index_path = check / ".knowledge-db" / "index"
+        if index_path.exists():
+            return check
+        check = check.parent
+
+    # Second pass: look for .knowledge-db without index
+    check = current
+    while check != check.parent:
+        if (check / ".knowledge-db").exists():
+            return check
+        check = check.parent
+
+    # Third: search common project directories for .knowledge-db/index
+    home = Path.home()
+    common_locations = [
+        home / "claudeAgentic",
+        home / "projects",
+        home / "code",
+        home / "dev",
+        home / "src",
+        home / "work",
+    ]
+
+    for loc in common_locations:
+        if loc.exists():
+            index_path = loc / ".knowledge-db" / "index"
+            if index_path.exists():
+                return loc
+
+    # Final fallback: .serena or .claude markers
+    check = current
+    while check != check.parent:
+        if (check / ".serena").exists():
+            return check
+        if (check / ".claude").exists():
+            return check
+        check = check.parent
+
     return None
 
 
