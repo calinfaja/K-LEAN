@@ -406,48 +406,68 @@ def stop_litellm() -> bool:
         return False
 
 
-def stop_knowledge_server() -> bool:
-    """Stop knowledge server."""
-    socket_path = Path("/tmp/knowledge-server.sock")
+def stop_knowledge_server(project_path: Path = None, stop_all: bool = False) -> bool:
+    """Stop knowledge server(s).
 
-    # If not running, nothing to do
-    if not socket_path.exists():
+    Args:
+        project_path: Stop server for specific project (auto-detect from CWD if None)
+        stop_all: If True, stop ALL running knowledge servers
+    """
+    knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
+    if not knowledge_script.exists():
+        return False
+
+    venv_python = VENV_DIR / "bin" / "python"
+    python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+
+    if stop_all:
+        # Stop all running servers
+        servers = list_knowledge_servers()
+        if not servers:
+            return True  # Nothing to stop
+
+        for server in servers:
+            try:
+                os.kill(server["pid"], signal.SIGTERM)
+            except Exception:
+                pass
+
+        # Clean up all sockets
+        for socket_file in Path("/tmp").glob("kb-*.sock"):
+            try:
+                socket_file.unlink()
+            except Exception:
+                pass
+        for pid_file in Path("/tmp").glob("kb-*.pid"):
+            try:
+                pid_file.unlink()
+            except Exception:
+                pass
         return True
 
-    knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
-    if knowledge_script.exists():
-        # Use the venv python (same as start)
-        venv_python = VENV_DIR / "bin" / "python"
-        python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+    # Stop server for specific project
+    if project_path is None:
+        project_path = find_project_root()
 
-        try:
-            # Note: script may exit with code 1 even on success (PID file cleanup error)
-            subprocess.run(
-                [python_cmd, str(knowledge_script), "stop"],
-                capture_output=True,
-                timeout=5
-            )
-            time.sleep(0.5)  # Give it time to clean up
-        except Exception:
-            pass
+    if not project_path:
+        return False  # No project found
 
-    # If script stop didn't work, try pkill
-    if socket_path.exists():
-        try:
-            subprocess.run(["pkill", "-f", "knowledge-server.py"], capture_output=True)
-            time.sleep(0.5)
-        except Exception:
-            pass
+    socket_path = get_project_socket_path(project_path)
+    if not socket_path or not socket_path.exists():
+        return True  # Not running
 
-    # Clean up socket if still exists
-    if socket_path.exists():
-        try:
-            socket_path.unlink()
-        except Exception:
-            pass
+    try:
+        subprocess.run(
+            [python_cmd, str(knowledge_script), "stop", str(project_path)],
+            capture_output=True,
+            timeout=5
+        )
+        time.sleep(0.5)
+    except Exception:
+        pass
 
-    # Verify it's actually stopped
-    return not check_knowledge_server()
+    # Verify stopped
+    return not check_knowledge_server(project_path)
 
 
 def log_debug_event(component: str, event: str, **kwargs) -> None:
@@ -999,10 +1019,14 @@ def doctor(auto_fix: bool):
 @main.command()
 @click.option("--service", "-s",
               type=click.Choice(["all", "litellm", "knowledge"]),
-              default="all", help="Service to start")
+              default="litellm", help="Service to start (default: litellm only)")
 @click.option("--port", "-p", default=4000, help="LiteLLM proxy port")
 def start(service: str, port: int):
-    """Start K-LEAN services (LiteLLM proxy and Knowledge server)."""
+    """Start K-LEAN services.
+
+    By default, only starts LiteLLM proxy. Knowledge servers are per-project
+    and auto-start on first query in each project directory.
+    """
     print_banner()
     console.print("\n[bold]Starting services...[/bold]\n")
 
@@ -1023,33 +1047,47 @@ def start(service: str, port: int):
                 failed.append("LiteLLM")
 
     if service in ["all", "knowledge"]:
-        if check_knowledge_server():
-            console.print("[green]✓[/green] Knowledge Server: Already running")
-        else:
-            console.print("[yellow]○[/yellow] Starting Knowledge Server...")
-            if start_knowledge_server():
-                console.print("[green]✓[/green] Knowledge Server: Started")
-                started.append("Knowledge")
-                log_debug_event("cli", "service_start", service="knowledge")
+        # Per-project knowledge servers
+        project = find_project_root()
+        if project:
+            if check_knowledge_server(project):
+                console.print(f"[green]✓[/green] Knowledge Server: Running for {project.name}")
             else:
-                console.print("[red]✗[/red] Knowledge Server: Failed to start")
-                failed.append("Knowledge")
+                console.print(f"[yellow]○[/yellow] Starting Knowledge Server for {project.name}...")
+                if start_knowledge_server(project, wait=False):
+                    console.print(f"[green]✓[/green] Knowledge Server: Starting for {project.name}")
+                    started.append("Knowledge")
+                    log_debug_event("cli", "service_start", service="knowledge", project=str(project))
+                else:
+                    console.print("[red]✗[/red] Knowledge Server: Failed to start")
+                    failed.append("Knowledge")
+        else:
+            console.print("[yellow]○[/yellow] Knowledge Server: No project found (auto-starts on query)")
+
+    # Show running knowledge servers
+    servers = list_knowledge_servers()
+    if servers:
+        console.print(f"\n[dim]Running knowledge servers: {len(servers)}[/dim]")
+        for s in servers:
+            console.print(f"[dim]  - {Path(s['project']).name}[/dim]")
 
     console.print("")
     if started:
         console.print(f"[green]Started {len(started)} service(s)[/green]")
-        if "Knowledge" in started:
-            console.print("[dim]Knowledge Server loads index in background (~20-40s)[/dim]")
     if failed:
         console.print(f"[red]Failed to start {len(failed)} service(s)[/red]")
         console.print("[dim]Check logs: ~/.klean/logs/[/dim]")
+
+    if service == "litellm":
+        console.print("\n[dim]Note: Knowledge servers auto-start per-project on first query[/dim]")
 
 
 @main.command()
 @click.option("--service", "-s",
               type=click.Choice(["all", "litellm", "knowledge"]),
               default="all", help="Service to stop")
-def stop(service: str):
+@click.option("--all-projects", is_flag=True, help="Stop all knowledge servers (all projects)")
+def stop(service: str, all_projects: bool):
     """Stop K-LEAN services."""
     print_banner()
     console.print("\n[bold]Stopping services...[/bold]\n")
@@ -1065,12 +1103,32 @@ def stop(service: str):
             console.print("[yellow]○[/yellow] LiteLLM Proxy: Was not running")
 
     if service in ["all", "knowledge"]:
-        if stop_knowledge_server():
-            console.print("[green]✓[/green] Knowledge Server: Stopped")
-            stopped.append("Knowledge")
-            log_debug_event("cli", "service_stop", service="knowledge")
+        if all_projects:
+            # Stop all knowledge servers
+            servers = list_knowledge_servers()
+            if servers:
+                stop_knowledge_server(stop_all=True)
+                console.print(f"[green]✓[/green] Knowledge Servers: Stopped {len(servers)} server(s)")
+                stopped.append(f"Knowledge ({len(servers)})")
+                log_debug_event("cli", "service_stop", service="knowledge", count=len(servers))
+            else:
+                console.print("[yellow]○[/yellow] Knowledge Servers: None running")
         else:
-            console.print("[yellow]○[/yellow] Knowledge Server: Was not running")
+            # Stop current project's server
+            project = find_project_root()
+            if project:
+                if stop_knowledge_server(project):
+                    console.print(f"[green]✓[/green] Knowledge Server: Stopped for {project.name}")
+                    stopped.append("Knowledge")
+                    log_debug_event("cli", "service_stop", service="knowledge", project=str(project))
+                else:
+                    console.print(f"[yellow]○[/yellow] Knowledge Server: Was not running for {project.name}")
+            else:
+                console.print("[yellow]○[/yellow] Knowledge Server: No project found")
+                # Show hint about --all-projects
+                servers = list_knowledge_servers()
+                if servers:
+                    console.print(f"[dim]  (Use --all-projects to stop {len(servers)} running server(s))[/dim]")
 
     console.print(f"\n[green]Stopped {len(stopped)} service(s)[/green]")
 
