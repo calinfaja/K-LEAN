@@ -58,10 +58,10 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
     PYTHON_BIN="/home/calin/.venvs/knowledge-db/bin/python"
 
     if [ -x "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
-        # Pass all arguments to knowledge-capture.py
-        # The script handles argparse for --type, --tags, --priority, --url
+        # Strip surrounding quotes from user input
+        CONTENT=$(echo "$ARGS" | sed 's/^["'"'"']//' | sed 's/["'"'"']$//')
         cd "$PROJECT_DIR"
-        RESULT=$($PYTHON_BIN "$CAPTURE_SCRIPT" $ARGS 2>&1)
+        RESULT=$($PYTHON_BIN "$CAPTURE_SCRIPT" "$CONTENT" 2>&1)
         EXIT_CODE=$?
 
         if [ $EXIT_CODE -eq 0 ]; then
