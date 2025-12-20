@@ -12,10 +12,10 @@ Optimized statusline with actionable metrics:
 Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓
 
 Knowledge DB Status:
-- kb:✓     (green)  - Server running
-- kb:init  (yellow) - Not initialized, run InitKB
-- kb:off   (red)    - Initialized but server stopped
-- kb:?     (dim)    - No project root found
+- kb:✓        (green)  - Server running
+- run InitKB  (cyan)   - Not initialized, prompts user
+- kb:starting (yellow) - Server starting up
+- kb:—        (dim)    - No project root found
 """
 
 import json
@@ -230,13 +230,13 @@ def get_services(data: dict) -> str:
     if kb_status == "running":
         kb = f"{C.GREEN}✓{C.RESET}"
     elif kb_status == "init":
-        # Not initialized - yellow "init" message
-        kb = f"{C.YELLOW}init{C.RESET}"
+        # Not initialized - cyan prompt to run InitKB
+        return f"{C.DIM}llm:{llm}{C.RESET} {C.CYAN}run InitKB{C.RESET}"
     elif kb_status == "stopped":
-        # Initialized but server not running - red "off"
-        kb = f"{C.RED}off{C.RESET}"
+        # Initialized but server not running
+        kb = f"{C.YELLOW}starting{C.RESET}"
     else:  # no-project
-        kb = f"{C.DIM}?{C.RESET}"
+        kb = f"{C.DIM}—{C.RESET}"
 
     return f"{C.DIM}llm:{llm} kb:{kb}{C.RESET}"
 
