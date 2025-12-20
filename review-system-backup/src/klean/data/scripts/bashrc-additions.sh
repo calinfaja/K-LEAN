@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Bash additions for the Review System
 # Add these to your ~/.bashrc
 

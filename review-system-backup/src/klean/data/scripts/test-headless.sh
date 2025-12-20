@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Test Headless Claude - Test any model via LiteLLM/NanoGPT
 # READ-ONLY AUDIT MODE: Full read/search/research access, NO write/edit/delete

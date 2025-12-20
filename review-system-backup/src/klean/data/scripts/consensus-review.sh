@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Consensus Review - Multiple models in parallel with dynamic discovery
 # Uses first 5 healthy models from LiteLLM API

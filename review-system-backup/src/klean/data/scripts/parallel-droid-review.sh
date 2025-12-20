@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Parallel Factory Droid review - runs 3 models simultaneously
 # Usage: parallel-droid-review.sh "[focus]" [working_dir]
 

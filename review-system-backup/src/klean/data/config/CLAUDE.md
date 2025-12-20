@@ -1,20 +1,32 @@
 # Claude System Configuration
 
-## Quick Commands (Type these directly)
+## K-LEAN Commands
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/kln:quick` | Fast review - single model (~30s) | `/kln:quick security` |
+| `/kln:multi` | Consensus review - 3-5 models (~60s) | `/kln:multi --models 5 arch` |
+| `/kln:deep` | Deep analysis - full codebase (~3min) | `/kln:deep --async security` |
+| `/kln:droid` | Factory Droid - specialist agents | `/kln:droid --role security` |
+| `/kln:rethink` | Fresh perspectives - debugging help | `/kln:rethink bug` |
+| `/kln:doc` | Documentation - session notes | `/kln:doc "Sprint Review"` |
+| `/kln:remember` | Knowledge capture - end of session | `/kln:remember` |
+| `/kln:status` | System status - models, health | `/kln:status` |
+| `/kln:help` | Command reference | `/kln:help` |
+
+**Flags**: `--async` (background), `--models N` (count), `--output json/text`
+
+## Quick Commands (Type directly)
 
 | Shortcut | Action |
 |----------|--------|
-| `healthcheck` | Check all 6 LiteLLM models |
-| `qreview <model> <focus>` | Quick single-model review |
-| `dreview <model> <focus>` | Deep review with tools |
-| `droid <model> <type> <task>` | Execute Factory droid |
-| `GoodJob <url>` | Capture web knowledge |
+| `healthcheck` | Check all LiteLLM models |
 | `SaveThis <lesson>` | Save a lesson learned |
 | `FindKnowledge <query>` | Search knowledge DB |
 
 ## Knowledge Database
 
-Fast semantic search for stored knowledge (URLs, solutions, lessons).
+Per-project semantic search. **Auto-initializes on first SaveThis.**
 
 ```bash
 # Query via server (~30ms)
@@ -24,19 +36,7 @@ Fast semantic search for stored knowledge (URLs, solutions, lessons).
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
 ```
 
-**Storage**: `.knowledge-db/` per project | **Server**: Auto-starts via ~/.bashrc
-
-## Review System
-
-Multi-model review via LiteLLM proxy (localhost:4000).
-
-| Keyword | Description |
-|---------|-------------|
-| `asyncDeepReview <focus>` | 3 models with tools (bg) |
-| `asyncConsensus <focus>` | 3 models quick (bg) |
-| `asyncReview <model> <focus>` | Single model quick (bg) |
-
-**Models**: qwen (quality), deepseek (arch), glm (standards), minimax (research), kimi (agents), hermes (scripts)
+**Storage**: `.knowledge-db/` per project | **Server**: Auto-starts on first use
 
 ## K-LEAN CLI
 
@@ -44,9 +44,15 @@ Multi-model review via LiteLLM proxy (localhost:4000).
 k-lean status     # Component status
 k-lean doctor -f  # Diagnose + auto-fix
 k-lean start      # Start services
-k-lean debug      # Monitoring dashboard
 k-lean models     # List with health
+k-lean test       # Run test suite
 ```
+
+## Available Models
+
+Auto-discovered from LiteLLM. Use `k-lean models` to see current list.
+
+Common: `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
 
 ## Profiles
 
@@ -54,8 +60,6 @@ k-lean models     # List with health
 |---------|---------|---------|
 | `claude` | Native | Anthropic API |
 | `claude-nano` | NanoGPT | LiteLLM localhost:4000 |
-
-Check: `claude-status`
 
 ## Timeline
 
@@ -81,6 +85,6 @@ Curated insights via `mcp__serena__*_memory` tools:
 
 ## Hooks
 
-- **UserPromptSubmit**: Review dispatch, GoodJob, healthcheck
+- **UserPromptSubmit**: SaveThis, FindKnowledge, healthcheck
 - **PostToolUse (Bash)**: Post-commit docs, timeline
 - **PostToolUse (Web*)**: Auto-capture to knowledge DB

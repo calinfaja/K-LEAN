@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Second Opinion - Single model with full context
 # With health check + fallback to next available model
