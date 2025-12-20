@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# K-LEAN UserPromptSubmit Hook Handler
+# K-LEAN UserPromptSubmit Hook Handler v2
 # Intercepts user prompts and dispatches to appropriate handlers
 #
 # Keywords handled:
+#   - InitKB              → Initialize knowledge DB for project
 #   - SaveThis <lesson>   → Save lesson learned directly (no AI eval)
-#   - SaveInfo <content>  → Smart save with AI relevance evaluation
+#   - SaveInfo <url>      → Smart save with LLM evaluation
 #   - FindKnowledge <q>   → Search knowledge DB
 #   - asyncDeepReview     → 3 models with tools (background)
 #   - asyncConsensus      → 3 models quick review (background)
@@ -39,6 +40,32 @@ mkdir -p "$REVIEWS_DIR"
 SESSION_ID=$(date +%Y%m%d-%H%M%S)
 
 #------------------------------------------------------------------------------
+# INITKB - Initialize Knowledge DB for project
+#------------------------------------------------------------------------------
+if echo "$USER_PROMPT" | grep -qi "^InitKB$\|^InitKB "; then
+    echo "🚀 Initializing Knowledge DB..." >&2
+
+    KB_INIT_SCRIPT="$SCRIPTS_DIR/kb-init.sh"
+
+    if [ -x "$KB_INIT_SCRIPT" ]; then
+        cd "$PROJECT_DIR"
+        RESULT=$("$KB_INIT_SCRIPT" "$PROJECT_DIR" 2>&1)
+        EXIT_CODE=$?
+
+        if [ $EXIT_CODE -eq 0 ]; then
+            RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
+            echo "{\"systemMessage\": $RESULT_ESCAPED}"
+        else
+            RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
+            echo "{\"systemMessage\": $RESULT_ESCAPED}"
+        fi
+    else
+        echo "{\"systemMessage\": \"⚠️ kb-init.sh not found at $KB_INIT_SCRIPT\"}"
+    fi
+    exit 0
+fi
+
+#------------------------------------------------------------------------------
 # SAVETHIS <lesson> [--type TYPE] [--tags TAGS] [--priority LEVEL]
 # Direct save using knowledge-capture.py
 #------------------------------------------------------------------------------
@@ -55,7 +82,7 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
 
     # Use knowledge-capture.py with proper interface
     CAPTURE_SCRIPT="$SCRIPTS_DIR/knowledge-capture.py"
-    PYTHON_BIN="/home/calin/.venvs/knowledge-db/bin/python"
+    PYTHON_BIN="$HOME/.venvs/knowledge-db/bin/python"
 
     if [ -x "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
         # Strip surrounding quotes from user input
@@ -97,26 +124,45 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
 fi
 
 #------------------------------------------------------------------------------
-# SAVEINFO <content> - Smart save with AI relevance evaluation
+# SAVEINFO <url> [--search-context "context"] - Smart save with LLM evaluation
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
-    # Extract the content
+    # Extract the URL/content
     CONTENT=$(echo "$USER_PROMPT" | sed -E 's/^SaveInfo[[:space:]]+//i')
 
     if [ -z "$CONTENT" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: SaveInfo <content to evaluate and save>\"}"
+        echo "{\"systemMessage\": \"⚠️ Usage: SaveInfo <url> [--search-context \\\"context\\\"]\\n\\nEvaluates URL content with LiteLLM and saves if relevant.\"}"
         exit 0
     fi
 
-    echo "🤖 Evaluating content for knowledge capture..." >&2
+    echo "🤖 Evaluating content with LLM..." >&2
 
-    if [ -x "$SCRIPTS_DIR/smart-capture.sh" ]; then
-        # Run smart capture (uses Haiku to evaluate relevance)
-        "$SCRIPTS_DIR/smart-capture.sh" "$CONTENT" "$PROJECT_DIR" &
+    SMART_CAPTURE="$SCRIPTS_DIR/smart-capture.py"
+    PYTHON_BIN="$HOME/.venvs/knowledge-db/bin/python"
 
-        echo "{\"systemMessage\": \"🤖 Evaluating content with AI...\\nIf relevant (score ≥ 0.7), it will be saved automatically.\\nCheck timeline: ~/.claude/scripts/timeline-query.sh today\"}"
+    if [ -x "$SMART_CAPTURE" ] && [ -x "$PYTHON_BIN" ]; then
+        # Check if it's a URL
+        if echo "$CONTENT" | grep -q "^https\?://"; then
+            # Run smart capture with URL (in background for faster response)
+            cd "$PROJECT_DIR"
+            RESULT=$($PYTHON_BIN "$SMART_CAPTURE" "$CONTENT" --json 2>&1)
+
+            # Parse result
+            if echo "$RESULT" | jq -e '.saved == true' >/dev/null 2>&1; then
+                TITLE=$(echo "$RESULT" | jq -r '.title')
+                INSIGHT=$(echo "$RESULT" | jq -r '.atomic_insight // ""')
+                echo "{\"systemMessage\": \"✅ Saved: $TITLE\\n💡 $INSIGHT\"}"
+            elif echo "$RESULT" | jq -e '.saved == false' >/dev/null 2>&1; then
+                REASON=$(echo "$RESULT" | jq -r '.reason')
+                echo "{\"systemMessage\": \"ℹ️ Not saved: $REASON\"}"
+            else
+                echo "{\"systemMessage\": \"⚠️ Evaluation result: $RESULT\"}"
+            fi
+        else
+            echo "{\"systemMessage\": \"⚠️ SaveInfo expects a URL. For lessons, use SaveThis instead.\"}"
+        fi
     else
-        echo "{\"systemMessage\": \"⚠️ smart-capture.sh not found at $SCRIPTS_DIR\"}"
+        echo "{\"systemMessage\": \"⚠️ smart-capture.py not found or Python not available\"}"
     fi
     exit 0
 fi
@@ -138,11 +184,11 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
     # PHASE 2: Use hybrid search (semantic + keyword + tag)
     if [ -x "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
         # Use hybrid search engine (semantic + keyword + tag fallback)
-        RESULT=$(/home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
+        RESULT=$("$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
 
         # Emit search event (Phase 4)
         if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
+            "$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
         fi
 
         # Escape for JSON

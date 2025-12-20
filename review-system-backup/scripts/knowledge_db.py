@@ -1,4 +1,4 @@
-#!/home/calin/.venvs/knowledge-db/bin/python
+#!/usr/bin/env python3
 """
 Knowledge Database - Core txtai integration for semantic search
 
@@ -28,30 +28,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
+# Import shared utilities
+try:
+    from kb_utils import find_project_root, migrate_entry, SCHEMA_V2_DEFAULTS, debug_log
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from kb_utils import find_project_root, migrate_entry, SCHEMA_V2_DEFAULTS, debug_log
+
 # txtai imports
 try:
     from txtai import Embeddings
 except ImportError:
     print("ERROR: txtai not installed. Run: ~/.venvs/knowledge-db/bin/pip install txtai[database,ann]")
     sys.exit(1)
-
-
-def find_project_root(start_path: str = None) -> Optional[Path]:
-    """
-    Find project root by looking for .serena, .claude, or .knowledge-db directories.
-    Walks up from start_path until found or reaches root.
-    """
-    current = Path(start_path or os.getcwd()).resolve()
-
-    while current != current.parent:
-        # Check for project markers
-        if (current / ".serena").exists() or \
-           (current / ".claude").exists() or \
-           (current / ".knowledge-db").exists():
-            return current
-        current = current.parent
-
-    return None
 
 
 class KnowledgeDB:
@@ -145,10 +134,11 @@ class KnowledgeDB:
         entry.setdefault("last_used", None)
         entry.setdefault("source_quality", "medium")
 
-        # Build searchable text from key fields (including tags)
+        # Build searchable text from key fields (including V2 fields)
         searchable_parts = [
             entry.get("title", ""),
             entry.get("summary", ""),
+            entry.get("atomic_insight", ""),  # V2: one-sentence takeaway
             entry.get("problem_solved", ""),
             " ".join(entry.get("key_concepts", [])),
             " ".join(entry.get("tags", [])),
@@ -185,24 +175,30 @@ class KnowledgeDB:
             return []
 
         # Use SQL query to get full content with metadata
-        sql_query = f"select id, text, title, summary, url, type, problem_solved, key_concepts, relevance_score, what_worked, constraints, found_date, confidence_score, tags, usage_count, last_used, source_quality, score from txtai where similar('{query}') limit {limit}"
+        # Escape single quotes to prevent SQL injection
+        safe_query = query.replace("'", "''")
+        sql_query = f"select id, text, title, summary, url, type, problem_solved, key_concepts, relevance_score, what_worked, constraints, found_date, confidence_score, tags, usage_count, last_used, source_quality, score from txtai where similar('{safe_query}') limit {limit}"
 
         try:
             results = self.embeddings.search(sql_query)
-        except Exception:
-            # Fallback to simple search if SQL fails
+        except Exception as e:
+            debug_log(f"SQL search failed, falling back: {e}")
             results = self.embeddings.search(query, limit=limit)
 
-        # Load JSONL entries for enrichment (to get proper JSON fields like tags/key_concepts)
+        # Load JSONL entries for enrichment
         jsonl_entries = {}
         if self.jsonl_path.exists():
             with open(self.jsonl_path) as f:
                 for line in f:
                     if line.strip():
-                        entry = json.loads(line)
-                        jsonl_entries[entry.get("id")] = entry
+                        try:
+                            entry = json.loads(line)
+                            if isinstance(entry, dict):
+                                jsonl_entries[entry.get("id")] = entry
+                        except json.JSONDecodeError:
+                            pass
 
-        # Format results
+        # Format results with V2 fields and migration
         formatted = []
         for result in results:
             if isinstance(result, dict):
@@ -210,7 +206,8 @@ class KnowledgeDB:
                 # Enrich with data from JSONL (especially list/JSON fields)
                 jsonl_entry = jsonl_entries.get(entry_id, {})
 
-                formatted.append({
+                # Build entry with all fields
+                entry = {
                     "score": result.get("score", 0),
                     "id": entry_id,
                     "title": result.get("title", ""),
@@ -228,7 +225,14 @@ class KnowledgeDB:
                     "usage_count": result.get("usage_count", 0),
                     "last_used": result.get("last_used"),
                     "source_quality": result.get("source_quality", "medium"),
-                })
+                    # V2 fields
+                    "atomic_insight": jsonl_entry.get("atomic_insight", result.get("atomic_insight", "")),
+                    "quality": jsonl_entry.get("quality", result.get("quality", "medium")),
+                    "source": jsonl_entry.get("source", result.get("source", "manual")),
+                    "source_path": jsonl_entry.get("source_path", result.get("source_path", "")),
+                }
+                # Apply migration for any missing fields
+                formatted.append(migrate_entry(entry))
             elif isinstance(result, tuple):
                 # Handle tuple format (id, score)
                 formatted.append({
@@ -268,7 +272,8 @@ class KnowledgeDB:
             # Count entries
             try:
                 count = self.embeddings.count()
-            except:
+            except Exception as e:
+                debug_log(f"Embeddings count failed: {e}")
                 # Fallback: count JSONL lines
                 if self.jsonl_path.exists():
                     with open(self.jsonl_path) as f:
@@ -332,16 +337,14 @@ class KnowledgeDB:
         for entry in entries:
             entry_id = entry.get("id") or str(uuid.uuid4())
 
-            # Migrate old schema: add defaults for new fields
-            entry.setdefault("confidence_score", 0.7)
-            entry.setdefault("tags", [])
-            entry.setdefault("usage_count", 0)
-            entry.setdefault("last_used", None)
-            entry.setdefault("source_quality", "medium")
+            # Migrate old schema: add defaults for all V2 fields
+            entry = migrate_entry(entry)
 
+            # Build searchable text with V2 fields
             searchable_parts = [
                 entry.get("title", ""),
                 entry.get("summary", ""),
+                entry.get("atomic_insight", ""),  # V2
                 entry.get("problem_solved", ""),
                 " ".join(entry.get("key_concepts", [])),
                 " ".join(entry.get("tags", [])),
@@ -378,19 +381,136 @@ class KnowledgeDB:
         entries.sort(key=lambda x: x.get("found_date", ""), reverse=True)
         return entries[:limit]
 
+    def add_structured(self, data: dict) -> str:
+        """
+        Add a pre-structured entry (from Claude session or smart-capture).
+
+        Accepts V2 schema fields:
+            title, summary, atomic_insight, type, tags, key_concepts,
+            quality, source, source_path, relevance_score, etc.
+
+        Returns:
+            Entry ID (UUID)
+        """
+        # Build entry with all V2 fields
+        entry = {
+            "id": data.get("id") or str(uuid.uuid4()),
+            "found_date": data.get("found_date") or datetime.now().isoformat(),
+            "usage_count": data.get("usage_count", 0),
+            "last_used": data.get("last_used"),
+            "relevance_score": data.get("relevance_score", 0.8),
+            "confidence_score": data.get("confidence_score", 0.8),
+            # Core fields
+            "title": data.get("title", ""),
+            "summary": data.get("summary", ""),
+            "type": data.get("type", "lesson"),
+            "tags": data.get("tags", []),
+            # V2 enhanced fields
+            "atomic_insight": data.get("atomic_insight", ""),
+            "key_concepts": data.get("key_concepts", []),
+            "quality": data.get("quality", "medium"),
+            "source": data.get("source", "conversation"),
+            "source_path": data.get("source_path", ""),
+            # Optional fields
+            "url": data.get("url", ""),
+            "problem_solved": data.get("problem_solved", ""),
+            "what_worked": data.get("what_worked", ""),
+            "constraints": data.get("constraints", ""),
+            "source_quality": data.get("source_quality", "medium"),
+        }
+
+        # Validate required fields
+        if not entry["title"] and not entry["summary"]:
+            raise ValueError("Entry must have 'title' or 'summary'")
+
+        # Use title as summary or vice versa if one is missing
+        if not entry["title"]:
+            entry["title"] = entry["summary"][:100]
+        if not entry["summary"]:
+            entry["summary"] = entry["title"]
+
+        # Add using the standard add method
+        return self.add(entry)
+
+    def migrate_all(self, rewrite: bool = False) -> dict:
+        """
+        Migrate all entries to V2 schema.
+
+        Args:
+            rewrite: If True, rewrite entries.jsonl with migrated entries
+
+        Returns:
+            Dictionary with migration stats
+        """
+        if not self.jsonl_path.exists():
+            return {"status": "no_entries", "total": 0, "migrated": 0}
+
+        entries = []
+        migrated_count = 0
+        skipped_lines = 0
+
+        with open(self.jsonl_path) as f:
+            for line_num, line in enumerate(f, 1):
+                if not line.strip():
+                    continue
+                try:
+                    entry = json.loads(line)
+                    # Skip non-dict entries (e.g., string fragments from pretty-printed JSON)
+                    if not isinstance(entry, dict):
+                        skipped_lines += 1
+                        continue
+
+                    original_keys = set(entry.keys())
+                    migrated = migrate_entry(entry)
+
+                    # Check if any new fields were added
+                    if set(migrated.keys()) != original_keys:
+                        migrated_count += 1
+
+                    entries.append(migrated)
+                except json.JSONDecodeError:
+                    # Skip malformed lines (e.g., pretty-printed JSON fragments)
+                    skipped_lines += 1
+
+        result = {
+            "status": "checked",
+            "total": len(entries),
+            "migrated": migrated_count,
+            "needs_migration": migrated_count > 0,
+            "skipped_lines": skipped_lines,
+        }
+
+        if rewrite and migrated_count > 0:
+            # Backup original
+            backup_path = self.jsonl_path.with_suffix(".jsonl.bak")
+            import shutil
+            shutil.copy(self.jsonl_path, backup_path)
+
+            # Rewrite with migrated entries
+            with open(self.jsonl_path, "w") as f:
+                for entry in entries:
+                    f.write(json.dumps(entry) + "\n")
+
+            result["status"] = "migrated"
+            result["backup"] = str(backup_path)
+
+        return result
+
 
 # CLI interface
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Knowledge Database CLI")
-    parser.add_argument("command", choices=["stats", "search", "recent", "add", "rebuild"],
+    parser.add_argument("command", choices=["stats", "search", "recent", "add", "rebuild", "migrate"],
                         help="Command to run")
     parser.add_argument("query", nargs="?", help="Search query, entry JSON, or title for add")
     parser.add_argument("summary", nargs="?", help="Summary text (for simple add)")
     parser.add_argument("--limit", "-n", type=int, default=5, help="Result limit")
     parser.add_argument("--project", "-p", help="Project path")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--json-input", dest="json_input", help="Add structured entry from JSON string")
+    parser.add_argument("--check", action="store_true", help="Check migration status only (for migrate)")
     # Simple add arguments
     parser.add_argument("--title", "-t", help="Entry title (alternative to positional)")
     parser.add_argument("--tags", help="Comma-separated tags")
@@ -404,6 +524,23 @@ if __name__ == "__main__":
     except ValueError as e:
         print(f"ERROR: {e}")
         sys.exit(1)
+
+    # Handle --json-input first (structured entry input from Claude/smart-capture)
+    if args.json_input:
+        try:
+            data = json.loads(args.json_input)
+            entry_id = db.add_structured(data)
+            if args.json:
+                print(json.dumps({"id": entry_id, "status": "added"}))
+            else:
+                print(f"Added structured entry: {entry_id}")
+            sys.exit(0)
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Invalid JSON input: {e}")
+            sys.exit(1)
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            sys.exit(1)
 
     if args.command == "stats":
         stats = db.stats()
@@ -494,3 +631,22 @@ if __name__ == "__main__":
         print("Rebuilding index from JSONL backup...")
         count = db.rebuild_index()
         print(f"Rebuilt index with {count} entries")
+
+    elif args.command == "migrate":
+        # Run migration check or full migration
+        result = db.migrate_all(rewrite=not args.check)
+
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            if result["status"] == "no_entries":
+                print("No entries to migrate.")
+            elif result["status"] == "checked":
+                if result["needs_migration"]:
+                    print(f"Migration needed: {result['migrated']}/{result['total']} entries need V2 fields")
+                    print("Run with --check removed to apply migration")
+                else:
+                    print(f"All {result['total']} entries already have V2 schema fields")
+            elif result["status"] == "migrated":
+                print(f"Migrated {result['migrated']} entries to V2 schema")
+                print(f"Backup saved to: {result['backup']}")
