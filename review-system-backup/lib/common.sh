@@ -216,9 +216,9 @@ validate_installation() {
         fi
     done
 
-    # Check CLAUDE.md
-    if [ ! -f "$claude_dir/CLAUDE.md" ]; then
-        log_error "CLAUDE.md missing"
+    # Check slash commands (pure plugin approach - no CLAUDE.md needed)
+    if [ ! -d "$claude_dir/commands/kln" ]; then
+        log_error "KLN commands missing"
         ((errors++))
     fi
 

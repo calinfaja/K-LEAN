@@ -29,7 +29,7 @@ echo ""
 echo "=== Test 1: Installation Structure ==="
 [ -d "$HOME/.claude/scripts" ] && test_pass "Scripts directory exists" || test_fail "Scripts directory missing"
 [ -d "$HOME/.claude/commands" ] && test_pass "Commands directory exists" || test_fail "Commands directory missing"
-[ -f "$HOME/.claude/CLAUDE.md" ] && test_pass "CLAUDE.md exists" || test_fail "CLAUDE.md missing"
+[ -d "$HOME/.claude/commands/kln" ] && test_pass "KLN commands directory exists" || test_fail "KLN commands missing"
 
 # Test 2: Scripts are executable
 echo -e "\n=== Test 2: Scripts Executable ==="

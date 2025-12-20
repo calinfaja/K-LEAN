@@ -666,22 +666,10 @@ def install(dev: bool, component: str, yes: bool):
     if component in ["all", "config"]:
         console.print("[bold]Installing configuration...[/bold]")
 
-        # CLAUDE.md
-        claude_md_src = source_config / "CLAUDE.md" if not dev else source_config.parent / "config" / "CLAUDE.md"
-        if not dev:
-            claude_md_src = source_base / "config" / "CLAUDE.md"
-        else:
-            claude_md_src = source_scripts.parent / "config" / "CLAUDE.md"
-
-        if claude_md_src.exists():
-            claude_md_dst = CLAUDE_DIR / "CLAUDE.md"
-            if dev:
-                if claude_md_dst.exists() or claude_md_dst.is_symlink():
-                    claude_md_dst.unlink()
-                claude_md_dst.symlink_to(claude_md_src.resolve())
-            else:
-                shutil.copy2(claude_md_src, claude_md_dst)
-            console.print("  [green]Installed CLAUDE.md[/green]")
+        # NOTE: We deliberately do NOT touch CLAUDE.md
+        # K-LEAN uses slash commands (/kln:*) which are auto-discovered
+        # This preserves user's existing CLAUDE.md configuration
+        console.print("  [dim]CLAUDE.md: skipped (using pure plugin approach)[/dim]")
 
         # LiteLLM config
         litellm_src = source_config / "litellm" if not dev else source_scripts.parent / "config" / "litellm"
@@ -827,14 +815,13 @@ def status():
     else:
         table.add_row("Factory Droids", "[yellow]NOT INSTALLED[/yellow]", "optional")
 
-    # CLAUDE.md
-    claude_md = CLAUDE_DIR / "CLAUDE.md"
-    if claude_md.exists():
-        is_symlink = claude_md.is_symlink()
-        mode = "(symlinked)" if is_symlink else "(copied)"
-        table.add_row("CLAUDE.md", "OK", mode)
+    # Slash Commands (pure plugin approach - no CLAUDE.md needed)
+    kln_commands = CLAUDE_DIR / "commands" / "kln"
+    if kln_commands.exists():
+        count = len(list(kln_commands.glob("*.md")))
+        table.add_row("Slash Commands", f"[green]OK ({count} /kln:* commands)[/green]", "")
     else:
-        table.add_row("CLAUDE.md", "[red]NOT FOUND[/red]", "")
+        table.add_row("Slash Commands", "[red]NOT FOUND[/red]", "")
 
     # Knowledge DB
     if VENV_DIR.exists():
@@ -1074,7 +1061,7 @@ def test():
     test_pass("~/.claude directory") if CLAUDE_DIR.exists() else test_fail("~/.claude missing")
     test_pass("Scripts directory") if (CLAUDE_DIR / "scripts").exists() else test_fail("Scripts missing")
     test_pass("Commands directory") if (CLAUDE_DIR / "commands").exists() else test_fail("Commands missing")
-    test_pass("CLAUDE.md") if (CLAUDE_DIR / "CLAUDE.md").exists() else test_fail("CLAUDE.md missing")
+    test_pass("KLN commands") if (CLAUDE_DIR / "commands" / "kln").exists() else test_fail("KLN commands missing")
 
     # Test 2: Scripts executable
     console.print("\n[bold]2. Scripts Executable[/bold]")
