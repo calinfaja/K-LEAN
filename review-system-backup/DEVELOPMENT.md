@@ -2,6 +2,21 @@
 
 > Minimal reference for developers and AI agents maintaining this project.
 
+## AI Agent Quick Start
+
+**If you're Claude Code or another AI starting fresh:**
+
+1. **Read this file first** - It has everything you need
+2. **Understand the dual-source model** - Root dirs are canonical, `src/klean/data/` is synced copy
+3. **Before ANY release:** Run `k-lean sync --check` - it must pass
+4. **After changing files in root dirs:** Run `k-lean sync`
+5. **Follow Release Workflow exactly** - Each step has verification
+
+**Key files to understand:**
+- `src/klean/cli.py` - All CLI commands (1950+ lines)
+- `src/klean/data/core/klean_core.py` - Review/model logic
+- `pyproject.toml` - Package configuration
+
 ## Project Structure
 
 ```
@@ -62,25 +77,107 @@ k-lean stop              # Stop services
 k-lean models            # List available models
 ```
 
-## Release Workflow
+## Release Workflow (Complete Checklist)
 
+Follow these steps exactly. Each step has a verification.
+
+### Step 1: Sync Package Data
 ```bash
-# 1. Ensure sync
-k-lean sync --clean
-k-lean sync --check      # Must pass
+k-lean sync --clean      # Sync + remove stale files
+k-lean sync --check      # MUST show "Package is in sync"
+```
+**Verify:** Exit code 0, message shows "in sync"
 
-# 2. Update version (3 places)
-#    - VERSION
-#    - pyproject.toml
-#    - src/klean/__init__.py
+### Step 2: Run Tests
+```bash
+k-lean status            # All components should show OK
+k-lean doctor            # Should find no issues (or fix with -f)
+```
+**Verify:** No errors, all components green
 
-# 3. Build
+### Step 3: Test Installation (Clean)
+```bash
+# Test in temporary venv
+python -m venv /tmp/test-klean
+source /tmp/test-klean/bin/activate
+pip install -e .
+k-lean install -y
+k-lean status
+deactivate
+rm -rf /tmp/test-klean
+```
+**Verify:** Install succeeds, status shows all OK
+
+### Step 4: Update Version (3 files - MUST match)
+```bash
+# Check current version
+cat VERSION
+grep 'version = ' pyproject.toml
+grep '__version__' src/klean/__init__.py
+```
+
+Edit these 3 files with the NEW version (e.g., 1.0.1):
+1. `VERSION` - Just the version string
+2. `pyproject.toml` - Line: `version = "1.0.1"`
+3. `src/klean/__init__.py` - Line: `__version__ = "1.0.1"`
+
+**Verify:** All 3 show same version:
+```bash
+cat VERSION && grep 'version = ' pyproject.toml && grep '__version__' src/klean/__init__.py
+```
+
+### Step 5: Commit Release
+```bash
+git add -A
+git status               # Review changes
+git commit -m "Release v1.0.1"
+git tag -a v1.0.1 -m "Release v1.0.1"
+```
+**Verify:** `git log --oneline -1` shows release commit
+
+### Step 6: Build Package
+```bash
+# Clean previous builds
+rm -rf dist/ build/ *.egg-info src/*.egg-info
+
+# Build
 pip install build
 python -m build
+```
+**Verify:** `ls dist/` shows both `.whl` and `.tar.gz` files
 
-# 4. Upload
+### Step 7: Test Built Package
+```bash
+python -m venv /tmp/test-release
+source /tmp/test-release/bin/activate
+pip install dist/*.whl
+k-lean --version         # Should show new version
+k-lean status
+deactivate
+rm -rf /tmp/test-release
+```
+**Verify:** Version correct, status OK
+
+### Step 8: Upload to PyPI
+```bash
 pip install twine
-twine upload dist/*
+twine check dist/*       # Validate package
+twine upload dist/*      # Upload (needs PyPI credentials)
+```
+**Verify:** No errors, package visible on pypi.org
+
+### Step 9: Push to Git
+```bash
+git push origin main
+git push origin v1.0.1   # Push tag
+```
+**Verify:** GitHub shows new tag/release
+
+### Quick Release (After You Know the Process)
+```bash
+# One-liner checklist
+k-lean sync --clean && k-lean sync --check && k-lean doctor && \
+  echo "Ready for release - update VERSION, pyproject.toml, __init__.py"
 ```
 
 ## File Responsibilities
