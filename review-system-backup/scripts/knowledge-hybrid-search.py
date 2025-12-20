@@ -1,4 +1,4 @@
-#!/home/calin/.venvs/knowledge-db/bin/python
+#!/usr/bin/env python3
 """
 Hybrid Knowledge Search - Phase 2 Enhancement
 

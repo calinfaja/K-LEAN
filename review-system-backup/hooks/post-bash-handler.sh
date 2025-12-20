@@ -45,7 +45,7 @@ if echo "$COMMAND" | grep -qE "git commit|git merge|git rebase"; then
 
         # Emit event (Phase 4)
         if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>/dev/null &
+            "$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>/dev/null &
         fi
 
         # Extract facts from commit (async)

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Knowledge Query - Fast per-project search via Unix socket
+# Knowledge Query v2 - Fast per-project search via Unix socket
 #
 # Usage:
 #   knowledge-query.sh "<query>" [limit]
@@ -11,8 +11,9 @@
 
 QUERY="${1:-}"
 LIMIT="${2:-5}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-SERVER_SCRIPT="$HOME/.claude/scripts/knowledge-server.py"
+SERVER_SCRIPT="$SCRIPT_DIR/knowledge-server.py"
 
 if [ -z "$QUERY" ]; then
     echo "Usage: knowledge-query.sh <query> [limit]"
@@ -22,35 +23,48 @@ if [ -z "$QUERY" ]; then
     exit 1
 fi
 
-# Find project root (walk up looking for .knowledge-db)
-find_project_root() {
-    local dir="$PWD"
-    while [ "$dir" != "/" ]; do
-        if [ -d "$dir/.knowledge-db" ]; then
-            echo "$dir"
-            return 0
-        fi
-        dir="$(dirname "$dir")"
-    done
-    return 1
-}
-
-# Get socket path for project (must match Python's get_socket_path)
-get_socket_path() {
-    local project="$1"
-    local hash=$(echo -n "$project" | md5sum | cut -c1-8)
-    echo "/tmp/kb-${hash}.sock"
-}
+# Source unified project detection
+if [ -f "$SCRIPT_DIR/kb-root.sh" ]; then
+    source "$SCRIPT_DIR/kb-root.sh"
+else
+    # Fallback inline functions
+    find_kb_project_root() {
+        local dir="$PWD"
+        while [ "$dir" != "/" ]; do
+            for marker in ".knowledge-db" ".serena" ".claude" ".git"; do
+                if [ -d "$dir/$marker" ]; then
+                    echo "$dir"
+                    return 0
+                fi
+            done
+            dir="$(dirname "$dir")"
+        done
+        return 1
+    }
+    get_kb_socket_path() {
+        local project="$1"
+        local abs_path=$(cd "$project" 2>/dev/null && pwd)
+        local hash=$(echo -n "$abs_path" | md5sum | cut -c1-8)
+        echo "/tmp/kb-${hash}.sock"
+    }
+fi
 
 # Find project
-PROJECT_ROOT=$(find_project_root)
+PROJECT_ROOT=$(find_kb_project_root)
 if [ -z "$PROJECT_ROOT" ]; then
-    echo "❌ No .knowledge-db found in current directory tree"
-    echo "   Run from a project directory with knowledge DB"
+    echo "❌ No project root found"
+    echo "   Run from a project directory with .knowledge-db, .claude, .serena, or .git"
     exit 1
 fi
 
-SOCKET=$(get_socket_path "$PROJECT_ROOT")
+# Check if knowledge DB is initialized
+if [ ! -d "$PROJECT_ROOT/.knowledge-db" ]; then
+    echo "❌ Knowledge DB not initialized for $(basename "$PROJECT_ROOT")"
+    echo "   Run: InitKB"
+    exit 1
+fi
+
+SOCKET=$(get_kb_socket_path "$PROJECT_ROOT")
 
 # Auto-start server if not running
 if [ ! -S "$SOCKET" ]; then

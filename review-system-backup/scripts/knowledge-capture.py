@@ -1,30 +1,55 @@
 #!/usr/bin/env python3
 """
-K-LEAN Knowledge Capture Script
+K-LEAN Knowledge Capture Script v2
 
 Saves lessons, findings, and insights to the knowledge database.
+Supports both simple CLI input and structured JSON for Claude integration.
 
 Usage:
   knowledge-capture.py <content> [--type TYPE] [--tags TAG1,TAG2] [--priority LEVEL] [--url URL]
+  knowledge-capture.py --json-input '<json>' [--json]
 
 Types: lesson, finding, solution, pattern, warning, best-practice
 Priority: low, medium, high, critical
 
+JSON Input (V2 Schema):
+  {
+    "title": "Short title",
+    "summary": "Full description",
+    "atomic_insight": "One-sentence takeaway",
+    "key_concepts": ["term1", "term2"],
+    "quality": "high|medium|low",
+    "source": "conversation|web|file|manual",
+    "source_path": "optional URL or file path",
+    "tags": ["tag1", "tag2"],
+    "type": "lesson|finding|solution|pattern"
+  }
+
 Examples:
   knowledge-capture.py "Always validate user input" --type lesson --tags security,validation
-  knowledge-capture.py "Found memory leak in connection pool" --type finding --priority high
-  knowledge-capture.py "Use connection pooling for DB" --type best-practice --tags database,performance
+  knowledge-capture.py --json-input '{"title":"Validation","summary":"Always validate","atomic_insight":"Validate all inputs"}' --json
 """
 
 import json
 import sys
 import os
-import hashlib
 import subprocess
-import socket
 from datetime import datetime
 from pathlib import Path
 import argparse
+
+# Import shared utilities
+try:
+    from kb_utils import (
+        find_project_root, get_socket_path, is_server_running,
+        PYTHON_BIN, debug_log
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from kb_utils import (
+        find_project_root, get_socket_path, is_server_running,
+        PYTHON_BIN, debug_log
+    )
 
 # Result of initialization
 class InitResult:
@@ -34,44 +59,18 @@ class InitResult:
         self.server_started = server_started
 
 
-def get_socket_path(project_path):
-    """Get KB server socket path for a project."""
-    path_str = str(Path(project_path).resolve())
-    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
-    return f"/tmp/kb-{hash_val}.sock"
-
-
-def is_server_running(project_path):
-    """Check if KB server is running for this project."""
-    sock_path = get_socket_path(project_path)
-    if not os.path.exists(sock_path):
-        return False
-
-    # Try to ping the server
-    try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(2)
-        s.connect(sock_path)
-        s.sendall(b'{"cmd":"ping"}')
-        response = s.recv(1024).decode()
-        s.close()
-        return '"pong": true' in response or '"pong":true' in response
-    except:
-        return False
-
-
 def start_kb_server(project_path):
     """Start the KB server for a project."""
     server_script = Path.home() / ".claude/scripts/knowledge-server.py"
-    python_bin = Path.home() / ".venvs/knowledge-db/bin/python"
 
-    if not server_script.exists() or not python_bin.exists():
+    if not server_script.exists() or not PYTHON_BIN.exists():
+        debug_log(f"Missing server script or Python: {server_script}, {PYTHON_BIN}")
         return False
 
     try:
         # Start server in background
         subprocess.Popen(
-            [str(python_bin), str(server_script), "start", str(project_path)],
+            [str(PYTHON_BIN), str(server_script), "start", str(project_path)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True
@@ -83,8 +82,10 @@ def start_kb_server(project_path):
             time.sleep(0.5)
             if is_server_running(project_path):
                 return True
+        debug_log("KB server failed to start within timeout")
         return False
-    except:
+    except Exception as e:
+        debug_log(f"Error starting KB server: {e}")
         return False
 
 
@@ -117,7 +118,7 @@ def get_knowledge_dir():
     return InitResult(knowledge_db, newly_created, server_started)
 
 def create_entry(content, entry_type="lesson", tags=None, priority="medium", url=None):
-    """Create a knowledge database entry."""
+    """Create a knowledge database entry (simple mode)."""
     if tags is None:
         tags = []
     elif isinstance(tags, str):
@@ -134,21 +135,82 @@ def create_entry(content, entry_type="lesson", tags=None, priority="medium", url
         "low": 0.7
     }
 
+    # Map priority to quality
+    quality_map = {
+        "critical": "high",
+        "high": "high",
+        "medium": "medium",
+        "low": "low"
+    }
+
     entry = {
         "id": entry_id,
         "title": content[:100] + "..." if len(content) > 100 else content,
         "summary": content,
         "type": entry_type,
         "source": "manual",
+        "source_path": url or "",
         "found_date": datetime.now().isoformat(),
         "relevance_score": priority_scores.get(priority, 0.8),
         "priority": priority,
         "key_concepts": tags,
-        "auto_extracted": False
+        "tags": tags,
+        "auto_extracted": False,
+        # V2 schema fields
+        "atomic_insight": "",
+        "quality": quality_map.get(priority, "medium"),
+        "confidence_score": priority_scores.get(priority, 0.8),
     }
 
     if url:
         entry["url"] = url
+
+    return entry
+
+
+def create_entry_from_json(data: dict):
+    """Create a knowledge database entry from structured JSON (V2 schema)."""
+    entry_type = data.get("type", "lesson")
+    entry_id = data.get("id") or f"{entry_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    # Get quality and map to relevance score
+    quality = data.get("quality", "medium")
+    quality_scores = {"high": 0.9, "medium": 0.8, "low": 0.7}
+
+    entry = {
+        "id": entry_id,
+        "title": data.get("title", ""),
+        "summary": data.get("summary", ""),
+        "type": entry_type,
+        "source": data.get("source", "conversation"),
+        "source_path": data.get("source_path", ""),
+        "found_date": data.get("found_date") or datetime.now().isoformat(),
+        "relevance_score": data.get("relevance_score", quality_scores.get(quality, 0.8)),
+        "key_concepts": data.get("key_concepts", []),
+        "tags": data.get("tags", []),
+        "auto_extracted": data.get("auto_extracted", False),
+        # V2 schema fields
+        "atomic_insight": data.get("atomic_insight", ""),
+        "quality": quality,
+        "confidence_score": data.get("confidence_score", quality_scores.get(quality, 0.8)),
+        "usage_count": data.get("usage_count", 0),
+        "last_used": data.get("last_used"),
+        "source_quality": data.get("source_quality", "medium"),
+    }
+
+    # Optional fields
+    if data.get("url"):
+        entry["url"] = data["url"]
+    if data.get("problem_solved"):
+        entry["problem_solved"] = data["problem_solved"]
+    if data.get("what_worked"):
+        entry["what_worked"] = data["what_worked"]
+
+    # Ensure title exists (use first 100 chars of summary if not)
+    if not entry["title"] and entry["summary"]:
+        entry["title"] = entry["summary"][:100]
+    if not entry["summary"] and entry["title"]:
+        entry["summary"] = entry["title"]
 
     return entry
 
@@ -183,9 +245,10 @@ Examples:
   %(prog)s "Always validate user input" --type lesson
   %(prog)s "Memory leak in pools" --type finding --priority high
   %(prog)s "Use async/await" --type best-practice --tags python,async
+  %(prog)s --json-input '{"title":"...","summary":"..."}' --json
         """
     )
-    parser.add_argument('content', help='The content to capture')
+    parser.add_argument('content', nargs='?', default='', help='The content to capture')
     parser.add_argument('--type', dest='entry_type', default='lesson',
                        choices=['lesson', 'finding', 'solution', 'pattern', 'warning', 'best-practice'],
                        help='Type of entry (default: lesson)')
@@ -196,44 +259,82 @@ Examples:
                        help='Priority level (default: medium)')
     parser.add_argument('--url', default='',
                        help='URL associated with the entry')
+    parser.add_argument('--json', action='store_true',
+                       help='Output result as JSON')
+    parser.add_argument('--json-input', dest='json_input',
+                       help='Add structured entry from JSON string (V2 schema)')
 
     args = parser.parse_args()
+
+    # Validate: must have content or json-input
+    if not args.content and not args.json_input:
+        parser.error("Either content or --json-input is required")
 
     try:
         init_result = get_knowledge_dir()
         knowledge_dir = init_result.path
 
-        # Silent init - only mention if both new dir AND server started
-        if init_result.newly_created and init_result.server_started:
+        # Silent init - only mention if both new dir AND server started (and not json mode)
+        if init_result.newly_created and init_result.server_started and not args.json:
             print(f"[init: .knowledge-db + server]")
 
-        # Create entry
-        entry = create_entry(
-            content=args.content,
-            entry_type=args.entry_type,
-            tags=args.tags,
-            priority=args.priority,
-            url=args.url if args.url else None
-        )
+        # Create entry based on input mode
+        if args.json_input:
+            # Structured JSON input (V2 schema)
+            try:
+                data = json.loads(args.json_input)
+            except json.JSONDecodeError as e:
+                if args.json:
+                    print(json.dumps({"error": f"Invalid JSON: {e}"}))
+                else:
+                    print(f"❌ Invalid JSON input: {e}", file=sys.stderr)
+                return 1
+
+            entry = create_entry_from_json(data)
+            content_display = entry.get("title", "")[:60]
+            entry_type = entry.get("type", "lesson")
+        else:
+            # Simple content input
+            entry = create_entry(
+                content=args.content,
+                entry_type=args.entry_type,
+                tags=args.tags,
+                priority=args.priority,
+                url=args.url if args.url else None
+            )
+            content_display = args.content[:60]
+            entry_type = args.entry_type
 
         # Save to database
         save_entry(entry, knowledge_dir)
 
         # Log to timeline
-        log_to_timeline(args.content, args.entry_type, knowledge_dir)
+        log_to_timeline(entry.get("summary", content_display), entry_type, knowledge_dir)
 
-        # Output success message
-        print(f"✅ Captured {args.entry_type}: {args.content[:60]}{'...' if len(args.content) > 60 else ''}")
-        print(f"📁 Saved to: {knowledge_dir}/entries.jsonl")
-        if args.tags:
-            print(f"🏷️  Tags: {args.tags}")
-        if args.priority != 'medium':
-            print(f"⚡ Priority: {args.priority}")
+        # Output based on mode
+        if args.json:
+            print(json.dumps({
+                "status": "success",
+                "id": entry["id"],
+                "title": entry["title"],
+                "type": entry_type,
+                "path": str(knowledge_dir / "entries.jsonl")
+            }))
+        else:
+            print(f"✅ Captured {entry_type}: {content_display}{'...' if len(content_display) >= 60 else ''}")
+            print(f"📁 Saved to: {knowledge_dir}/entries.jsonl")
+            if entry.get("tags"):
+                print(f"🏷️  Tags: {', '.join(entry['tags'])}")
+            if entry.get("atomic_insight"):
+                print(f"💡 Insight: {entry['atomic_insight'][:80]}")
 
         return 0
 
     except Exception as e:
-        print(f"❌ Error capturing knowledge: {e}", file=sys.stderr)
+        if args.json:
+            print(json.dumps({"error": str(e)}))
+        else:
+            print(f"❌ Error capturing knowledge: {e}", file=sys.stderr)
         return 1
 
 if __name__ == '__main__':

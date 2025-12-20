@@ -8,15 +8,24 @@
 | `qreview <model> <focus>` | Quick single-model review |
 | `dreview <model> <focus>` | Deep review with tools |
 | `droid <model> <type> <task>` | Execute Factory droid |
-| `GoodJob <url>` | Capture web knowledge |
-| `SaveThis <lesson>` | Save a lesson learned |
+| `InitKB` | Initialize knowledge DB for project |
+| `SaveThis <lesson>` | Save a lesson learned (V2 schema) |
+| `SaveInfo <url>` | Evaluate & save URL with LLM |
 | `FindKnowledge <query>` | Search knowledge DB |
 
 ## Knowledge Database
 
 Fast semantic search for stored knowledge (URLs, solutions, lessons).
 
+**Statusline indicators**:
+- `kb:✓` (green) - Server running
+- `kb:init` (yellow) - Run `InitKB` to initialize
+- `kb:off` (red) - Initialized but server stopped
+
 ```bash
+# Initialize for new project
+InitKB
+
 # Query via server (~30ms)
 ~/.claude/scripts/knowledge-query.sh "<topic>"
 
@@ -24,7 +33,9 @@ Fast semantic search for stored knowledge (URLs, solutions, lessons).
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
 ```
 
-**Storage**: `.knowledge-db/` per project | **Server**: Auto-starts via ~/.bashrc
+**V2 Schema Fields**: `atomic_insight`, `key_concepts`, `quality`, `source`, `source_path`
+
+**Storage**: `.knowledge-db/` per project | **Server**: Auto-starts on session start
 
 ## Review System
 
@@ -81,6 +92,7 @@ Curated insights via `mcp__serena__*_memory` tools:
 
 ## Hooks
 
-- **UserPromptSubmit**: Review dispatch, GoodJob, healthcheck
+- **SessionStart**: Auto-start LiteLLM + KB server
+- **UserPromptSubmit**: InitKB, SaveThis, SaveInfo, FindKnowledge, reviews
 - **PostToolUse (Bash)**: Post-commit docs, timeline
 - **PostToolUse (Web*)**: Auto-capture to knowledge DB

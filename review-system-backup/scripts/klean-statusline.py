@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-K-LEAN Status Line v2 for Claude Code
-======================================
+K-LEAN Status Line v2.1 for Claude Code
+========================================
 Optimized statusline with actionable metrics:
 
 1. Model     - Claude model with tier coloring
@@ -10,14 +10,37 @@ Optimized statusline with actionable metrics:
 4. Services  - LiteLLM + Knowledge DB status
 
 Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓
+
+Knowledge DB Status:
+- kb:✓     (green)  - Server running
+- kb:init  (yellow) - Not initialized, run InitKB
+- kb:off   (red)    - Initialized but server stopped
+- kb:?     (dim)    - No project root found
 """
 
 import json
 import os
+import re
 import subprocess
-import socket
 import sys
 from pathlib import Path
+
+# Pre-compiled regexes for git diff parsing
+RE_INSERTIONS = re.compile(r'(\d+) insertion')
+RE_DELETIONS = re.compile(r'(\d+) deletion')
+
+# Import shared utilities
+try:
+    from kb_utils import (
+        find_project_root as _find_project_root, get_socket_path,
+        is_kb_initialized, is_server_running, clean_stale_socket
+    )
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from kb_utils import (
+        find_project_root as _find_project_root, get_socket_path,
+        is_kb_initialized, is_server_running, clean_stale_socket
+    )
 
 # ============================================================================
 # ANSI Colors
@@ -126,9 +149,8 @@ def get_git(data: dict) -> str:
         diff_out = diff_result.stdout.strip()
         if diff_out:
             # Parse "X files changed, Y insertions(+), Z deletions(-)"
-            import re
-            ins_match = re.search(r'(\d+) insertion', diff_out)
-            del_match = re.search(r'(\d+) deletion', diff_out)
+            ins_match = RE_INSERTIONS.search(diff_out)
+            del_match = RE_DELETIONS.search(diff_out)
             if ins_match:
                 added = int(ins_match.group(1))
             if del_match:
@@ -165,63 +187,56 @@ def check_litellm() -> tuple[int, bool]:
     except Exception:
         return 0, False
 
-def find_project_root(start_dir: str) -> str | None:
-    """Find project root by walking up looking for .knowledge-db."""
-    current = Path(start_dir)
-    while current != current.parent:
-        if (current / ".knowledge-db").is_dir():
-            return str(current)
-        current = current.parent
-    return None
+def check_knowledge_db(workspace: dict) -> str:
+    """Check knowledge DB status for the project.
 
-def get_project_socket_path(project_path: str) -> str:
-    """Get per-project socket path using same hash as knowledge-server.py."""
-    import hashlib
-    path_str = str(Path(project_path).resolve())
-    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
-    return f"/tmp/kb-{hash_val}.sock"
-
-def check_knowledge_db(workspace: dict) -> bool:
-    """Check if per-project knowledge DB server is running."""
-    # Get project directory from workspace data
+    Returns:
+        "running" - server is up and responding
+        "stopped" - .knowledge-db exists but server not running
+        "init"    - no .knowledge-db directory (needs initialization)
+        "no-project" - no project root found
+    """
     project_dir = workspace.get("project_dir", os.getcwd())
+    project_root = _find_project_root(project_dir)
 
-    # Find actual project root (might be different from project_dir)
-    project_root = find_project_root(project_dir)
     if not project_root:
-        return False  # No .knowledge-db found
+        return "no-project"
 
-    # Get per-project socket path
-    socket_path = get_project_socket_path(project_root)
+    project_root_str = str(project_root)
 
-    if not os.path.exists(socket_path):
-        return False
-    try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.settimeout(0.3)
-        sock.connect(socket_path)
-        sock.close()
-        return True
-    except Exception:
-        # Stale socket - clean it up
-        try:
-            os.unlink(socket_path)
-        except:
-            pass
-        return False
+    if not is_kb_initialized(project_root_str):
+        return "init"
+
+    if is_server_running(project_root_str, timeout=0.3):
+        return "running"
+
+    # Clean stale socket if exists
+    clean_stale_socket(project_root_str)
+    return "stopped"
 
 def get_services(data: dict) -> str:
     """Get K-LEAN services status."""
     llm_count, llm_running = check_litellm()
     workspace = data.get("workspace", {})
-    kb_running = check_knowledge_db(workspace)
+    kb_status = check_knowledge_db(workspace)
 
+    # LiteLLM status
     if llm_running and llm_count >= 1:
         llm = f"{C.GREEN}{llm_count}{C.RESET}"
     else:
         llm = f"{C.RED}✗{C.RESET}"
 
-    kb = f"{C.GREEN}✓{C.RESET}" if kb_running else f"{C.RED}✗{C.RESET}"
+    # Knowledge DB status - meaningful messages
+    if kb_status == "running":
+        kb = f"{C.GREEN}✓{C.RESET}"
+    elif kb_status == "init":
+        # Not initialized - yellow "init" message
+        kb = f"{C.YELLOW}init{C.RESET}"
+    elif kb_status == "stopped":
+        # Initialized but server not running - red "off"
+        kb = f"{C.RED}off{C.RESET}"
+    else:  # no-project
+        kb = f"{C.DIM}?{C.RESET}"
 
     return f"{C.DIM}llm:{llm} kb:{kb}{C.RESET}"
 

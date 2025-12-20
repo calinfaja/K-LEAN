@@ -1,11 +1,13 @@
 #!/bin/bash
 #
-# K-LEAN Session Start Hook
+# K-LEAN Session Start Hook v2
 # Auto-starts LiteLLM proxy and per-project Knowledge Server
 #
 # Triggered by Claude Code's SessionStart event (matcher: startup)
 # Both services start in background - non-blocking (~0.1s)
 #
+
+SCRIPTS_DIR="$HOME/.claude/scripts"
 
 # === LiteLLM Proxy (Global - Port 4000) ===
 # Only start if not already running
@@ -22,31 +24,49 @@ if ! curl -s --max-time 1 http://localhost:4000/health >/dev/null 2>&1; then
 fi
 
 # === Knowledge Server (Per-Project) ===
-# Find project root by walking up looking for .knowledge-db
-find_project_root() {
-    local dir="$PWD"
+# Source unified project detection (kb-root.sh)
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+    PROJECT=$(find_kb_project_root)
+else
+    # Fallback: inline detection
+    PROJECT=""
+    dir="$PWD"
     while [ "$dir" != "/" ]; do
-        if [ -d "$dir/.knowledge-db" ]; then
-            echo "$dir"
-            return 0
-        fi
+        for marker in ".knowledge-db" ".serena" ".claude" ".git"; do
+            if [ -d "$dir/$marker" ]; then
+                PROJECT="$dir"
+                break 2
+            fi
+        done
         dir=$(dirname "$dir")
     done
-    return 1
-}
+fi
 
-PROJECT=$(find_project_root)
+# Only start if we're in a project with knowledge-db initialized
+if [ -n "$PROJECT" ] && [ -d "$PROJECT/.knowledge-db" ]; then
+    # Get socket path (use kb-root.sh function or calculate inline)
+    if type get_kb_socket_path &>/dev/null; then
+        SOCKET=$(get_kb_socket_path "$PROJECT")
+        HASH=$(get_kb_project_hash "$PROJECT")
+    else
+        HASH=$(echo -n "$(cd "$PROJECT" && pwd)" | md5sum | cut -c1-8)
+        SOCKET="/tmp/kb-${HASH}.sock"
+    fi
 
-# Only start if we're in a project with knowledge-db
-if [ -n "$PROJECT" ]; then
-    # Calculate socket path (must match knowledge-server.py's hash)
-    HASH=$(echo -n "$PROJECT" | md5sum | cut -c1-8)
-    SOCKET="/tmp/kb-${HASH}.sock"
+    # Clean stale socket if server not responding
+    if [ -S "$SOCKET" ]; then
+        if type is_kb_server_running &>/dev/null; then
+            if ! is_kb_server_running "$PROJECT"; then
+                rm -f "$SOCKET" "/tmp/kb-${HASH}.pid" 2>/dev/null
+            fi
+        fi
+    fi
 
     # Start if not already running
     if [ ! -S "$SOCKET" ]; then
         PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-        SERVER="$HOME/.claude/scripts/knowledge-server.py"
+        SERVER="$SCRIPTS_DIR/knowledge-server.py"
 
         if [ -x "$PYTHON" ] && [ -f "$SERVER" ]; then
             (
