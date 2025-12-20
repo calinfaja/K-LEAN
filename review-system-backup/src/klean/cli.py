@@ -564,7 +564,7 @@ def main():
 @main.command()
 @click.option("--dev", is_flag=True, help="Development mode: use symlinks instead of copies")
 @click.option("--component", "-c",
-              type=click.Choice(["all", "scripts", "commands", "hooks", "droids", "config", "knowledge"]),
+              type=click.Choice(["all", "scripts", "commands", "hooks", "droids", "config", "core", "knowledge"]),
               default="all", help="Component to install")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompts")
 def install(dev: bool, component: str, yes: bool):
@@ -586,6 +586,7 @@ def install(dev: bool, component: str, yes: bool):
         source_droids = repo_root / "droids"
         source_config = repo_root / "config"
         source_lib = repo_root / "lib"
+        source_core = repo_root / "src" / "klean" / "data" / "core"
     else:
         # Production: use package data directory
         source_base = DATA_DIR
@@ -596,6 +597,7 @@ def install(dev: bool, component: str, yes: bool):
         source_droids = source_base / "droids"
         source_config = source_base / "config"
         source_lib = source_base / "lib"
+        source_core = source_base / "core"
 
     console.print(f"[dim]Source: {source_scripts.parent}[/dim]\n")
 
@@ -684,6 +686,48 @@ def install(dev: bool, component: str, yes: bool):
                 else:
                     shutil.copy2(cfg_file, dst)
             console.print("  [green]Installed LiteLLM configs[/green]")
+
+    # Install core module (klean_core.py, prompts)
+    if component in ["all", "core"]:
+        console.print("[bold]Installing core module...[/bold]")
+        core_dst = CLAUDE_DIR / "k-lean"
+        if source_core.exists():
+            ensure_dir(core_dst)
+            # Copy main Python file
+            core_py = source_core / "klean_core.py"
+            if core_py.exists():
+                dst_py = core_dst / "klean_core.py"
+                if dev:
+                    if dst_py.exists() or dst_py.is_symlink():
+                        dst_py.unlink()
+                    dst_py.symlink_to(core_py.resolve())
+                else:
+                    shutil.copy2(core_py, dst_py)
+                dst_py.chmod(dst_py.stat().st_mode | 0o111)
+            # Copy config
+            core_cfg = source_core / "config.yaml"
+            if core_cfg.exists():
+                dst_cfg = core_dst / "config.yaml"
+                if dev:
+                    if dst_cfg.exists() or dst_cfg.is_symlink():
+                        dst_cfg.unlink()
+                    dst_cfg.symlink_to(core_cfg.resolve())
+                else:
+                    shutil.copy2(core_cfg, dst_cfg)
+            # Copy prompts directory
+            prompts_src = source_core / "prompts"
+            if prompts_src.exists():
+                prompts_dst = core_dst / "prompts"
+                if prompts_dst.exists():
+                    shutil.rmtree(prompts_dst)
+                if dev:
+                    prompts_dst.symlink_to(prompts_src.resolve())
+                else:
+                    shutil.copytree(prompts_src, prompts_dst)
+            installed["core"] = 1
+            console.print("  [green]Installed klean_core.py + prompts[/green]")
+        else:
+            console.print(f"  [yellow]Core source not found: {source_core}[/yellow]")
 
     # Install knowledge system
     if component in ["all", "knowledge"]:
