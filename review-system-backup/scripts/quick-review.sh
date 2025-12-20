@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Quick Review - Single model with health check + fallback
 # Uses dynamic model discovery from LiteLLM API

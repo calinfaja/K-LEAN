@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Factory Droid review script - fast agentic code review
 # Usage: droid-review.sh "[model] [focus]" [working_dir]
 #

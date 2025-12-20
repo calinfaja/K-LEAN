@@ -1,38 +1,55 @@
-# K-LEAN Companion v3.0
+# K-LEAN Quick Start
 
 **K-LEAN** = Knowledge-Leveraged Engineering Analysis Network
 
-Multi-model code review and knowledge capture for Claude Code.
+Get multi-model code reviews running in 5 minutes.
 
 ---
 
-## What It Does
+## Prerequisites
 
-- **6 LLM models** review your code (unified prompts, all areas)
-- **Quick reviews** (30s) or **Deep audits** (5min with tools)
-- **Factory Droid** fast agentic reviews with 8 specialist droids
-- **Knowledge capture** from web research and lessons learned
-- **Background execution** - review while you keep coding
+- **Claude Code CLI** (latest version)
+- **Python 3.9+**
+- **NanoGPT API key** from [nano-gpt.com](https://nano-gpt.com) ($0.50/1M tokens)
 
 ---
 
-## Quick Start
+## Installation
 
 ```bash
-# Start LiteLLM proxy
-start-nano-proxy
+# 1. Clone the repository
+git clone https://github.com/AICodingDojo/claudeAgentic.git
+cd claudeAgentic
 
-# Check models
+# 2. Install K-LEAN CLI
+pipx install -e review-system-backup
+
+# 3. Set your API key
+export NANOGPT_API_KEY="your-key-here"
+
+# 4. Start services
+k-lean start
+
+# 5. Verify everything works
+k-lean test
+```
+
+---
+
+## Your First Review
+
+```bash
+# Check models are working
 healthcheck
 
-# Quick review
-/kln:quickReview qwen security audit
+# Quick security review (~30s)
+/kln:quick security
 
-# 3-model comparison
-/kln:quickCompare check error handling
+# Multi-model consensus (~60s)
+/kln:multi architecture review
 
-# Deep audit with tools
-/kln:deepAudit pre-release review
+# Deep analysis with tools (~3min)
+/kln:deep security audit
 
 # Get help
 /kln:help
@@ -40,65 +57,90 @@ healthcheck
 
 ---
 
-## Models
-
-| Alias | Model | Notes |
-|-------|-------|-------|
-| `qwen` | qwen3-coder | Default single-model |
-| `deepseek` | deepseek-v3-thinking | Architecture |
-| `kimi` | kimi-k2-thinking | Planning |
-| `glm` | glm-4.6-thinking | Standards |
-| `minimax` | minimax-m2 | Research |
-| `hermes` | hermes-4-70b | Scripting |
-
----
-
-## Commands
+## Commands Overview
 
 | Command | What It Does | Time |
 |---------|--------------|------|
-| `/kln:quickReview <model> <focus>` | Fast single-model review | ~30s |
-| `/kln:quickCompare [models] <focus>` | 3-model comparison | ~60s |
-| `/kln:deepInspect <model> <focus>` | Thorough review with tools | ~3min |
-| `/kln:deepAudit [models] <focus>` | Full 3-model audit with tools | ~5min |
-| `/kln:droid <model> <focus>` | Fast agentic review | ~30s |
-| `/kln:droidAudit [models] <focus>` | 3-droid parallel review | ~1min |
-| `/kln:droidExecute <model> <droid> <prompt>` | Specialized droid | ~30s |
-| `/kln:quickConsult <model> <question>` | Get second opinion | ~60s |
-| `/kln:createReport <title>` | Document session | - |
+| `/kln:quick` | Fast single-model review | ~30s |
+| `/kln:multi` | Consensus from 3-5 models | ~60s |
+| `/kln:deep` | Full codebase analysis with tools | ~3min |
+| `/kln:droid` | Specialist agent (security, perf, etc.) | ~2min |
+| `/kln:rethink` | Fresh debugging perspectives | ~30s |
+| `/kln:status` | System health check | instant |
+| `/kln:help` | Command reference | instant |
 
-## Specialist Droids
+### Command Flags
 
-| Droid | Expertise |
-|-------|-----------|
-| `orchestrator` | System architecture, task coordination |
-| `code-reviewer` | Code quality, OWASP, SOLID principles |
-| `security-auditor` | Vulnerabilities, auth, encryption |
-| `debugger` | Root cause analysis, error tracing |
-| `arm-cortex-expert` | ARM Cortex-M, DMA, ISRs, FreeRTOS |
-| `c-pro` | C99/C11, POSIX, memory management |
-| `rust-expert` | Ownership, lifetimes, embedded Rust |
-| `performance-engineer` | Profiling, optimization |
-
-## Keywords
-
-| Keyword | What It Does |
-|---------|--------------|
-| `healthcheck` | Test all 6 models |
-| `GoodJob <url>` | Capture knowledge from URL |
-| `SaveThis <lesson>` | Save lesson learned |
-| `FindKnowledge <query>` | Search knowledge DB |
+- `--async` - Run in background
+- `--models N` - Number of models (3-5)
+- `--output json|text` - Output format
+- `--role <droid>` - Specialist for /kln:droid
 
 ---
 
-## Documentation
+## Models
 
-| Document | Contents |
-|----------|----------|
-| **[USER_GUIDE.md](USER_GUIDE.md)** | Commands, keywords, workflows, examples |
-| **[INSTALLATION.md](INSTALLATION.md)** | Setup, prerequisites, configuration |
-| **[ARCHITECTURE.md](ARCHITECTURE.md)** | Hooks, scripts, knowledge system internals |
-| **[DROID-SYSTEM.md](DROID-SYSTEM.md)** | Factory Droid integration, specialists |
+| Model | Strength | Best For |
+|-------|----------|----------|
+| `qwen3-coder` | Code quality | Bug detection, refactoring |
+| `deepseek-v3-thinking` | Architecture | Design, structure |
+| `glm-4.6-thinking` | Standards | Compliance, style |
+| `minimax-m2` | Context | Large codebases |
+| `kimi-k2-thinking` | Planning | Agents, workflows |
+| `hermes-4-70b` | Scripting | Automation, tooling |
+
+Check available models: `k-lean models`
+
+---
+
+## Knowledge Database
+
+Save and search knowledge across sessions:
+
+```bash
+# Save a lesson learned
+SaveThis "Connection pooling in Python requires explicit close() calls"
+
+# Search your knowledge
+FindKnowledge connection pooling
+
+# Knowledge is stored per-project in .knowledge-db/
+```
+
+---
+
+## Specialist Droids
+
+8 domain experts available via `/kln:droid`:
+
+| Droid | Expertise |
+|-------|-----------|
+| `code-reviewer` | Code quality, SOLID, OWASP |
+| `security-auditor` | Vulnerabilities, auth, crypto |
+| `performance-engineer` | Profiling, optimization |
+| `debugger` | Root cause analysis |
+| `rust-expert` | Rust patterns, ownership |
+| `c-pro` | C/embedded, memory |
+| `arm-cortex-expert` | ARM, FreeRTOS, ISRs |
+| `orchestrator` | Multi-droid coordination |
+
+```bash
+/kln:droid --role security audit authentication flow
+/kln:droid --role performance check memory usage
+```
+
+---
+
+## K-LEAN CLI
+
+```bash
+k-lean status     # Component health
+k-lean doctor -f  # Diagnose + auto-fix
+k-lean start      # Start all services
+k-lean stop       # Stop all services
+k-lean models     # List available models
+k-lean test       # Run verification suite
+```
 
 ---
 
@@ -109,7 +151,38 @@ healthcheck
 | Scripts | `~/.claude/scripts/` |
 | Commands | `~/.claude/commands/kln/` |
 | Settings | `~/.claude/settings.json` |
-| LiteLLM | `~/.config/litellm/config.yaml` |
+| LiteLLM Config | `~/.config/litellm/config.yaml` |
 | Droids | `~/.factory/droids/` |
-| Output | `.claude/kln/` (per project) |
 | Knowledge | `.knowledge-db/` (per project) |
+
+---
+
+## Next Steps
+
+- **[User Guide](USER_GUIDE.md)** - Complete command reference
+- **[Installation Guide](INSTALLATION.md)** - Detailed setup
+- **[Architecture](../architecture/SYSTEMS.md)** - System design
+
+---
+
+## Troubleshooting
+
+### LiteLLM not running
+
+```bash
+k-lean doctor -f  # Auto-diagnose and fix
+k-lean start      # Start services
+```
+
+### Model not responding
+
+```bash
+healthcheck       # Check all models
+k-lean models     # See model status
+```
+
+### Command not found
+
+```bash
+/kln:help         # List all commands
+```

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Test Deep Audit - Comprehensive model testing framework
 # Tests each LiteLLM model by analyzing git diff between commits

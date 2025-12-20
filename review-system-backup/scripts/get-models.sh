@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Get Models - Returns all models from LiteLLM API (sorted)
 # Usage: get-models.sh

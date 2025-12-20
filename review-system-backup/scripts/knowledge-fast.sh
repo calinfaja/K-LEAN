@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Knowledge Fast Search - Per-project search with auto-start
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Async Review Dispatcher
 # Intercepts user prompts, runs reviews in background, BLOCKS the prompt
