@@ -23,7 +23,7 @@ cd k-lean
 ./install.sh --full
 ```
 
-## V3 Commands (9 total)
+## Commands (9 total)
 
 | Command | Description | Example |
 |---------|-------------|---------|
@@ -122,7 +122,7 @@ Check installed: `claude mcp list`
 
 ### v1.0.0-beta (2025-12-16)
 
-- **Breaking**: Consolidated 21 commands → 9 v3 commands
+- **Breaking**: Consolidated 21 commands → 9 commands
 - **New**: `/kln:rethink` - Fresh debugging perspectives
 - **New**: `klean_core.py` - 1189-line execution engine
 - **New**: Auto-discovery model resolution

@@ -1,6 +1,6 @@
 ---
 name: remember
-description: "Knowledge capture - save session insights before closing"
+description: "Reviews git status/diff/log, extracts learnings by category (warnings/patterns/solutions), saves to Knowledge DB via knowledge-capture.py, and appends index to Serena lessons-learned. Use at session end before /clear."
 allowed-tools: Bash, Read, Grep, mcp__serena__read_memory, mcp__serena__edit_memory
 argument-hint: "[optional focus area]"
 ---
@@ -8,6 +8,18 @@ argument-hint: "[optional focus area]"
 # /kln:remember - End-of-Session Knowledge Capture
 
 Comprehensive extraction and saving of session learnings before clearing context.
+
+## When to Use
+
+- End of productive session, before `/clear` or `/compact`
+- After solving tricky problems worth remembering
+- When you've learned reusable patterns or gotchas
+- Before closing a long debugging session
+
+**NOT for:**
+- Mid-session (wait until ready to clear context)
+- Quick notes → use `SaveThis` keyword instead
+- Code review → use `/kln:quick`, `/kln:multi`, or `/kln:deep`
 
 **Use this command at the END of a productive session, before running `/clear` or `/compact`.**
 

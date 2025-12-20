@@ -1,6 +1,6 @@
 ---
 name: rethink
-description: "Fresh perspectives - alternative debugging approaches"
+description: "Extracts debugging context from conversation, then queries LiteLLM with contrarian techniques (inversion, assumption challenge, domain shift). Returns ranked novel ideas. Use when stuck 10+ minutes."
 allowed-tools: Bash, Read, Grep, Glob
 argument-hint: "[--models N|MODEL] [--async] [focus]"
 ---
@@ -9,6 +9,18 @@ argument-hint: "[--models N|MODEL] [--async] [focus]"
 
 When you're stuck debugging and have tried multiple approaches without success, this command
 gets fresh perspectives from external models using contrarian thinking techniques.
+
+## When to Use
+
+- Stuck on same issue for 10+ minutes
+- Already tried obvious approaches without success
+- Need "fresh eyes" from different thinking models
+- Want ideas you probably dismissed or didn't consider
+
+**NOT for:**
+- Initial debugging (try standard approaches first)
+- Code review → use `/kln:quick` or `/kln:deep`
+- When you haven't tried anything yet
 
 ## How It Works
 

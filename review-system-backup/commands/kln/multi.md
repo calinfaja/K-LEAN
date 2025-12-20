@@ -1,6 +1,6 @@
 ---
 name: multi
-description: "Consensus review - 3-5 models in parallel (~60s)"
+description: "Runs 3-5 LiteLLM models in parallel via asyncio, calculates grade/risk consensus, and groups findings by confidence level (high/medium/low). Use when multiple perspectives matter."
 allowed-tools: Bash, Read
 argument-hint: "[--models N|list] [--async] <focus>"
 ---
@@ -9,6 +9,18 @@ argument-hint: "[--models N|list] [--async] <focus>"
 
 Run multiple models in parallel for consensus review. Uses smart model selection
 with latency-based ranking and task-aware routing.
+
+## When to Use
+
+- Important decisions needing multiple perspectives
+- Validation through consensus (2+ models agree)
+- Pre-release or PR reviews where confidence matters
+- When you want high/medium/low confidence grouping
+
+**NOT for:**
+- Quick feedback when time is short → use `/kln:quick`
+- Need to actually read files for evidence → use `/kln:deep`
+- Domain-specific expertise needed → use `/kln:droid`
 
 ## Arguments
 

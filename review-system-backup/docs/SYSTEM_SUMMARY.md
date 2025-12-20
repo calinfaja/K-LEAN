@@ -1,4 +1,4 @@
-# K-LEAN System Summary v3.0
+# K-LEAN System Summary
 
 **K-LEAN** = Knowledge-Leveraged Engineering Analysis Network
 

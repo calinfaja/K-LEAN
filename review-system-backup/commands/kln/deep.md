@@ -1,6 +1,6 @@
 ---
 name: deep
-description: "Deep analysis - full codebase access (~3min)"
+description: "Spawns headless Claude Agent with Read/Grep/Glob/Bash tools for evidence-based review (~3min). Actually reads files, searches patterns, and provides findings with code snippets."
 allowed-tools: Bash, Read, Grep, Glob, Task
 argument-hint: "[--models N] [--async] <focus>"
 ---
@@ -72,9 +72,13 @@ Use the Task tool with subagent_type="general-purpose" to execute this review.
 
 ## When to Use
 
-| Scenario | Use |
-|----------|-----|
-| Quick feedback | /kln:quick |
-| Multiple opinions | /kln:multi |
-| **Thorough analysis with evidence** | **/kln:deep** |
-| File-by-file detailed review | /kln:deep |
+- Thorough investigation requiring actual file access
+- Evidence-based findings with file:line references
+- Tracing dependencies and imports across codebase
+- Pre-release security/architecture audits
+- When you need code snippets proving issues
+
+**NOT for:**
+- Quick feedback when time is short → use `/kln:quick`
+- Just want multiple opinions without file access → use `/kln:multi`
+- Domain-specific role-based analysis → use `/kln:droid`

@@ -1,6 +1,6 @@
 ---
 name: droid
-description: "Factory Droid - specialist agents (security, architect, performance, devops)"
+description: "Spawns Claude Agent with role-specific prompts (coder/architect/auditor/researcher/reviewer). Uses expert system prompts from prompts/roles/. Use for domain-specific analysis."
 allowed-tools: Bash, Read, Grep, Glob, Task
 argument-hint: "[--role ROLE] [--model MODEL] [--parallel] <task>"
 ---
@@ -9,6 +9,18 @@ argument-hint: "[--role ROLE] [--model MODEL] [--parallel] <task>"
 
 Specialized AI workers with role-based expertise. Each droid has a specific
 focus area and optimized prompts for that domain.
+
+## When to Use
+
+- Task requires domain expertise (security audit, architecture review)
+- Role-based analysis is more effective than general review
+- Need 3 specialists in parallel (--parallel mode)
+- Want model auto-selection optimized for the role
+
+**NOT for:**
+- General code review → use `/kln:quick` or `/kln:multi`
+- Quick feedback without role specialization → use `/kln:quick`
+- Fresh debugging perspectives → use `/kln:rethink`
 
 ## Arguments
 

@@ -2,32 +2,32 @@
 
 Complete reference for K-LEAN v1.0.0-beta slash commands.
 
-## V3 Commands (9 total)
+## Commands (9 total)
 
 ### Review Commands
 
 | Command | Method | Time | Description |
 |---------|--------|------|-------------|
-| `/kln:quick` | API | ~30s | Fast single-model review |
-| `/kln:multi` | API | ~60s | Multi-model consensus (parallel) |
-| `/kln:deep` | SDK | ~3min | Thorough review with Claude SDK tools |
-| `/kln:droid` | Droid | ~30s | Role-based AI workers |
-| `/kln:rethink` | API | ~60s | Fresh debugging perspectives |
+| `/kln:quick` | API | ~30s | Single LiteLLM model, returns GRADE/RISK/findings without file access |
+| `/kln:multi` | API | ~60s | 3-5 models via asyncio, consensus grades, findings by confidence |
+| `/kln:deep` | SDK | ~3min | Claude Agent with Read/Grep/Glob/Bash tools, evidence-based |
+| `/kln:droid` | SDK | ~2min | Claude Agent with role-specific prompts (coder/architect/auditor) |
+| `/kln:rethink` | API | ~60s | Contrarian techniques (inversion, assumption challenge) |
 
 ### Utility Commands
 
 | Command | Description |
 |---------|-------------|
-| `/kln:doc` | Create session documentation |
-| `/kln:remember` | End-of-session knowledge capture |
-| `/kln:status` | Models, health, system status |
-| `/kln:help` | Complete command reference |
+| `/kln:doc` | Session docs to Serena memory via mcp__serena__write_memory |
+| `/kln:remember` | Git review + KB capture + Serena lessons-learned index |
+| `/kln:status` | LiteLLM health, model latency, KB/Serena status |
+| `/kln:help` | Command reference with flags, examples, architecture |
 
 ## Command Details
 
 ### /kln:quick
 
-Fast single-model review via LiteLLM API.
+Calls single LiteLLM model for fast code review. Returns GRADE, RISK, and findings without file access.
 
 ```bash
 /kln:quick [--model MODEL] [--async] [--output text|json] <focus>
@@ -42,7 +42,7 @@ Fast single-model review via LiteLLM API.
 
 ### /kln:multi
 
-Multi-model consensus review with parallel execution.
+Runs 3-5 LiteLLM models in parallel via asyncio, calculates grade/risk consensus, and groups findings by confidence level.
 
 ```bash
 /kln:multi [--models N|list] [--async] <focus>
@@ -63,7 +63,7 @@ Multi-model consensus review with parallel execution.
 
 ### /kln:deep
 
-Thorough review using Claude SDK with full tool access.
+Spawns headless Claude Agent with Read/Grep/Glob/Bash tools for evidence-based review. Actually reads files and provides findings with code snippets.
 
 ```bash
 /kln:deep [--model MODEL] [--async] <focus>
@@ -77,7 +77,7 @@ Thorough review using Claude SDK with full tool access.
 
 ### /kln:droid
 
-Role-based AI workers with specialized expertise.
+Spawns Claude Agent with role-specific prompts from prompts/roles/ directory. Uses expert system prompts for domain-specific analysis.
 
 ```bash
 /kln:droid [--model MODEL] [--role ROLE] [--parallel] <task>
@@ -98,7 +98,7 @@ Role-based AI workers with specialized expertise.
 
 ### /kln:rethink
 
-Fresh perspectives when stuck debugging. Uses contrarian techniques.
+Extracts debugging context from conversation, then queries LiteLLM with contrarian techniques (inversion, assumption challenge, domain shift). Returns ranked novel ideas.
 
 ```bash
 /kln:rethink [--models N|MODEL] [--async] [focus]
@@ -118,7 +118,7 @@ Fresh perspectives when stuck debugging. Uses contrarian techniques.
 
 ### /kln:doc
 
-Create session documentation.
+Generates session documentation (report/session/lessons types) and persists to Serena memory via mcp__serena__write_memory.
 
 ```bash
 /kln:doc [--async] "Session Title"
@@ -126,7 +126,7 @@ Create session documentation.
 
 ### /kln:remember
 
-End-of-session knowledge capture to Serena memory.
+Reviews git status/diff/log, extracts learnings by category, saves to Knowledge DB via knowledge-capture.py, and appends index to Serena lessons-learned.
 
 ```bash
 /kln:remember
@@ -134,7 +134,7 @@ End-of-session knowledge capture to Serena memory.
 
 ### /kln:status
 
-System status and model health.
+Checks LiteLLM proxy health (localhost:4000), lists available models with cached latency, and verifies Knowledge DB and Serena MCP status.
 
 ```bash
 /kln:status
@@ -147,7 +147,7 @@ Shows:
 
 ### /kln:help
 
-Complete command reference.
+Displays K-LEAN command reference with flags, examples, model routing, and architecture overview.
 
 ```bash
 /kln:help
@@ -197,7 +197,7 @@ These keywords are detected by hooks:
 
 ## Migration from Old Commands
 
-| Old Command (removed) | New V3 Command |
+| Old Command (removed) | New Command |
 |----------------------|----------------|
 | `/kln:quickReview` | `/kln:quick` |
 | `/kln:asyncQuickReview` | `/kln:quick --async` |
@@ -219,7 +219,7 @@ These keywords are detected by hooks:
 # Check symlinks
 ls -la ~/.claude/commands/kln/
 
-# Should show 9 files pointing to commands-kln-v3/
+# Should show 9 command files
 ```
 
 ### Model error
