@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Post-Commit Documentation Hook
 # After git commit: Reviews Serena memories, updates them, creates documentation

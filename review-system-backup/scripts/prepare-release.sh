@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # prepare-release.sh - Prepare K-LEAN for PyPI release
 #
 # This script populates src/klean/data/ with all required files for

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Fact Extraction - Extract reusable knowledge from reviews/commits
 # Uses native Claude Haiku for fast, cheap extraction

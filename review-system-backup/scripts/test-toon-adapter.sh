@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Test TOON Adapter - Validate TOON format conversion for knowledge facts
 #

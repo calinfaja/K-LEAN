@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # K-LEAN Knowledge DB Doctor
 # Diagnose and repair common knowledge database issues

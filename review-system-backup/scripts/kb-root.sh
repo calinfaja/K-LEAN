@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # K-LEAN kb-root.sh - Unified Project Root Detection
 # ===================================================
@@ -54,7 +54,15 @@ get_kb_project_hash() {
     fi
     # Resolve to absolute path for consistent hashing
     local abs_path=$(cd "$root" 2>/dev/null && pwd)
-    echo -n "$abs_path" | md5sum | cut -c1-8
+    # macOS uses 'md5', Linux uses 'md5sum'
+    if command -v md5sum &>/dev/null; then
+        echo -n "$abs_path" | md5sum | cut -c1-8
+    elif command -v md5 &>/dev/null; then
+        echo -n "$abs_path" | md5 | cut -c1-8
+    else
+        # Fallback to Python
+        echo -n "$abs_path" | python3 -c "import sys,hashlib; print(hashlib.md5(sys.stdin.read().encode()).hexdigest()[:8])"
+    fi
 }
 
 # Get socket path for project's knowledge server

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # LiteLLM Review Helper Script
 # Usage: litellm-review.sh <model> <system_prompt_file> <user_prompt>
 

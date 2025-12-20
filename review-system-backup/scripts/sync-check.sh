@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # sync-check.sh - Verify and manage K-LEAN symlinks and file sync
 #
 # Usage:

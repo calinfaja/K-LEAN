@@ -18,7 +18,7 @@ model_list:
     litellm_params:
       model: openai/qwen/qwen3-coder
       api_base: https://nano-gpt.com/api/v1
-      api_key: 05f9e545-57be-409b-b846-b3855b99ef5d
+      api_key: os.environ/NANOGPT_API_KEY
       drop_params: true
 
   # --- TIER 2: REASONING & ARCHITECTURE ---
@@ -27,7 +27,7 @@ model_list:
     litellm_params:
       model: openai/deepseek-ai/deepseek-v3.2-exp-thinking
       api_base: https://nano-gpt.com/api/v1
-      api_key: 05f9e545-57be-409b-b846-b3855b99ef5d
+      api_key: os.environ/NANOGPT_API_KEY
       drop_params: true
 
   # The Tool User: Precise tool calling. Powered by GLM 4.6.
@@ -35,7 +35,7 @@ model_list:
     litellm_params:
       model: openai/z-ai/glm-4.6:thinking
       api_base: https://nano-gpt.com/api/v1
-      api_key: 05f9e545-57be-409b-b846-b3855b99ef5d
+      api_key: os.environ/NANOGPT_API_KEY
       drop_params: true
 
   # --- TIER 3: CONTEXT & AGENTS ---
@@ -44,7 +44,7 @@ model_list:
     litellm_params:
       model: openai/MiniMax-M2
       api_base: https://nano-gpt.com/api/v1
-      api_key: 05f9e545-57be-409b-b846-b3855b99ef5d
+      api_key: os.environ/NANOGPT_API_KEY
       drop_params: true
 
   # The Agent: Long-horizon planning. Powered by Kimi K2.
@@ -52,7 +52,7 @@ model_list:
     litellm_params:
       model: openai/moonshotai/kimi-k2-thinking
       api_base: https://nano-gpt.com/api/v1
-      api_key: 05f9e545-57be-409b-b846-b3855b99ef5d
+      api_key: os.environ/NANOGPT_API_KEY
       drop_params: true
 
   # --- TIER 4: SPECIALIZED ---
@@ -61,5 +61,5 @@ model_list:
     litellm_params:
       model: openai/nousresearch/hermes-4-70b
       api_base: https://nano-gpt.com/api/v1
-      api_key: 05f9e545-57be-409b-b846-b3855b99ef5d
+      api_key: os.environ/NANOGPT_API_KEY
       drop_params: true

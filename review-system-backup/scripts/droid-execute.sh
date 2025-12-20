@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Droid Execute - Execute Factory droids with specialized roles and K-LEAN knowledge integration
 #

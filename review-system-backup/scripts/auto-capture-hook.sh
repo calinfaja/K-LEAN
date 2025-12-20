@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Auto-Capture Hook - Automatically capture valuable web findings
 #

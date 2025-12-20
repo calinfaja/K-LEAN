@@ -1,150 +1,222 @@
 # K-LEAN User Guide
 
-How to use the K-LEAN review and knowledge system in your daily workflow.
+Complete reference for using K-LEAN in your daily workflow.
 
 ---
 
 ## Quick Reference
 
-| What You Type | What Happens |
-|---------------|--------------|
-| `healthcheck` | Check all 6 models are working |
-| `/kln:quickReview qwen security` | Fast code review (30s) |
-| `/kln:quickCompare check errors` | 3-model comparison (60s) |
-| `/kln:deepAudit pre-release` | Full audit with tools (5min) |
-| `/kln:droid qwen security` | Fast agentic review (30s) |
-| `/kln:droidExecute qwen arm-cortex-expert Review ISRs` | Specialized droid |
-| `/kln:quickConsult kimi Is this correct?` | Get second opinion |
-| `GoodJob https://url` | Capture knowledge from URL |
-| `SaveThis lesson learned` | Save a lesson |
-| `FindKnowledge BLE optimization` | Search knowledge DB |
-| `/kln:help` | Show all commands |
+| Command | Description | Example |
+|---------|-------------|---------|
+| `/kln:quick` | Fast single-model review | `/kln:quick security` |
+| `/kln:multi` | Multi-model consensus | `/kln:multi --models 5 architecture` |
+| `/kln:deep` | Deep analysis with tools | `/kln:deep --async security audit` |
+| `/kln:droid` | Specialist agent | `/kln:droid --role security check auth` |
+| `/kln:rethink` | Fresh debugging perspectives | `/kln:rethink this bug` |
+| `/kln:doc` | Create session documentation | `/kln:doc "Sprint Review"` |
+| `/kln:remember` | Capture session knowledge | `/kln:remember` |
+| `/kln:status` | System health | `/kln:status` |
+| `/kln:help` | Command reference | `/kln:help` |
+| `healthcheck` | Test all models | `healthcheck` |
+| `SaveThis` | Save lesson learned | `SaveThis always validate input` |
+| `FindKnowledge` | Search knowledge DB | `FindKnowledge authentication` |
 
 ---
 
 ## Slash Commands
 
-Slash commands start with `/kln:` and expand into full prompts.
+### `/kln:quick` - Fast Review
 
-### Review Commands (Find Issues)
+Single-model review via API. Fast and lightweight.
 
-**`/kln:quickReview <model> <focus>`**
-- Fast single-model review via API
-- Time: ~30 seconds
-- No file access (just analyzes recent changes)
-
+**Usage:**
 ```
-/kln:quickReview qwen check buffer handling
-/kln:quickReview deepseek review architecture
-/kln:quickReview glm MISRA compliance
+/kln:quick <focus>
+/kln:quick --model <model> <focus>
 ```
 
-**`/kln:quickCompare [models] <focus>`**
-- 3 models review in parallel, compare findings
-- Time: ~60 seconds
-- Default models: qwen, kimi, glm
-
+**Examples:**
 ```
-/kln:quickCompare security audit
-/kln:quickCompare qwen,deepseek,glm check error handling
+/kln:quick security audit
+/kln:quick check error handling
+/kln:quick --model deepseek-v3-thinking architecture review
 ```
 
-**`/kln:deepInspect <model> <focus>`**
-- Thorough review with full tool access
-- Time: ~3 minutes
-- Can read files, grep code, check git (READ-ONLY)
+**Time:** ~30 seconds
 
-```
-/kln:deepInspect qwen full security audit of crypto module
-/kln:deepInspect kimi analyze module dependencies
-```
+---
 
-**`/kln:deepAudit [models] <focus>`**
-- 3 models with full tool access, maximum coverage
-- Time: ~5 minutes
-- Best for pre-release reviews
+### `/kln:multi` - Consensus Review
 
+Multiple models review in parallel, findings synthesized.
+
+**Usage:**
 ```
-/kln:deepAudit pre-release quality check
-/kln:deepAudit kimi,hermes,minimax architecture review
+/kln:multi <focus>
+/kln:multi --models <count> <focus>
 ```
 
-### Factory Droid Commands (Fast Agentic)
-
-**`/kln:droid <model> <focus>`**
-- Fast agentic review using Factory Droid
-- Time: ~30 seconds
-- Has built-in file reading, grep, and search tools
-
+**Examples:**
 ```
-/kln:droid qwen security audit
-/kln:droid deepseek check error handling
+/kln:multi security audit
+/kln:multi --models 5 comprehensive review
+/kln:multi architecture and error handling
 ```
 
-**`/kln:droidAudit [models] <focus>`**
-- 3 droids in parallel, fast comprehensive review
-- Time: ~1 minute
-- Best for quick multi-perspective reviews
+**Flags:**
+- `--models N` - Number of models (3-5, default: 3)
+- `--output json|text` - Output format
 
-```
-/kln:droidAudit pre-release security check
-```
+**Time:** ~60 seconds
 
-**`/kln:droidExecute <model> <droid> <prompt>`**
-- Execute a specialized droid with domain expertise
-- 8 specialists available
+---
 
+### `/kln:deep` - Deep Analysis
+
+Full codebase analysis with tool access (read files, grep, git).
+
+**Usage:**
 ```
-/kln:droidExecute qwen code-reviewer Analyze error handling
-/kln:droidExecute glm arm-cortex-expert Review ISR priorities
-/kln:droidExecute deepseek security-auditor Check authentication flow
-/kln:droidExecute kimi rust-expert Review unsafe code blocks
+/kln:deep <focus>
+/kln:deep --async <focus>
 ```
 
-**Available Droid Specialists:**
+**Examples:**
+```
+/kln:deep security audit all authentication code
+/kln:deep --async full pre-release review
+/kln:deep analyze dependencies and coupling
+```
+
+**Flags:**
+- `--async` - Run in background
+- `--output json|text` - Output format
+
+**Time:** ~3 minutes
+
+---
+
+### `/kln:droid` - Specialist Agent
+
+Invoke domain expert droids for specialized analysis.
+
+**Usage:**
+```
+/kln:droid <task>
+/kln:droid --role <droid> <task>
+```
+
+**Examples:**
+```
+/kln:droid security audit
+/kln:droid --role security-auditor check authentication flow
+/kln:droid --role performance-engineer analyze memory usage
+/kln:droid --role rust-expert review unsafe blocks
+```
+
+**Available Droids:**
 
 | Droid | Expertise |
 |-------|-----------|
-| `orchestrator` | System architecture, task coordination |
-| `code-reviewer` | Code quality, OWASP, SOLID principles |
+| `code-reviewer` | Code quality, SOLID, OWASP top 10 |
 | `security-auditor` | Vulnerabilities, auth, encryption |
+| `performance-engineer` | Profiling, optimization, memory |
 | `debugger` | Root cause analysis, error tracing |
-| `arm-cortex-expert` | ARM Cortex-M, DMA, ISRs, FreeRTOS |
-| `c-pro` | C99/C11, POSIX, memory management |
 | `rust-expert` | Ownership, lifetimes, embedded Rust |
-| `performance-engineer` | Profiling, optimization |
+| `c-pro` | C99/C11, POSIX, memory management |
+| `arm-cortex-expert` | ARM Cortex-M, DMA, ISRs, FreeRTOS |
+| `orchestrator` | Multi-droid coordination |
 
-### Consult Commands (Challenge Decisions)
+**Time:** ~2 minutes
 
-**`/kln:quickConsult <model> <question>`**
-- Get independent second opinion
-- Challenges assumptions, suggests alternatives
+---
 
+### `/kln:rethink` - Fresh Perspectives
+
+When stuck on a bug, get alternative debugging approaches.
+
+**Usage:**
 ```
-/kln:quickConsult deepseek Is this state machine approach scalable?
-/kln:quickConsult kimi Should I use static or dynamic allocation?
+/kln:rethink <problem>
 ```
 
-### Document Commands
-
-**`/kln:createReport <title>`**
-- Create session documentation
-- Saves to Serena memories
-
+**Examples:**
 ```
-/kln:createReport BLE Implementation Complete
-/kln:createReport Fixed Crypto Memory Leak
+/kln:rethink this null pointer exception
+/kln:rethink memory leak in connection pool
+/kln:rethink why tests fail intermittently
+```
+
+**Time:** ~30 seconds
+
+---
+
+### `/kln:doc` - Session Documentation
+
+Create documentation from current session.
+
+**Usage:**
+```
+/kln:doc "<title>"
+```
+
+**Examples:**
+```
+/kln:doc "BLE Implementation Complete"
+/kln:doc "Fixed Crypto Memory Leak"
+/kln:doc "Sprint 12 Review"
 ```
 
 ---
 
-## Keywords (Type in Prompt)
+### `/kln:remember` - Knowledge Capture
 
-These keywords are intercepted by hooks and handled automatically.
+End-of-session capture of important insights.
+
+**Usage:**
+```
+/kln:remember
+```
+
+Automatically extracts and saves key learnings from the session.
+
+---
+
+### `/kln:status` - System Status
+
+Check health of all K-LEAN components.
+
+**Usage:**
+```
+/kln:status
+```
+
+Shows:
+- LiteLLM proxy status
+- Model availability
+- Knowledge DB status
+- Service health
+
+---
+
+### `/kln:help` - Command Help
+
+Show all available commands.
+
+**Usage:**
+```
+/kln:help
+```
+
+---
+
+## Keywords
+
+Type these directly in the prompt (no slash prefix).
 
 ### `healthcheck`
 
-Check if all 6 models are working:
+Test all configured models:
 
 ```
 healthcheck
@@ -155,197 +227,114 @@ Output:
 Model Health: ✅ qwen3-coder ✅ deepseek-v3-thinking ✅ glm-4.6-thinking ...
 ```
 
-### `GoodJob <url> [instructions]`
-
-Capture knowledge from a URL:
-
-```
-GoodJob https://docs.nordicsemi.com/ble
-GoodJob https://example.com/api focus on authentication patterns
-```
-
-What happens:
-1. Fetches the URL
-2. Haiku extracts key knowledge
-3. Stores in project's `.knowledge-db/`
-4. You see: "📚 Capturing knowledge..."
-
-### `SaveThis <lesson>`
+### `SaveThis`
 
 Save a lesson learned:
 
 ```
-SaveThis connection pooling improves PostgreSQL performance 10x
-SaveThis always check return values from k_malloc
+SaveThis always validate user input before database queries
+SaveThis connection pooling requires explicit close() in Python
+SaveThis BLE scanning drains battery - use passive mode
 ```
 
-### `FindKnowledge <query>`
+### `FindKnowledge`
 
 Search your knowledge database:
 
 ```
+FindKnowledge authentication patterns
 FindKnowledge BLE power optimization
-FindKnowledge error handling patterns
+FindKnowledge error handling
 ```
 
 Returns matching entries with relevance scores.
 
 ---
 
-## Async Commands (Background)
-
-Run reviews in background while you keep coding:
-
-| Async Command | What It Runs |
-|---------------|--------------|
-| `/kln:asyncQuickReview qwen <focus>` | Single model API review |
-| `/kln:asyncQuickCompare <focus>` | 3-model API comparison |
-| `/kln:asyncQuickConsult kimi <question>` | Single model consultation |
-| `/kln:asyncDeepAudit <focus>` | 3-model deep review with tools |
-
-### Example Workflow
-
-```
-# Start a review in background
-/kln:asyncDeepAudit security review
-
-# Claude says: "🚀 Deep audit started. Results: /tmp/claude-reviews/..."
-
-# Keep coding - the review runs in background
-
-# Later, check results
-cat /tmp/claude-reviews/*/deep-audit-latest.log
-```
-
----
-
-## Model Selection
+## Models
 
 ### Available Models
 
-| Alias | Full Name | Notes |
-|-------|-----------|-------|
-| `qwen` | qwen3-coder | Default for single-model |
-| `deepseek` | deepseek-v3-thinking | Good for architecture |
-| `kimi` | kimi-k2-thinking | Good for planning |
-| `glm` | glm-4.6-thinking | Good for standards |
-| `minimax` | minimax-m2 | Research focus |
-| `hermes` | hermes-4-70b | Scripting focus |
+| Model | Alias | Strength |
+|-------|-------|----------|
+| `qwen3-coder` | qwen | Code quality, bugs |
+| `deepseek-v3-thinking` | deepseek | Architecture, design |
+| `glm-4.6-thinking` | glm | Standards, compliance |
+| `minimax-m2` | minimax | Large context, research |
+| `kimi-k2-thinking` | kimi | Planning, agents |
+| `hermes-4-70b` | hermes | Scripting, automation |
 
-### Defaults
-
-- **Single-model commands**: `qwen` if not specified
-- **Multi-model commands**: `qwen`, `kimi`, `glm` if not specified
-
-### Custom Selection (Multi-Model)
-
-Specify 3 models comma-separated:
-
-```
-/kln:quickCompare qwen,deepseek,glm security audit
-/kln:deepAudit kimi,hermes,minimax architecture review
-```
-
----
-
-## What Gets Reviewed
-
-All models review ALL of these areas (unified prompts):
-
-| Area | What's Checked |
-|------|----------------|
-| **CORRECTNESS** | Logic errors, edge cases, algorithm correctness |
-| **MEMORY SAFETY** | Buffer overflows, null pointers, leaks |
-| **ERROR HANDLING** | Validation, propagation, resource cleanup |
-| **CONCURRENCY** | Race conditions, ISR safety, shared data |
-| **ARCHITECTURE** | Coupling, cohesion, API consistency |
-| **HARDWARE** | I/O correctness, volatile usage, timing |
-| **STANDARDS** | Coding style, MISRA guidelines |
-
-Your focus = extra attention, not restriction.
-
----
-
-## Output Formats
-
-### Review Output
-
-```
-## Grade: B+
-## Risk: MEDIUM
-
-## Critical Issues
-| # | File:Line | Issue | Fix |
-|---|-----------|-------|-----|
-| 1 | crypto.c:142 | Buffer overflow possible | Add bounds check |
-
-## Warnings
-...
-
-## Verdict: REQUEST_CHANGES
-```
-
-### Consult Output
-
-```
-## Assessment
-The approach is sound but has scalability concerns...
-
-## Concerns
-| Severity | Concern | Suggestion |
-|----------|---------|------------|
-| HIGH | Memory growth | Consider pooling |
-
-## Alternatives
-| Alternative | Pros | Cons |
-|-------------|------|------|
-| Static allocation | Predictable | Less flexible |
-
-## Verdict: AGREE_WITH_RESERVATIONS
-```
-
-### Multi-Model Comparison
-
-```
-## Consensus Summary
-
-### HIGH CONFIDENCE (All 3 found)
-- Buffer overflow in crypto.c:142
-
-### MEDIUM CONFIDENCE (2/3 found)
-- Missing error check in ble.c:89
-
-### LOW CONFIDENCE (1/3 found)
-- Style inconsistency (investigate)
-
-## Final Verdict: REQUEST_CHANGES
-```
-
----
-
-## Checking Results
-
-### Session Output Directory
-
-All results go to `/tmp/claude-reviews/{session-id}/`:
+### Check Model Status
 
 ```bash
-# List all sessions
+k-lean models        # List all models
+k-lean models --test # Test each model
+healthcheck          # Quick health check
+```
+
+---
+
+## Knowledge Database
+
+Per-project semantic search for captured knowledge.
+
+### Storage
+
+Knowledge is stored in `.knowledge-db/` within each project:
+- Semantic embeddings for fast search
+- Timeline of all entries
+- Automatic categorization
+
+### Commands
+
+```bash
+# Save knowledge
+SaveThis "lesson learned here"
+
+# Search knowledge
+FindKnowledge query terms
+
+# Direct query (via server, ~30ms)
+~/.claude/scripts/knowledge-query.sh "query"
+
+# Timeline of entries
+~/.claude/scripts/timeline-query.sh today
+~/.claude/scripts/timeline-query.sh week
+```
+
+### Auto-Capture
+
+Knowledge is automatically captured from:
+- Web research (URLs you fetch)
+- Lessons you save with `SaveThis`
+- Post-commit analysis
+
+---
+
+## Background Execution
+
+Run reviews in background while you continue coding.
+
+### Async Flag
+
+Add `--async` to any deep command:
+
+```
+/kln:deep --async comprehensive security audit
+```
+
+Claude responds:
+```
+🚀 Deep analysis started in background...
+```
+
+### Check Results
+
+Results are saved to `/tmp/claude-reviews/`:
+
+```bash
 ls /tmp/claude-reviews/
-
-# List files in current session
-ls /tmp/claude-reviews/2025-12-08-*/
-
-# Read specific result
-cat /tmp/claude-reviews/*/quick-review-qwen-latest.log
-cat /tmp/claude-reviews/*/deep-audit-latest.log
-```
-
-### Or Ask Claude
-
-```
-show me the review results
-what did the audit find?
+cat /tmp/claude-reviews/*/latest.log
 ```
 
 ---
@@ -354,84 +343,162 @@ what did the audit find?
 
 ### Quick Sanity Check
 
+Before committing small changes:
+
 ```
-/kln:quickReview check for obvious issues
+/kln:quick check for obvious issues
 ```
 
 ### Pre-Commit Review
 
+Before committing significant changes:
+
 ```
-/kln:quickCompare review changes before commit
+/kln:multi security and quality review
 ```
 
 ### Pre-Release Audit
 
-```
-/kln:deepAudit comprehensive pre-release security and quality audit
-```
-
-### Background Review While Coding
+Before major releases:
 
 ```
-/kln:asyncDeepAudit full review
-# keep coding...
-# check results when done
+/kln:deep --async comprehensive security and quality audit
 ```
 
-### Challenge a Decision
+### Debug Assistance
+
+When stuck on a bug:
 
 ```
-/kln:quickConsult deepseek Is this the right architecture for BLE + Crypto?
+/kln:rethink this intermittent crash
+/kln:droid --role debugger analyze this error
 ```
 
-### Capture Research
+### Research Capture
+
+When finding useful information:
 
 ```
-# After finding useful documentation
-GoodJob https://docs.zephyrproject.org/ble focus on power management
-
-# Save a lesson
-SaveThis BLE scanning drains battery - use passive scanning when possible
+# After reading documentation
+SaveThis "PostgreSQL connection pooling requires min_connections >= 2"
 
 # Later, recall it
-FindKnowledge BLE power
+FindKnowledge connection pooling
 ```
 
-### Document Session
+### End of Session
+
+Before closing:
 
 ```
-/kln:createReport BLE Power Optimization Complete
+/kln:remember
+```
+
+---
+
+## Output Formats
+
+### Review Output
+
+```markdown
+## Grade: B+
+## Risk: MEDIUM
+
+## Critical Issues
+| # | File:Line | Issue | Fix |
+|---|-----------|-------|-----|
+| 1 | crypto.c:142 | Buffer overflow | Add bounds check |
+
+## Warnings
+...
+
+## Verdict: REQUEST_CHANGES
+```
+
+### Multi-Model Consensus
+
+```markdown
+## Consensus Summary
+
+### HIGH CONFIDENCE (All models found)
+- Buffer overflow in crypto.c:142
+
+### MEDIUM CONFIDENCE (Majority found)
+- Missing error check in ble.c:89
+
+### LOW CONFIDENCE (One model found)
+- Style inconsistency
+
+## Final Verdict: REQUEST_CHANGES
+```
+
+---
+
+## K-LEAN CLI
+
+```bash
+k-lean status     # Component status
+k-lean doctor     # Diagnose issues
+k-lean doctor -f  # Diagnose + auto-fix
+k-lean start      # Start all services
+k-lean stop       # Stop all services
+k-lean models     # List models
+k-lean test       # Run test suite
 ```
 
 ---
 
 ## Troubleshooting
 
-### "LiteLLM proxy not running"
+### LiteLLM not running
 
 ```bash
-start-nano-proxy
-# wait a few seconds
-healthcheck
+k-lean doctor -f  # Auto-diagnose and fix
+k-lean start      # Start services
+```
+
+### Model not responding
+
+```bash
+healthcheck       # Check all models
+k-lean models     # See detailed status
+```
+
+### Slow responses
+
+- Use `/kln:quick` instead of `/kln:deep`
+- Use `--async` flag for background execution
+- Check `k-lean status` for bottlenecks
+
+### Knowledge not found
+
+```bash
+# Check if KB is running
+k-lean status
+
+# Initialize if needed (usually auto-initializes)
+InitKB
+
+# Search
+FindKnowledge your query
 ```
 
 ### Command not recognized
 
-Make sure you're using the correct prefix:
-- Slash commands: `/kln:quickReview` (with slash)
-- Keywords: `healthcheck` (no slash, just type it)
-
-### Review takes too long
-
-- Use `quickReview` instead of `deepInspect` for faster results
-- Use `asyncDeepAudit` to run in background
-
-### No results found
-
 ```bash
-# Check if results exist
-ls /tmp/claude-reviews/
-
-# Check log files for errors
-cat /tmp/claude-reviews/*/*.log | tail -50
+/kln:help         # List all commands
 ```
+
+---
+
+## File Locations
+
+| Type | Path |
+|------|------|
+| Scripts | `~/.claude/scripts/` |
+| Commands | `~/.claude/commands/kln/` |
+| Settings | `~/.claude/settings.json` |
+| LiteLLM Config | `~/.config/litellm/config.yaml` |
+| Droids | `~/.factory/droids/` |
+| Review Output | `/tmp/claude-reviews/` |
+| Knowledge | `.knowledge-db/` (per project) |

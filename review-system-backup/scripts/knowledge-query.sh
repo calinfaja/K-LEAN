@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Knowledge Query v2 - Fast per-project search via Unix socket
 #

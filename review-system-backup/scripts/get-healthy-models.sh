@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Get Healthy Models - Returns first N healthy models from LiteLLM
 # Uses /chat/completions endpoint for health checks (per LiteLLM/NanoGPT docs)

@@ -75,3 +75,18 @@ ehthumbs.db
 .env.*.local
 config/settings*.json
 ~/.config/litellm/.env
+
+# API keys and credentials (never commit these)
+*.key
+*.pem
+credentials.json
+secrets.json
+*_credentials*
+*_secrets*
+
+# Local LiteLLM config with real keys
+litellm-local.yaml
+config-local.yaml
+
+# Session and review outputs
+/tmp/claude-reviews/

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Health Check Model - Check if a specific model is healthy
 # Uses /chat/completions endpoint with a test message (per LiteLLM/NanoGPT docs)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # K-LEAN LiteLLM Proxy Starter
 # ============================

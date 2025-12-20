@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # K-LEAN kb-init.sh - Initialize Knowledge DB for Project
 # ========================================================
