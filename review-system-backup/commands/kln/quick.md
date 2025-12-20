@@ -1,13 +1,25 @@
 ---
 name: quick
-description: "Fast review - single model analysis (~30s)"
+description: "Calls single LiteLLM model for fast code review (~30s). Returns GRADE, RISK, and findings without file access. Use for quick feedback before commits."
 allowed-tools: Bash, Read
 argument-hint: "[--model MODEL] [--async] <focus>"
 ---
 
 # /kln:quick - Fast Code Review
 
-Quick single-model review via LiteLLM API. Fast (~30s), no file access.
+Quick single-model review via LiteLLM API (localhost:4000). Fast (~30s), no file access.
+
+## When to Use
+
+- Quick feedback on small changes before commit
+- Fast sanity check when time is limited (~30s)
+- Single opinion needed, not consensus
+- Checking specific concern (security, performance, etc.)
+
+**NOT for:**
+- Thorough investigation needing file access → use `/kln:deep`
+- Multiple perspectives needed → use `/kln:multi`
+- Evidence-based findings with code snippets → use `/kln:deep`
 
 ## Arguments
 

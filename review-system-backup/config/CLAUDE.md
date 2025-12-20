@@ -1,6 +1,6 @@
 # Claude System Configuration
 
-## K-LEAN v3.0.0 Commands
+## K-LEAN Commands
 
 | Command | Description | Example |
 |---------|-------------|---------|

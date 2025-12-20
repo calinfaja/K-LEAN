@@ -8,7 +8,7 @@ Technical implementation details for developers and maintainers.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        K-LEAN ARCHITECTURE v3.0                              │
+│                        K-LEAN ARCHITECTURE                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  USER INPUT                                                                 │

@@ -1,6 +1,6 @@
 ---
 name: status
-description: "System status - models, health, services"
+description: "Checks LiteLLM proxy health (localhost:4000), lists available models with cached latency, and verifies Knowledge DB and Serena MCP status. Use to diagnose K-LEAN issues."
 allowed-tools: ["Bash", "Read", "Grep", "Glob"]
 argument-hint: "[models|health|help]"
 ---
@@ -9,11 +9,22 @@ argument-hint: "[models|health|help]"
 
 Check the health and status of K-LEAN components and services.
 
+## When to Use
+
+- Check if K-LEAN is working properly
+- See available models and their latency
+- Diagnose why commands are failing
+- Get quick command reference (help subcommand)
+
+**NOT for:**
+- Actual code review → use `/kln:quick`, `/kln:multi`, or `/kln:deep`
+- CLI troubleshooting → use `k-lean doctor -f`
+
 ## Subcommands
 
 - **models** (default) - Show K-LEAN component status
 - **health** - Check all external services (LiteLLM, Knowledge DB, Serena)
-- **help** - Display quick reference of all K-LEAN v3 commands
+- **help** - Display quick reference of all K-LEAN commands
 
 ## Usage
 
@@ -57,7 +68,7 @@ When invoked:
    Display this quick reference:
 
    ```
-   K-LEAN v3 Commands
+   K-LEAN Commands
    ==================
 
    /kln:quick <model> <focus>

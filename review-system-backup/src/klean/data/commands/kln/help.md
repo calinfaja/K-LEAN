@@ -1,137 +1,181 @@
 ---
 name: help
-description: List all /kln: custom commands and their functionality
-allowed-tools: Read, Glob
-argument-hint: ""
+description: "Displays K-LEAN command reference with flags, examples, model routing, and architecture overview. Use to learn available commands and their usage patterns."
+allowed-tools: []
+argument-hint: "[command-name]"
 ---
 
-# /kln:help - K-LEAN Code Review System
+# K-LEAN Command Reference
 
-Display the complete reference for all `/kln:` commands.
+Knowledge-driven Lightweight Execution & Analysis Network
 
----
+## Core Commands
 
-```
-═══════════════════════════════════════════════════════════════════════════════
-  K-LEAN Code Review System v2.0
-  Multi-model review framework powered by NanoGPT + LiteLLM
+| Command | Type | Duration | Description |
+|---------|------|----------|-------------|
+| `/kln:quick <focus>` | API | ~30s | Fast single-model review for quick insights |
+| `/kln:multi <focus>` | API | ~60s | Multi-model consensus (parallel execution) |
+| `/kln:deep <focus>` | SDK | ~3min | Thorough review with tool access and deep analysis |
+| `/kln:droid <task>` | SDK | ~2min | Role-based specialized worker for specific tasks |
+| `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
+| `/kln:remember` | Local | ~60s | End-of-session knowledge capture and summary |
+| `/kln:status` | Local | ~5s | System health, available models, and quick help |
 
-  NEW: Unified prompts - all models review ALL areas
-═══════════════════════════════════════════════════════════════════════════════
+## Universal Flags
 
-COMMAND CATEGORIES ───────────────────────────────────────────────────────────
-  REVIEW .... Find issues in code (Grade, Risk, Issues)
-  CONSULT ... Challenge decisions (Verdict, Alternatives)
-  DOCUMENT .. Capture knowledge (Lessons, TODOs)
+All commands support these optional flags:
 
-REVIEW COMMANDS ──────────────────────────────────────── All models, all areas
-┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
-│ Command                   │ Models │ Method │ Time   │ Description          │
-├───────────────────────────┼────────┼────────┼────────┼──────────────────────┤
-│ /kln:quickReview <m> <f>  │ 1      │ API    │ ~30s   │ Fast code review     │
-│ /kln:quickCompare <f>     │ 3      │ API    │ ~60s   │ Multi-model consensus│
-│ /kln:deepInspect <m> <f>  │ 1      │ CLI    │ ~3min  │ Thorough with tools  │
-│ /kln:deepAudit <f>        │ 3      │ CLI    │ ~5min  │ Full audit with tools│
-└───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
+| Flag | Short | Description | Example |
+|------|-------|-------------|---------|
+| `--model` | `-m` | Use specific model | `-m qwen` |
+| `--models` | `-n` | Number or list of models | `-n 3` or `-n qwen,deepseek` |
+| `--async` | `-a` | Run in background | `-a` |
+| `--output` | `-o` | Output format | `-o json` or `-o markdown` |
+| `--fastest` | | Prefer models with lowest latency | `--fastest` |
 
-CONSULT COMMAND ──────────────────────────────────────── Challenge decisions
-┌───────────────────────────┬────────┬────────┬────────┬──────────────────────┐
-│ /kln:quickConsult <m> <q> │ 1      │ API    │ ~60s   │ Get second opinion   │
-└───────────────────────────┴────────┴────────┴────────┴──────────────────────┘
+**Output formats**: `text` (default), `json`, `markdown`
 
-DOCUMENT COMMAND ─────────────────────────────────────── Capture knowledge
-┌───────────────────────────┬──────────────────────────────────────────────────┐
-│ /kln:createReport <title> │ Create session documentation (saves to Serena)   │
-└───────────────────────────┴──────────────────────────────────────────────────┘
+## Model Selection
 
-ASYNC VARIANTS ────────────────────────────────────────── Background execution
-┌───────────────────────────┬───────────────────────────┬──────────────────────┐
-│ Sync Command              │ Async Variant             │ Use Case             │
-├───────────────────────────┼───────────────────────────┼──────────────────────┤
-│ /kln:quickReview          │ /kln:asyncQuickReview     │ Review + keep coding │
-│ /kln:quickConsult         │ /kln:asyncQuickConsult    │ Opinion + keep coding│
-│ /kln:quickCompare         │ /kln:asyncQuickCompare    │ Compare + keep coding│
-│ /kln:deepAudit            │ /kln:asyncDeepAudit       │ Full audit + go      │
-│ /kln:createReport         │ /kln:asyncCreateReport    │ Document + keep going│
-└───────────────────────────┴───────────────────────────┴──────────────────────┘
+K-LEAN dynamically queries available models from LiteLLM proxy (localhost:4000).
 
-MODELS ────────────────────────────────────────────────────────────────────────
-  All 6 models use the SAME unified prompt - review ALL areas:
+### Smart Routing
 
-  qwen ........... qwen3-coder ............. Default model
-  deepseek ....... deepseek-v3-thinking .... Good for architecture
-  kimi ........... kimi-k2-thinking ........ Good for planning
-  glm ............ glm-4.6-thinking ........ Good for standards
-  minimax ........ minimax-m2 .............. Research focus
-  hermes ......... hermes-4-70b ............ Scripting focus
+When no model is specified, K-LEAN selects based on task type:
 
-  Default for single-model: qwen
-  Default for multi-model: qwen, kimi, glm
+- **Quality/Architecture**: `qwen` - Best overall reasoning
+- **Code/Performance**: `deepseek` - Excellent for technical depth
+- **Standards/Best Practices**: `glm` - Follows conventions strictly
+- **Research/Documentation**: `minimax` - Great for context synthesis
+- **Agent Workflows**: `kimi` - Strong at multi-step tasks
+- **Scripts/Tools**: `hermes` - Fast and practical
 
-REVIEW CHECKLIST (All models check ALL areas) ─────────────────────────────────
-  CORRECTNESS ... Logic errors, edge cases, algorithm correctness
-  MEMORY SAFETY . Buffer overflows, null pointers, leaks
-  ERROR HANDLING  Validation, propagation, resource cleanup
-  CONCURRENCY ... Race conditions, ISR safety, shared data
-  ARCHITECTURE .. Coupling, cohesion, API consistency
-  HARDWARE ...... I/O correctness, volatile usage, timing
-  STANDARDS ..... Coding style, MISRA guidelines
+### Model Health
 
-EXECUTION METHODS ─────────────────────────────────────────────────────────────
-  API = curl → LiteLLM:4000 → NanoGPT
-        Fast (~30-60s), no file access, all 6 models
+Use `/kln:status` or `healthcheck` to see current model availability and latency.
 
-  CLI = claude --model → Headless Claude instance
-        Slower (~3-5min), full tools (Read, Grep, Bash, Serena)
+## Command Examples
 
-KNOWLEDGE SYSTEM ──────────────────────────────────────────────────────────────
-  GoodJob <url> [focus] .... Capture knowledge from URL to database
-  SaveThis <lesson> ........ Save a lesson learned
-  FindKnowledge <query> .... Search semantic knowledge database
+### Quick Review
+```bash
+# Single model, fast feedback
+/kln:quick "Check error handling in auth module"
 
-UTILITIES ─────────────────────────────────────────────────────────────────────
-  healthcheck .............. Type in prompt to check all 6 models
-  /kln:help ................ This reference guide
+# Specific model
+/kln:quick "Review API design" -m deepseek
 
-EXAMPLES ──────────────────────────────────────────────────────────────────────
-  # Quick review with default model
-  /kln:quickReview check memory safety
-
-  # Quick review with specific model
-  /kln:quickReview deepseek review architecture patterns
-
-  # Multi-model comparison
-  /kln:quickCompare security audit
-
-  # Custom model selection for comparison
-  /kln:quickCompare qwen,deepseek,glm check error handling
-
-  # Get second opinion
-  /kln:quickConsult kimi Is this state machine approach correct?
-
-  # Deep inspection
-  /kln:deepInspect qwen full security audit of crypto module
-
-  # Full audit with tools
-  /kln:deepAudit pre-release quality check
-
-  # Async (background) review
-  /kln:asyncDeepAudit comprehensive review → continue coding → check later
-
-  # Document session
-  /kln:createReport BLE Implementation Complete
-
-═══════════════════════════════════════════════════════════════════════════════
-  Output:  /tmp/claude-reviews/{session}/
-  Docs:    ~/claudeAgentic/docs/
-  Scripts: ~/.claude/scripts/
-═══════════════════════════════════════════════════════════════════════════════
+# Background execution
+/kln:quick "Performance bottlenecks" -a
 ```
 
----
+### Multi-Model Consensus
+```bash
+# Default: 3 models in parallel
+/kln:multi "Security vulnerabilities"
 
-## Related Commands
+# Specify number of models
+/kln:multi "Code quality issues" -n 5
 
-- `/sc:help` - SuperClaude framework commands
-- `healthcheck` - Check all 6 models (type in prompt)
-- `~/.claude/scripts/sync-check.sh` - Verify scripts synced to backup
+# Specific models
+/kln:multi "Architecture patterns" -n qwen,deepseek,glm
+
+# JSON output for parsing
+/kln:multi "Test coverage gaps" -o json
+```
+
+### Deep Review
+```bash
+# Full analysis with tool access
+/kln:deep "Refactor authentication system"
+
+# Fastest available model
+/kln:deep "Debug memory leak" --fastest
+
+# Background deep dive
+/kln:deep "Optimize database queries" -a
+```
+
+### Specialized Droids
+```bash
+# Role-based task execution
+/kln:droid "Audit security practices"
+
+# Specific model for droid
+/kln:droid "Generate test suite" -m hermes
+
+# Complex multi-step task
+/kln:droid "Migrate to new API version"
+```
+
+### Documentation
+```bash
+# Create session docs
+/kln:doc "Authentication Refactor Sprint"
+
+# Markdown output
+/kln:doc "API Design Review" -o markdown
+```
+
+### Session Capture
+```bash
+# End-of-session summary and knowledge capture
+/kln:remember
+
+# Include specific learnings
+/kln:remember -o markdown
+```
+
+### System Status
+```bash
+# Check health and available models
+/kln:status
+
+# With latency details
+/kln:status --fastest
+```
+
+## Knowledge Commands
+
+Quick-access commands for knowledge management:
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `healthcheck` | Test all 6 LiteLLM models | `healthcheck` |
+| `GoodJob <url>` | Capture web content to knowledge DB | `GoodJob https://example.com/article` |
+| `SaveThis <lesson>` | Save a lesson learned | `SaveThis "Always validate inputs before DB queries"` |
+| `FindKnowledge <query>` | Search knowledge database | `FindKnowledge "postgres optimization"` |
+
+## K-LEAN CLI
+
+System management commands:
+
+```bash
+k-lean status      # Component status and health
+k-lean doctor -f   # Diagnose issues with auto-fix
+k-lean start       # Start all services
+k-lean debug       # Live monitoring dashboard
+k-lean models      # List models with health checks
+k-lean models --test  # Test all models with latency
+```
+
+## Getting Started
+
+1. **Check system health**: `/kln:status` or `healthcheck`
+2. **Start simple**: Try `/kln:quick "Review my latest changes"`
+3. **Use consensus**: For important decisions, use `/kln:multi`
+4. **Go deep**: When you need thorough analysis, use `/kln:deep`
+5. **Capture knowledge**: End sessions with `/kln:remember`
+
+## Architecture
+
+- **API Mode**: Direct LiteLLM calls, fast responses, no tool access
+- **SDK Mode**: Full Claude SDK agent with tool use capabilities
+- **Local Mode**: Direct execution on system, no external calls
+
+## Need Help?
+
+- Quick reference: `/kln:status`
+- Model health: `healthcheck` or `k-lean models --test`
+- System diagnostics: `k-lean doctor -f`
+- Timeline: `~/.claude/scripts/timeline-query.sh today`
+

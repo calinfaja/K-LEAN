@@ -1,4 +1,4 @@
-# K-LEAN Companion v3.0
+# K-LEAN Companion
 
 **K-LEAN** = Knowledge-Leveraged Engineering Analysis Network
 

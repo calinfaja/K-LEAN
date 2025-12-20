@@ -1,13 +1,11 @@
 ---
 name: help
-description: "Command reference - all commands with examples"
-version: 3.0.0
-category: help
-tags: [commands, reference, guide]
-created: 2025-12-16
+description: "Displays K-LEAN command reference with flags, examples, model routing, and architecture overview. Use to learn available commands and their usage patterns."
+allowed-tools: []
+argument-hint: "[command-name]"
 ---
 
-# K-LEAN v3.0 Command Reference
+# K-LEAN Command Reference
 
 Knowledge-driven Lightweight Execution & Analysis Network
 
@@ -181,6 +179,3 @@ k-lean models --test  # Test all models with latency
 - System diagnostics: `k-lean doctor -f`
 - Timeline: `~/.claude/scripts/timeline-query.sh today`
 
-## Version
-
-K-LEAN v3.0.0 - 2025-12-16

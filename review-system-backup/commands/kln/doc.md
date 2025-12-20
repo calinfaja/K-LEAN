@@ -1,6 +1,6 @@
 ---
 name: doc
-description: "Documentation - create and save session notes"
+description: "Generates session documentation (report/session/lessons types) and persists to Serena memory via mcp__serena__write_memory. Optionally saves to /tmp/claude-reviews/docs/. Use to document completed work."
 allowed-tools: Bash, Read, Write, mcp__serena__write_memory
 argument-hint: "[--type TYPE] <title>"
 ---
@@ -8,6 +8,18 @@ argument-hint: "[--type TYPE] <title>"
 # /kln:doc - Session Documentation
 
 Create comprehensive session documentation and persist to Serena memories.
+
+## When to Use
+
+- Document significant work for future reference
+- Create reports for teammates or stakeholders
+- Generate session summary before switching tasks
+- Persist important decisions to Serena memory
+
+**NOT for:**
+- End-of-session knowledge capture with KB → use `/kln:remember`
+- Quick notes → use `SaveThis` keyword
+- Code review documentation → use `/kln:deep` with `--save`
 
 ## Arguments
 
