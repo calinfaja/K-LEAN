@@ -52,12 +52,11 @@ if echo "$USER_PROMPT" | grep -qi "^InitKB$\|^InitKB "; then
         RESULT=$("$KB_INIT_SCRIPT" "$PROJECT_DIR" 2>&1)
         EXIT_CODE=$?
 
+        RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
         if [ $EXIT_CODE -eq 0 ]; then
-            RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
             echo "{\"systemMessage\": $RESULT_ESCAPED}"
         else
-            RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
-            echo "{\"systemMessage\": $RESULT_ESCAPED}"
+            echo "{\"systemMessage\": \"❌ InitKB failed:\\n\"$RESULT_ESCAPED}"
         fi
     else
         echo "{\"systemMessage\": \"⚠️ kb-init.sh not found at $KB_INIT_SCRIPT\"}"
@@ -232,8 +231,13 @@ if echo "$USER_PROMPT" | grep -qi "^asyncDeepReview\|^async.*deep.*review"; then
     if [ -x "$SCRIPTS_DIR/parallel-deep-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/deep-review-$SESSION_ID.log"
         nohup "$SCRIPTS_DIR/parallel-deep-review.sh" "$FOCUS" "$PROJECT_DIR" > "$LOG_FILE" 2>&1 &
-
-        echo "{\"systemMessage\": \"🚀 Deep review started in background\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        PID=$!
+        sleep 0.1
+        if kill -0 $PID 2>/dev/null; then
+            echo "{\"systemMessage\": \"🚀 Deep review started (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        else
+            echo "{\"systemMessage\": \"❌ Deep review failed to start. Check: $LOG_FILE\"}"
+        fi
     else
         echo "{\"systemMessage\": \"⚠️ parallel-deep-review.sh not found\"}"
     fi
@@ -256,8 +260,13 @@ if echo "$USER_PROMPT" | grep -qi "^asyncConsensus\|^async.*consensus"; then
     if [ -x "$SCRIPTS_DIR/consensus-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/consensus-$SESSION_ID.log"
         nohup "$SCRIPTS_DIR/consensus-review.sh" "$FOCUS" > "$LOG_FILE" 2>&1 &
-
-        echo "{\"systemMessage\": \"🚀 Consensus review started (3 models)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        PID=$!
+        sleep 0.1
+        if kill -0 $PID 2>/dev/null; then
+            echo "{\"systemMessage\": \"🚀 Consensus review started (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        else
+            echo "{\"systemMessage\": \"❌ Consensus review failed to start. Check: $LOG_FILE\"}"
+        fi
     else
         echo "{\"systemMessage\": \"⚠️ consensus-review.sh not found\"}"
     fi
@@ -286,8 +295,13 @@ if echo "$USER_PROMPT" | grep -qi "^asyncReview "; then
     if [ -x "$SCRIPTS_DIR/quick-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/review-$MODEL-$SESSION_ID.log"
         nohup "$SCRIPTS_DIR/quick-review.sh" "$MODEL" "$FOCUS" > "$LOG_FILE" 2>&1 &
-
-        echo "{\"systemMessage\": \"🚀 Review started with $MODEL\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        PID=$!
+        sleep 0.1
+        if kill -0 $PID 2>/dev/null; then
+            echo "{\"systemMessage\": \"🚀 Review started with $MODEL (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        else
+            echo "{\"systemMessage\": \"❌ Review with $MODEL failed to start. Check: $LOG_FILE\"}"
+        fi
     else
         echo "{\"systemMessage\": \"⚠️ quick-review.sh not found\"}"
     fi

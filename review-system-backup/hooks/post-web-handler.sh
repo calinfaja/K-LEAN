@@ -31,6 +31,11 @@ SMART_CAPTURE="$SCRIPTS_DIR/smart-web-capture.sh"
 
 # Check if smart capture is available
 if [ ! -x "$SMART_CAPTURE" ]; then
+    # One-time warning per session (avoid spam on every web call)
+    if [ ! -f /tmp/klean-webcapture-warned ]; then
+        echo "{\"systemMessage\": \"ℹ️ Web auto-capture disabled (smart-web-capture.sh not found)\"}"
+        touch /tmp/klean-webcapture-warned
+    fi
     exit 0
 fi
 

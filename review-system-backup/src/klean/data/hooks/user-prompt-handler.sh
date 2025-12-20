@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# K-LEAN UserPromptSubmit Hook Handler
+# K-LEAN UserPromptSubmit Hook Handler v2
 # Intercepts user prompts and dispatches to appropriate handlers
 #
 # Keywords handled:
+#   - InitKB              → Initialize knowledge DB for project
 #   - SaveThis <lesson>   → Save lesson learned directly (no AI eval)
-#   - SaveInfo <content>  → Smart save with AI relevance evaluation
+#   - SaveInfo <url>      → Smart save with LLM evaluation
 #   - FindKnowledge <q>   → Search knowledge DB
 #   - asyncDeepReview     → 3 models with tools (background)
 #   - asyncConsensus      → 3 models quick review (background)
@@ -39,6 +40,31 @@ mkdir -p "$REVIEWS_DIR"
 SESSION_ID=$(date +%Y%m%d-%H%M%S)
 
 #------------------------------------------------------------------------------
+# INITKB - Initialize Knowledge DB for project
+#------------------------------------------------------------------------------
+if echo "$USER_PROMPT" | grep -qi "^InitKB$\|^InitKB "; then
+    echo "🚀 Initializing Knowledge DB..." >&2
+
+    KB_INIT_SCRIPT="$SCRIPTS_DIR/kb-init.sh"
+
+    if [ -x "$KB_INIT_SCRIPT" ]; then
+        cd "$PROJECT_DIR"
+        RESULT=$("$KB_INIT_SCRIPT" "$PROJECT_DIR" 2>&1)
+        EXIT_CODE=$?
+
+        RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
+        if [ $EXIT_CODE -eq 0 ]; then
+            echo "{\"systemMessage\": $RESULT_ESCAPED}"
+        else
+            echo "{\"systemMessage\": \"❌ InitKB failed:\\n\"$RESULT_ESCAPED}"
+        fi
+    else
+        echo "{\"systemMessage\": \"⚠️ kb-init.sh not found at $KB_INIT_SCRIPT\"}"
+    fi
+    exit 0
+fi
+
+#------------------------------------------------------------------------------
 # SAVETHIS <lesson> [--type TYPE] [--tags TAGS] [--priority LEVEL]
 # Direct save using knowledge-capture.py
 #------------------------------------------------------------------------------
@@ -55,13 +81,13 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
 
     # Use knowledge-capture.py with proper interface
     CAPTURE_SCRIPT="$SCRIPTS_DIR/knowledge-capture.py"
-    PYTHON_BIN="/home/calin/.venvs/knowledge-db/bin/python"
+    PYTHON_BIN="$HOME/.venvs/knowledge-db/bin/python"
 
     if [ -x "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
-        # Pass all arguments to knowledge-capture.py
-        # The script handles argparse for --type, --tags, --priority, --url
+        # Strip surrounding quotes from user input
+        CONTENT=$(echo "$ARGS" | sed 's/^["'"'"']//' | sed 's/["'"'"']$//')
         cd "$PROJECT_DIR"
-        RESULT=$($PYTHON_BIN "$CAPTURE_SCRIPT" $ARGS 2>&1)
+        RESULT=$($PYTHON_BIN "$CAPTURE_SCRIPT" "$CONTENT" 2>&1)
         EXIT_CODE=$?
 
         if [ $EXIT_CODE -eq 0 ]; then
@@ -76,18 +102,20 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
         KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge-db"
         mkdir -p "$KNOWLEDGE_DIR"
 
-        ENTRY=$(cat <<EOF
-{
-  "title": "Lesson Learned",
-  "summary": "$LESSON",
-  "type": "lesson",
-  "source": "manual",
-  "found_date": "$(date -Iseconds)",
-  "relevance_score": 0.9,
-  "key_concepts": ["lesson"]
-}
-EOF
-)
+        # Build compact JSONL entry (single line, properly escaped)
+        ENTRY=$(jq -nc \
+            --arg title "Lesson Learned" \
+            --arg summary "$LESSON" \
+            --arg date "$(date -Iseconds)" \
+            '{
+                title: $title,
+                summary: $summary,
+                type: "lesson",
+                source: "manual",
+                found_date: $date,
+                relevance_score: 0.9,
+                key_concepts: ["lesson"]
+            }')
         echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
         echo "{\"systemMessage\": \"✅ Lesson saved (fallback mode)\"}"
     fi
@@ -95,26 +123,45 @@ EOF
 fi
 
 #------------------------------------------------------------------------------
-# SAVEINFO <content> - Smart save with AI relevance evaluation
+# SAVEINFO <url> [--search-context "context"] - Smart save with LLM evaluation
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
-    # Extract the content
+    # Extract the URL/content
     CONTENT=$(echo "$USER_PROMPT" | sed -E 's/^SaveInfo[[:space:]]+//i')
 
     if [ -z "$CONTENT" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: SaveInfo <content to evaluate and save>\"}"
+        echo "{\"systemMessage\": \"⚠️ Usage: SaveInfo <url> [--search-context \\\"context\\\"]\\n\\nEvaluates URL content with LiteLLM and saves if relevant.\"}"
         exit 0
     fi
 
-    echo "🤖 Evaluating content for knowledge capture..." >&2
+    echo "🤖 Evaluating content with LLM..." >&2
 
-    if [ -x "$SCRIPTS_DIR/smart-capture.sh" ]; then
-        # Run smart capture (uses Haiku to evaluate relevance)
-        "$SCRIPTS_DIR/smart-capture.sh" "$CONTENT" "$PROJECT_DIR" &
+    SMART_CAPTURE="$SCRIPTS_DIR/smart-capture.py"
+    PYTHON_BIN="$HOME/.venvs/knowledge-db/bin/python"
 
-        echo "{\"systemMessage\": \"🤖 Evaluating content with AI...\\nIf relevant (score ≥ 0.7), it will be saved automatically.\\nCheck timeline: ~/.claude/scripts/timeline-query.sh today\"}"
+    if [ -x "$SMART_CAPTURE" ] && [ -x "$PYTHON_BIN" ]; then
+        # Check if it's a URL
+        if echo "$CONTENT" | grep -q "^https\?://"; then
+            # Run smart capture with URL (in background for faster response)
+            cd "$PROJECT_DIR"
+            RESULT=$($PYTHON_BIN "$SMART_CAPTURE" "$CONTENT" --json 2>&1)
+
+            # Parse result
+            if echo "$RESULT" | jq -e '.saved == true' >/dev/null 2>&1; then
+                TITLE=$(echo "$RESULT" | jq -r '.title')
+                INSIGHT=$(echo "$RESULT" | jq -r '.atomic_insight // ""')
+                echo "{\"systemMessage\": \"✅ Saved: $TITLE\\n💡 $INSIGHT\"}"
+            elif echo "$RESULT" | jq -e '.saved == false' >/dev/null 2>&1; then
+                REASON=$(echo "$RESULT" | jq -r '.reason')
+                echo "{\"systemMessage\": \"ℹ️ Not saved: $REASON\"}"
+            else
+                echo "{\"systemMessage\": \"⚠️ Evaluation result: $RESULT\"}"
+            fi
+        else
+            echo "{\"systemMessage\": \"⚠️ SaveInfo expects a URL. For lessons, use SaveThis instead.\"}"
+        fi
     else
-        echo "{\"systemMessage\": \"⚠️ smart-capture.sh not found at $SCRIPTS_DIR\"}"
+        echo "{\"systemMessage\": \"⚠️ smart-capture.py not found or Python not available\"}"
     fi
     exit 0
 fi
@@ -136,11 +183,11 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
     # PHASE 2: Use hybrid search (semantic + keyword + tag)
     if [ -x "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
         # Use hybrid search engine (semantic + keyword + tag fallback)
-        RESULT=$(/home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
+        RESULT=$("$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
 
         # Emit search event (Phase 4)
         if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
+            "$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
         fi
 
         # Escape for JSON
@@ -184,8 +231,13 @@ if echo "$USER_PROMPT" | grep -qi "^asyncDeepReview\|^async.*deep.*review"; then
     if [ -x "$SCRIPTS_DIR/parallel-deep-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/deep-review-$SESSION_ID.log"
         nohup "$SCRIPTS_DIR/parallel-deep-review.sh" "$FOCUS" "$PROJECT_DIR" > "$LOG_FILE" 2>&1 &
-
-        echo "{\"systemMessage\": \"🚀 Deep review started in background\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        PID=$!
+        sleep 0.1
+        if kill -0 $PID 2>/dev/null; then
+            echo "{\"systemMessage\": \"🚀 Deep review started (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        else
+            echo "{\"systemMessage\": \"❌ Deep review failed to start. Check: $LOG_FILE\"}"
+        fi
     else
         echo "{\"systemMessage\": \"⚠️ parallel-deep-review.sh not found\"}"
     fi
@@ -208,8 +260,13 @@ if echo "$USER_PROMPT" | grep -qi "^asyncConsensus\|^async.*consensus"; then
     if [ -x "$SCRIPTS_DIR/consensus-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/consensus-$SESSION_ID.log"
         nohup "$SCRIPTS_DIR/consensus-review.sh" "$FOCUS" > "$LOG_FILE" 2>&1 &
-
-        echo "{\"systemMessage\": \"🚀 Consensus review started (3 models)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        PID=$!
+        sleep 0.1
+        if kill -0 $PID 2>/dev/null; then
+            echo "{\"systemMessage\": \"🚀 Consensus review started (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        else
+            echo "{\"systemMessage\": \"❌ Consensus review failed to start. Check: $LOG_FILE\"}"
+        fi
     else
         echo "{\"systemMessage\": \"⚠️ consensus-review.sh not found\"}"
     fi
@@ -238,8 +295,13 @@ if echo "$USER_PROMPT" | grep -qi "^asyncReview "; then
     if [ -x "$SCRIPTS_DIR/quick-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/review-$MODEL-$SESSION_ID.log"
         nohup "$SCRIPTS_DIR/quick-review.sh" "$MODEL" "$FOCUS" > "$LOG_FILE" 2>&1 &
-
-        echo "{\"systemMessage\": \"🚀 Review started with $MODEL\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        PID=$!
+        sleep 0.1
+        if kill -0 $PID 2>/dev/null; then
+            echo "{\"systemMessage\": \"🚀 Review started with $MODEL (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+        else
+            echo "{\"systemMessage\": \"❌ Review with $MODEL failed to start. Check: $LOG_FILE\"}"
+        fi
     else
         echo "{\"systemMessage\": \"⚠️ quick-review.sh not found\"}"
     fi

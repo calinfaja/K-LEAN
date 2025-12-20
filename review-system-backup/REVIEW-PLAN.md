@@ -32,17 +32,37 @@ Manual review checklist for understanding and improving each system component.
 
 ## Pending Reviews
 
-### 1. Hooks System
+### Hooks System ✅
 **Files:** `hooks/`
-- [ ] `session-start.sh` - LiteLLM + KB auto-start on session begin
-- [ ] `user-prompt-handler.sh` - Keyword detection (SaveThis, FindKnowledge, healthcheck)
-- [ ] `post-bash-handler.sh` - Post-commit docs, timeline capture
-- [ ] `post-web-handler.sh` - Auto-capture web content to KB
+- [x] `session-start.sh` - LiteLLM + KB auto-start on session begin
+- [x] `user-prompt-handler.sh` - Keyword detection (SaveThis, FindKnowledge, healthcheck)
+- [x] `post-bash-handler.sh` - Post-commit docs, timeline capture
+- [x] `post-web-handler.sh` - Auto-capture web content to KB
 
-**Review Goals:**
-- Understand trigger conditions and execution flow
-- Verify error handling and edge cases
-- Check for redundant or conflicting handlers
+**Review Findings:**
+
+| Hook | Trigger | Purpose |
+|------|---------|---------|
+| `session-start.sh` | SessionStart | Auto-start LiteLLM proxy + per-project KB server |
+| `user-prompt-handler.sh` | UserPromptSubmit | 7 keywords: InitKB, SaveThis, SaveInfo, FindKnowledge, async reviews |
+| `post-bash-handler.sh` | PostToolUse (Bash) | Git commit/push detection → timeline logging + fact extraction |
+| `post-web-handler.sh` | PostToolUse (Web*) | Smart capture from WebFetch/WebSearch/Tavily |
+
+**Comparison vs Best Practices (disler/claude-code-hooks-mastery, decider/claude-hooks):**
+
+| Feature | K-LEAN | Best Practice | Gap |
+|---------|--------|---------------|-----|
+| PreToolUse (security) | ❌ | ✅ Block dangerous commands | **Add** |
+| Stop hook (completion) | ❌ | ✅ Notifications/TTS | Nice-to-have |
+| Exit code 2 blocking | ❌ | ✅ stderr to Claude | **Add** |
+| JSON decision output | Partial | ✅ `{decision, reason}` | Improve |
+| Web auto-capture | ✅ Unique | ❌ Not in community | K-LEAN advantage |
+| KB integration | ✅ Unique | ❌ Simple logging | K-LEAN advantage |
+
+**Recommended Improvements:**
+1. Add `hooks/pre-tool-handler.sh` for security blocking (rm -rf, sudo, etc.)
+2. Use exit code 2 for blocking operations
+3. Consistent JSON output format: `{"decision": "block"|"approve", "reason": "..."}`
 
 ---
 
@@ -98,7 +118,7 @@ Manual review checklist for understanding and improving each system component.
 ---
 
 ### 5. K-LEAN Core Engine
-**Files:** `src/klean-v3/`
+**Files:** `src/klean-core/`
 - [ ] `klean_core.py` - 1190-line execution engine
   - [ ] `ModelResolver` class - Auto-discovery from LiteLLM
   - [ ] `ReviewEngine` class - Review execution

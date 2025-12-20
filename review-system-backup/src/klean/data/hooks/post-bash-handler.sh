@@ -39,16 +39,21 @@ if echo "$COMMAND" | grep -qE "git commit|git merge|git rebase"; then
     COMMIT_MSG=$(cd "$PROJECT_DIR" && git log -1 --format="%s" 2>/dev/null)
 
     if [ -n "$COMMIT_HASH" ] && [ -n "$COMMIT_MSG" ]; then
-        # Log to timeline
+        # Log to timeline with error check
         TIMESTAMP=$(date '+%m-%d %H:%M')
-        echo "$TIMESTAMP | commit | $COMMIT_HASH: $COMMIT_MSG" >> "$TIMELINE_FILE"
-
-        # Emit event (Phase 4)
-        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            /home/calin/.venvs/knowledge-db/bin/python "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>/dev/null &
+        if echo "$TIMESTAMP | commit | $COMMIT_HASH: $COMMIT_MSG" >> "$TIMELINE_FILE" 2>/dev/null; then
+            # Output confirmation
+            echo "{\"systemMessage\": \"📝 Commit logged to timeline: $COMMIT_HASH\"}"
+        else
+            echo "{\"systemMessage\": \"⚠️ Could not write to timeline: $TIMELINE_FILE\"}"
         fi
 
-        # Extract facts from commit (async)
+        # Emit event (Phase 4) - log errors instead of discarding
+        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            "$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>> /tmp/klean-errors.log &
+        fi
+
+        # Extract facts from commit (async) - log errors instead of discarding
         if [ -x "$SCRIPTS_DIR/fact-extract.sh" ]; then
             # Get commit diff for fact extraction
             DIFF=$(cd "$PROJECT_DIR" && git show --stat HEAD 2>/dev/null | head -20)
@@ -58,12 +63,9 @@ if echo "$COMMAND" | grep -qE "git commit|git merge|git rebase"; then
                 echo "Commit: $COMMIT_MSG
 
 Changes:
-$DIFF" | "$SCRIPTS_DIR/fact-extract.sh" - commit "$COMMIT_MSG" "$PROJECT_DIR" 2>/dev/null
+$DIFF" | "$SCRIPTS_DIR/fact-extract.sh" - commit "$COMMIT_MSG" "$PROJECT_DIR" 2>> /tmp/klean-errors.log
             ) &
         fi
-
-        # Output confirmation
-        echo "{\"systemMessage\": \"📝 Commit logged to timeline: $COMMIT_HASH\"}"
     fi
 fi
 
@@ -73,7 +75,9 @@ fi
 if echo "$COMMAND" | grep -qE "git push"; then
     TIMESTAMP=$(date '+%m-%d %H:%M')
     BRANCH=$(cd "$PROJECT_DIR" && git branch --show-current 2>/dev/null)
-    echo "$TIMESTAMP | push | Pushed $BRANCH to remote" >> "$TIMELINE_FILE"
+    if ! echo "$TIMESTAMP | push | Pushed $BRANCH to remote" >> "$TIMELINE_FILE" 2>/dev/null; then
+        echo "{\"systemMessage\": \"⚠️ Could not log push to timeline\"}"
+    fi
 fi
 
 # Continue normally
