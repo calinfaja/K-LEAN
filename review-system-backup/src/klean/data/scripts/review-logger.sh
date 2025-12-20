@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Review Logger - Logs review activity for K-LEAN dashboard
 # Usage: source this file, then call log_review_start/log_review_end
 

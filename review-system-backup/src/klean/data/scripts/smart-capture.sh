@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Smart Capture - Automatically capture valuable conversation insights
 # Uses Claude Haiku to evaluate relevance and quality

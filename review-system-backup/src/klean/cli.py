@@ -1785,5 +1785,150 @@ def test_model(model: Optional[str], prompt: Optional[str]):
         console.print(f"[red]Error:[/red] {e}")
 
 
+@main.command()
+@click.option("--check", is_flag=True, help="Only check sync status, don't modify files")
+@click.option("--clean", is_flag=True, help="Remove stale files from package before syncing")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed file-by-file changes")
+def sync(check: bool, clean: bool, verbose: bool):
+    """Sync root directories to src/klean/data/ for PyPI packaging.
+
+    This command ensures the package data directory is in sync with the
+    canonical source directories (scripts/, hooks/, commands/, etc.).
+
+    Use before building for PyPI release.
+
+    Examples:
+        k-lean sync           # Sync files to package
+        k-lean sync --check   # Check if in sync (for CI)
+        k-lean sync --clean   # Remove stale files first
+    """
+    print_banner()
+
+    # Find repo root (parent of src/)
+    repo_root = Path(__file__).parent.parent.parent
+    data_dir = repo_root / "src" / "klean" / "data"
+
+    # Directories to sync: (source_name, dest_subpath, patterns)
+    sync_dirs = [
+        ("scripts", "scripts", ["*.sh", "*.py"]),
+        ("hooks", "hooks", ["*.sh"]),
+        ("commands/kln", "commands/kln", ["*.md"]),
+        ("droids", "droids", ["*.md"]),
+        ("config", "config", ["*.md", "*.yaml"]),
+        ("config/litellm", "config/litellm", ["*.yaml", ".env.example"]),
+        ("lib", "lib", ["*.sh"]),
+    ]
+
+    console.print(f"\n[bold]Repository root:[/bold] {repo_root}")
+    console.print(f"[bold]Package data:[/bold] {data_dir}\n")
+
+    if check:
+        console.print("[bold cyan]Checking sync status...[/bold cyan]\n")
+    else:
+        console.print("[bold cyan]Syncing files to package...[/bold cyan]\n")
+
+    total_synced = 0
+    total_missing = 0
+    total_stale = 0
+    issues = []
+
+    for src_subdir, dst_subdir, patterns in sync_dirs:
+        src_dir = repo_root / src_subdir
+        dst_dir = data_dir / dst_subdir
+
+        if not src_dir.exists():
+            if verbose:
+                console.print(f"[dim]Skip: {src_subdir} (source not found)[/dim]")
+            continue
+
+        # Get source files
+        src_files = set()
+        for pattern in patterns:
+            for f in src_dir.glob(pattern):
+                if f.is_file():
+                    src_files.add(f.name)
+
+        # Get destination files
+        dst_files = set()
+        if dst_dir.exists():
+            for pattern in patterns:
+                for f in dst_dir.glob(pattern):
+                    if f.is_file():
+                        dst_files.add(f.name)
+
+        # Find missing files (in source, not in dest)
+        missing = src_files - dst_files
+
+        # Find stale files (in dest, not in source)
+        stale = dst_files - src_files
+
+        # Find files that need updating (different content)
+        needs_update = []
+        for name in src_files & dst_files:
+            src_file = src_dir / name
+            dst_file = dst_dir / name
+            if src_file.read_bytes() != dst_file.read_bytes():
+                needs_update.append(name)
+
+        if missing or stale or needs_update:
+            console.print(f"[bold]{src_subdir}/[/bold]")
+
+            if missing:
+                total_missing += len(missing)
+                for name in sorted(missing):
+                    console.print(f"  [green]+[/green] {name}")
+                    if not check:
+                        dst_dir.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(src_dir / name, dst_dir / name)
+                        total_synced += 1
+
+            if needs_update:
+                for name in sorted(needs_update):
+                    console.print(f"  [yellow]~[/yellow] {name}")
+                    if not check:
+                        shutil.copy2(src_dir / name, dst_dir / name)
+                        total_synced += 1
+
+            if stale:
+                total_stale += len(stale)
+                for name in sorted(stale):
+                    console.print(f"  [red]-[/red] {name} (stale)")
+                    if clean and not check:
+                        (dst_dir / name).unlink()
+
+        elif verbose:
+            console.print(f"[dim]{src_subdir}/ - {len(src_files)} files in sync[/dim]")
+
+    # Summary
+    console.print()
+    if check:
+        if total_missing == 0 and total_stale == 0:
+            console.print("[green]✓ Package is in sync with source[/green]")
+            sys.exit(0)
+        else:
+            console.print(f"[red]✗ Package is out of sync:[/red]")
+            if total_missing:
+                console.print(f"  [yellow]• {total_missing} files need to be added[/yellow]")
+            if total_stale:
+                console.print(f"  [yellow]• {total_stale} stale files to remove (use --clean)[/yellow]")
+            console.print("\n[dim]Run 'k-lean sync' to sync, or 'k-lean sync --clean' to also remove stale files[/dim]")
+            sys.exit(1)
+    else:
+        console.print(f"[green]✓ Synced {total_synced} files[/green]")
+        if total_stale and not clean:
+            console.print(f"[yellow]! {total_stale} stale files remain (use --clean to remove)[/yellow]")
+
+        # Make scripts executable
+        for subdir in ["scripts", "hooks"]:
+            target_dir = data_dir / subdir
+            if target_dir.exists():
+                for script in target_dir.glob("*.sh"):
+                    script.chmod(script.stat().st_mode | 0o111)
+                for script in target_dir.glob("*.py"):
+                    script.chmod(script.stat().st_mode | 0o111)
+
+        console.print("\n[dim]Package ready for: python -m build[/dim]")
+
+
 if __name__ == "__main__":
     main()

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Parallel Deep Review - Runs headless Claude instances with LiteLLM models
 # Uses dynamic model discovery - runs first 3 healthy models (headless is resource-heavy)

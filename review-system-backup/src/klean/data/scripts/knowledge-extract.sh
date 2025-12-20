@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Knowledge Extract - Use Claude Haiku to extract structured knowledge
 #

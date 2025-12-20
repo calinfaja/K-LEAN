@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Deep Review Script - Runs Claude headless with LiteLLM models
 # READ-ONLY AUDIT MODE: Full read/search/research access, NO write/edit/delete

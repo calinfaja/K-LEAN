@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Session Helper - Provides consistent output directories for all review scripts
 #

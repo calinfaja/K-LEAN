@@ -53,10 +53,10 @@ populate_data() {
     local script_count=$(ls -1 "$DATA_DIR/scripts" 2>/dev/null | wc -l)
     log_success "Copied $script_count scripts"
 
-    # Commands (kln)
+    # Commands (kln) - canonical source is commands/kln/
     log_info "Copying commands..."
     mkdir -p "$DATA_DIR/commands/kln"
-    cp "$SCRIPT_DIR/commands-kln"/*.md "$DATA_DIR/commands/kln/" 2>/dev/null || true
+    cp "$SCRIPT_DIR/commands/kln"/*.md "$DATA_DIR/commands/kln/" 2>/dev/null || true
     local cmd_count=$(ls -1 "$DATA_DIR/commands/kln" 2>/dev/null | wc -l)
     log_success "Copied $cmd_count commands"
 

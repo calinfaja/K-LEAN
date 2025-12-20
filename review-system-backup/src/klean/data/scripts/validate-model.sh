@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Validate Model - Check if model name exists in LiteLLM
 #

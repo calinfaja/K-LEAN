@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # sync-check.sh - Verify and manage K-LEAN symlinks and file sync
 #
 # Usage:
@@ -11,7 +11,8 @@
 
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve symlinks to get actual repo location
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
 source "$SCRIPT_DIR/lib/common.sh" 2>/dev/null || {
     RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
     log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
@@ -203,7 +204,8 @@ echo ""
 
 #=== COMMANDS ===
 echo "=== Commands (/kln:) ==="
-for f in "$REPO_DIR/commands-kln"/*.md; do
+# Use v3 commands (9 consolidated commands)
+for f in "$REPO_DIR/commands-kln-v3"/*.md; do
     [ -f "$f" ] || continue
     NAME=$(basename "$f")
     INSTALLED="$CLAUDE_DIR/commands/kln/$NAME"
@@ -218,7 +220,7 @@ for f in "$REPO_DIR/commands-kln"/*.md; do
 done
 
 if $MODE_ORPHANS; then
-    find_orphans "$CLAUDE_DIR/commands/kln" "$REPO_DIR/commands-kln" "*.md" || true
+    find_orphans "$CLAUDE_DIR/commands/kln" "$REPO_DIR/commands-kln-v3" "*.md" || true
 fi
 echo ""
 

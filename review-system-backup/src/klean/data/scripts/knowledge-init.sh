@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Knowledge Init - Auto-initialize knowledge-db for current project
 #
