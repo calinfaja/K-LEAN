@@ -111,18 +111,13 @@ install_hooks() {
     fi
 }
 
-# Install configuration
+# Install configuration (settings.json only - never touch CLAUDE.md)
 install_config() {
     log_info "Installing configuration..."
 
-    # CLAUDE.md
-    if [ -f "$SCRIPT_DIR/config/CLAUDE.md" ]; then
-        if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then
-            backup_existing "$CLAUDE_DIR" "$CLAUDE_DIR/backups"
-        fi
-        cp "$SCRIPT_DIR/config/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
-        log_success "Installed CLAUDE.md"
-    fi
+    # NOTE: We deliberately do NOT touch CLAUDE.md
+    # K-LEAN uses slash commands (/kln:*) which are auto-discovered
+    # This preserves user's existing CLAUDE.md configuration
 
     # settings.json (only if not exists)
     if [ ! -f "$CLAUDE_DIR/settings.json" ]; then
@@ -347,11 +342,10 @@ install_nano_profile() {
 }
 EOF
 
-    # Create symlinks to shared resources
+    # Create symlinks to shared resources (no CLAUDE.md - uses slash commands only)
     ln -sf "$CLAUDE_DIR/commands" "$NANO_DIR/commands" 2>/dev/null || true
     ln -sf "$CLAUDE_DIR/scripts" "$NANO_DIR/scripts" 2>/dev/null || true
     ln -sf "$CLAUDE_DIR/hooks" "$NANO_DIR/hooks" 2>/dev/null || true
-    ln -sf "$CLAUDE_DIR/CLAUDE.md" "$NANO_DIR/CLAUDE.md" 2>/dev/null || true
     ln -sf "$CLAUDE_DIR/.credentials.json" "$NANO_DIR/.credentials.json" 2>/dev/null || true
 
     log_success "Nano profile ready at $NANO_DIR"
@@ -389,10 +383,11 @@ verify_installation() {
         echo -e "${YELLOW}NOT INSTALLED${NC}"
     fi
 
-    # Check CLAUDE.md
-    echo -n "  CLAUDE.md: "
-    if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then
-        echo -e "${GREEN}OK${NC}"
+    # Check slash commands (K-LEAN uses pure plugin approach - no CLAUDE.md)
+    echo -n "  Slash Commands: "
+    local cmd_count=$(ls -1 "$CLAUDE_DIR/commands/kln"/*.md 2>/dev/null | wc -l)
+    if [ "$cmd_count" -ge 5 ]; then
+        echo -e "${GREEN}OK ($cmd_count commands)${NC}"
     else
         echo -e "${RED}MISSING${NC}"
         ((errors++))
