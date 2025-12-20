@@ -28,6 +28,21 @@ Manual review checklist for understanding and improving each system component.
 - [x] Renamed `src/klean-v3/` → `src/klean-core/`
 - [x] Updated symlinks to point to `commands/kln/`
 
+### Package & Install System
+- [x] Added `k-lean sync` CLI command (root dirs → src/klean/data/)
+- [x] Cleaned 19 stale files from package (v2 commands, old hooks/scripts)
+- [x] Moved `src/klean-core/` → `src/klean/data/core/` for proper packaging
+- [x] Added `core` component to `k-lean install` command
+- [x] Fixed `prepare-release.sh` path bug (commands-kln → commands/kln)
+- [x] Created `DEVELOPMENT.md` with release workflow for AI agents
+
+### Hooks System Improvements
+- [x] Fixed InitKB bug (same message for success/failure)
+- [x] Added PID verification for async review processes
+- [x] Added config file warnings in session-start.sh
+- [x] Added timeline write error detection in post-bash-handler.sh
+- [x] Added web capture missing script warning
+
 ---
 
 ## Pending Reviews
@@ -118,7 +133,7 @@ Manual review checklist for understanding and improving each system component.
 ---
 
 ### 5. K-LEAN Core Engine
-**Files:** `src/klean-core/`
+**Files:** `src/klean/data/core/` (moved from src/klean-core/)
 - [ ] `klean_core.py` - 1190-line execution engine
   - [ ] `ModelResolver` class - Auto-discovery from LiteLLM
   - [ ] `ReviewEngine` class - Review execution
@@ -147,16 +162,18 @@ Manual review checklist for understanding and improving each system component.
 
 ---
 
-### 7. Install & Update System
+### 7. Install & Update System ✅
 **Files:** Root
-- [ ] `install.sh` - Full installation (~18KB)
-- [ ] `update.sh` - Update existing installation
+- [x] `install.sh` - Full installation (~18KB) - Reviewed, works
+- [x] `k-lean install` - CLI installer with component selection
+- [x] `k-lean sync` - Package sync command (NEW)
+- [ ] `update.sh` - Update existing installation (if needed)
 - [ ] `test.sh` - Test suite
 
-**Review Goals:**
-- Understand installation modes (--full, --minimal)
-- Verify idempotency (re-run safety)
-- Check uninstall capability
+**Completed:**
+- Dual install: `install.sh` for shell, `k-lean install` for pip/pipx
+- `k-lean sync` keeps root dirs and package data in sync
+- `DEVELOPMENT.md` documents release workflow
 
 ---
 
