@@ -1001,6 +1001,83 @@ def doctor(auto_fix: bool):
             except Exception as e:
                 console.print(f"  [yellow]○[/yellow] Could not validate LiteLLM config: {e}")
 
+        # Check .env file
+        env_file = CONFIG_DIR / ".env"
+        if not env_file.exists():
+            issues.append(("ERROR", "LiteLLM .env file not found - run setup-litellm.sh"))
+            console.print("  [red]✗[/red] LiteLLM .env: NOT FOUND")
+        else:
+            env_content = env_file.read_text()
+            has_api_key = "NANOGPT_API_KEY=" in env_content and "your-nanogpt-api-key-here" not in env_content
+            has_api_base = "NANOGPT_API_BASE=" in env_content
+
+            if not has_api_key:
+                issues.append(("ERROR", "NANOGPT_API_KEY not configured in .env"))
+                console.print("  [red]✗[/red] LiteLLM .env: NANOGPT_API_KEY not set")
+            else:
+                console.print("  [green]✓[/green] LiteLLM .env: NANOGPT_API_KEY configured")
+
+            if not has_api_base:
+                issues.append(("WARNING", "NANOGPT_API_BASE not set - will auto-detect on start"))
+                console.print("  [yellow]○[/yellow] LiteLLM .env: NANOGPT_API_BASE not set")
+
+                if auto_fix and has_api_key:
+                    # Extract API key and auto-detect
+                    import re
+                    key_match = re.search(r'NANOGPT_API_KEY=(\S+)', env_content)
+                    if key_match:
+                        api_key = key_match.group(1)
+                        console.print("    [dim]Auto-detecting subscription status...[/dim]")
+                        try:
+                            import urllib.request
+                            req = urllib.request.Request(
+                                "https://nano-gpt.com/api/subscription/v1/usage",
+                                headers={"Authorization": f"Bearer {api_key}"}
+                            )
+                            response = urllib.request.urlopen(req, timeout=5)
+                            data = json.loads(response.read().decode())
+                            if data.get("active"):
+                                api_base = "https://nano-gpt.com/api/subscription/v1"
+                                console.print("    [green]✓ Subscription account detected[/green]")
+                            else:
+                                api_base = "https://nano-gpt.com/api/v1"
+                                console.print("    [yellow]○ Pay-per-use account detected[/yellow]")
+
+                            # Append to .env
+                            with open(env_file, "a") as f:
+                                f.write(f"\nNANOGPT_API_BASE={api_base}\n")
+                            console.print(f"    [green]✓ Saved NANOGPT_API_BASE to .env[/green]")
+                            fixes_applied.append("Auto-detected and saved NANOGPT_API_BASE")
+                        except Exception as e:
+                            console.print(f"    [red]✗ Could not detect: {e}[/red]")
+            else:
+                # Check if subscription is still active
+                import re
+                key_match = re.search(r'NANOGPT_API_KEY=(\S+)', env_content)
+                base_match = re.search(r'NANOGPT_API_BASE=(\S+)', env_content)
+                if key_match and base_match:
+                    api_key = key_match.group(1)
+                    api_base = base_match.group(1)
+                    if "subscription" in api_base:
+                        try:
+                            import urllib.request
+                            req = urllib.request.Request(
+                                "https://nano-gpt.com/api/subscription/v1/usage",
+                                headers={"Authorization": f"Bearer {api_key}"}
+                            )
+                            response = urllib.request.urlopen(req, timeout=5)
+                            data = json.loads(response.read().decode())
+                            if data.get("active"):
+                                remaining = data.get("daily", {}).get("remaining", 0)
+                                console.print(f"  [green]✓[/green] NanoGPT Subscription: ACTIVE ({remaining} daily remaining)")
+                            else:
+                                issues.append(("WARNING", "NanoGPT subscription is not active"))
+                                console.print("  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE")
+                        except Exception:
+                            console.print("  [yellow]○[/yellow] NanoGPT Subscription: Could not verify")
+                    else:
+                        console.print("  [green]✓[/green] LiteLLM .env: Pay-per-use configured")
+
     # Check Python venv
     if VENV_DIR.exists():
         python = VENV_DIR / "bin" / "python"
@@ -1021,6 +1098,28 @@ def doctor(auto_fix: bool):
     litellm_status = check_litellm_detailed()
     if litellm_status["running"]:
         console.print(f"  [green]✓[/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
+
+        # Check model health
+        try:
+            import urllib.request
+            req = urllib.request.Request("http://localhost:4000/health")
+            response = urllib.request.urlopen(req, timeout=5)
+            health_data = json.loads(response.read().decode())
+            healthy = health_data.get("healthy_count", 0)
+            unhealthy = health_data.get("unhealthy_count", 0)
+            total = healthy + unhealthy
+
+            if unhealthy == 0:
+                console.print(f"  [green]✓[/green] Model Health: {healthy}/{total} healthy")
+            elif healthy == 0:
+                issues.append(("ERROR", f"All {unhealthy} models are unhealthy - check API key/subscription"))
+                console.print(f"  [red]✗[/red] Model Health: 0/{total} healthy (all failing!)")
+                console.print("    [dim]Run: k-lean doctor --auto-fix to check configuration[/dim]")
+            else:
+                issues.append(("WARNING", f"{unhealthy} of {total} models are unhealthy"))
+                console.print(f"  [yellow]○[/yellow] Model Health: {healthy}/{total} healthy ({unhealthy} failing)")
+        except Exception:
+            console.print("  [yellow]○[/yellow] Model Health: Could not check")
     else:
         if auto_fix:
             console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
