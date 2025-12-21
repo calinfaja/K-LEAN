@@ -18,10 +18,10 @@ Manual review checklist for understanding and improving each system component.
 | **K-LEAN Core Engine** | ✅ Complete | 1190 lines reviewed, 3 fixes applied |
 | **Competitive Analysis** | ✅ Complete | K-LEAN as addon, MCP future documented |
 | **LiteLLM Integration** | ✅ Complete | Removed Ollama, NanoGPT + OpenRouter only |
-| **Timeline/Statusline** | 🔄 Pending | Lower priority |
-| **Configuration** | 🔄 Pending | Documentation needed |
+| **Timeline/Statusline** | ✅ Complete | Both reviewed, synced to src/ |
+| **Configuration** | ✅ Complete | All config files documented |
 
-**Progress: 13/14 areas complete (~93%)**
+**Progress: 14/14 areas complete (100%) ✅**
 
 ## Completed Reviews
 
@@ -399,38 +399,78 @@ Contrarian debugging with 4 techniques:
 
 ---
 
-### 9. Timeline System (Pending)
+### 9. Timeline System ✅ COMPLETE
 **Files:** `scripts/`
-- [ ] `timeline-query.sh` - Query chronological log
-- [ ] Timeline capture in `post-bash-handler.sh`
+- [x] `timeline-query.sh` - Query chronological log (135 lines)
+- [x] Timeline capture in `post-bash-handler.sh`
 
-**Review Goals:**
-- Understand event types captured
-- Verify query filters (today, week, commits, reviews)
+**Features Verified:**
+| Command | Function |
+|---------|----------|
+| `last` | Last 20 events (default) |
+| `today` | Today's events |
+| `yesterday` | Yesterday's events |
+| `week` | Last 7 days |
+| `commits` | All git commits |
+| `reviews` | All code reviews |
+| `facts` | All fact extractions |
+| `stats` | Summary statistics |
+| `<pattern>` | Case-insensitive search |
+
+**Event Types Captured:**
+- `commit` - Git commits with hash and message
+- `push` - Git pushes with branch name
+- `review` - Code reviews with focus area
+
+**Storage:** `.knowledge-db/timeline.txt` (per-project)
 
 ---
 
-### 10. Statusline Integration (Pending)
+### 10. Statusline Integration ✅ COMPLETE
 **Files:** `scripts/`
-- [ ] `klean-statusline.py` - Claude Code statusline provider
+- [x] `klean-statusline.py` - Claude Code statusline provider (266 lines)
 
-**Review Goals:**
-- Understand status indicators (kb:✓, kb:init, kb:off)
-- Verify socket health checking
-- Check performance (called frequently)
+**Layout:** `[opus] │ myproject │ main● +45-12 │ llm:6 kb:✓`
+
+**Fields:**
+| Field | Source | Display |
+|-------|--------|---------|
+| Model | Claude API | `[opus]`, `[sonnet]`, `[haiku]` with tier colors |
+| Project | Workspace | Project name + relative path |
+| Git | subprocess | Branch + dirty state + lines changed |
+| Services | HTTP/Socket | LiteLLM model count + KB status |
+
+**KB Status Indicators:**
+| Status | Color | Meaning |
+|--------|-------|---------|
+| `kb:✓` | Green | Server running |
+| `run InitKB` | Cyan | Not initialized |
+| `kb:starting` | Yellow | Server starting |
+| `kb:—` | Dim | No project root |
+
+**Performance:** Uses 0.5s timeout for LiteLLM, 0.3s for KB socket check.
 
 ---
 
-### 11. Configuration Files (Pending)
+### 11. Configuration Files ✅ COMPLETE
 **Files:** Various
-- [ ] `settings.json` - Claude hooks configuration
-- [ ] `config.yaml` - LiteLLM proxy config
-- [ ] `pyproject.toml` - Python package metadata
+- [x] `settings.json` - Claude hooks configuration
+- [x] `config.yaml` - LiteLLM proxy config (12 NanoGPT models)
+- [x] `openrouter.yaml` - OpenRouter config (6 models + aliases)
+- [x] `pyproject.toml` - Python package metadata
+- [x] `.env.example` - API key template
 
-**Review Goals:**
-- Document all configuration options
-- Identify sensible defaults
-- Check for secrets/credentials handling
+**Configuration Locations:**
+| File | Location | Purpose |
+|------|----------|---------|
+| `settings.json` | `~/.claude/` | Hooks, statusline config |
+| `config.yaml` | `~/.config/litellm/` | LiteLLM models |
+| `.env` | `~/.config/litellm/` | API keys (never committed) |
+
+**Secrets Handling:**
+- API keys in `.env` file (chmod 600)
+- `.env` in `.gitignore`
+- `os.environ/` syntax in config.yaml (not quoted)
 
 ---
 
