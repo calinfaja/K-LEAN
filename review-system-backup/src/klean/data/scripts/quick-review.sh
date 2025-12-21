@@ -12,10 +12,18 @@ FOCUS="${2:-General code review}"
 WORK_DIR="${3:-$(pwd)}"
 SCRIPTS_DIR="$(dirname "$0")"
 
+# Source kb-root.sh for unified paths
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 # Persistent output directory in project's .claude/kln/quickReview/
-source ~/.claude/scripts/session-helper.sh
+source "$KB_SCRIPTS_DIR/session-helper.sh"
 source "$SCRIPTS_DIR/../lib/common.sh" 2>/dev/null || true
-source ~/.claude/scripts/review-logger.sh 2>/dev/null || true
+source "$KB_SCRIPTS_DIR/review-logger.sh" 2>/dev/null || true
 
 # Track timing
 REVIEW_START_MS=$(($(date +%s%N)/1000000))
@@ -68,11 +76,10 @@ cd "$WORK_DIR"
 
 # Search knowledge-db for relevant context
 KNOWLEDGE_CONTEXT=""
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-if [ -x "$PYTHON" ] && [ -f "$HOME/.claude/scripts/knowledge-search.py" ]; then
+if [ -x "$KB_PYTHON" ] && [ -f "$KB_SCRIPTS_DIR/knowledge-search.py" ]; then
     # Check if project has knowledge-db
     if [ -d ".knowledge-db" ] || [ -d "../.knowledge-db" ]; then
-        KNOWLEDGE_CONTEXT=$("$PYTHON" "$HOME/.claude/scripts/knowledge-search.py" "$FOCUS" --format inject --limit 3 2>/dev/null || echo "")
+        KNOWLEDGE_CONTEXT=$("$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge-search.py" "$FOCUS" --format inject --limit 3 2>/dev/null || echo "")
     fi
 fi
 
@@ -146,4 +153,4 @@ type log_debug &>/dev/null && log_debug "review" "quick_complete" "model=$LITELL
 type log_review_end &>/dev/null && log_review_end "quickReview" "$LITELLM_MODEL" "$OUTPUT_FILE" "success" "$REVIEW_DURATION_MS"
 
 # Auto-extract facts from review (Tier 1)
-~/.claude/scripts/fact-extract.sh "$CONTENT" "review" "$FOCUS" "$WORK_DIR"
+"$KB_SCRIPTS_DIR/fact-extract.sh" "$CONTENT" "review" "$FOCUS" "$WORK_DIR"

@@ -7,7 +7,12 @@
 # Both services start in background - non-blocking (~0.1s)
 #
 
-SCRIPTS_DIR="$HOME/.claude/scripts"
+# Hooks are entry points - need fallback if kb-root.sh missing
+SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+    SCRIPTS_DIR="$KB_SCRIPTS_DIR"
+fi
 
 # === LiteLLM Proxy (Global - Port 4000) ===
 # Only start if not already running
@@ -16,7 +21,7 @@ if ! curl -s --max-time 1 http://localhost:4000/health >/dev/null 2>&1; then
     if [ ! -f ~/.config/litellm/config.yaml ]; then
         # One-time warning per session
         if [ ! -f /tmp/klean-litellm-warned ]; then
-            echo "{\"systemMessage\": \"⚠️ LiteLLM config not found. Run: ~/.claude/scripts/setup-litellm.sh\"}" >&2
+            echo "{\"systemMessage\": \"⚠️ LiteLLM config not found. Run: \$SCRIPTS_DIR/setup-litellm.sh\"}" >&2
             touch /tmp/klean-litellm-warned
         fi
     elif [ ! -f ~/.config/litellm/.env ]; then
@@ -77,7 +82,7 @@ if [ -n "$PROJECT" ] && [ -d "$PROJECT/.knowledge-db" ]; then
 
     # Start if not already running
     if [ ! -S "$SOCKET" ]; then
-        PYTHON="$HOME/.venvs/knowledge-db/bin/python"
+        PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
         SERVER="$SCRIPTS_DIR/knowledge-server.py"
 
         if [ -x "$PYTHON" ] && [ -f "$SERVER" ]; then

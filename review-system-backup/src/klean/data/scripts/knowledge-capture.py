@@ -61,7 +61,9 @@ class InitResult:
 
 def start_kb_server(project_path):
     """Start the KB server for a project."""
-    server_script = Path.home() / ".claude/scripts/knowledge-server.py"
+    # Import KB_SCRIPTS_DIR from kb_utils (set from environment)
+    from kb_utils import KB_SCRIPTS_DIR
+    server_script = KB_SCRIPTS_DIR / "knowledge-server.py"
 
     if not server_script.exists() or not PYTHON_BIN.exists():
         debug_log(f"Missing server script or Python: {server_script}, {PYTHON_BIN}")

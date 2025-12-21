@@ -50,10 +50,10 @@ KB_DIR="$PROJECT_ROOT/.knowledge-db"
 SOCKET=$(get_kb_socket_path "$PROJECT_ROOT")
 PID_FILE=$(get_kb_pid_path "$PROJECT_ROOT")
 
-# Find Python interpreter
-PYTHON="${PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
-if [ ! -f "$PYTHON" ]; then
-    PYTHON="python3"
+# Use Python from kb-root.sh (already sourced above)
+PYTHON="$KB_PYTHON"
+if [ -z "$PYTHON" ] || [ ! -x "$PYTHON" ]; then
+    require_kb_python || exit 1
 fi
 
 echo -e "${CYAN}K-LEAN Knowledge DB Initialization${RESET}"

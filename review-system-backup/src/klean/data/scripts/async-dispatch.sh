@@ -5,8 +5,17 @@
 # so Claude doesn't try to respond to it - user can immediately continue coding
 #
 
+# Source kb-root.sh for unified paths
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "$SCRIPT_DIR/kb-root.sh" ]; then
+    source "$SCRIPT_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 # Session-based output directory
-source ~/.claude/scripts/session-helper.sh
+source "$KB_SCRIPTS_DIR/session-helper.sh"
 OUTPUT_DIR="$SESSION_DIR"
 
 # Read JSON input from stdin
@@ -24,7 +33,7 @@ fi
 WORK_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 # Auto-initialize knowledge-db for this project (runs once, silent if exists)
-~/.claude/scripts/knowledge-init.sh "$WORK_DIR" > /dev/null 2>&1 &
+"$KB_SCRIPTS_DIR/kb-init.sh" "$WORK_DIR" > /dev/null 2>&1 &
 
 # Helper function to block prompt and show message
 block_with_message() {
@@ -75,7 +84,7 @@ fi
 if echo "$PROMPT" | grep -qi "asyncDeepAudit"; then
     FOCUS=$(echo "$PROMPT" | sed 's/.*asyncDeepAudit[[:space:]]*//')
     [ -z "$FOCUS" ] && FOCUS="General code review"
-    nohup ~/.claude/scripts/parallel-deep-review.sh "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/deep-audit-latest.log" 2>&1 &
+    nohup "$KB_SCRIPTS_DIR/parallel-deep-review.sh" "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/deep-audit-latest.log" 2>&1 &
     block_with_message "🚀 Deep audit started (3 models, CLI). Results: $OUTPUT_DIR/deep-audit-latest.log"
 fi
 
@@ -83,7 +92,7 @@ fi
 if echo "$PROMPT" | grep -qi "asyncQuickCompare"; then
     FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickCompare[[:space:]]*//')
     [ -z "$FOCUS" ] && FOCUS="General code review"
-    nohup ~/.claude/scripts/consensus-review.sh "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-compare-latest.log" 2>&1 &
+    nohup "$KB_SCRIPTS_DIR/consensus-review.sh" "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-compare-latest.log" 2>&1 &
     block_with_message "🚀 Quick compare started (3 models, API). Results: $OUTPUT_DIR/quick-compare-latest.log"
 fi
 
@@ -92,17 +101,17 @@ if echo "$PROMPT" | grep -qi "asyncQuickReview"; then
     if echo "$PROMPT" | grep -qi "qwen"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickReview[[:space:]]*qwen[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="General review"
-        nohup ~/.claude/scripts/quick-review.sh qwen "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-qwen-latest.log" 2>&1 &
+        nohup "$KB_SCRIPTS_DIR/quick-review.sh" qwen "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-qwen-latest.log" 2>&1 &
         block_with_message "🚀 Quick review started (qwen, API). Results: $OUTPUT_DIR/quick-review-qwen-latest.log"
     elif echo "$PROMPT" | grep -qi "deepseek"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickReview[[:space:]]*deepseek[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="General review"
-        nohup ~/.claude/scripts/quick-review.sh deepseek "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-deepseek-latest.log" 2>&1 &
+        nohup "$KB_SCRIPTS_DIR/quick-review.sh" deepseek "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-deepseek-latest.log" 2>&1 &
         block_with_message "🚀 Quick review started (deepseek, API). Results: $OUTPUT_DIR/quick-review-deepseek-latest.log"
     elif echo "$PROMPT" | grep -qi "glm"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickReview[[:space:]]*glm[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="General review"
-        nohup ~/.claude/scripts/quick-review.sh glm "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-glm-latest.log" 2>&1 &
+        nohup "$KB_SCRIPTS_DIR/quick-review.sh" glm "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-glm-latest.log" 2>&1 &
         block_with_message "🚀 Quick review started (glm, API). Results: $OUTPUT_DIR/quick-review-glm-latest.log"
     fi
 fi
@@ -112,17 +121,17 @@ if echo "$PROMPT" | grep -qi "asyncQuickConsult"; then
     if echo "$PROMPT" | grep -qi "qwen"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickConsult[[:space:]]*qwen[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="Is this implementation correct?"
-        nohup ~/.claude/scripts/second-opinion.sh qwen "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-qwen-latest.log" 2>&1 &
+        nohup "$KB_SCRIPTS_DIR/second-opinion.sh" qwen "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-qwen-latest.log" 2>&1 &
         block_with_message "🚀 Quick consult started (qwen, API). Results: $OUTPUT_DIR/quick-consult-qwen-latest.log"
     elif echo "$PROMPT" | grep -qi "deepseek"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickConsult[[:space:]]*deepseek[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="Is this implementation correct?"
-        nohup ~/.claude/scripts/second-opinion.sh deepseek "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-deepseek-latest.log" 2>&1 &
+        nohup "$KB_SCRIPTS_DIR/second-opinion.sh" deepseek "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-deepseek-latest.log" 2>&1 &
         block_with_message "🚀 Quick consult started (deepseek, API). Results: $OUTPUT_DIR/quick-consult-deepseek-latest.log"
     elif echo "$PROMPT" | grep -qi "glm"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickConsult[[:space:]]*glm[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="Is this implementation correct?"
-        nohup ~/.claude/scripts/second-opinion.sh glm "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-glm-latest.log" 2>&1 &
+        nohup "$KB_SCRIPTS_DIR/second-opinion.sh" glm "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-glm-latest.log" 2>&1 &
         block_with_message "🚀 Quick consult started (glm, API). Results: $OUTPUT_DIR/quick-consult-glm-latest.log"
     fi
 fi
@@ -130,7 +139,7 @@ fi
 # GoodJob - manual knowledge capture
 if echo "$PROMPT" | grep -qi "^goodjob\|^savethis"; then
     # Run in background, but block the prompt so Claude doesn't respond
-    nohup ~/.claude/scripts/goodjob-dispatch.sh "$PROMPT" > "$OUTPUT_DIR/goodjob-latest.log" 2>&1 &
+    nohup "$KB_SCRIPTS_DIR/goodjob-dispatch.sh" "$PROMPT" > "$OUTPUT_DIR/goodjob-latest.log" 2>&1 &
 
     if echo "$PROMPT" | grep -qi "^goodjob"; then
         block_with_message "📚 Capturing knowledge... Check: $OUTPUT_DIR/goodjob-latest.log"
@@ -143,7 +152,7 @@ fi
 if echo "$PROMPT" | grep -qi "^findknowledge\|^searchknowledge"; then
     QUERY=$(echo "$PROMPT" | sed -E 's/^(find|search)knowledge[[:space:]]*//i')
     if [ -n "$QUERY" ]; then
-        RESULTS=$("$HOME/.venvs/knowledge-db/bin/python" "$HOME/.claude/scripts/knowledge-search.py" "$QUERY" --format inject 2>&1)
+        RESULTS=$("$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge-search.py" "$QUERY" --format inject 2>&1)
         block_with_message "$RESULTS"
     else
         block_with_message "Usage: FindKnowledge <query>"

@@ -24,8 +24,17 @@ if [ -z "$FOCUS" ]; then
     FOCUS="Review this codebase for bugs, security issues, and code quality"
 fi
 
+# Source kb-root.sh for unified paths
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "$SCRIPT_DIR/kb-root.sh" ]; then
+    source "$SCRIPT_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 # Validate model exists in config (use dynamic discovery)
-VALID_MODELS=$(~/.claude/scripts/get-models.sh 2>/dev/null | tr '\n' ' ')
+VALID_MODELS=$("$KB_SCRIPTS_DIR/get-models.sh" 2>/dev/null | tr '\n' ' ')
 if [ -z "$VALID_MODELS" ]; then
     # Fallback to known models if LiteLLM not running
     VALID_MODELS="qwen3-coder deepseek-v3-thinking glm-4.6-thinking minimax-m2 kimi-k2-thinking hermes-4-70b"
@@ -155,8 +164,8 @@ INDEX_FILE="$REVIEWS_DIR/INDEX.md"
 } > "$INDEX_FILE"
 
 # Emit knowledge event
-if command -v ~/.claude/scripts/knowledge-events.py &>/dev/null; then
-    ~/.claude/scripts/knowledge-events.py emit "knowledge:droid_review" \
+if [ -f "$KB_SCRIPTS_DIR/knowledge-events.py" ]; then
+    "$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge-events.py" emit "knowledge:droid_review" \
         --model "$MODEL" \
         --focus "$FOCUS" \
         --path "$DROID_OUTPUT_PATH" \

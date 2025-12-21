@@ -14,11 +14,28 @@ from pathlib import Path
 from typing import Optional
 
 # =============================================================================
-# Configuration Constants
+# Configuration Constants (with environment variable overrides)
 # =============================================================================
-PYTHON_BIN = Path.home() / ".venvs/knowledge-db/bin/python"
+# Python binary - check environment override first
+_kb_python_env = os.environ.get('KB_PYTHON') or os.environ.get('KLEAN_KB_PYTHON')
+if _kb_python_env:
+    PYTHON_BIN = Path(_kb_python_env)
+elif (Path.home() / ".venvs/knowledge-db/bin/python").exists():
+    PYTHON_BIN = Path.home() / ".venvs/knowledge-db/bin/python"
+elif (Path.home() / ".local/share/klean/venv/bin/python").exists():
+    PYTHON_BIN = Path.home() / ".local/share/klean/venv/bin/python"
+else:
+    PYTHON_BIN = Path("python3")  # Fallback to system python
+
+# Scripts directory - check environment override first
+_kb_scripts_env = os.environ.get('KB_SCRIPTS_DIR') or os.environ.get('KLEAN_SCRIPTS_DIR')
+if _kb_scripts_env:
+    KB_SCRIPTS_DIR = Path(_kb_scripts_env)
+else:
+    KB_SCRIPTS_DIR = Path.home() / ".claude/scripts"
+
 KB_DIR_NAME = ".knowledge-db"
-SOCKET_PREFIX = "/tmp/kb-"
+SOCKET_PREFIX = os.environ.get('KLEAN_SOCKET_DIR', '/tmp') + "/kb-"
 
 # Project markers in priority order (matches kb-root.sh)
 PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
