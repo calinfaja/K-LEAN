@@ -11,8 +11,8 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/calinfaja/K-LEAN-Companion.git
-cd K-LEAN-Companion
+git clone https://github.com/calinfaja/k-lean.git
+cd k-lean
 
 # Install in editable mode
 pipx install -e .
@@ -26,7 +26,7 @@ k-lean test         # Run test suite
 ## Project Layout
 
 ```
-K-LEAN-Companion/
+k-lean/
 ├── src/klean/           # Main package
 │   ├── cli.py           # CLI entry point
 │   └── data/            # Installable assets

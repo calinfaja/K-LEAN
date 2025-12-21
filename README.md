@@ -128,7 +128,7 @@ Check installed: `claude mcp list`
 
 ## Changelog
 
-### v1.0.0-beta (2025-12-16)
+### v1.0.0-beta (2025-12-21)
 
 - **Breaking**: Consolidated 21 commands → 9 commands
 - **New**: `/kln:rethink` - Fresh debugging perspectives
