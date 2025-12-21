@@ -3,7 +3,7 @@
 > Multi-Model Code Review & Knowledge Capture System for Claude Code
 
 [![Version](https://img.shields.io/badge/version-1.0.0--beta-blue.svg)](VERSION)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-yellow.svg)](https://python.org)
 
 ## What is K-LEAN?
@@ -131,4 +131,4 @@ Check installed: `claude mcp list`
 
 ## License
 
-MIT - See [LICENSE](LICENSE)
+Apache 2.0 - See [LICENSE](LICENSE)

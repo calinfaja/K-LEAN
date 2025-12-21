@@ -7,7 +7,7 @@ name = "k-lean"
 version = "1.0.0-beta"
 description = "Multi-model code review and knowledge capture system for Claude Code"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 requires-python = ">=3.9"
 authors = [
     {name = "Calin Faja", email = "calinfaja@gmail.com"}
