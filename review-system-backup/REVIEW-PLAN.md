@@ -238,6 +238,24 @@ KLEAN_CONFIG_DIR     # Custom config directory
 3. Expand c-pro.md with tools and orchestrator integration
 4. Consider adding orchestrator integration to remaining droids
 
+**Research-Based Template Guide Created:** `docs/DROID-TEMPLATE-GUIDE.md`
+
+Based on Factory.ai docs, Anthropic's context engineering, and industry best practices:
+
+| Requirement | Current State | Optimal |
+|-------------|---------------|---------|
+| YAML frontmatter with tools | 6/8 have tools | All 8 should have explicit tools |
+| Immediate Actions section | 4/8 have | All should have |
+| Orchestrator Integration | 4/8 have | All should have |
+| Structured Output Format | 2/8 have | All should have |
+| Size (lines) | 35-765 | 80-300 for specialists |
+
+**Key Principle from Factory.ai:**
+> "A droid is only as good as its plan." - Subtask decomposition + model predictive control
+
+**Key Principle from Anthropic:**
+> Find the "Goldilocks zone" - not too brittle, not too vague
+
 ---
 
 ### 5. K-LEAN Core Engine
