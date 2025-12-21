@@ -58,6 +58,118 @@ def get_source_data_dir() -> Path:
     return DATA_DIR
 
 
+# =============================================================================
+# Status Helper Functions
+# =============================================================================
+
+def get_litellm_info() -> tuple:
+    """Get model count and detected providers from LiteLLM config.
+
+    Returns:
+        Tuple of (model_count, list_of_providers)
+    """
+    config_file = CONFIG_DIR / "config.yaml"
+
+    if not config_file.exists():
+        return 0, []
+
+    try:
+        content = config_file.read_text()
+        model_count = content.count("model_name:")
+
+        # Detect providers from env var patterns (case-insensitive)
+        providers = []
+        content_upper = content.upper()
+
+        if "NANOGPT" in content_upper:
+            providers.append("NanoGPT")
+        if "OPENROUTER" in content_upper:
+            providers.append("OpenRouter")
+        # Only show direct providers if not using aggregators
+        if not providers:
+            if "ANTHROPIC" in content_upper:
+                providers.append("Anthropic")
+            if "OPENAI_API" in content_upper:
+                providers.append("OpenAI")
+
+        return model_count, providers if providers else ["Custom"]
+    except Exception:
+        return 0, []
+
+
+def get_kb_project_status() -> tuple:
+    """Get KB status for current working directory project.
+
+    Returns:
+        Tuple of (status, details, project_name)
+        - status: "RUNNING", "STOPPED", "NOT INIT", "N/A", "ERROR"
+        - details: Additional info like entry count
+        - project_name: Name of the project directory
+    """
+    scripts_dir = CLAUDE_DIR / "scripts"
+
+    # Guard: scripts not installed yet
+    if not scripts_dir.exists():
+        return ("N/A", "run k-lean install", "")
+
+    kb_utils_path = scripts_dir / "kb_utils.py"
+    if not kb_utils_path.exists():
+        return ("N/A", "kb_utils missing", "")
+
+    try:
+        # Lazy import with path setup
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+
+        from kb_utils import find_project_root, is_server_running, is_kb_initialized, get_socket_path
+
+        project = find_project_root(Path.cwd())
+        if not project:
+            return ("N/A", "not in a project", "")
+
+        project_name = project.name
+
+        if is_server_running(project):
+            # Query server for entry count
+            entries = _query_kb_entries(get_socket_path(project))
+            return ("RUNNING", f"({entries} entries)", project_name)
+
+        if is_kb_initialized(project):
+            return ("STOPPED", "run InitKB", project_name)
+
+        return ("NOT INIT", "run InitKB", project_name)
+
+    except ImportError as e:
+        return ("ERROR", f"import: {str(e)[:20]}", "")
+    except Exception as e:
+        return ("ERROR", str(e)[:25], "")
+
+
+def _query_kb_entries(socket_path: str) -> str:
+    """Query KB server for entry count via status command.
+
+    Args:
+        socket_path: Unix socket path
+
+    Returns:
+        Entry count as string, or "?" on failure
+    """
+    import socket
+
+    try:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(1.0)
+        sock.connect(socket_path)
+        sock.sendall(b'{"cmd":"status"}')
+        response = sock.recv(4096).decode()
+        sock.close()
+
+        data = json.loads(response)
+        return str(data.get("entries", "?"))
+    except Exception:
+        return "?"
+
+
 def print_banner():
     """Print the K-LEAN banner."""
     console.print(Panel.fit(
@@ -740,13 +852,14 @@ def install(dev: bool, component: str, yes: bool):
         pip = VENV_DIR / "bin" / "pip"
         if pip.exists():
             console.print("  Installing Python dependencies...")
+            console.print("  [dim](First install may take 2-5 minutes for ML models...)[/dim]")
             subprocess.run(
-                [str(pip), "install", "-q", "--upgrade", "pip"],
-                capture_output=True
+                [str(pip), "install", "--upgrade", "pip"],
+                capture_output=True  # pip upgrade is fast, keep quiet
             )
             result = subprocess.run(
-                [str(pip), "install", "-q", "txtai", "sentence-transformers"],
-                capture_output=True
+                [str(pip), "install", "txtai", "sentence-transformers"]
+                # No -q or capture_output: show real-time download progress
             )
             if result.returncode == 0:
                 console.print("  [green]Knowledge database ready[/green]")
@@ -783,6 +896,11 @@ def uninstall(yes: bool):
         console.print("[yellow]Uninstallation cancelled[/yellow]")
         return
 
+    # Stop services first
+    console.print("\n[bold]Stopping services...[/bold]")
+    stop_litellm()
+    stop_knowledge_server(stop_all=True)
+
     # Create backup directory
     backup_dir = CLAUDE_DIR / "backups" / f"k-lean-{__version__}"
     ensure_dir(backup_dir)
@@ -794,6 +912,7 @@ def uninstall(yes: bool):
         CLAUDE_DIR / "scripts",
         CLAUDE_DIR / "commands" / "kln",
         CLAUDE_DIR / "hooks",
+        FACTORY_DIR / "droids",
     ]:
         if path.exists():
             backup_path = backup_dir / path.name
@@ -835,13 +954,13 @@ def status():
     else:
         table.add_row("KLN Commands", "[red]NOT INSTALLED[/red]", "")
 
-    # SC commands (external system - informational only)
+    # SuperClaude (external optional framework)
     sc_dir = CLAUDE_DIR / "commands" / "sc"
     if sc_dir.exists():
         count = len(list(sc_dir.glob("*.md")))
-        table.add_row("SC Commands", f"OK ({count})", "(external)")
+        table.add_row("SuperClaude", f"[dim]Available ({count})[/dim]", "[dim]optional framework[/dim]")
     else:
-        table.add_row("SC Commands", "[dim]NOT AVAILABLE[/dim]", "(external system)")
+        table.add_row("SuperClaude", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
     # Hooks
     hooks_dir = CLAUDE_DIR / "hooks"
@@ -854,59 +973,72 @@ def status():
     # Droids
     droids_dir = FACTORY_DIR / "droids"
     if droids_dir.exists():
-        count = len(list(droids_dir.glob("*.md")))
-        table.add_row("Factory Droids", f"OK ({count})", "")
+        droid_files = list(droids_dir.glob("*.md"))
+        count = len(droid_files)
+        # Extract droid names (without .md extension)
+        droid_names = sorted([f.stem for f in droid_files])
+        # Show abbreviated list (e.g., "code-reviewer, debugger, ...")
+        if len(droid_names) <= 4:
+            names_str = ", ".join(droid_names)
+        else:
+            names_str = ", ".join(droid_names[:3]) + f", +{len(droid_names)-3} more"
+        table.add_row("Factory Droids", f"OK ({count})", names_str)
     else:
         table.add_row("Factory Droids", "[yellow]NOT INSTALLED[/yellow]", "optional")
 
-    # Slash Commands (pure plugin approach - no CLAUDE.md needed)
-    kln_commands = CLAUDE_DIR / "commands" / "kln"
-    if kln_commands.exists():
-        count = len(list(kln_commands.glob("*.md")))
-        table.add_row("Slash Commands", f"[green]OK ({count} /kln:* commands)[/green]", "")
-    else:
-        table.add_row("Slash Commands", "[red]NOT FOUND[/red]", "")
-
     # Knowledge DB
     if VENV_DIR.exists():
-        python = VENV_DIR / "bin" / "python"
-        try:
-            result = subprocess.run(
-                [str(python), "-c", "import txtai; print('ok')"],
-                capture_output=True, text=True, timeout=10
+        table.add_row("Knowledge DB", "[green]INSTALLED[/green]", str(VENV_DIR))
+
+        # Show current project status
+        kb_status, kb_details, kb_project = get_kb_project_status()
+        if kb_project:
+            status_color = {
+                "RUNNING": "green",
+                "STOPPED": "yellow",
+                "NOT INIT": "yellow",
+                "ERROR": "red"
+            }.get(kb_status, "dim")
+            # Truncate long project names
+            display_name = kb_project[:20] + "..." if len(kb_project) > 20 else kb_project
+            table.add_row(
+                f"  └─ {display_name}",
+                f"[{status_color}]{kb_status}[/{status_color}]",
+                kb_details
             )
-            if result.returncode == 0:
-                table.add_row("Knowledge DB", "[green]OK[/green]", str(VENV_DIR))
-            else:
-                # txtai import failed, still check if it exists
-                result2 = subprocess.run(
-                    [str(python), "-m", "pip", "show", "txtai"],
-                    capture_output=True, text=True, timeout=5
-                )
-                if result2.returncode == 0:
-                    table.add_row("Knowledge DB", "[green]OK[/green]", "(installed, import check failed)")
-                else:
-                    table.add_row("Knowledge DB", "[yellow]PARTIAL[/yellow]", "txtai not installed")
-        except subprocess.TimeoutExpired:
-            table.add_row("Knowledge DB", "[green]OK[/green]", "(check timeout, likely running)")
-        except Exception as e:
-            table.add_row("Knowledge DB", "[yellow]PARTIAL[/yellow]", f"check error: {str(e)[:20]}")
+        elif kb_status == "N/A":
+            table.add_row("  └─ Current dir", "[dim]N/A[/dim]", kb_details)
     else:
         table.add_row("Knowledge DB", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
 
     # LiteLLM
+    model_count, providers = get_litellm_info()
+    provider_str = ", ".join(providers) if providers else ""
     if check_litellm():
-        table.add_row("LiteLLM Proxy", "[green]RUNNING[/green]", "localhost:4000")
+        detail = f"localhost:4000 ({model_count} models)"
+        if provider_str:
+            detail += f" via {provider_str}"
+        table.add_row("LiteLLM Proxy", "[green]RUNNING[/green]", detail)
     else:
-        table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "start with litellm-start.sh")
+        if model_count > 0:
+            table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", f"({model_count} models configured)")
+        else:
+            table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "run: k-lean start")
 
-    # Factory Droid CLI
+    # Factory CLI (external binary for agentic mode)
+    droids_exist = (FACTORY_DIR / "droids").exists()
     if check_command_exists("droid"):
-        result = subprocess.run(["droid", "--version"], capture_output=True, text=True)
-        version = result.stdout.strip() if result.returncode == 0 else "unknown"
-        table.add_row("Factory Droid CLI", "OK", version)
+        try:
+            result = subprocess.run(["droid", "--version"], capture_output=True, text=True, timeout=5)
+            version = result.stdout.strip() if result.returncode == 0 else "installed"
+        except subprocess.TimeoutExpired:
+            version = "installed"
+        table.add_row("Factory CLI", f"[green]{version}[/green]", "(agentic mode)")
+    elif droids_exist:
+        # Droids exist but CLI missing - recommend installation
+        table.add_row("Factory CLI", "[yellow]NOT INSTALLED[/yellow]", "[dim]factory.ai/cli[/dim]")
     else:
-        table.add_row("Factory Droid CLI", "[yellow]NOT INSTALLED[/yellow]", "optional")
+        table.add_row("Factory CLI", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
     console.print(table)
 

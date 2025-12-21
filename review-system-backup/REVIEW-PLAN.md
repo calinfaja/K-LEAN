@@ -600,4 +600,113 @@ a7c779a - Add LiteLLM diagnostics to doctor
 
 ---
 
+## Session 2: CLI Deep Dive (2025-12-21)
+
+### Ongoing: Command-by-Command Review
+
+**Progress:** Reviewing all 12 k-lean CLI commands for consistency, purpose, and simplicity.
+
+| Command | Status | Changes Made |
+|---------|--------|--------------|
+| `install` | ✅ Improved | Added progress message for Knowledge DB (~2-5 min warning) |
+| `uninstall` | ✅ Fixed | Stops services before removal, adds droids to removal list |
+| `status` | ✅ Enhanced | Major improvements (see below) |
+| `doctor` | ✅ Done (prev session) | Fast validation, auto-detect subscription |
+| `start` | 🔄 Pending | |
+| `stop` | 🔄 Pending | |
+| `models` | ✅ Done (prev session) | Added --health flag |
+| `test-model` | 🔄 Pending | |
+| `test` | 🔄 Pending | |
+| `debug` | 🔄 Pending | |
+| `sync` | ✅ Works | For package maintenance |
+| `version` | ✅ Works | Simple version display |
+
+### Factory Droid System Fix
+
+**Problem:** `droid-execute.sh` had hardcoded prompts (30 lines) instead of using the comprehensive `.md` files in `~/.factory/droids/`.
+
+**Solution:** Replaced hardcoded `get_droid_system_prompt()` with function that reads from .md files:
+```bash
+get_droid_system_prompt() {
+    local droid_file="$HOME/.factory/droids/${droid}.md"
+    if [ -f "$droid_file" ]; then
+        # Extract content after YAML frontmatter
+        local end_line=$(grep -n "^---$" "$droid_file" | sed -n '2p' | cut -d: -f1)
+        tail -n +"$((end_line + 1))" "$droid_file"
+    else
+        echo "You are a helpful AI assistant specialized in: $droid"
+    fi
+}
+```
+
+**Benefits:**
+- Uses comprehensive prompts (200+ lines each vs 1-line hardcoded)
+- Single source of truth (.md files)
+- 20 fewer lines of code
+
+**Architecture Confirmed:**
+```
+Factory Droid CLI → LiteLLM (localhost:4000) → NanoGPT/OpenRouter
+                          ↑
+                 ~/.factory/config.json (already configured)
+```
+
+### Uninstall Fix
+
+**Before:** Didn't stop services, didn't remove droids (despite help text saying it did)
+
+**After:**
+```python
+# Stop services first
+stop_litellm()
+stop_knowledge_server(stop_all=True)
+
+# Remove all components (including droids)
+for path in [scripts, commands/kln, hooks, droids]:
+    ...
+```
+
+### Status Command Enhancement
+
+**Major improvements to `k-lean status` for better user understanding:**
+
+| Component | Before | After |
+|-----------|--------|-------|
+| SC Commands | `OK (12)` | `SuperClaude: Available (31) - optional framework` |
+| Knowledge DB | `OK` (just venv exists) | Shows per-project server status + entry count |
+| LiteLLM | `RUNNING` | `RUNNING (12 models) via NanoGPT` |
+| Factory Droids | `OK (8)` | `OK (8) arm-cortex-expert, c-pro, code-reviewer, +5 more` |
+| Factory CLI | `OK` | Shows version + `(agentic mode)` or install recommendation |
+
+**New Helper Functions Added:**
+- `get_litellm_info()` - Detects model count and providers (NanoGPT/OpenRouter)
+- `get_kb_project_status()` - Per-project KB server status with entry count
+- `_query_kb_entries()` - Queries KB server for entry count via socket
+
+**Sample Output:**
+```
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Component                 ┃ Status         ┃ Details                         ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Scripts                   │ OK (39)        │ (symlinked)                     │
+│ KLN Commands              │ OK (9)         │ /kln:help                       │
+│ SuperClaude               │ Available (31) │ optional framework              │
+│ Hooks                     │ OK (5)         │                                 │
+│ Factory Droids            │ OK (8)         │ arm-cortex-expert, c-pro, +5    │
+│ Knowledge DB              │ INSTALLED      │ ~/.venvs/knowledge-db           │
+│   └─ review-system-backup │ RUNNING        │ (12 entries)                    │
+│ LiteLLM Proxy             │ RUNNING        │ localhost:4000 (12 models) via  │
+│                           │                │ NanoGPT                         │
+│ Factory CLI               │ 0.39.0         │ (agentic mode)                  │
+└───────────────────────────┴────────────────┴─────────────────────────────────┘
+```
+
+**Key Design Decisions:**
+1. **KB is per-project**: Shows status for current working directory
+2. **SuperClaude is optional**: Clearly marked as external framework
+3. **Factory Droids + CLI split**: Shows droid files AND CLI as related but independent
+4. **Provider detection**: Parses config.yaml to show NanoGPT/OpenRouter
+
+---
+
 *Last updated: 2025-12-21*
