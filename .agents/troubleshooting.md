@@ -49,7 +49,7 @@ lsof -i :4000                          # Check if port in use
 cat ~/.config/litellm/.env
 
 # Re-run setup wizard
-~/.claude/scripts/setup-litellm.sh
+k-lean setup
 
 # Check NanoGPT subscription status
 k-lean doctor

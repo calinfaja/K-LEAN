@@ -13,6 +13,7 @@
 | `k-lean start` | Start LiteLLM proxy | ~3s |
 | `k-lean stop` | Stop services | ~1s |
 | `k-lean install` | Install components | Varies |
+| `k-lean setup` | Configure API provider (interactive) | ~30s |
 | `k-lean uninstall` | Remove components | ~5s |
 | `k-lean sync` | Sync package data (dev) | ~2s |
 | `k-lean test` | Run test suite | ~10s |
@@ -104,6 +105,24 @@ k-lean uninstall --yes            # Skip confirmation
 ```
 
 **Components:** all, scripts, commands, hooks, droids, config, core, knowledge
+
+### setup
+
+Configures LiteLLM API provider (interactive wizard).
+
+```bash
+k-lean setup                # Interactive menu
+k-lean setup -p nanogpt     # Direct NanoGPT setup
+k-lean setup -p openrouter  # Direct OpenRouter setup
+```
+
+**Features:**
+- Provider selection (NanoGPT/OpenRouter)
+- Secure API key input (hidden)
+- Auto-detects NanoGPT subscription endpoint
+- Backs up existing config before overwriting
+- Creates `~/.config/litellm/.env` (chmod 600)
+- Copies appropriate config.yaml template
 
 ### sync
 

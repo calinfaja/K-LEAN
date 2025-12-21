@@ -97,12 +97,12 @@ api_key: os.environ/NANOGPT_API_KEY
 ### Initial Setup
 
 ```bash
-~/.claude/scripts/setup-litellm.sh
+k-lean setup
 ```
 
 **Wizard steps:**
 1. Choose provider (NanoGPT/OpenRouter)
-2. Enter API key
+2. Enter API key (secure hidden input)
 3. Auto-detect subscription status
 4. Generate config files
 
@@ -125,7 +125,8 @@ k-lean models --health  # Check model health
 
 | Script | Purpose |
 |--------|---------|
-| `setup-litellm.sh` | Interactive setup wizard |
+| `k-lean setup` | Interactive setup wizard (CLI) |
+| `setup-litellm.sh` | Shell script setup (alternative) |
 | `start-litellm.sh` | Start proxy with validation |
 | `health-check.sh` | Full health check |
 | `health-check-model.sh` | Single model health |
@@ -207,12 +208,16 @@ k-lean models --health
 
 ## Implementation
 
-Main scripts:
-- `src/klean/data/scripts/setup-litellm.sh`
-- `src/klean/data/scripts/start-litellm.sh`
-- `src/klean/data/scripts/health-check.sh`
+CLI commands:
+- `k-lean setup` - Interactive setup wizard (in `src/klean/cli.py`)
+- `k-lean start` - Start LiteLLM proxy
+- `k-lean doctor` - Validate config and subscription
+- `k-lean models` - List and health check models
 
-CLI integration: `src/klean/cli.py` (doctor, models commands)
+Scripts:
+- `src/klean/data/scripts/setup-litellm.sh` - Shell alternative
+- `src/klean/data/scripts/start-litellm.sh` - Low-level start
+- `src/klean/data/scripts/health-check.sh` - Model health checks
 
 ---
 *Back to [AGENTS.md](../AGENTS.md) for overview*
