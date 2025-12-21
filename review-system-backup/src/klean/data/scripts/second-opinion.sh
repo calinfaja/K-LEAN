@@ -9,9 +9,18 @@
 MODEL="${1:-qwen}"
 QUESTION="${2:-Is this implementation correct?}"
 WORK_DIR="${3:-$(pwd)}"
+SCRIPTS_DIR="$(dirname "$0")"
+
+# Source kb-root.sh for unified paths
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
 
 # Session-based output directory (each Claude instance gets its own folder)
-source ~/.claude/scripts/session-helper.sh
+source "$KB_SCRIPTS_DIR/session-helper.sh"
 OUTPUT_DIR="$SESSION_DIR"
 TIME_STAMP=$(date +%H%M%S)
 
@@ -101,10 +110,9 @@ cd "$WORK_DIR"
 
 # Search knowledge-db for relevant context
 KNOWLEDGE_CONTEXT=""
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-if [ -x "$PYTHON" ] && [ -f "$HOME/.claude/scripts/knowledge-search.py" ]; then
+if [ -x "$KB_PYTHON" ] && [ -f "$KB_SCRIPTS_DIR/knowledge-search.py" ]; then
     if [ -d ".knowledge-db" ] || [ -d "../.knowledge-db" ]; then
-        KNOWLEDGE_CONTEXT=$("$PYTHON" "$HOME/.claude/scripts/knowledge-search.py" "$QUESTION" --format inject --limit 3 2>/dev/null || echo "")
+        KNOWLEDGE_CONTEXT=$("$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge-search.py" "$QUESTION" --format inject --limit 3 2>/dev/null || echo "")
     fi
 fi
 

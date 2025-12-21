@@ -20,8 +20,9 @@ Manual review checklist for understanding and improving each system component.
 | **LiteLLM Integration** | ✅ Complete | Removed Ollama, NanoGPT + OpenRouter only |
 | **Timeline/Statusline** | ✅ Complete | Both reviewed, synced to src/ |
 | **Configuration** | ✅ Complete | All config files documented |
+| **K-LEAN CLI** | 🟡 Partial | 6/12 commands tested, gaps identified |
 
-**Progress: 14/14 areas complete (100%) ✅**
+**Progress: 14/15 areas complete (93%)** - CLI needs focused testing
 
 ## Completed Reviews
 
@@ -471,6 +472,87 @@ Contrarian debugging with 4 techniques:
 - API keys in `.env` file (chmod 600)
 - `.env` in `.gitignore`
 - `os.environ/` syntax in config.yaml (not quoted)
+
+---
+
+### 12. K-LEAN CLI (Python) - REVIEW NEEDED
+**File:** `src/klean/cli.py` (1979 lines)
+
+**Commands Overview:**
+
+| Command | Purpose | Status |
+|---------|---------|--------|
+| `k-lean status` | Show installation status with rich TUI | ✅ Tested, works |
+| `k-lean doctor` | Diagnose issues with optional `--fix` | ✅ Tested, works |
+| `k-lean models` | List available LiteLLM models | ✅ Tested, works |
+| `k-lean test-model` | Test specific model with API call | ⚠️ 401 error (API key) |
+| `k-lean version` | Show version | ✅ Tested, works |
+| `k-lean sync` | Sync root dirs to package data | ✅ Tested, works |
+| `k-lean install` | Install components | ❓ Not tested |
+| `k-lean uninstall` | Remove components | ❓ Not tested |
+| `k-lean start` | Start services (LiteLLM, KB) | ❓ Not tested |
+| `k-lean stop` | Stop services | ❓ Not tested |
+| `k-lean debug` | Monitoring dashboard | ❓ Not tested |
+| `k-lean test` | Run test suite | ❓ Not tested |
+
+**Component Install Options:**
+```bash
+k-lean install [COMPONENT]
+
+Components:
+  all        Everything (commands, hooks, scripts, droids, core)
+  commands   Slash commands (/kln:*)
+  hooks      Session/prompt handlers
+  scripts    Review/KB/utility scripts
+  droids     Factory Droid specialists
+  core       K-LEAN engine
+```
+
+**Key Features:**
+- **Rich TUI**: Beautiful terminal output with tables, colors, spinners
+- **Development Mode**: `--dev` flag uses symlinks for live editing
+- **Package Sync**: `k-lean sync` keeps source and PyPI package in sync
+- **Health Integration**: `k-lean doctor` runs comprehensive diagnostics
+- **Service Management**: Start/stop LiteLLM proxy and KB server
+
+**Architecture (cli.py structure):**
+| Section | Lines | Purpose |
+|---------|-------|---------|
+| Imports/Config | 1-80 | Click, Rich, paths |
+| Helper Functions | 81-300 | Service checks, paths, config |
+| `status` command | 301-450 | Installation status table |
+| `doctor` command | 451-600 | Diagnostic checks with fixes |
+| `install/uninstall` | 601-900 | Component management |
+| `start/stop` | 901-1100 | Service lifecycle |
+| `models` | 1101-1250 | LiteLLM model discovery |
+| `test-model` | 1251-1400 | Model API testing |
+| `sync` | 1401-1600 | Package data sync |
+| `debug/test` | 1601-1800 | Debugging tools |
+| Entry points | 1801-1979 | CLI group, main |
+
+**Test Results:**
+
+1. **k-lean status** - ✅ Shows services table (LiteLLM, KB), installation status
+2. **k-lean models** - ✅ Lists 12 NanoGPT models from proxy
+3. **k-lean doctor** - ✅ Runs 5 checks (config, services, paths, hooks, scripts)
+4. **k-lean version** - ✅ Shows `k-lean 1.0.0b1`
+5. **k-lean sync** - ✅ Synced 33 files, added missing TEMPLATE.md
+6. **k-lean test-model** - ⚠️ HTTP 401 (session API key issue, not code bug)
+
+**Gaps Identified:**
+| Gap | Priority | Notes |
+|-----|----------|-------|
+| `install`/`uninstall` untested | 🟡 Medium | Critical for new users |
+| `start`/`stop` untested | 🟡 Medium | Service management |
+| `debug` dashboard untested | 🟢 Low | Developer tool |
+| `test` suite untested | 🟡 Medium | What does it test? |
+| 401 on test-model | 🟢 Low | Config/session issue |
+
+**Recommendation:** Need focused testing of:
+1. Full install workflow on clean system
+2. Service start/stop lifecycle
+3. What `k-lean test` actually tests
+4. Error handling in each command
 
 ---
 

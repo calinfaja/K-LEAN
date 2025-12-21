@@ -41,14 +41,79 @@ else
     KB_PYTHON=""
 fi
 
-# Scripts directory
-KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+# Scripts directory - prefer same directory as this file for portability
+_KB_ROOT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+if [ -n "$KLEAN_SCRIPTS_DIR" ] && [ -d "$KLEAN_SCRIPTS_DIR" ]; then
+    KB_SCRIPTS_DIR="$KLEAN_SCRIPTS_DIR"
+elif [ -n "$_KB_ROOT_SCRIPT_DIR" ] && [ -f "$_KB_ROOT_SCRIPT_DIR/kb-root.sh" ]; then
+    KB_SCRIPTS_DIR="$_KB_ROOT_SCRIPT_DIR"
+else
+    KB_SCRIPTS_DIR="$HOME/.claude/scripts"
+fi
 
 # Socket directory (must be writable, /tmp works on all Unix)
 KB_SOCKET_DIR="${KLEAN_SOCKET_DIR:-/tmp}"
 
+# Config directory (LiteLLM, etc.)
+KB_CONFIG_DIR="${KLEAN_CONFIG_DIR:-$HOME/.config/litellm}"
+
 # Export for use in subshells
-export KB_PYTHON KB_SCRIPTS_DIR KB_SOCKET_DIR
+export KB_PYTHON KB_SCRIPTS_DIR KB_SOCKET_DIR KB_CONFIG_DIR
+
+# =============================================================================
+# Validation Functions
+# =============================================================================
+
+# Validate Python is available and executable
+# Usage: require_kb_python || exit 1
+require_kb_python() {
+    if [ -z "$KB_PYTHON" ]; then
+        echo "ERROR: K-LEAN Python not configured." >&2
+        echo "" >&2
+        echo "Solutions:" >&2
+        echo "  1. Install: ./install.sh --knowledge" >&2
+        echo "  2. Set manually: export KLEAN_KB_PYTHON=/path/to/python" >&2
+        return 1
+    fi
+    if [ ! -x "$KB_PYTHON" ]; then
+        echo "ERROR: K-LEAN Python not executable: $KB_PYTHON" >&2
+        echo "" >&2
+        echo "Solutions:" >&2
+        echo "  1. Reinstall: ./install.sh --knowledge" >&2
+        echo "  2. Check permissions: chmod +x $KB_PYTHON" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Validate scripts directory exists
+# Usage: require_kb_scripts || exit 1
+require_kb_scripts() {
+    if [ -z "$KB_SCRIPTS_DIR" ] || [ ! -d "$KB_SCRIPTS_DIR" ]; then
+        echo "ERROR: K-LEAN scripts not found: ${KB_SCRIPTS_DIR:-'(not set)'}" >&2
+        echo "" >&2
+        echo "Solutions:" >&2
+        echo "  1. Install: ./install.sh --scripts" >&2
+        echo "  2. Set manually: export KLEAN_SCRIPTS_DIR=/path/to/scripts" >&2
+        return 1
+    fi
+    return 0
+}
+
+# =============================================================================
+# Helper Functions
+# =============================================================================
+
+# Get full path to a K-LEAN script
+# Usage: $(get_kb_script "fact-extract.sh") "$CONTENT"
+get_kb_script() {
+    local script="$1"
+    echo "${KB_SCRIPTS_DIR}/${script}"
+}
+
+# =============================================================================
+# Project Detection Functions
+# =============================================================================
 
 # Find project root by walking up directory tree
 # Returns: project root path, or empty string if not found
@@ -184,6 +249,9 @@ get_kb_dir() {
 }
 
 # Export functions for use in subshells
+export -f require_kb_python
+export -f require_kb_scripts
+export -f get_kb_script
 export -f find_kb_project_root
 export -f get_kb_project_hash
 export -f get_kb_socket_path

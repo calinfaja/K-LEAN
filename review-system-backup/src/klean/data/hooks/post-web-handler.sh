@@ -24,9 +24,15 @@ if [ -z "$TOOL_NAME" ] || [ "$TOOL_NAME" = "null" ]; then
     exit 0
 fi
 
-# Get project directory and scripts
+# Get project directory and source kb-root.sh if available
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-SCRIPTS_DIR="$HOME/.claude/scripts"
+_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+if [ -f "$_SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$_SCRIPTS_DIR/kb-root.sh"
+    SCRIPTS_DIR="$KB_SCRIPTS_DIR"
+else
+    SCRIPTS_DIR="$_SCRIPTS_DIR"
+fi
 SMART_CAPTURE="$SCRIPTS_DIR/smart-web-capture.sh"
 
 # Check if smart capture is available

@@ -7,6 +7,14 @@ set -e
 SCRIPT_DIR="$(dirname "$0")"
 source "$SCRIPT_DIR/../lib/common.sh" 2>/dev/null || true
 
+# Source kb-root.sh for unified paths
+if [ -f "$SCRIPT_DIR/kb-root.sh" ]; then
+    source "$SCRIPT_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 FOCUS="${1:-Comprehensive code review for bugs, security, architecture, and best practices}"
 WORKDIR="${2:-$(pwd)}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -28,7 +36,7 @@ fi
 mkdir -p "$REVIEWS_DIR/by-date" "$REVIEWS_DIR/by-model" "$REVIEWS_DIR/by-focus"
 
 # Get models dynamically from LiteLLM (first 3 healthy)
-HEALTHY_MODELS=$(~/.claude/scripts/get-healthy-models.sh 3 2>/dev/null)
+HEALTHY_MODELS=$("$KB_SCRIPTS_DIR/get-healthy-models.sh" 3 2>/dev/null)
 if [ -z "$HEALTHY_MODELS" ]; then
     # Fallback to known models if LiteLLM not running
     MODELS=("qwen3-coder" "deepseek-v3-thinking" "glm-4.6-thinking")
@@ -203,8 +211,8 @@ PARALLEL_INDEX="$OUTPUT_DIR/INDEX.md"
 } > "$PARALLEL_INDEX"
 
 # Emit knowledge event
-if command -v ~/.claude/scripts/knowledge-events.py &>/dev/null; then
-    ~/.claude/scripts/knowledge-events.py emit "knowledge:parallel_droid_review" \
+if [ -f "$KB_SCRIPTS_DIR/knowledge-events.py" ]; then
+    "$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge-events.py" emit "knowledge:parallel_droid_review" \
         --models "${MODELS[*]}" \
         --focus "$FOCUS" \
         --path "$OUTPUT_DIR" \
