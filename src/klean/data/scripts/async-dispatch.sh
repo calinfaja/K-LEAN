@@ -136,18 +136,6 @@ if echo "$PROMPT" | grep -qi "asyncQuickConsult"; then
     fi
 fi
 
-# GoodJob - manual knowledge capture
-if echo "$PROMPT" | grep -qi "^goodjob\|^savethis"; then
-    # Run in background, but block the prompt so Claude doesn't respond
-    nohup "$KB_SCRIPTS_DIR/goodjob-dispatch.sh" "$PROMPT" > "$OUTPUT_DIR/goodjob-latest.log" 2>&1 &
-
-    if echo "$PROMPT" | grep -qi "^goodjob"; then
-        block_with_message "📚 Capturing knowledge... Check: $OUTPUT_DIR/goodjob-latest.log"
-    else
-        block_with_message "📝 Saving lesson learned... Check: $OUTPUT_DIR/goodjob-latest.log"
-    fi
-fi
-
 # FindKnowledge - search knowledge base
 if echo "$PROMPT" | grep -qi "^findknowledge\|^searchknowledge"; then
     QUERY=$(echo "$PROMPT" | sed -E 's/^(find|search)knowledge[[:space:]]*//i')

@@ -45,7 +45,7 @@ k-lean doctor                 # Verify everything works
 
 | Component | Purpose | Usage |
 |-----------|---------|-------|
-| **Hooks** | Auto-trigger on prompts & git commits | `SaveThis`, `FindKnowledge`, `GoodJob`, `asyncReview`... |
+| **Hooks** | Auto-trigger on prompts & git commits | `SaveThis`, `FindKnowledge`, `asyncReview`... |
 | **Slash Commands** | 9 consolidated `/kln:*` commands | `/kln:quick`, `/kln:multi`, `/kln:deep`, `/kln:droid` |
 | **Review System** | Headless Claude + LiteLLM proxy | Multi-model consensus, async background reviews |
 | **Factory Droids** | 8 specialist AI agents | `--role security`, `--role architect`, `--role performance` |
