@@ -303,7 +303,6 @@ Triggers on user prompt, handles keywords:
 ├── config.yaml      # Main config (12 models)
 ├── .env             # API keys (NEVER commit)
 ├── .env.example     # Template
-├── ollama.yaml      # Local models
 └── openrouter.yaml  # Alternative provider
 ```
 
@@ -314,9 +313,8 @@ Triggers on user prompt, handles keywords:
 ```
 
 Providers:
-- **NanoGPT** - $0.50/1M tokens (recommended)
-- **OpenRouter** - Diverse model selection
-- **Ollama** - Free local models
+- **NanoGPT**
+- **OpenRouter**
 
 ### Start LiteLLM
 

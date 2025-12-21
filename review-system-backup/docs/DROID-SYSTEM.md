@@ -166,12 +166,12 @@ droid exec --model "custom:qwen3-coder" "Review this codebase for bugs"
 │   • Rate limiting and retries                              │
 └────────────────────────┬────────────────────────────────────┘
                          │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│  NanoGPT    │  │ OpenRouter  │  │   Ollama    │
-│  Provider   │  │  Provider   │  │  (Local)    │
-└─────────────┘  └─────────────┘  └─────────────┘
+         ┌───────────────┴───────────────┐
+         ▼                               ▼
+┌─────────────────────┐  ┌─────────────────────┐
+│      NanoGPT        │  │     OpenRouter      │
+│      Provider       │  │      Provider       │
+└─────────────────────┘  └─────────────────────┘
 
          Results flow back up the stack
                          │

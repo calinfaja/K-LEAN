@@ -102,7 +102,7 @@ fi
 |---------|--------|--------|
 | Multi-model consensus | ✅ 3-5 models parallel | ❌ |
 | Knowledge DB persistence | ✅ txtai semantic search | ❌ |
-| LiteLLM cost routing | ✅ $0.50/1M tokens | ❌ |
+| LiteLLM cost routing | ✅ Multi-provider | ❌ |
 | Rethink (contrarian debug) | ✅ 4 techniques | ❌ |
 | Thinking model support | ✅ DeepSeek, GLM, Kimi | Limited |
 | Embedded/systems droids | ✅ arm-cortex, c-pro, rust | ❌ |

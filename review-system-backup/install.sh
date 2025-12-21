@@ -195,10 +195,6 @@ install_litellm_config() {
         log_success "Installed OpenRouter config template"
     fi
 
-    if [ -f "$SCRIPT_DIR/config/litellm/ollama.yaml" ]; then
-        cp "$SCRIPT_DIR/config/litellm/ollama.yaml" "$config_dir/ollama.yaml"
-        log_success "Installed Ollama config template"
-    fi
 
     # Install .env.example template
     if [ -f "$SCRIPT_DIR/config/litellm/.env.example" ]; then
