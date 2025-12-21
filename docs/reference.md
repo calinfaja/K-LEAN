@@ -5,6 +5,7 @@
 | Command | Description |
 |---------|-------------|
 | `k-lean install` | Install components to ~/.claude/ |
+| `k-lean setup` | Configure API provider (interactive) |
 | `k-lean uninstall` | Remove components |
 | `k-lean status` | Show component status |
 | `k-lean doctor` | Validate configuration |

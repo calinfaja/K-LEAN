@@ -25,7 +25,7 @@ pipx install k-lean
 k-lean install
 
 # Configure API keys (interactive wizard)
-~/.claude/scripts/setup-litellm.sh
+k-lean setup
 
 # Verify installation
 k-lean doctor

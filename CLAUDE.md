@@ -41,6 +41,8 @@ Per-project semantic search. **Auto-initializes on first SaveThis.**
 ## K-LEAN CLI
 
 ```bash
+k-lean install    # Install components
+k-lean setup      # Configure API provider
 k-lean status     # Component status
 k-lean doctor -f  # Diagnose + auto-fix
 k-lean start      # Start services
@@ -72,7 +74,7 @@ Chronological log at `.knowledge-db/timeline.txt`
 ## LiteLLM Setup
 
 ```bash
-~/.claude/scripts/setup-litellm.sh
+k-lean setup
 ```
 
 Providers: NanoGPT, OpenRouter
