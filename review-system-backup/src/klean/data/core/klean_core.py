@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-K-LEAN v3 Core Module
+K-LEAN Core Module
 Multi-model code review system with Claude Agent SDK integration
 """
 
@@ -83,8 +83,8 @@ class ModelResolver:
                         available=info.get("available", True),
                         last_tested=datetime.fromisoformat(info["last_tested"]) if info.get("last_tested") else None
                     )
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Warning: Could not load latency cache: {e}", file=sys.stderr)
 
     def _save_cache(self):
         """Save latency cache to disk"""
@@ -302,7 +302,8 @@ class ReviewEngine:
         # Resolve model
         if model == "auto":
             models = self.resolver.select_models(count=1, task=focus, prefer_fastest=True)
-            model = models[0] if models else "qwen3-coder"
+            fallback_model = CONFIG.get("models", {}).get("fallback", "qwen3-coder")
+            model = models[0] if models else fallback_model
 
         prompt = self._load_prompt(focus, context)
 
