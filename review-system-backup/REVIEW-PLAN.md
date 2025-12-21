@@ -2,6 +2,26 @@
 
 Manual review checklist for understanding and improving each system component.
 
+## Current Status
+
+| Area | Status | Key Commits |
+|------|--------|-------------|
+| Knowledge DB | ✅ Done | V2 Schema |
+| Skills System | ✅ Done | Implementation-specific descriptions |
+| CLAUDE.md | ✅ Done | Pure plugin approach |
+| Directory Structure | ✅ Done | Removed v3 references |
+| Package & Install | ✅ Done | `k-lean sync`, component install |
+| Hooks | ✅ Done | Error surfacing, PID verification |
+| Path Management | ✅ Done | 7fd7abf - 78 paths → kb-root.sh |
+| Core Scripts | ✅ Done | Review/KB scripts verified |
+| **Droids System** | 🔄 Pending | Prompt review needed |
+| **K-LEAN Core Engine** | 🔄 Pending | klean_core.py review |
+| **LiteLLM Integration** | 🔄 Pending | Config/health verification |
+| **Timeline/Statusline** | 🔄 Pending | Lower priority |
+| **Configuration** | 🔄 Pending | Documentation needed |
+
+**Progress: 8/13 areas complete (~62%)**
+
 ## Completed Reviews
 
 ### Knowledge DB System
@@ -42,6 +62,39 @@ Manual review checklist for understanding and improving each system component.
 - [x] Added config file warnings in session-start.sh
 - [x] Added timeline write error detection in post-bash-handler.sh
 - [x] Added web capture missing script warning
+
+### Path Management System ✅ (Commit 7fd7abf)
+**Eliminated 78 hardcoded paths across 28 files**
+
+| Category | Count | Migrated To |
+|----------|-------|-------------|
+| Python interpreter | 23 | `$KB_PYTHON` |
+| Scripts directory | 45 | `$KB_SCRIPTS_DIR` |
+| Config paths | 5 | `$KB_CONFIG_DIR` |
+| Other | 5 | Inline fallbacks |
+
+**Key Changes:**
+- [x] Enhanced `kb-root.sh` as single source of truth
+- [x] Added validation functions: `require_kb_python()`, `require_kb_scripts()`
+- [x] Added helper functions: `get_kb_script()`, `get_kb_py_script()`
+- [x] Updated all 5 hooks with kb-root.sh sourcing + inline fallbacks
+- [x] Updated all 7 review scripts (quick, consensus, deep, parallel, droid)
+- [x] Updated dispatcher (async-dispatch.sh - 12 occurrences)
+- [x] Updated Python scripts (kb_utils.py - environment variable support)
+- [x] Updated utilities (post-commit-docs.sh, bashrc-additions.sh)
+
+**Environment Variable Overrides:**
+```bash
+KLEAN_KB_PYTHON      # Custom Python path
+KLEAN_SCRIPTS_DIR    # Custom scripts directory
+KLEAN_SOCKET_DIR     # Custom socket directory (default: /tmp)
+KLEAN_CONFIG_DIR     # Custom config directory
+```
+
+**Architecture:**
+- Per-project socket isolation: `/tmp/kb-{md5_hash}.sock`
+- Fallback chain: ENV → kb-root.sh detection → hardcoded defaults
+- Documentation: `docs/ARCHITECTURE-ANALYSIS.md`, `docs/PATH-MANAGEMENT-PLAN.md`
 
 ---
 
