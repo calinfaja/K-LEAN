@@ -86,7 +86,7 @@ fi
 PIDS=""
 
 # Temp files for JSON responses
-TEMP_DIR="/tmp/consensus-$$"
+TEMP_DIR="${TMPDIR:-/tmp}/consensus-$$"
 mkdir -p "$TEMP_DIR"
 
 # System prompt for all models

@@ -269,7 +269,7 @@ echo -e "${BLUE}[4/5] Checking knowledge server...${NC}"
 
 # Calculate socket path
 HASH=$(echo -n "$PROJECT" | md5sum | cut -c1-8)
-SOCKET="/tmp/kb-${HASH}.sock"
+SOCKET="${KLEAN_SOCKET_DIR:-/tmp}/kb-${HASH}.sock"
 
 if [ ! -S "$SOCKET" ]; then
     echo -e "  ${YELLOW}○ Server not running for this project${NC}"

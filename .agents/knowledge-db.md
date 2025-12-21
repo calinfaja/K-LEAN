@@ -50,6 +50,7 @@ Each knowledge entry contains:
   "found_date": "ISO8601",
   "title": "Brief title",
   "summary": "Detailed description",
+  "type": "lesson|finding|solution|pattern",
   "atomic_insight": "Single clear insight",
   "key_concepts": ["concept1", "concept2"],
   "tags": ["tag1", "tag2"],
@@ -63,6 +64,7 @@ Each knowledge entry contains:
 
 | Field | Purpose |
 |-------|---------|
+| `type` | Entry category (lesson/finding/solution/pattern) |
 | `atomic_insight` | Single, self-contained insight |
 | `key_concepts` | Searchable concept tags |
 | `quality` | Quality level (high/medium/low) |

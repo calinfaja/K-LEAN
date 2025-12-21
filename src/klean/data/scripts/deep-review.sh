@@ -163,7 +163,7 @@ echo "(The reviewing model has full tool access and will investigate)"
 echo ""
 
 # Create isolated audit config directory with read-only permissions
-AUDIT_CONFIG_DIR="/tmp/claude-audit-$$"
+AUDIT_CONFIG_DIR="${TMPDIR:-/tmp}/claude-audit-$$"
 mkdir -p "$AUDIT_CONFIG_DIR"
 
 # Create settings.json with model config AND audit permissions

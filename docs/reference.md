@@ -72,7 +72,7 @@
 {
   "title": "Short title",
   "summary": "2-3 sentence summary",
-  "type": "gotcha|pattern|solution|lesson",
+  "type": "lesson|finding|solution|pattern",
   "key_concepts": ["keyword1", "keyword2"],
   "quality": "high|medium|low",
   "source": "manual|conversation|web|file",
