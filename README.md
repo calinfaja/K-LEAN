@@ -18,9 +18,17 @@ K-LEAN extends Claude Code with:
 ## Quick Install
 
 ```bash
-git clone https://github.com/calinfaja/k-lean.git
-cd k-lean
-./install.sh --full
+# Install K-LEAN
+pipx install k-lean
+
+# Install components to ~/.claude/
+k-lean install
+
+# Configure API keys (interactive wizard)
+~/.claude/scripts/setup-litellm.sh
+
+# Verify installation
+k-lean doctor
 ```
 
 ## Commands (9 total)
@@ -86,16 +94,16 @@ k-lean debug        # Monitoring dashboard
 
 | Document | Description |
 |----------|-------------|
-| [docs/COMMANDS.md](docs/COMMANDS.md) | Complete command reference |
-| [docs/INSTALLATION.md](docs/INSTALLATION.md) | Installation guide |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture |
-| [docs/DEVELOPER.md](docs/DEVELOPER.md) | Developer guide |
+| [docs/installation.md](docs/installation.md) | Installation guide |
+| [docs/usage.md](docs/usage.md) | Commands & workflows |
+| [docs/reference.md](docs/reference.md) | Complete reference |
+| [.agents/](.agents/) | Technical docs for AI agents |
 
 ## Requirements
 
-- Claude Code CLI 2.0+
 - Python 3.9+
-- LiteLLM (`pipx install litellm`)
+- Claude Code CLI 2.0+
+- pipx (for installing K-LEAN)
 - NanoGPT API key (or OpenRouter)
 
 ## MCP Servers (Optional)
