@@ -1,7 +1,7 @@
-# K-LEAN v3 Configuration
+# K-LEAN Configuration
 # Multi-model code review system
 
-version: "3.0"
+version: "1.0.0-beta"
 
 # LiteLLM endpoint
 litellm:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-K-LEAN Knowledge Capture Script v2
+K-LEAN Knowledge Capture Script
 
 Saves lessons, findings, and insights to the knowledge database.
 Supports both simple CLI input and structured JSON for Claude integration.

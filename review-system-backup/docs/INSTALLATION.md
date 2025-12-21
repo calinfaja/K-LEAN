@@ -128,7 +128,7 @@ k-lean doctor       # Check for issues
 healthcheck         # Check all models
 ```
 
-### Step 8: Test V3 Commands
+### Step 8: Test Commands
 
 ```bash
 # Quick single-model review

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Knowledge Query v2 - Fast per-project search via Unix socket
+# Knowledge Query - Fast per-project search via Unix socket
 #
 # Usage:
 #   knowledge-query.sh "<query>" [limit]
