@@ -25,7 +25,7 @@ k-lean doctor
 
 ```bash
 # Interactive setup wizard
-~/.claude/scripts/setup-litellm.sh
+k-lean setup
 ```
 
 **Providers:**
