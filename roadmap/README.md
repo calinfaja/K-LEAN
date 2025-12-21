@@ -1,17 +1,22 @@
 # K-LEAN Roadmap
 
-Future features planned for K-LEAN.
+Future features and enhancements.
 
-## Features
+## Planned Features
 
-### TOON Compression (`toon/`)
-Token-Oriented Object Notation for ~18% reduction in LLM token usage.
+### [Future Features](future-features.md)
+Ideas for v2.0:
+- K-LEAN as MCP Server (proactive reviews)
+- GitHub PR Integration
+- Cost Tracking
+- JSON output mode
+
+### [TOON Compression](toon/)
+Token-Oriented Object Notation for ~18% token reduction.
 - Status: Implemented, not integrated
 - Dependency: `python-toon` library
 
-### Semantic Memory (`semantic-memory/`)
-Advanced semantic memory system for cross-session context.
-- Status: Design phase
+## Completed
 
-## Contributing
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for how to help implement these features.
+- ~~Semantic Memory~~ → Implemented as Knowledge DB
+- ~~Open Source Prep~~ → Released under Apache 2.0
