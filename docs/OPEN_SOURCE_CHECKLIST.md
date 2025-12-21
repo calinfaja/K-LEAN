@@ -1,0 +1,190 @@
+# K-LEAN Open Source Release Checklist
+
+Comprehensive checklist for open source release readiness.
+
+**Analysis Date:** 2025-12-21
+**Status:** 🟡 **READY WITH FIXES**
+
+---
+
+## Summary
+
+| Category | Status | Critical Issues |
+|----------|--------|-----------------|
+| Repository Essentials | 🟡 | License classifier mismatch |
+| Python Package | 🟡 | License classifier mismatch |
+| Scripts | 🟡 | Hardcoded /tmp paths |
+| Documentation | 🟡 | Schema inconsistency, URL mismatch |
+| Config & Hooks | ✅ | None |
+| Test Suite | 🔴 | No unit tests |
+
+---
+
+## 🔴 CRITICAL - Must Fix Before Release
+
+### 1. License Classifier Mismatch
+**File:** `pyproject.toml` line 20
+
+```python
+# WRONG:
+"License :: OSI Approved :: MIT License",
+
+# CORRECT:
+"License :: OSI Approved :: Apache Software License",
+```
+
+**Impact:** PyPI classification will be wrong; legal confusion
+
+### 2. Missing CODE_OF_CONDUCT.md
+**Action:** Create `CODE_OF_CONDUCT.md` with Contributor Covenant
+
+### 3. Date Inconsistency in Changelog
+**Files:**
+- `README.md:131` says `v1.0.0-beta (2025-12-16)`
+- `CHANGELOG.md:7` says `[1.0.0-beta] - 2024-12-21`
+
+**Fix:** Align both to `2025-12-21`
+
+### 4. Knowledge DB Schema Mismatch
+**Files:**
+- `docs/reference.md` - Shows 7 fields
+- `.agents/knowledge-db.md` - Shows 10+ fields
+
+**Fix:** Reconcile to match actual implementation
+
+### 5. Repository URL Inconsistency
+**Files:**
+- `pyproject.toml` uses: `https://github.com/calinfaja/k-lean`
+- `.agents/development.md` uses: `https://github.com/calinfaja/K-LEAN-Companion.git`
+- `.git/config` uses: `https://github.com/calinfaja/K-LEAN-Companion.git`
+
+**Fix:** Align all to canonical URL
+
+---
+
+## 🟡 IMPORTANT - Should Fix Before Release
+
+### 6. Hardcoded /tmp Paths in Scripts
+**Files affected:** 18 scripts
+
+**Example fixes:**
+```bash
+# Instead of:
+SOCKET_DIR="/tmp"
+
+# Use:
+SOCKET_DIR="${TMPDIR:-/tmp}"
+```
+
+**Key files:**
+- `knowledge-server.py:31` - `SOCKET_DIR = "/tmp"`
+- `knowledge-events.py:32` - `LOG_PATH = Path("/tmp/...")`
+- `consensus-review.sh:89` - `/tmp/consensus-$$`
+- `kb-doctor.sh` - Multiple `/tmp/kb-*.sock` references
+
+### 7. Empty Test Suite
+**Issue:** `tests/` directory exists but is empty
+
+**Recommendation:**
+- Add basic unit tests for CLI commands
+- Add tests for core functionality
+- Target 60%+ coverage
+
+### 8. Minimal CI/CD Pipeline
+**File:** `.github/workflows/ci.yml`
+
+**Missing:**
+- pytest execution
+- Code coverage
+- Linting (ruff, black)
+- Multi-Python version testing (3.9, 3.10, 3.11, 3.12)
+
+### 9. Missing QA Reference in Docs
+**Action:** Add reference to `docs/agentic_manual_QA.md` in `docs/README.md`
+
+---
+
+## ✅ VERIFIED - Ready for Release
+
+### Repository Essentials
+- [x] LICENSE - Apache 2.0, properly formatted
+- [x] README.md - Complete with all sections
+- [x] CONTRIBUTING.md - Comprehensive guidelines
+- [x] .gitignore - Excludes all sensitive files
+- [x] No hardcoded secrets in codebase
+- [x] No real API keys exposed
+
+### Python Package
+- [x] pyproject.toml metadata complete
+- [x] Version consistent (1.0.0-beta in __init__.py and pyproject.toml)
+- [x] No hardcoded user paths in src/klean/
+- [x] CLI entry point correctly defined
+- [x] No TODO/FIXME/HACK comments
+- [x] Dependencies properly declared
+
+### Config & Hooks
+- [x] No real API keys in config files
+- [x] .env files in .gitignore
+- [x] Only .env.example tracked
+- [x] Hooks use environment variables
+- [x] All 9 slash commands present
+- [x] All 8 droids present
+
+### Documentation
+- [x] docs/ folder structure complete
+- [x] .agents/ technical docs comprehensive
+- [x] All internal links valid
+- [x] Installation instructions functional
+- [x] Command counts accurate (9 commands, 8 droids, 5 hooks)
+
+### Security
+- [x] No passwords or tokens
+- [x] No private endpoints
+- [x] API keys use environment variables
+- [x] .env files properly ignored
+- [x] No credentials in git history
+
+---
+
+## Quick Fix Commands
+
+```bash
+# 1. Fix license classifier
+sed -i 's/MIT License/Apache Software License/' pyproject.toml
+
+# 2. Create CODE_OF_CONDUCT.md
+curl -o CODE_OF_CONDUCT.md https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md
+
+# 3. Fix dates
+sed -i 's/2024-12-21/2025-12-21/' CHANGELOG.md
+sed -i 's/2025-12-16/2025-12-21/' README.md
+
+# 4. Verify all fixes
+k-lean doctor
+```
+
+---
+
+## Release Procedure
+
+1. [ ] Fix all 🔴 CRITICAL issues above
+2. [ ] Fix 🟡 IMPORTANT issues (recommended)
+3. [ ] Run `k-lean sync` to sync package data
+4. [ ] Run `k-lean test` to verify installation
+5. [ ] Build package: `python -m build`
+6. [ ] Test install: `pipx install dist/*.whl`
+7. [ ] Create GitHub release with tag `v1.0.0-beta`
+8. [ ] Publish to PyPI: `twine upload dist/*`
+
+---
+
+## Post-Release
+
+- [ ] Announce release
+- [ ] Monitor GitHub issues
+- [ ] Set up GitHub Discussions
+- [ ] Add badges to README (PyPI, downloads, etc.)
+
+---
+
+*Generated by K-LEAN Open Source Analysis*
