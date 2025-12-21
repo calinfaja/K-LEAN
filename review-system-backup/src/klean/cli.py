@@ -934,9 +934,17 @@ def version():
 
 
 @main.command()
-@click.option("--auto-fix", "-f", is_flag=True, help="Automatically start stopped services")
+@click.option("--auto-fix", "-f", is_flag=True, help="Automatically fix issues (start services, detect subscription)")
 def doctor(auto_fix: bool):
-    """Diagnose and optionally fix K-LEAN installation issues."""
+    """Validate K-LEAN configuration and services (fast).
+
+    Checks: config files, .env, API keys, subscription status, services.
+    Does NOT check individual model health (use 'k-lean models --health' for that).
+
+    Use --auto-fix (-f) to automatically:
+    - Start stopped services
+    - Detect and save subscription endpoint
+    """
     print_banner()
     console.print("\n[bold]Running diagnostics...[/bold]\n")
 
@@ -1099,27 +1107,8 @@ def doctor(auto_fix: bool):
     if litellm_status["running"]:
         console.print(f"  [green]✓[/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
 
-        # Check model health (longer timeout - health endpoint tests all models)
-        try:
-            import urllib.request
-            req = urllib.request.Request("http://localhost:4000/health")
-            response = urllib.request.urlopen(req, timeout=30)
-            health_data = json.loads(response.read().decode())
-            healthy = health_data.get("healthy_count", 0)
-            unhealthy = health_data.get("unhealthy_count", 0)
-            total = healthy + unhealthy
-
-            if unhealthy == 0:
-                console.print(f"  [green]✓[/green] Model Health: {healthy}/{total} healthy")
-            elif healthy == 0:
-                issues.append(("ERROR", f"All {unhealthy} models are unhealthy - check API key/subscription"))
-                console.print(f"  [red]✗[/red] Model Health: 0/{total} healthy (all failing!)")
-                console.print("    [dim]Run: k-lean doctor --auto-fix to check configuration[/dim]")
-            else:
-                issues.append(("WARNING", f"{unhealthy} of {total} models are unhealthy"))
-                console.print(f"  [yellow]○[/yellow] Model Health: {healthy}/{total} healthy ({unhealthy} failing)")
-        except Exception:
-            console.print("  [yellow]○[/yellow] Model Health: Could not check")
+        # Note: Model health moved to 'k-lean models --health' for faster doctor execution
+        console.print("  [dim]○[/dim] Model Health: Use [cyan]k-lean models --health[/cyan]")
     else:
         if auto_fix:
             console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
@@ -1796,9 +1785,14 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
 
 @main.command()
-@click.option("--test", is_flag=True, help="Test each model with API call (costs tokens)")
-def models(test: bool):
-    """List available models from LiteLLM proxy."""
+@click.option("--test", is_flag=True, help="Test each model with API call and show latency")
+@click.option("--health", is_flag=True, help="Show model health summary from LiteLLM")
+def models(test: bool, health: bool):
+    """List available models from LiteLLM proxy.
+
+    Use --health to check which models are healthy/unhealthy.
+    Use --test to test each model with an API call and measure latency.
+    """
     print_banner()
 
     if not check_litellm():
@@ -1810,6 +1804,55 @@ def models(test: bool):
 
     if not models_list:
         console.print("\n[yellow]No models found[/yellow]")
+        return
+
+    # Health check mode - query /health endpoint
+    if health:
+        console.print("\n[bold]Model Health Check[/bold]")
+        console.print("[dim]Querying LiteLLM /health endpoint...[/dim]\n")
+        try:
+            import urllib.request
+            req = urllib.request.Request("http://localhost:4000/health")
+            response = urllib.request.urlopen(req, timeout=60)
+            health_data = json.loads(response.read().decode())
+
+            healthy_count = health_data.get("healthy_count", 0)
+            unhealthy_count = health_data.get("unhealthy_count", 0)
+            total = healthy_count + unhealthy_count
+
+            # Summary
+            if unhealthy_count == 0:
+                console.print(f"[green]✓ All {healthy_count} models healthy[/green]\n")
+            elif healthy_count == 0:
+                console.print(f"[red]✗ All {unhealthy_count} models unhealthy![/red]")
+                console.print("[dim]Check: k-lean doctor -f[/dim]\n")
+            else:
+                console.print(f"[yellow]○ {healthy_count}/{total} models healthy ({unhealthy_count} failing)[/yellow]\n")
+
+            # Show unhealthy models
+            unhealthy_endpoints = health_data.get("unhealthy_endpoints", [])
+            if unhealthy_endpoints:
+                table = Table(title="Unhealthy Models")
+                table.add_column("Model", style="red")
+                table.add_column("Error", style="dim")
+
+                for endpoint in unhealthy_endpoints:
+                    model = endpoint.get("model", "unknown")
+                    error = endpoint.get("error", "unknown error")
+                    # Truncate error message
+                    if len(error) > 60:
+                        error = error[:57] + "..."
+                    table.add_row(model, error)
+
+                console.print(table)
+
+            # Show healthy models
+            healthy_endpoints = health_data.get("healthy_endpoints", [])
+            if healthy_endpoints and unhealthy_count > 0:
+                console.print(f"\n[green]Healthy models:[/green] {', '.join(e.get('model', '?').split('/')[-1] for e in healthy_endpoints)}")
+
+        except Exception as e:
+            console.print(f"[red]✗ Could not check health: {e}[/red]")
         return
 
     if test:
