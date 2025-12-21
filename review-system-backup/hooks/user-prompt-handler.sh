@@ -30,9 +30,17 @@ if [ -z "$USER_PROMPT" ] || [ "$USER_PROMPT" = "null" ]; then
     exit 0
 fi
 
-# Get project directory
+# Get project directory and source kb-root.sh if available
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-SCRIPTS_DIR="$HOME/.claude/scripts"
+_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+if [ -f "$_SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$_SCRIPTS_DIR/kb-root.sh"
+    SCRIPTS_DIR="$KB_SCRIPTS_DIR"
+    PYTHON_BIN="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+else
+    SCRIPTS_DIR="$_SCRIPTS_DIR"
+    PYTHON_BIN="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+fi
 REVIEWS_DIR="/tmp/claude-reviews"
 mkdir -p "$REVIEWS_DIR"
 
@@ -81,9 +89,8 @@ if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
 
     # Use knowledge-capture.py with proper interface
     CAPTURE_SCRIPT="$SCRIPTS_DIR/knowledge-capture.py"
-    PYTHON_BIN="$HOME/.venvs/knowledge-db/bin/python"
 
-    if [ -x "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
+    if [ -f "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
         # Strip surrounding quotes from user input
         CONTENT=$(echo "$ARGS" | sed 's/^["'"'"']//' | sed 's/["'"'"']$//')
         cd "$PROJECT_DIR"
@@ -137,9 +144,8 @@ if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
     echo "🤖 Evaluating content with LLM..." >&2
 
     SMART_CAPTURE="$SCRIPTS_DIR/smart-capture.py"
-    PYTHON_BIN="$HOME/.venvs/knowledge-db/bin/python"
 
-    if [ -x "$SMART_CAPTURE" ] && [ -x "$PYTHON_BIN" ]; then
+    if [ -f "$SMART_CAPTURE" ] && [ -x "$PYTHON_BIN" ]; then
         # Check if it's a URL
         if echo "$CONTENT" | grep -q "^https\?://"; then
             # Run smart capture with URL (in background for faster response)
@@ -181,13 +187,13 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
     echo "🔍 Searching knowledge DB with hybrid search: $QUERY" >&2
 
     # PHASE 2: Use hybrid search (semantic + keyword + tag)
-    if [ -x "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
+    if [ -f "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
         # Use hybrid search engine (semantic + keyword + tag fallback)
-        RESULT=$("$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
+        RESULT=$("$PYTHON_BIN" "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
 
         # Emit search event (Phase 4)
-        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            "$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
+        if [ -f "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            "$PYTHON_BIN" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
         fi
 
         # Escape for JSON

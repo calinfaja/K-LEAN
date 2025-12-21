@@ -81,36 +81,57 @@ Manual review checklist for understanding and improving each system component.
 
 ---
 
-### 2. Scripts (Core)
+### 2. Scripts (Core) ✅
 **Files:** `scripts/` - Priority scripts first
 
-**Review Queue:**
-- [ ] `quick-review.sh` - LiteLLM API single-model review
-- [ ] `consensus-review.sh` - Multi-model parallel review
-- [ ] `deep-review.sh` - Claude SDK agent review
-- [ ] `droid-execute.sh` - Factory Droid orchestration
-- [ ] `async-dispatch.sh` - Background task runner
+**Reviewed:**
+- [x] `quick-review.sh` - LiteLLM API single-model review
+- [x] `consensus-review.sh` - Multi-model parallel review
+- [x] `deep-review.sh` - Claude SDK agent review
+- [x] `droid-execute.sh` - Factory Droid orchestration
+- [x] `async-dispatch.sh` - Background task runner
 
-**Review Goals:**
-- Understand LiteLLM API integration patterns
-- Verify model routing and error handling
-- Check for hardcoded values that should be configurable
+**Findings:**
+| Script | Key Features Verified |
+|--------|----------------------|
+| `quick-review.sh` | Dynamic model discovery, health fallback, thinking model support |
+| `consensus-review.sh` | Parallel curl for 5 models, proper temp cleanup |
+| `deep-review.sh` | Claude headless read-only mode, comprehensive allow/deny lists |
+| `droid-execute.sh` | 8 specialist droids, model name mapping, Factory CLI integration |
+| `async-dispatch.sh` | Prompt blocking, background nohup, health pre-check |
+
+**Common Patterns:**
+- All use `session-helper.sh` for output directories
+- All handle thinking models (`reasoning_content` fallback)
+- Knowledge DB integration where relevant
+- Consistent logging via `log_debug`
 
 ---
 
-### 3. Scripts (Knowledge)
+### 3. Scripts (Knowledge) ✅
 **Files:** `scripts/knowledge-*.sh|py`
-- [ ] `knowledge-init.sh` - Per-project KB initialization
-- [ ] `knowledge-extract.sh` - Content extraction from URLs
-- [ ] `knowledge-hybrid-search.py` - Combined semantic + keyword search
-- [ ] `knowledge-context-injector.py` - Context injection for reviews
-- [ ] `kb-doctor.sh` - Diagnosis and auto-repair
-- [ ] `kb-root.sh` - Project root detection
 
-**Review Goals:**
-- Understand search strategies and ranking
-- Verify cross-project isolation
-- Check socket server lifecycle management
+**Reviewed:**
+- [x] `knowledge-init.sh` - Per-project KB initialization (auto-detect git root, gitignore setup)
+- [x] `knowledge-query.sh` - Unix socket fast search with auto-start
+- [x] `knowledge-server.py` - Per-project daemon with 1hr idle timeout
+- [x] `knowledge-search.py` - CLI with 4 output formats (compact, detailed, inject, json)
+- [x] `kb-doctor.sh` - 5-point diagnosis with --fix auto-repair
+- [x] `kb-root.sh` - Unified project detection
+
+**Findings:**
+| Script | Key Features Verified |
+|--------|----------------------|
+| `knowledge-init.sh` | Git root detection, .gitignore auto-add |
+| `knowledge-query.sh` | Socket auto-start, socat/nc/python fallback |
+| `knowledge-server.py` | Per-project hash isolation, threading, idle cleanup |
+| `knowledge-search.py` | `--format inject` for LLM prompts, min-score filter |
+| `kb-doctor.sh` | JSONL validation, index rebuild, stale socket cleanup |
+
+**Architecture:**
+- Each project gets unique socket: `/tmp/kb-{md5_hash}.sock`
+- 1 hour idle timeout conserves memory
+- Auto-repair handles corrupted entries, missing index
 
 ---
 

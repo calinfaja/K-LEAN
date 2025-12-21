@@ -5,6 +5,14 @@
 # Uses headless Claude with full MCP access (including Serena)
 #
 
+# Source kb-root.sh for unified paths
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "$SCRIPT_DIR/kb-root.sh" ]; then
+    source "$SCRIPT_DIR/kb-root.sh"
+else
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 OUTPUT_DIR="/tmp/claude-reviews"
 mkdir -p "$OUTPUT_DIR"
 
@@ -82,7 +90,7 @@ $CHANGED_FILES
 Diff Stats:
 $DIFF_STAT"
 
-    ~/.claude/scripts/fact-extract.sh "$COMMIT_INFO" "commit" "$COMMIT_MSG" "$WORK_DIR" &
+    "$KB_SCRIPTS_DIR/fact-extract.sh" "$COMMIT_INFO" "commit" "$COMMIT_MSG" "$WORK_DIR" &
 
     # Log to timeline (direct, not via fact-extract since that's async)
     TIMELINE_FILE="$WORK_DIR/.knowledge-db/timeline.txt"

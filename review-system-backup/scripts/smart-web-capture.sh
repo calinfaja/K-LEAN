@@ -20,6 +20,10 @@
 # Don't use set -e - we handle errors explicitly
 # set -e
 
+# Source kb-root.sh for paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
+
 CONTENT="$1"
 URL="$2"
 QUERY="$3"
@@ -50,8 +54,10 @@ find_project_root() {
 }
 
 PROJECT_ROOT=$(find_project_root)
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-KNOWLEDGE_DB="$HOME/.claude/scripts/knowledge_db.py"
+
+# Use paths from kb-root.sh
+PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+KNOWLEDGE_DB="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge_db.py"
 KNOWLEDGE_DIR="$PROJECT_ROOT/.knowledge-db"
 TIMELINE_FILE="$KNOWLEDGE_DIR/timeline.txt"
 
@@ -90,7 +96,7 @@ fi
 # STEP 3: Semantic Dedup - Query Similar Existing Entries
 #------------------------------------------------------------------------------
 EXISTING_ENTRIES=""
-KNOWLEDGE_QUERY="$HOME/.claude/scripts/knowledge-query.sh"
+KNOWLEDGE_QUERY="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge-query.sh"
 
 if [ -x "$KNOWLEDGE_QUERY" ]; then
     # Build search key from URL domain or content snippet
@@ -272,8 +278,9 @@ if [ "$SAVED" = "true" ]; then
     fi
 
     # Emit event if available
-    if [ -x "$HOME/.claude/scripts/knowledge-events.py" ]; then
-        "$PYTHON" "$HOME/.claude/scripts/knowledge-events.py" emit "knowledge:smart-captured" \
+    EVENTS_SCRIPT="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge-events.py"
+    if [ -x "$EVENTS_SCRIPT" ]; then
+        "$PYTHON" "$EVENTS_SCRIPT" emit "knowledge:smart-captured" \
             "{\"source\": \"$SOURCE_TYPE\", \"url\": \"$URL\", \"score\": $SCORE, \"title\": \"$TITLE\", \"reason\": \"$REASON\"}" 2>/dev/null &
     fi
 fi

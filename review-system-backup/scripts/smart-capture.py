@@ -179,11 +179,11 @@ def call_litellm(prompt: str) -> dict:
 def save_to_kb(entry: dict, project_path: Path) -> bool:
     """Save entry to knowledge database."""
     import subprocess
+    import os
 
-    script = Path.home() / ".claude/scripts/knowledge-capture.py"
-    if not script.exists():
-        # Try backup location
-        script = Path.home() / "claudeAgentic/review-system-backup/scripts/knowledge-capture.py"
+    # Use KB_SCRIPTS_DIR from environment or kb_utils
+    from kb_utils import KB_SCRIPTS_DIR
+    script = KB_SCRIPTS_DIR / "knowledge-capture.py"
 
     if not script.exists():
         return False

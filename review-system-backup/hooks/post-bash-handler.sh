@@ -20,9 +20,17 @@ if [ -z "$COMMAND" ] || [ "$COMMAND" = "null" ]; then
     exit 0
 fi
 
-# Get project directory
+# Get project directory and source kb-root.sh if available
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-SCRIPTS_DIR="$HOME/.claude/scripts"
+_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+if [ -f "$_SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$_SCRIPTS_DIR/kb-root.sh"
+    SCRIPTS_DIR="$KB_SCRIPTS_DIR"
+    PYTHON_BIN="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+else
+    SCRIPTS_DIR="$_SCRIPTS_DIR"
+    PYTHON_BIN="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+fi
 KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge-db"
 TIMELINE_FILE="$KNOWLEDGE_DIR/timeline.txt"
 
@@ -49,8 +57,8 @@ if echo "$COMMAND" | grep -qE "git commit|git merge|git rebase"; then
         fi
 
         # Emit event (Phase 4) - log errors instead of discarding
-        if [ -x "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            "$HOME/.venvs/knowledge-db/bin/python" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>> /tmp/klean-errors.log &
+        if [ -f "$SCRIPTS_DIR/knowledge-events.py" ]; then
+            "$PYTHON_BIN" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:commit" "{\"hash\": \"$COMMIT_HASH\", \"message\": \"$COMMIT_MSG\"}" 2>> /tmp/klean-errors.log &
         fi
 
         # Extract facts from commit (async) - log errors instead of discarding

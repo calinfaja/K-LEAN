@@ -8,6 +8,15 @@
 # To enable: Add to ~/.claude/settings.json under "hooks"
 #
 
+# Source kb-root.sh for paths
+_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+if [ -f "$_SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$_SCRIPTS_DIR/kb-root.sh"
+    SCRIPTS_DIR="$KB_SCRIPTS_DIR"
+else
+    SCRIPTS_DIR="$_SCRIPTS_DIR"
+fi
+
 # Get the user's prompt from stdin or environment
 USER_PROMPT="$CLAUDE_USER_PROMPT"
 
@@ -22,7 +31,7 @@ if echo "$USER_PROMPT" | grep -qi "asyncDeepReview\|async.*deep.*review\|backgro
 
     # Run the review in background
     echo "🚀 Starting background review: $FOCUS"
-    nohup ~/.claude/scripts/parallel-deep-review.sh "$FOCUS" "$(pwd)" > /tmp/claude-reviews/latest-review.log 2>&1 &
+    nohup "$SCRIPTS_DIR/parallel-deep-review.sh" "$FOCUS" "$(pwd)" > /tmp/claude-reviews/latest-review.log 2>&1 &
 
     echo "📁 Review running in background. Check /tmp/claude-reviews/ for results."
     echo "📋 Log: /tmp/claude-reviews/latest-review.log"

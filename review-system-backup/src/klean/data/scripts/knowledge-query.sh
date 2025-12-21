@@ -12,8 +12,11 @@
 QUERY="${1:-}"
 LIMIT="${2:-5}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
 SERVER_SCRIPT="$SCRIPT_DIR/knowledge-server.py"
+
+# Source kb-root.sh for KB_PYTHON and other paths
+source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
+PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
 
 if [ -z "$QUERY" ]; then
     echo "Usage: knowledge-query.sh <query> [limit]"

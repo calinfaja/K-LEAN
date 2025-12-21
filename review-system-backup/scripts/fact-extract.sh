@@ -12,6 +12,10 @@
 # Runs in background, non-blocking
 #
 
+# Source kb-root.sh for paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
+
 CONTENT="$1"
 SOURCE_TYPE="${2:-review}"
 FOCUS="${3:-general}"
@@ -46,8 +50,9 @@ if [ -z "$PROJECT_ROOT" ]; then
     exit 0
 fi
 
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-KNOWLEDGE_DB="$HOME/.claude/scripts/knowledge_db.py"
+# Use paths from kb-root.sh
+PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+KNOWLEDGE_DB="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge_db.py"
 
 # Check if knowledge system is available
 if [ ! -x "$PYTHON" ] || [ ! -f "$KNOWLEDGE_DB" ]; then

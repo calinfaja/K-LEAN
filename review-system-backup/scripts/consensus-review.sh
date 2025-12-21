@@ -10,8 +10,16 @@ FOCUS="${1:-General code review}"
 WORK_DIR="${2:-$(pwd)}"
 SCRIPTS_DIR="$(dirname "$0")"
 
+# Source kb-root.sh for unified paths
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 # Persistent output directory in project's .claude/kln/quickCompare/
-source ~/.claude/scripts/session-helper.sh
+source "$KB_SCRIPTS_DIR/session-helper.sh"
 OUTPUT_DIR=$(get_output_dir "quickCompare" "$WORK_DIR")
 TIME_STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 OUTPUT_FILE="$OUTPUT_DIR/${TIME_STAMP}_consensus_$(echo "$FOCUS" | tr ' ' '-' | tr -cd '[:alnum:]-_' | head -c 30).md"
@@ -42,10 +50,9 @@ cd "$WORK_DIR"
 
 # Search knowledge-db for relevant context
 KNOWLEDGE_CONTEXT=""
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
-if [ -x "$PYTHON" ] && [ -f "$HOME/.claude/scripts/knowledge-search.py" ]; then
+if [ -x "$KB_PYTHON" ] && [ -f "$KB_SCRIPTS_DIR/knowledge-search.py" ]; then
     if [ -d ".knowledge-db" ] || [ -d "../.knowledge-db" ]; then
-        KNOWLEDGE_CONTEXT=$("$PYTHON" "$HOME/.claude/scripts/knowledge-search.py" "$FOCUS" --format inject --limit 3 2>/dev/null || echo "")
+        KNOWLEDGE_CONTEXT=$("$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge-search.py" "$FOCUS" --format inject --limit 3 2>/dev/null || echo "")
         if [ -n "$KNOWLEDGE_CONTEXT" ] && [ "$KNOWLEDGE_CONTEXT" != "No relevant prior knowledge found." ]; then
             echo "📚 Found relevant prior knowledge"
         fi
@@ -161,4 +168,4 @@ echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════"
 
 # Auto-extract facts from all reviews (Tier 1)
-[ -n "$ALL_CONTENT" ] && ~/.claude/scripts/fact-extract.sh "$ALL_CONTENT" "review" "$FOCUS" "$WORK_DIR"
+[ -n "$ALL_CONTENT" ] && "$KB_SCRIPTS_DIR/fact-extract.sh" "$ALL_CONTENT" "review" "$FOCUS" "$WORK_DIR"

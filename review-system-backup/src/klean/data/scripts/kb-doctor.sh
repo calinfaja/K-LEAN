@@ -12,6 +12,10 @@
 
 set -e
 
+# Source kb-root.sh for paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -169,8 +173,7 @@ else
             # Backup original
             cp "$ENTRIES_FILE" "$ENTRIES_FILE.bak"
 
-            # Try to parse as concatenated JSON objects
-            PYTHON="${HOME}/.venvs/knowledge-db/bin/python"
+            # Try to parse as concatenated JSON objects (uses KB_PYTHON from kb-root.sh)
             if [ -x "$PYTHON" ]; then
                 $PYTHON -c "
 import json
@@ -230,8 +233,8 @@ if [ ! -d "$INDEX_DIR" ]; then
 
     if [ "$FIX_MODE" = true ] && [ -f "$ENTRIES_FILE" ]; then
         echo -e "  ${YELLOW}→ Rebuilding index...${NC}"
-        PYTHON="${HOME}/.venvs/knowledge-db/bin/python"
-        KB_SCRIPT="${HOME}/.claude/scripts/knowledge_db.py"
+        PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+        KB_SCRIPT="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge_db.py"
 
         if [ -x "$PYTHON" ] && [ -f "$KB_SCRIPT" ]; then
             cd "$PROJECT"
@@ -274,7 +277,7 @@ if [ ! -S "$SOCKET" ]; then
 
     if [ "$FIX_MODE" = true ] && [ -d "$INDEX_DIR" ]; then
         echo -e "  ${YELLOW}→ Starting server...${NC}"
-        PYTHON="${HOME}/.venvs/knowledge-db/bin/python"
+        PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
         SERVER="${HOME}/.claude/scripts/knowledge-server.py"
 
         if [ -x "$PYTHON" ] && [ -f "$SERVER" ]; then
@@ -302,7 +305,7 @@ else
         if [ "$FIX_MODE" = true ]; then
             echo -e "  ${YELLOW}→ Removing stale socket and restarting...${NC}"
             rm -f "$SOCKET"
-            PYTHON="${HOME}/.venvs/knowledge-db/bin/python"
+            PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
             SERVER="${HOME}/.claude/scripts/knowledge-server.py"
 
             cd "$PROJECT"
@@ -340,8 +343,8 @@ if [ -f "$ENTRIES_FILE" ] && [ -d "$INDEX_DIR" ]; then
 
         if [ "$FIX_MODE" = true ]; then
             echo -e "  ${YELLOW}→ Rebuilding index to sync...${NC}"
-            PYTHON="${HOME}/.venvs/knowledge-db/bin/python"
-            KB_SCRIPT="${HOME}/.claude/scripts/knowledge_db.py"
+            PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+            KB_SCRIPT="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge_db.py"
             cd "$PROJECT"
             if $PYTHON "$KB_SCRIPT" rebuild 2>&1; then
                 echo -e "  ${GREEN}✓ Index rebuilt${NC}"
