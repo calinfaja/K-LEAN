@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# K-LEAN UserPromptSubmit Hook Handler v2
+# K-LEAN UserPromptSubmit Hook Handler
 # Intercepts user prompts and dispatches to appropriate handlers
 #
 # Keywords handled:

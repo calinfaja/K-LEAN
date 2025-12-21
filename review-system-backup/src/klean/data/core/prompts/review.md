@@ -1,4 +1,4 @@
-# Code Review Prompt v2
+# Code Review Prompt
 
 You are an expert code reviewer analyzing embedded systems and application code.
 Analyze the code with focus on: {{FOCUS}}

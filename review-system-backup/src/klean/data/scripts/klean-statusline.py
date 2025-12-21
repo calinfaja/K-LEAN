@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-K-LEAN Status Line v2.1 for Claude Code
+K-LEAN Status Line for Claude Code
 ========================================
 Optimized statusline with actionable metrics:
 

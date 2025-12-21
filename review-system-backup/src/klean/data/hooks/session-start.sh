@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# K-LEAN Session Start Hook v2
+# K-LEAN Session Start Hook
 # Auto-starts LiteLLM proxy and per-project Knowledge Server
 #
 # Triggered by Claude Code's SessionStart event (matcher: startup)

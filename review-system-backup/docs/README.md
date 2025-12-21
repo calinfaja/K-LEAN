@@ -1,8 +1,14 @@
-# K-LEAN Companion
+# K-LEAN Documentation
 
 **K-LEAN** = Knowledge-Leveraged Engineering Analysis Network
 
 Multi-model code review and knowledge capture for Claude Code.
+
+---
+
+## Quick Links
+- [Quick Start](QUICK_START.md) - Get started in 5 minutes
+- [Installation](INSTALLATION.md) - Full installation guide
 
 ---
 
@@ -16,29 +22,44 @@ Multi-model code review and knowledge capture for Claude Code.
 
 ---
 
-## Quick Start
+## Guides
 
-```bash
-# Start LiteLLM proxy
-start-nano-proxy
-
-# Check models
-healthcheck
-
-# Quick review
-/kln:quickReview qwen security audit
-
-# 3-model comparison
-/kln:quickCompare check error handling
-
-# Deep audit with tools
-/kln:deepAudit pre-release review
-
-# Get help
-/kln:help
-```
+| Guide | Description |
+|-------|-------------|
+| [Knowledge Database](guides/knowledge-db.md) | Semantic search for your knowledge |
+| [Droids](guides/droids.md) | Factory droid integration |
+| [Hooks](guides/hooks.md) | Claude Code automation |
 
 ---
+
+## Reference
+
+| Document | Description |
+|----------|-------------|
+| [Commands](reference/commands.md) | All `/kln:*` commands |
+| [Architecture](reference/architecture.md) | System design |
+| [CLI](reference/cli.md) | `k-lean` command reference |
+
+---
+
+## Developer
+
+| Document | Description |
+|----------|-------------|
+| [Development](dev/development.md) | Contributing guide |
+| [Lessons Learned](dev/lessons-learned.md) | Design decisions |
+
+---
+
+## Commands Quick Reference
+
+| Command | What It Does | Time |
+|---------|--------------|------|
+| `/kln:quick <model> <focus>` | Fast single-model review | ~30s |
+| `/kln:multi [models] <focus>` | 3-model comparison | ~60s |
+| `/kln:deep <model> <focus>` | Thorough review with tools | ~3min |
+| `/kln:droid <model> <focus>` | Fast agentic review | ~30s |
+| `/kln:help` | Show all commands | - |
 
 ## Models
 
@@ -51,54 +72,14 @@ healthcheck
 | `minimax` | minimax-m2 | Research |
 | `hermes` | hermes-4-70b | Scripting |
 
----
-
-## Commands
-
-| Command | What It Does | Time |
-|---------|--------------|------|
-| `/kln:quickReview <model> <focus>` | Fast single-model review | ~30s |
-| `/kln:quickCompare [models] <focus>` | 3-model comparison | ~60s |
-| `/kln:deepInspect <model> <focus>` | Thorough review with tools | ~3min |
-| `/kln:deepAudit [models] <focus>` | Full 3-model audit with tools | ~5min |
-| `/kln:droid <model> <focus>` | Fast agentic review | ~30s |
-| `/kln:droidAudit [models] <focus>` | 3-droid parallel review | ~1min |
-| `/kln:droidExecute <model> <droid> <prompt>` | Specialized droid | ~30s |
-| `/kln:quickConsult <model> <question>` | Get second opinion | ~60s |
-| `/kln:createReport <title>` | Document session | - |
-
-## Specialist Droids
-
-| Droid | Expertise |
-|-------|-----------|
-| `orchestrator` | System architecture, task coordination |
-| `code-reviewer` | Code quality, OWASP, SOLID principles |
-| `security-auditor` | Vulnerabilities, auth, encryption |
-| `debugger` | Root cause analysis, error tracing |
-| `arm-cortex-expert` | ARM Cortex-M, DMA, ISRs, FreeRTOS |
-| `c-pro` | C99/C11, POSIX, memory management |
-| `rust-expert` | Ownership, lifetimes, embedded Rust |
-| `performance-engineer` | Profiling, optimization |
-
 ## Keywords
 
 | Keyword | What It Does |
 |---------|--------------|
 | `healthcheck` | Test all 6 models |
-| `GoodJob <url>` | Capture knowledge from URL |
+| `InitKB` | Initialize knowledge DB |
 | `SaveThis <lesson>` | Save lesson learned |
 | `FindKnowledge <query>` | Search knowledge DB |
-
----
-
-## Documentation
-
-| Document | Contents |
-|----------|----------|
-| **[USER_GUIDE.md](USER_GUIDE.md)** | Commands, keywords, workflows, examples |
-| **[INSTALLATION.md](INSTALLATION.md)** | Setup, prerequisites, configuration |
-| **[ARCHITECTURE.md](ARCHITECTURE.md)** | Hooks, scripts, knowledge system internals |
-| **[DROID-SYSTEM.md](DROID-SYSTEM.md)** | Factory Droid integration, specialists |
 
 ---
 
@@ -106,9 +87,9 @@ healthcheck
 
 | Type | Path |
 |------|------|
-| Scripts | `~/.claude/scripts/` |
-| Commands | `~/.claude/commands/kln/` |
-| Settings | `~/.claude/settings.json` |
+| Scripts | `~/.klean/scripts/` |
+| Commands | `~/.klean/commands/kln/` |
+| Settings | `~/.klean/settings.json` |
 | LiteLLM | `~/.config/litellm/config.yaml` |
 | Droids | `~/.factory/droids/` |
 | Output | `.claude/kln/` (per project) |

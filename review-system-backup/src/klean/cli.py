@@ -1343,8 +1343,8 @@ def test():
         else:
             test_fail(f"{script} {'not found' if not script_path.exists() else 'not executable'}")
 
-    # Test 3: KLN Commands (V3)
-    console.print("\n[bold]3. V3 Commands[/bold]")
+    # Test 3: KLN Commands
+    console.print("\n[bold]3. KLN Commands[/bold]")
     kln_commands = ["quick.md", "multi.md", "deep.md", "droid.md", "rethink.md",
                     "remember.md", "status.md", "help.md", "doc.md"]
     kln_dir = CLAUDE_DIR / "commands" / "kln"
