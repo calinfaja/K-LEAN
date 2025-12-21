@@ -4,7 +4,7 @@ Knowledge Base Event Notifications - Phase 4
 
 Simple file-based event log for knowledge system transparency.
 
-Events are appended to /tmp/knowledge-events.log
+Events are appended to $KLEAN_SOCKET_DIR/knowledge-events.log (default: /tmp)
 
 Event types:
 - knowledge:captured (new fact added)
@@ -23,13 +23,14 @@ Or via CLI:
     python knowledge-events.py tail 20  # Last 20 events
 """
 
+import os
 import sys
 import json
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-LOG_PATH = Path("/tmp/knowledge-events.log")
+LOG_PATH = Path(os.environ.get("KLEAN_SOCKET_DIR", "/tmp")) / "knowledge-events.log"
 
 
 class KnowledgeEventLog:

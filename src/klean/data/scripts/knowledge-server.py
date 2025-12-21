@@ -28,7 +28,7 @@ from pathlib import Path
 
 # Configuration
 IDLE_TIMEOUT = 3600  # 1 hour in seconds
-SOCKET_DIR = "/tmp"
+SOCKET_DIR = os.environ.get("KLEAN_SOCKET_DIR", "/tmp")
 
 
 def get_project_hash(project_path: Path) -> str:

@@ -13,7 +13,7 @@ else
     KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
 fi
 
-OUTPUT_DIR="/tmp/claude-reviews"
+OUTPUT_DIR="${TMPDIR:-/tmp}/claude-reviews"
 mkdir -p "$OUTPUT_DIR"
 
 # Read JSON input from stdin

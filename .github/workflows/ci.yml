@@ -18,3 +18,7 @@ jobs:
         run: pip install -e .
       - name: Version check
         run: k-lean --version
+      - name: Doctor check
+        run: k-lean doctor
+      - name: Run tests
+        run: k-lean test
