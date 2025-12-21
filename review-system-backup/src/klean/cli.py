@@ -1584,8 +1584,8 @@ def measure_service_latency(service: str) -> Optional[int]:
             req = urllib.request.Request("http://localhost:4000/models")
             urllib.request.urlopen(req, timeout=3)
         elif service == "knowledge":
-            socket_path = Path("/tmp/knowledge-server.sock")
-            if socket_path.exists():
+            socket_path = get_project_socket_path()
+            if socket_path and socket_path.exists():
                 return 1  # Socket exists = fast
             return None
         return int((time.time() - start) * 1000)
