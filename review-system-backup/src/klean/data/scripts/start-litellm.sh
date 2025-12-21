@@ -59,6 +59,27 @@ if [ -z "$NANOGPT_API_KEY" ] || [ "$NANOGPT_API_KEY" = "your-nanogpt-api-key-her
     exit 1
 fi
 
+# Validate API base is configured
+if [ -z "$NANOGPT_API_BASE" ]; then
+    echo -e "${YELLOW}⚠️  NANOGPT_API_BASE not set - auto-detecting...${NC}"
+
+    # Check subscription status
+    SUBSCRIPTION_CHECK=$(curl -s --max-time 5 "https://nano-gpt.com/api/subscription/v1/usage" \
+        -H "Authorization: Bearer $NANOGPT_API_KEY" 2>/dev/null)
+
+    if echo "$SUBSCRIPTION_CHECK" | grep -q '"active":true'; then
+        export NANOGPT_API_BASE="https://nano-gpt.com/api/subscription/v1"
+        echo -e "${GREEN}   ✓ Subscription account detected${NC}"
+    else
+        export NANOGPT_API_BASE="https://nano-gpt.com/api/v1"
+        echo -e "${YELLOW}   ℹ Pay-per-use account detected${NC}"
+    fi
+
+    # Save to .env for future runs
+    echo "NANOGPT_API_BASE=$NANOGPT_API_BASE" >> "$ENV_FILE"
+    echo -e "${GREEN}   ✓ Saved to $ENV_FILE${NC}"
+fi
+
 # Check if port is already in use
 if lsof -i :$PORT > /dev/null 2>&1; then
     echo -e "${YELLOW}⚠️  Port $PORT is already in use${NC}"
