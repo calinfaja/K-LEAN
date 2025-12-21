@@ -43,38 +43,26 @@ DEFAULT_DROID="orchestrator"
 KNOWLEDGE_QUERY_SCRIPT="$SCRIPT_DIR/knowledge-query.sh"
 VALID_DROIDS="orchestrator code-reviewer security-auditor debugger arm-cortex-expert c-pro rust-expert performance-engineer"
 
-# Droid role definitions
+# Droid role definitions - read from .md files in ~/.factory/droids/
 get_droid_system_prompt() {
     local droid="$1"
-    case "$droid" in
-        orchestrator)
-            echo "You are a senior software architect specializing in system design, component orchestration, and high-level decision making. Focus on overall architecture, component interactions, scalability, and breaking down complex problems into manageable components."
-            ;;
-        code-reviewer)
-            echo "You are an expert code reviewer with deep experience across multiple languages. Focus on code quality, readability, best practices, design patterns, error handling, testing coverage, and performance implications."
-            ;;
-        security-auditor)
-            echo "You are a security expert specializing in vulnerability assessment and secure coding practices. Focus on OWASP Top 10, CWE/SANS Top 25, input validation, authentication/authorization, cryptographic issues, memory safety, and information disclosure risks."
-            ;;
-        debugger)
-            echo "You are a debugging expert specializing in root cause analysis and issue resolution. Focus on identifying root causes, understanding error patterns, tracing execution flow, memory issues, race conditions, and providing actionable fixes with prevention strategies."
-            ;;
-        arm-cortex-expert)
-            echo "You are an embedded systems expert specializing in ARM Cortex-M microcontrollers. Focus on ARM Cortex-M architecture (M0-M85), CMSIS, RTOS (FreeRTOS, Zephyr), peripheral drivers, interrupt handling (NVIC), power management, memory layout, and debugging with SWD/JTAG."
-            ;;
-        c-pro)
-            echo "You are a C language expert specializing in embedded systems programming. Focus on C99/C11/C17 for embedded, memory management, volatile/hardware registers, bit manipulation, struct packing, MISRA C compliance, optimization without sacrificing safety, and avoiding undefined behavior."
-            ;;
-        rust-expert)
-            echo "You are a Rust language expert specializing in safety and correctness. Focus on ownership/borrowing/lifetimes, memory safety, fearless concurrency, embedded Rust (embedded-hal, no_std), unsafe code auditing, zero-cost abstractions, error handling, and type system leverage."
-            ;;
-        performance-engineer)
-            echo "You are a performance engineering expert specializing in optimization and profiling. Focus on algorithm complexity, memory access patterns, cache optimization, CPU/memory profiling, embedded constraints (RAM/flash/CPU), real-time guarantees, power consumption, and benchmarking."
-            ;;
-        *)
-            echo "You are a helpful AI assistant."
-            ;;
-    esac
+    local droid_file="$HOME/.factory/droids/${droid}.md"
+
+    if [ -f "$droid_file" ]; then
+        # Extract content after YAML frontmatter (skip lines until second ---)
+        # Frontmatter is: line 1 = ---, lines 2-N = YAML, line N+1 = ---
+        # Content starts at line N+2
+        local end_line=$(grep -n "^---$" "$droid_file" | sed -n '2p' | cut -d: -f1)
+        if [ -n "$end_line" ]; then
+            tail -n +"$((end_line + 1))" "$droid_file"
+        else
+            # No frontmatter, use whole file
+            cat "$droid_file"
+        fi
+    else
+        # Fallback for missing files
+        echo "You are a helpful AI assistant specialized in: $droid"
+    fi
 }
 
 # Usage message
