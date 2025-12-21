@@ -93,21 +93,21 @@ Located in `src/klean/data/core/prompts/`:
 
 | Prompt | Lines | Purpose |
 |--------|-------|---------|
-| `review.md` | 87 | 7-area review checklist |
-| `rethink.md` | 93 | Contrarian debugging |
-| `format-json.md` | 29 | Structured JSON output |
-| `format-text.md` | 28 | Human-readable output |
-| `droid-base.md` | 55 | Factory droid template |
+| `review.md` | 86 | 7-area review checklist |
+| `rethink.md` | 92 | Contrarian debugging |
+| `format-json.md` | 28 | Structured JSON output |
+| `format-text.md` | 27 | Human-readable output |
+| `droid-base.md` | 54 | Factory droid template |
 
 ### Review Areas (review.md)
 
-1. Code Quality
-2. Security
-3. Performance
-4. Error Handling
-5. Testing
-6. Documentation
-7. Architecture
+1. CORRECTNESS
+2. MEMORY SAFETY
+3. ERROR HANDLING
+4. CONCURRENCY
+5. ARCHITECTURE
+6. SECURITY
+7. STANDARDS
 
 ### Output Format
 

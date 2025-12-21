@@ -29,7 +29,7 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
 ┌─────────────────────────────────────────────────────┐
 │                 .knowledge-db/                       │
 │  ├── entries.jsonl     # All captured knowledge     │
-│  └── txtai_index/      # Semantic embeddings        │
+│  └── index/            # Semantic embeddings        │
 └─────────────────────────────────────────────────────┘
                       ▲
                       │ Unix socket query
@@ -47,24 +47,27 @@ Each knowledge entry contains:
 ```json
 {
   "id": "uuid",
-  "timestamp": "ISO8601",
+  "found_date": "ISO8601",
+  "title": "Brief title",
+  "summary": "Detailed description",
   "atomic_insight": "Single clear insight",
   "key_concepts": ["concept1", "concept2"],
-  "quality": 0.85,
-  "source": "user|web|commit|review",
-  "context": {
-    "file": "path/to/file.py",
-    "project": "project-name"
-  }
+  "tags": ["tag1", "tag2"],
+  "quality": "high|medium|low",
+  "source": "manual|conversation|web|file",
+  "source_path": "path/to/source",
+  "relevance_score": 0.85,
+  "confidence_score": 0.9
 }
 ```
 
 | Field | Purpose |
 |-------|---------|
 | `atomic_insight` | Single, self-contained insight |
-| `key_concepts` | Searchable tags |
-| `quality` | Confidence score (0-1) |
-| `source` | Where it came from |
+| `key_concepts` | Searchable concept tags |
+| `quality` | Quality level (high/medium/low) |
+| `source` | Origin type (manual/conversation/web/file) |
+| `relevance_score` | Semantic relevance (0-1) |
 
 ## Key Scripts
 
@@ -100,10 +103,11 @@ In Claude Code prompts:
 
 | Keyword | Action |
 |---------|--------|
-| `InitKB` | Initialize KB for current project |
 | `SaveThis: <text>` | Capture insight to KB |
-| `SaveInfo: <text>` | Alias for SaveThis |
+| `SaveInfo: <text>` | Smart save with LLM evaluation |
 | `FindKnowledge: <query>` | Search KB |
+
+**Note:** Use `kb-init.sh` or `k-lean install` to initialize KB for a project.
 
 ## Socket Architecture
 

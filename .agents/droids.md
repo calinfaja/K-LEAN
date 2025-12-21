@@ -9,13 +9,13 @@ Factory Droids are **specialist AI personas** for domain-specific code reviews.
 | Droid | Specialization | Lines |
 |-------|---------------|-------|
 | `orchestrator` | Master coordinator | 765 |
-| `code-reviewer` | OWASP, SOLID, quality | 259 |
-| `security-auditor` | Vulnerabilities, auth, crypto | 90 |
-| `debugger` | Root cause analysis | 100 |
+| `code-reviewer` | OWASP, SOLID, quality | 258 |
+| `security-auditor` | Vulnerabilities, auth, crypto | 89 |
+| `debugger` | Root cause analysis | 99 |
 | `arm-cortex-expert` | Embedded ARM systems | 320 |
-| `c-pro` | C99/C11/POSIX | 276 |
-| `rust-expert` | Ownership, lifetimes, safety | 171 |
-| `performance-engineer` | Profiling, optimization | 176 |
+| `c-pro` | C99/C11/POSIX | 275 |
+| `rust-expert` | Ownership, lifetimes, safety | 170 |
+| `performance-engineer` | Profiling, optimization | 175 |
 
 ## Usage
 

@@ -26,7 +26,7 @@ k-lean status          # Check components
 src/klean/
 ├── cli.py              # Main CLI (12 commands)
 ├── data/
-│   ├── scripts/        # 36 shell + 11 Python scripts
+│   ├── scripts/        # 36 shell + 9 Python scripts
 │   ├── commands/kln/   # 9 slash commands
 │   ├── hooks/          # 5 Claude Code hooks
 │   ├── droids/         # 8 specialist AI personas

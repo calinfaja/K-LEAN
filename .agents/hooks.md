@@ -9,7 +9,7 @@ K-LEAN integrates with Claude Code via **5 hooks** that trigger on specific even
 | Hook | Trigger | Purpose |
 |------|---------|---------|
 | `session-start.sh` | SessionStart | Auto-start LiteLLM + per-project KB |
-| `user-prompt-handler.sh` | UserPromptSubmit | Keyword detection (7 keywords) |
+| `user-prompt-handler.sh` | UserPromptSubmit | Keyword detection (6 keywords) |
 | `post-bash-handler.sh` | PostToolUse (Bash) | Git events → timeline + fact extraction |
 | `post-web-handler.sh` | PostToolUse (Web*) | Auto-capture web content to KB |
 | `async-review.sh` | UserPromptSubmit | Background async reviews |
@@ -33,13 +33,12 @@ K-LEAN integrates with Claude Code via **5 hooks** that trigger on specific even
 
 | Keyword | Action |
 |---------|--------|
-| `InitKB` | Initialize Knowledge DB for project |
 | `SaveThis: <text>` | Capture insight to KB |
-| `SaveInfo: <text>` | Alias for SaveThis |
+| `SaveInfo: <text>` | Smart save with LLM evaluation |
 | `FindKnowledge: <query>` | Search KB |
-| `healthcheck` | Run system health check |
-| `asyncQuick` | Background quick review |
-| `asyncDeep` | Background deep review |
+| `asyncReview` | Background quick review |
+| `asyncDeepReview` | Background deep review |
+| `asyncConsensus` | Background consensus review |
 
 ### post-bash-handler.sh
 
