@@ -141,7 +141,6 @@ Quick-access commands for knowledge management:
 | Command | Description | Example |
 |---------|-------------|---------|
 | `healthcheck` | Test all 6 LiteLLM models | `healthcheck` |
-| `GoodJob <url>` | Capture web content to knowledge DB | `GoodJob https://example.com/article` |
 | `SaveThis <lesson>` | Save a lesson learned | `SaveThis "Always validate inputs before DB queries"` |
 | `FindKnowledge <query>` | Search knowledge database | `FindKnowledge "postgres optimization"` |
 

@@ -35,7 +35,6 @@ K-LEAN integrates with Claude Code via **5 hooks** that trigger on specific even
 |---------|--------|
 | `SaveThis: <text>` | Capture insight to KB |
 | `SaveInfo: <text>` | Smart save with LLM evaluation |
-| `GoodJob <url>` | Capture web content to KB |
 | `FindKnowledge: <query>` | Search KB |
 | `InitKB` | Initialize project KB |
 | `asyncReview` | Background quick review |

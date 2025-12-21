@@ -11,7 +11,6 @@
 # 3. Returns JSON suitable for knowledge-db
 #
 # Can be called from:
-# - GoodJob hook (manual trigger)
 # - Auto-capture hook (automatic)
 # - Task tool subagent (from Claude session)
 #
