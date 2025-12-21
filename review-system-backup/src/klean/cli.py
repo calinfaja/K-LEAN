@@ -1099,11 +1099,11 @@ def doctor(auto_fix: bool):
     if litellm_status["running"]:
         console.print(f"  [green]✓[/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
 
-        # Check model health
+        # Check model health (longer timeout - health endpoint tests all models)
         try:
             import urllib.request
             req = urllib.request.Request("http://localhost:4000/health")
-            response = urllib.request.urlopen(req, timeout=5)
+            response = urllib.request.urlopen(req, timeout=30)
             health_data = json.loads(response.read().decode())
             healthy = health_data.get("healthy_count", 0)
             unhealthy = health_data.get("unhealthy_count", 0)
