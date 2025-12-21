@@ -707,6 +707,28 @@ for path in [scripts, commands/kln, hooks, droids]:
 3. **Factory Droids + CLI split**: Shows droid files AND CLI as related but independent
 4. **Provider detection**: Parses config.yaml to show NanoGPT/OpenRouter
 
+### CLI Commands Review (start, stop, test, test-model, debug)
+
+**All 5 commands reviewed for open source readiness:**
+
+| Command | Status | Assessment |
+|---------|--------|------------|
+| `start` | ✅ Clean | Per-project KB support, auto-start note, logging |
+| `stop` | ✅ Clean | --all-projects flag, helpful hints when not in project |
+| `test-model` | ✅ Clean | Validates model, shows latency, logs events |
+| `test` | ✅ Clean | 27 tests, returns exit code 1 on failure (CI-ready) |
+| `debug` | ✅ Fixed | Real-time dashboard with --compact for hooks |
+
+**Bug Fixed:**
+- `measure_service_latency()` used hardcoded `/tmp/knowledge-server.sock`
+- Fixed to use `get_project_socket_path()` for per-project sockets
+
+**Command Highlights:**
+- **start**: Default is LiteLLM only (simplest for new users), KB auto-starts on query
+- **stop**: Handles --all-projects for batch cleanup
+- **test**: Comprehensive suite covering scripts, commands, hooks, services, droids
+- **debug**: Live dashboard with --compact mode for hooks/scripts integration
+
 ---
 
 *Last updated: 2025-12-21*
