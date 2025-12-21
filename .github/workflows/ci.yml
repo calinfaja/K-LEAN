@@ -19,7 +19,7 @@ jobs:
       - name: Version check
         run: k-lean --version
       - name: Install components
-        run: k-lean install
+        run: k-lean install --yes
       - name: Doctor check
         run: k-lean doctor
       - name: Run tests
