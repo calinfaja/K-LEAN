@@ -86,7 +86,82 @@ fi
 
 ---
 
+## Competitive Analysis (Dec 2025)
+
+### K-LEAN vs Other Frameworks
+
+| Framework | Focus | Stars | Commands |
+|-----------|-------|-------|----------|
+| **SuperClaude** | Full dev lifecycle | 19.3k | 30 |
+| **Superpowers** | Planning workflow | ~500 | 3 |
+| **K-LEAN** | Multi-model reviews | New | 10 |
+
+### K-LEAN Unique Strengths (Keep These)
+
+| Feature | K-LEAN | Others |
+|---------|--------|--------|
+| Multi-model consensus | ✅ 3-5 models parallel | ❌ |
+| Knowledge DB persistence | ✅ txtai semantic search | ❌ |
+| LiteLLM cost routing | ✅ $0.50/1M tokens | ❌ |
+| Rethink (contrarian debug) | ✅ 4 techniques | ❌ |
+| Thinking model support | ✅ DeepSeek, GLM, Kimi | Limited |
+| Embedded/systems droids | ✅ arm-cortex, c-pro, rust | ❌ |
+
+### Strategic Position
+
+**K-LEAN is an ADDON, not a competitor.**
+
+Works alongside SuperClaude/Superpowers:
+- SuperClaude → Workflow orchestration (30 commands)
+- K-LEAN → Review engine + knowledge (multi-model consensus)
+
+```
+SuperClaude /sc:implement → K-LEAN reviews → SuperClaude /sc:test
+```
+
+---
+
 ## Patterns for Later (v2.0)
+
+### K-LEAN as MCP Server (Future Enhancement)
+
+**What:** Expose K-LEAN as MCP tools instead of slash commands.
+
+**Why:**
+- Claude can call K-LEAN **proactively** (not just when user asks)
+- Seamless chaining with other MCP tools (Serena → K-LEAN → Context7)
+- Structured JSON responses instead of parsing stdout
+- Works with any framework (SuperClaude, Superpowers, vanilla)
+
+**Current (Reactive):**
+```
+User types: /kln:quick security
+Hook intercepts → Spawns bash → Returns stdout
+```
+
+**With MCP (Proactive):**
+```
+Claude decides: "I wrote auth code, should review"
+Calls: mcp__klean__consensus_review(focus="security")
+Returns: Structured JSON
+```
+
+**Proposed MCP Tools:**
+```python
+mcp__klean__quick_review(focus, model)
+mcp__klean__consensus_review(focus, models)
+mcp__klean__rethink(context)
+mcp__klean__search_knowledge(query)
+mcp__klean__save_knowledge(insight)
+mcp__klean__get_models()
+mcp__klean__health_check()
+```
+
+**Effort:** ~5 hours total
+**Priority:** Low (current system works fine)
+**Trigger:** When team adoption requires tighter integration
+
+---
 
 ### GitHub PR Integration
 
