@@ -1,142 +1,183 @@
-# K-LEAN
+# K-LEAN Companion
 
-> Multi-Model Code Review & Knowledge Capture System for Claude Code
+> **Second opinions for Claude Code** — Multi-model reviews, persistent knowledge, specialist agents
 
-[![Version](https://img.shields.io/badge/version-1.0.0--beta-blue.svg)](VERSION)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![CI](https://github.com/calinfaja/K-LEAN-Companion/actions/workflows/ci.yml/badge.svg)](https://github.com/calinfaja/K-LEAN-Companion/actions)
+[![Version](https://img.shields.io/badge/version-1.0.0--beta-blue.svg)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-yellow.svg)](https://python.org)
 
-## What is K-LEAN?
+---
 
-K-LEAN extends Claude Code with:
-- **12 AI Models** via LiteLLM (NanoGPT, OpenRouter)
-- **9 Consolidated Commands** - Simplified from 21 old commands
-- **Knowledge DB** - Semantic search for captured insights
-- **Rethink Mode** - Fresh debugging perspectives from multiple models
-- **8 Droids** - Specialized AI agents (security, performance, etc.)
+## The Problem
+
+Claude Code is exceptional — but sometimes you need a **second opinion**.
+
+When debugging goes circular, when architecture decisions feel uncertain, or when you want validation before merging — getting perspectives from multiple top-tier models breaks the loop and catches what a single model might miss.
+
+That's why I built K-LEAN: to access the best open-source models (DeepSeek, Qwen, GLM, Kimi) through a single NanoGPT subscription, while maintaining persistent knowledge across sessions.
+
+---
+
+## What K-LEAN Adds
+
+| | Feature | What It Does |
+|---|---------|--------------|
+| **Multi-Model Reviews** | Get consensus from 3-5 models on any code question |
+| **Persistent Knowledge** | Semantic search across sessions using txtai embeddings |
+| **Factory Droids** | 8 specialist agents (security, performance, architecture...) |
+| **Live Status Bar** | Real-time model health, KB status, active reviews |
+
+---
 
 ## Quick Install
 
 ```bash
-# Install K-LEAN
-pipx install k-lean
-
-# Install components to ~/.claude/
-k-lean install
-
-# Configure API keys (interactive wizard)
-k-lean setup
-
-# Verify installation
-k-lean doctor
+pipx install k-lean           # Install CLI
+k-lean install                # Deploy to ~/.claude/
+k-lean setup                  # Configure API (interactive)
+k-lean doctor                 # Verify everything works
 ```
+
+---
+
+## System Components
+
+| Component | Purpose | Usage |
+|-----------|---------|-------|
+| **Hooks** | Auto-trigger on prompts & git commits | `SaveThis`, `FindKnowledge`, `GoodJob`, `asyncReview`... |
+| **Slash Commands** | 9 consolidated `/kln:*` commands | `/kln:quick`, `/kln:multi`, `/kln:deep`, `/kln:droid` |
+| **Review System** | Headless Claude + LiteLLM proxy | Multi-model consensus, async background reviews |
+| **Factory Droids** | 8 specialist AI agents | `--role security`, `--role architect`, `--role performance` |
+| **Knowledge DB** | Per-project semantic memory | Auto-captures lessons, searchable across sessions |
+| **Status Bar** | Claude Code statusline integration | Model health, KB entries, active background tasks |
+
+---
 
 ## Commands (9 total)
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/kln:quick` | Fast single-model review | `/kln:quick security` |
-| `/kln:multi` | Multi-model consensus (3-5 models) | `/kln:multi --models 5 architecture` |
-| `/kln:deep` | Thorough review with SDK tools | `/kln:deep --async security` |
-| `/kln:droid` | Role-based AI workers | `/kln:droid --role security audit` |
-| `/kln:rethink` | Fresh debugging perspectives | `/kln:rethink memory leak` |
-| `/kln:doc` | Session documentation | `/kln:doc "Session Title"` |
+| `/kln:quick` | Fast single-model review (~30s) | `/kln:quick security` |
+| `/kln:multi` | Multi-model consensus (~60s) | `/kln:multi --models 5 architecture` |
+| `/kln:deep` | Thorough review with full tool access (~3min) | `/kln:deep --async security audit` |
+| `/kln:droid` | Specialist agent review | `/kln:droid --role security` |
+| `/kln:rethink` | Fresh debugging perspectives | `/kln:rethink "bug persists after fix"` |
+| `/kln:doc` | Session documentation | `/kln:doc "Sprint Review"` |
 | `/kln:remember` | End-of-session knowledge capture | `/kln:remember` |
-| `/kln:status` | Models, health, help | `/kln:status` |
-| `/kln:help` | Complete command reference | `/kln:help` |
+| `/kln:status` | System health check | `/kln:status` |
+| `/kln:help` | Command reference | `/kln:help` |
 
-### Key Features
+**Flags:** `--async` (background), `--models N` (count), `--output json|text`
 
-- **--async flag**: Run any command in background (replaces separate async commands)
-- **--models N**: Specify number of models for multi-model commands
-- **Auto-discovery**: Models discovered from LiteLLM, not hardcoded
+---
 
-## Quick Start
+## How It Works
 
-```bash
-# Quick review with auto-selected model
-/kln:quick security audit
-
-# Multi-model consensus (5 models)
-/kln:multi --models 5 architecture review
-
-# Fresh debugging ideas when stuck
-/kln:rethink "bug persists after fix"
-
-# Check system status
-/kln:status
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Claude Code                              │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
+│  │   Hooks     │  │  /kln:*     │  │   Factory Droids    │   │
+│  │ SaveThis    │  │  Commands   │  │   8 Specialists     │   │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘   │
+└─────────┼────────────────┼────────────────────┼──────────────┘
+          │                │                    │
+          ▼                ▼                    ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    LiteLLM Proxy (:4000)                      │
+│         Qwen · DeepSeek · GLM · Kimi · Minimax · Hermes       │
+└──────────────────────────────────────────────────────────────┘
+          │                                     │
+          ▼                                     ▼
+┌─────────────────────────┐    ┌───────────────────────────────┐
+│     Knowledge DB        │    │      NanoGPT / OpenRouter     │
+│  txtai embeddings       │◄───│      12+ Models, $15/mo       │
+│  .knowledge-db/         │    │      or pay-per-use           │
+└─────────────────────────┘    └───────────────────────────────┘
 ```
 
-## Knowledge System
-
-```bash
-# Capture URL to knowledge DB
-GoodJob https://useful-docs.com
-
-# Save lesson directly
-SaveThis learned pattern X improves Y
-
-# Search knowledge
-FindKnowledge authentication
-```
-
-## CLI Commands
-
-```bash
-k-lean status       # Check all components
-k-lean doctor       # Diagnose + auto-fix
-k-lean models       # List available models with health
-k-lean start        # Start services
-k-lean debug        # Monitoring dashboard
-```
+---
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [docs/installation.md](docs/installation.md) | Installation guide |
-| [docs/usage.md](docs/usage.md) | Commands & workflows |
-| [docs/reference.md](docs/reference.md) | Complete reference |
-| [.agents/](.agents/) | Technical docs for AI agents |
+| [Installation Guide](docs/installation.md) | Detailed setup instructions |
+| [Usage Guide](docs/usage.md) | Commands, workflows, examples |
+| [Reference](docs/reference.md) | Complete command & config reference |
+| [Architecture](.agents/architecture.md) | System design & components |
+| [Review System](.agents/review-system.md) | Multi-model review pipeline |
+| [Knowledge DB](.agents/knowledge-db.md) | Semantic memory system |
+| [Factory Droids](.agents/droids.md) | Specialist agent roles |
+
+---
+
+## Compatibility
+
+K-LEAN works seamlessly with:
+
+| Framework/Tool | Integration |
+|----------------|-------------|
+| **[SuperClaude](https://github.com/SuperClaude-Org/SuperClaude_Framework)** | Full compatibility — use `/sc:*` and `/kln:*` together |
+| **[Serena MCP](https://github.com/oraios/serena)** | Shares memory system, enhances code understanding |
+| **Context7 MCP** | Documentation lookup for reviews |
+| **Tavily MCP** | Web search for research tasks |
+| **Sequential Thinking MCP** | Multi-step reasoning in deep reviews |
+
+---
+
+## Why NanoGPT?
+
+K-LEAN uses [NanoGPT](https://nano-gpt.com) as the default backend:
+
+- **$15/month** — Unlimited access to most models
+- **12+ models** — DeepSeek, Qwen, GLM, Kimi, Minimax, Hermes
+- **Best open-source models** — Often match or exceed GPT-4 on coding tasks
+- **Alternative:** [OpenRouter](https://openrouter.ai) (pay-per-use)
+
+Configure with: `k-lean setup`
+
+---
 
 ## Requirements
 
-- Python 3.9+
-- Claude Code CLI 2.0+
-- pipx (for installing K-LEAN)
-- NanoGPT API key (or OpenRouter)
+- **Python 3.9+**
+- **Claude Code CLI 2.0+** (the tool this extends)
+- **pipx** (for installation)
+- **API Key** — NanoGPT ($15/mo) or OpenRouter (pay-per-use)
 
-## MCP Servers (Optional)
+---
 
-K-LEAN works with these MCP servers. Install via `claude mcp add`:
+## CLI Reference
 
 ```bash
-# Context7 - Documentation lookup (Recommended)
-claude mcp add context7 -- npx -y @upstash/context7-mcp
-
-# Sequential Thinking - Multi-step reasoning (Recommended)
-claude mcp add sequential-thinking -- npx -y @anthropics/mcp-server-sequential-thinking
-
-# Tavily - Web search (requires API key)
-claude mcp add tavily --env TAVILY_API_KEY=your-key -- npx -y @tavily/mcp
-
-# Serena - Semantic code understanding (Python-based)
-# See: https://github.com/oraios/serena
+k-lean install      # Install components to ~/.claude/
+k-lean setup        # Configure API provider (interactive)
+k-lean uninstall    # Remove components
+k-lean status       # Check component status
+k-lean doctor       # Diagnose issues
+k-lean doctor -f    # Auto-fix common issues
+k-lean start        # Start LiteLLM proxy
+k-lean stop         # Stop services
+k-lean models       # List available models
+k-lean test         # Run test suite
 ```
 
-Check installed: `claude mcp list`
+---
 
-## Changelog
+## Contributing
 
-### v1.0.0-beta (2025-12-21)
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-- **Breaking**: Consolidated 21 commands → 9 commands
-- **New**: `/kln:rethink` - Fresh debugging perspectives
-- **New**: `klean_core.py` - 1189-line execution engine
-- **New**: Auto-discovery model resolution
-- **Improved**: `--async` flag replaces separate async commands
-- **Improved**: Multi-model consensus with ranked findings
+---
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE)
+Apache 2.0 — See [LICENSE](LICENSE)
+
+---
+
+<p align="center">
+  <i>Built for developers who want more perspectives on their code.</i>
+</p>
