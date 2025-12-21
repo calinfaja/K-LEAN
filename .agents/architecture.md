@@ -45,9 +45,9 @@
 ```
 src/klean/
 ├── __init__.py          # Package init, path constants
-├── cli.py               # Main CLI (2000 lines, 12 commands)
+├── cli.py               # Main CLI (~2300 lines, 12 commands)
 ├── data/                # Installable assets (symlinked to ~/.claude/)
-│   ├── scripts/         # 36 .sh + 11 .py scripts
+│   ├── scripts/         # 36 .sh + 9 .py scripts
 │   ├── commands/kln/    # 9 slash commands
 │   ├── hooks/           # 5 Claude Code hooks
 │   ├── droids/          # 8 specialist personas
@@ -82,7 +82,7 @@ Each git repository gets its own Knowledge DB:
 /tmp/kb-{md5_hash}.sock    # Unix socket for fast queries
 .knowledge-db/             # Per-project data (in .gitignore)
 ├── entries.jsonl          # V2 schema entries
-└── txtai_index/           # Semantic embeddings
+└── index/                 # Semantic embeddings
 ```
 
 ## Data Flow

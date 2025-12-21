@@ -15,7 +15,9 @@
 | `k-lean install` | Install components | Varies |
 | `k-lean uninstall` | Remove components | ~5s |
 | `k-lean sync` | Sync package data (dev) | ~2s |
-| `k-lean test` | Run 27-point test suite | ~10s |
+| `k-lean test` | Run test suite | ~10s |
+| `k-lean test-model` | Test specific model | ~5s |
+| `k-lean version` | Show version info | Instant |
 | `k-lean debug` | Live monitoring dashboard | Continuous |
 
 ## User Mental Model
@@ -79,10 +81,13 @@ k-lean models --test    # Full latency test
 Controls K-LEAN services.
 
 ```bash
-k-lean start            # Start LiteLLM only (KB auto-starts on query)
-k-lean start --kb       # Start Knowledge server too
-k-lean stop             # Stop for current project
-k-lean stop --all-projects  # Stop all KB servers
+k-lean start                    # Start LiteLLM (default)
+k-lean start -s knowledge       # Start Knowledge server
+k-lean start -s all             # Start both services
+k-lean start -p 4001            # Custom port
+k-lean stop                     # Stop for current project
+k-lean stop --all-projects      # Stop all KB servers
+k-lean stop -s litellm          # Stop specific service
 ```
 
 ### install / uninstall
@@ -91,14 +96,14 @@ Manages K-LEAN components.
 
 ```bash
 k-lean install                    # Full installation
-k-lean install --components scripts,hooks  # Specific components
+k-lean install --component scripts  # Specific component
 k-lean install --dev              # Dev mode (symlinks)
 
 k-lean uninstall                  # Remove all
-k-lean uninstall --keep-config    # Keep configuration
+k-lean uninstall --yes            # Skip confirmation
 ```
 
-**Components:** scripts, commands, hooks, droids, kb, core
+**Components:** all, scripts, commands, hooks, droids, config, core, knowledge
 
 ### sync
 
@@ -118,7 +123,7 @@ Runs comprehensive test suite.
 k-lean test
 ```
 
-**27 tests across 8 categories:**
+**Tests across 8 categories:**
 1. Installation Structure
 2. Scripts Executable
 3. KLN Commands
@@ -158,7 +163,7 @@ k-lean debug --compact    # Minimal output (for hooks)
 
 ## Implementation
 
-Main CLI: `src/klean/cli.py` (~2000 lines)
+Main CLI: `src/klean/cli.py` (~2300 lines)
 
 Uses:
 - `click` for CLI framework

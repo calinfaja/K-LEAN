@@ -27,21 +27,27 @@ K-LEAN uses **LiteLLM proxy** to route requests to multiple LLM providers.
 
 ```yaml
 # Sample models (via subscription)
-- coding-qwen      # Qwen 2.5 Coder
-- agent-kimi       # Kimi K2 (thinking)
-- tools-glm        # GLM-4 Plus
-- deepseek         # DeepSeek R1 (thinking)
-- hermes-4-scout   # Hermes 4 Scout
-- minimax          # MiniMax-01 (thinking)
+- qwen3-coder           # Qwen 2.5 Coder
+- deepseek-r1           # DeepSeek R1 (thinking)
+- deepseek-v3-thinking  # DeepSeek V3 (thinking)
+- glm-4.6-thinking      # GLM-4.6 (thinking)
+- kimi-k2               # Kimi K2
+- kimi-k2-thinking      # Kimi K2 (thinking)
+- minimax-m2            # MiniMax M2 (thinking)
+- llama-4-scout         # Llama 4 Scout
+- llama-4-maverick      # Llama 4 Maverick
+- hermes-4-70b          # Hermes 4 70B
+- devstral-2            # Devstral 2
+- qwen3-235b            # Qwen 3 235B
 ```
 
 ### Thinking Models
 
 These models return `reasoning_content` instead of `content`:
-- DeepSeek R1
-- GLM-4
+- DeepSeek R1, DeepSeek V3
+- GLM-4.6
 - Kimi K2
-- MiniMax-01
+- MiniMax M2
 
 ## Configuration
 
@@ -103,8 +109,8 @@ api_key: os.environ/NANOGPT_API_KEY
 ### Starting LiteLLM
 
 ```bash
-k-lean start              # Start proxy
-k-lean start --background # Start in background
+k-lean start              # Start proxy (foreground)
+k-lean start -s all       # Start proxy + KB server
 ```
 
 ### Checking Status
@@ -176,7 +182,7 @@ k-lean doctor --auto-fix
 lsof -i :4000
 
 # Check logs
-cat ~/.claude/k-lean/logs/litellm.log
+cat ~/.klean/logs/litellm.log
 ```
 
 ### Models Unhealthy

@@ -20,7 +20,7 @@ pipx install -e .
 # Verify installation
 k-lean --version    # Should show 1.0.0-beta
 k-lean doctor       # Check configuration
-k-lean test         # Run 27 tests
+k-lean test         # Run test suite
 ```
 
 ## Project Layout
@@ -61,7 +61,7 @@ k-lean sync --clean   # Remove stale files
 ### Testing
 
 ```bash
-k-lean test           # Run all 27 tests
+k-lean test           # Run full test suite
 k-lean doctor         # Validate configuration
 k-lean models --health  # Check model availability
 ```
@@ -145,9 +145,10 @@ k-lean debug --compact    # Minimal (for hooks)
 
 | Component | Log Path |
 |-----------|----------|
-| LiteLLM | `~/.claude/k-lean/logs/litellm.log` |
-| Reviews | `~/.claude/reviews/` |
-| KB Server | stdout (use debug mode) |
+| LiteLLM | `~/.klean/logs/litellm.log` |
+| Reviews | `/tmp/claude-reviews/` |
+| KB Server | `~/.klean/logs/knowledge-server.log` |
+| Debug | `~/.klean/logs/debug.log` |
 
 ### Common Issues
 
