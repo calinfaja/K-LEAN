@@ -62,6 +62,7 @@ src/klean/
 | Factory droids | [.agents/droids.md](.agents/droids.md) | Droid changes |
 | Hooks system | [.agents/hooks.md](.agents/hooks.md) | Hook development |
 | LiteLLM setup | [.agents/litellm.md](.agents/litellm.md) | Model/provider work |
+| Troubleshooting | [.agents/troubleshooting.md](.agents/troubleshooting.md) | Debugging issues |
 
 ## Tech Stack
 

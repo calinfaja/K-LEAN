@@ -141,6 +141,82 @@ Main implementation: `src/klean/data/core/klean_core.py` (1190 lines)
 - Model diversity (limits thinking models to 50%)
 - Robust JSON parsing (direct → markdown → raw braces)
 
+## Persistent Output
+
+Reviews are saved to the project's `.claude/kln/` directory.
+
+**Implementation:** `src/klean/data/scripts/session-helper.sh`
+
+```
+<project_root>/.claude/kln/
+├── quickReview/
+│   └── 2024-12-09_14-30-25_qwen_security.md
+├── quickCompare/
+│   └── 2024-12-09_16-00-00_consensus.md
+├── deepInspect/
+│   └── 2024-12-09_17-00-00_qwen_audit.md
+└── asyncDeepAudit/
+    └── 2024-12-09_18-00-00_parallel.md
+```
+
+**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.md`
+
+**Fallback:** `/tmp/claude-reviews/` if project directory not writable.
+
+## Audit Mode (Security)
+
+Deep reviews run in **read-only audit mode** for safe automation.
+
+**Implementation:** `src/klean/data/scripts/deep-review.sh` (lines 180-212)
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read", "Glob", "Grep", "LS", "Agent", "Task",
+      "WebFetch", "WebSearch",
+      "mcp__tavily__*", "mcp__context7__*", "mcp__serena__find_*",
+      "mcp__serena__list_*", "mcp__serena__read_*", "mcp__serena__search_*",
+      "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)",
+      "Bash(cat:*)", "Bash(find:*)", "Bash(ls:*)", "Bash(grep:*)"
+    ],
+    "deny": [
+      "Write", "Edit", "NotebookEdit",
+      "Bash(rm:*)", "Bash(mv:*)", "Bash(cp:*)", "Bash(mkdir:*)",
+      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
+      "Bash(pip install:*)", "Bash(npm install:*)", "Bash(sudo:*)",
+      "mcp__serena__replace_*", "mcp__serena__insert_*",
+      "mcp__serena__rename_*", "mcp__serena__write_*", "mcp__serena__delete_*"
+    ]
+  }
+}
+```
+
+Uses `--dangerously-skip-permissions` with restricted `allowedTools` for fast, safe automation.
+
+## Knowledge Integration
+
+Reviews automatically extract and store reusable knowledge.
+
+**Implementation:** `src/klean/data/scripts/fact-extract.sh`
+
+**Flow:**
+1. Review completes → `fact-extract.sh` called with output
+2. Claude Haiku extracts lessons (types: gotcha, pattern, solution, insight)
+3. Stores in `.knowledge-db/` if `relevance_score >= 0.6`
+4. Logs to `.knowledge-db/timeline.txt`
+
+**Called from deep-review.sh:**
+```bash
+"$KB_SCRIPTS_DIR/fact-extract.sh" "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
+```
+
+**Extraction Types:**
+- `gotcha` - Pitfalls to avoid
+- `pattern` - Reusable approaches
+- `solution` - Fixes that worked
+- `insight` - Architectural observations
+
 ## Scripts Reference
 
 | Script | Purpose |
@@ -151,6 +227,9 @@ Main implementation: `src/klean/data/core/klean_core.py` (1190 lines)
 | `droid-review.sh` | Specialist droid review |
 | `parallel-deep-review.sh` | Multiple deep reviews |
 | `second-opinion.sh` | Alternative perspective |
+| `fact-extract.sh` | Extract knowledge from reviews |
+| `session-helper.sh` | Output directory management |
 
 ---
 *See [droids.md](droids.md) for specialist personas*
+*See [troubleshooting.md](troubleshooting.md) for common issues*
