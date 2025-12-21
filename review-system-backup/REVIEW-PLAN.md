@@ -729,6 +729,47 @@ for path in [scripts, commands/kln, hooks, droids]:
 - **test**: Comprehensive suite covering scripts, commands, hooks, services, droids
 - **debug**: Live dashboard with --compact mode for hooks/scripts integration
 
+### Remaining CLI Commands Review
+
+| Command | Status | Notes |
+|---------|--------|-------|
+| `models` | ✅ Clean | 3 modes: list, --health, --test |
+| `doctor` | ✅ Excellent | Security checks (hardcoded keys), auto-fix |
+| `install` | ✅ Clean | Modular components, dev mode, preserves CLAUDE.md |
+| `uninstall` | ✅ Clean | Creates backups, stops services first |
+| `sync` | ✅ Clean | --check for CI, --clean for stale files |
+| `version` | ✅ Simple | Shows version, Python, install path |
+
+**All 12 CLI commands reviewed** - ready for open source.
+
+### Competitive Analysis (Tavily Research)
+
+**Compared against**: Aider (30K stars), Cline, Gemini CLI, OpenCode, txtai-mcp-server
+
+**K-LEAN Unique Strengths:**
+- Multi-model consensus review (no competitor does this)
+- Per-project semantic knowledge base with txtai
+- Security-focused diagnostics (detects hardcoded API keys)
+- Specialized droids for different review perspectives
+
+**Gaps Identified:**
+| Issue | Priority | Resolution |
+|-------|----------|------------|
+| Setup step not shown after install | High | ✅ Fixed - smart post-install message |
+| NanoGPT is niche provider | Medium | Document alternatives (OpenRouter, Ollama) |
+| No MCP server for KB | Low | Future: expose KB via MCP protocol |
+| Windows unsupported | Low | Document WSL requirement |
+
+### Post-Install Message Fix
+
+**Problem**: After `k-lean install`, user didn't know to run `setup-litellm.sh`
+
+**KISS Solution**: Smart post-install message checks if `.env` exists:
+- If missing: Shows "1. Configure API keys: setup-litellm.sh"
+- If exists: Skips to "1. Start services: k-lean start"
+
+**Commit**: `e28b389` - Show setup-litellm.sh in post-install if .env missing
+
 ---
 
 *Last updated: 2025-12-21*
