@@ -59,17 +59,17 @@ The installer runs an interactive setup wizard:
 
 ```
 Select your provider:
-  1) NanoGPT (recommended, 6 models)
-  2) OpenRouter (diverse model selection)
+  1) NanoGPT (12 models)
+  2) OpenRouter (diverse models)
   3) Skip setup (use existing config)
 ```
 
 **Provider Options:**
 
-| Provider | API Key | Cost | Setup |
-|----------|---------|------|-------|
-| **NanoGPT** | $0.50/1M tokens | Lowest | https://nano-gpt.com |
-| **OpenRouter** | $0-10/month | Low-Mid | https://openrouter.ai |
+| Provider | Setup |
+|----------|-------|
+| **NanoGPT** | https://nano-gpt.com |
+| **OpenRouter** | https://openrouter.ai |
 
 ### Step 4: Start LiteLLM
 
@@ -248,7 +248,6 @@ source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml 
 # Or choose provider directly
 ~/.claude/scripts/setup-litellm.sh nanogpt
 ~/.claude/scripts/setup-litellm.sh openrouter
-~/.claude/scripts/setup-litellm.sh ollama
 ```
 
 ### Knowledge DB errors

@@ -123,7 +123,7 @@ select_provider() {
         echo "=============================="
         echo ""
         echo "Select your provider:"
-        echo "  1) NanoGPT (recommended, 6 models)"
+        echo "  1) NanoGPT (12 models)"
         echo "  2) OpenRouter (diverse models)"
         echo "  3) Skip setup (use existing config)"
         echo ""

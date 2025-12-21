@@ -328,7 +328,7 @@ Contrarian debugging with 4 techniques:
 **K-LEAN Unique Strengths (No Other Framework Has):**
 - ✅ Multi-model consensus (3-5 models parallel)
 - ✅ Knowledge DB with semantic search
-- ✅ LiteLLM cost routing ($0.50/1M tokens)
+- ✅ LiteLLM multi-provider routing
 - ✅ Rethink contrarian debugging
 - ✅ Thinking model support (DeepSeek, GLM, Kimi)
 - ✅ Embedded/systems droids (arm-cortex, c-pro, rust)
@@ -349,7 +349,7 @@ Contrarian debugging with 4 techniques:
 - [ ] `scripts/get-models.sh` - Model discovery
 
 **Review Goals:**
-- Understand provider routing (NanoGPT, OpenRouter, Ollama)
+- Understand provider routing (NanoGPT, OpenRouter)
 - Verify rate limiting and retry logic
 - Check cost tracking if any
 

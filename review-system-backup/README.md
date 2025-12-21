@@ -9,7 +9,7 @@
 ## What is K-LEAN?
 
 K-LEAN extends Claude Code with:
-- **12 AI Models** via LiteLLM (NanoGPT, $0.50/1M tokens)
+- **12 AI Models** via LiteLLM (NanoGPT, OpenRouter)
 - **9 Consolidated Commands** - Simplified from 21 old commands
 - **Knowledge DB** - Semantic search for captured insights
 - **Rethink Mode** - Fresh debugging perspectives from multiple models

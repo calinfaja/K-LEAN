@@ -75,7 +75,7 @@ Chronological log at `.knowledge-db/timeline.txt`
 ~/.claude/scripts/setup-litellm.sh
 ```
 
-Providers: NanoGPT ($0.50/1M), OpenRouter, Ollama (local)
+Providers: NanoGPT, OpenRouter
 
 ## Serena Memories
 
