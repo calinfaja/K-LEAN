@@ -874,9 +874,14 @@ def install(dev: bool, component: str, yes: bool):
         console.print("Edit source files and changes will be immediately available.")
 
     console.print("\n[bold]Next steps:[/bold]")
-    console.print("  1. Reload shell: [cyan]source ~/.bashrc[/cyan]")
-    console.print("  2. Start LiteLLM: [cyan]~/.claude/scripts/litellm-start.sh[/cyan]")
-    console.print("  3. Verify: [cyan]k-lean status[/cyan]")
+    env_file = CONFIG_DIR / ".env"
+    if not env_file.exists():
+        console.print("  1. Configure API keys: [cyan]~/.claude/scripts/setup-litellm.sh[/cyan]")
+        console.print("  2. Start services: [cyan]k-lean start[/cyan]")
+        console.print("  3. Verify: [cyan]k-lean status[/cyan]")
+    else:
+        console.print("  1. Start services: [cyan]k-lean start[/cyan]")
+        console.print("  2. Verify: [cyan]k-lean status[/cyan]")
 
 
 @main.command()
