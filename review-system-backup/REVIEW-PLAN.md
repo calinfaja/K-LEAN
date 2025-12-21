@@ -14,7 +14,7 @@ Manual review checklist for understanding and improving each system component.
 | Hooks | ✅ Done | Error surfacing, PID verification |
 | Path Management | ✅ Done | 7fd7abf - 78 paths → kb-root.sh |
 | Core Scripts | ✅ Done | Review/KB scripts verified |
-| **Droids System** | ✅ Done | 8 prompts reviewed, issues found |
+| **Droids System** | ✅ Complete | All 8 droids standardized, template created |
 | **K-LEAN Core Engine** | 🔄 Pending | klean_core.py review |
 | **LiteLLM Integration** | 🔄 Pending | Config/health verification |
 | **Timeline/Statusline** | 🔄 Pending | Lower priority |
@@ -188,73 +188,50 @@ KLEAN_CONFIG_DIR     # Custom config directory
 
 ---
 
-### 4. Droids System ✅
+### 4. Droids System ✅ COMPLETE
 **Files:** `droids/`
-- [x] `orchestrator.md` - Master coordinator (765 lines, 30KB)
-- [x] `code-reviewer.md` - OWASP, SOLID, quality (200 lines, 8KB)
-- [x] `security-auditor.md` - Vulnerabilities, auth, encryption (89 lines, 4KB)
-- [x] `debugger.md` - Root cause analysis (99 lines, 4KB)
-- [x] `arm-cortex-expert.md` - Embedded ARM specialty (265 lines, 12KB)
-- [x] `c-pro.md` - C99/C11/POSIX (35 lines, 1KB)
-- [x] `rust-expert.md` - Ownership, lifetimes (37 lines, 2KB)
-- [x] `performance-engineer.md` - Profiling, optimization (36 lines, 2KB)
+- [x] `orchestrator.md` - Master coordinator (765 lines)
+- [x] `code-reviewer.md` - OWASP, SOLID, quality (259 lines)
+- [x] `security-auditor.md` - Vulnerabilities, auth, encryption (90 lines)
+- [x] `debugger.md` - Root cause analysis (100 lines)
+- [x] `arm-cortex-expert.md` - Embedded ARM specialty (320 lines)
+- [x] `c-pro.md` - C99/C11/POSIX (276 lines) ✨ Expanded
+- [x] `rust-expert.md` - Ownership, lifetimes (171 lines) ✨ Expanded
+- [x] `performance-engineer.md` - Profiling, optimization (176 lines) ✨ Expanded
+- [x] `TEMPLATE.md` - Research-based template guide (240 lines)
 
-**Review Findings:**
+**All Issues Resolved (Commits: 1a3a222, 4e8839e):**
 
-| Droid | Quality | Issues Found |
-|-------|---------|--------------|
-| orchestrator | ⭐⭐⭐⭐⭐ | 🔴 Hardcoded macOS path `/Users/besi/.factory/` |
-| code-reviewer | ⭐⭐⭐⭐⭐ | ✅ None - comprehensive 7-area framework |
-| security-auditor | ⭐⭐⭐⭐ | ✅ Good orchestrator integration |
-| debugger | ⭐⭐⭐⭐ | ✅ Systematic debugging techniques |
-| arm-cortex-expert | ⭐⭐⭐⭐⭐ | 🟡 `tools: []` empty - no tools assigned |
-| c-pro | ⭐⭐ | 🔴 Too minimal, no tools, no orchestrator integration |
-| rust-expert | ⭐⭐⭐ | 🟡 Brief but functional |
-| performance-engineer | ⭐⭐⭐ | 🟡 Brief but functional |
+| Droid | Quality | Status |
+|-------|---------|--------|
+| orchestrator | ⭐⭐⭐⭐⭐ | ✅ Fixed hardcoded paths → `~/.factory/` |
+| code-reviewer | ⭐⭐⭐⭐⭐ | ✅ Added orchestrator integration |
+| security-auditor | ⭐⭐⭐⭐⭐ | ✅ Complete with orchestrator integration |
+| debugger | ⭐⭐⭐⭐⭐ | ✅ Complete with orchestrator integration |
+| arm-cortex-expert | ⭐⭐⭐⭐⭐ | ✅ Added tools + orchestrator integration |
+| c-pro | ⭐⭐⭐⭐⭐ | ✅ Expanded 35→276 lines |
+| rust-expert | ⭐⭐⭐⭐⭐ | ✅ Added framework + orchestrator integration |
+| performance-engineer | ⭐⭐⭐⭐⭐ | ✅ Added framework + orchestrator integration |
 
-**Critical Issues:**
+**Standardized Toolset (Read-Only for Review Droids):**
+```yaml
+tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateDroid"]
+```
 
-1. **🔴 Hardcoded macOS Path** - `orchestrator.md` lines 80-83:
-   ```
-   /Users/besi/.factory/orchestrator/memory/success_patterns.json
-   /Users/besi/.factory/orchestrator/memory/failure_patterns.json
-   ```
-   **Fix:** Replace with `~/.factory/orchestrator/memory/`
+**Consistent Structure Applied to All 8 Droids:**
+- ✅ YAML frontmatter with explicit tools
+- ✅ Immediate Actions section with bash commands
+- ✅ Review Framework with tables
+- ✅ Output Format (🔴 Critical, 🟡 Warnings, 🟢 Suggestions, 📊 Summary)
+- ✅ Orchestrator Integration (Before/During/After sections)
+- ✅ Example Orchestrated Output
 
-2. **🔴 Missing Tools** - `arm-cortex-expert.md` has `tools: []` and `c-pro.md` has no tools section
-
-3. **🔴 Inconsistent Depth** - orchestrator is 765 lines, c-pro is only 35 lines
-
-**Architecture Observations:**
-
-- **Orchestrator Pattern**: Memory system with success/failure patterns, phased execution
-- **Role Separation**: Generally good, some OWASP overlap between code-reviewer and security-auditor
-- **Orchestrator Integration**: 4 droids have it (security-auditor, debugger, code-reviewer, rust-expert), 4 don't
-- **Embedded Excellence**: arm-cortex-expert is exceptionally detailed (memory barriers, DMA, cache coherency)
-
-**Recommendations:**
-1. Fix hardcoded path in orchestrator.md (line 80-83, 191-207)
-2. Add tools to arm-cortex-expert.md
-3. Expand c-pro.md with tools and orchestrator integration
-4. Consider adding orchestrator integration to remaining droids
-
-**Research-Based Template Guide Created:** `docs/DROID-TEMPLATE-GUIDE.md`
+**Template Guide:** `droids/TEMPLATE.md` (moved from docs/)
 
 Based on Factory.ai docs, Anthropic's context engineering, and industry best practices:
-
-| Requirement | Current State | Optimal |
-|-------------|---------------|---------|
-| YAML frontmatter with tools | 6/8 have tools | All 8 should have explicit tools |
-| Immediate Actions section | 4/8 have | All should have |
-| Orchestrator Integration | 4/8 have | All should have |
-| Structured Output Format | 2/8 have | All should have |
-| Size (lines) | 35-765 | 80-300 for specialists |
-
-**Key Principle from Factory.ai:**
-> "A droid is only as good as its plan." - Subtask decomposition + model predictive control
-
-**Key Principle from Anthropic:**
-> Find the "Goldilocks zone" - not too brittle, not too vague
+- Factory.ai: "A droid is only as good as its plan" - subtask decomposition
+- Anthropic: "Goldilocks zone" - not too brittle, not too vague
+- AGENTS.md standard: 300-1000 token prompts are optimal
 
 ---
 
