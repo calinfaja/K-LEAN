@@ -16,11 +16,12 @@ Manual review checklist for understanding and improving each system component.
 | Core Scripts | ✅ Done | Review/KB scripts verified |
 | **Droids System** | ✅ Complete | All 8 droids standardized, template created |
 | **K-LEAN Core Engine** | ✅ Complete | 1190 lines reviewed, 3 fixes applied |
+| **Competitive Analysis** | ✅ Complete | K-LEAN as addon, MCP future documented |
 | **LiteLLM Integration** | 🔄 Pending | Config/health verification |
 | **Timeline/Statusline** | 🔄 Pending | Lower priority |
 | **Configuration** | 🔄 Pending | Documentation needed |
 
-**Progress: 11/13 areas complete (~85%)**
+**Progress: 12/14 areas complete (~86%)**
 
 ## Completed Reviews
 
@@ -307,7 +308,40 @@ Contrarian debugging with 4 techniques:
 
 ---
 
-### 6. LiteLLM Integration
+### 6. Competitive Analysis ✅
+**Research:** Tavily search on SuperClaude, Superpowers, Claude Code
+
+**Framework Comparison:**
+
+| Framework | Focus | Stars | Commands |
+|-----------|-------|-------|----------|
+| SuperClaude | Full dev lifecycle | 19.3k | 30 |
+| Superpowers | Planning workflow | ~500 | 3 |
+| K-LEAN | Multi-model reviews | New | 10 |
+
+**Strategic Positioning:**
+- K-LEAN is an **ADDON**, not a competitor
+- Works alongside SuperClaude/Superpowers
+- SuperClaude → Workflow orchestration
+- K-LEAN → Review engine + knowledge persistence
+
+**K-LEAN Unique Strengths (No Other Framework Has):**
+- ✅ Multi-model consensus (3-5 models parallel)
+- ✅ Knowledge DB with semantic search
+- ✅ LiteLLM cost routing ($0.50/1M tokens)
+- ✅ Rethink contrarian debugging
+- ✅ Thinking model support (DeepSeek, GLM, Kimi)
+- ✅ Embedded/systems droids (arm-cortex, c-pro, rust)
+
+**Future Enhancement Documented:**
+- K-LEAN as MCP Server (~5 hours effort)
+- Would enable proactive Claude invocation
+- Priority: Low (current system works fine)
+- Documented in `docs/LESSONS-LEARNED.md`
+
+---
+
+### 7. LiteLLM Integration (Pending)
 **Files:** Various
 - [ ] `~/.config/litellm/config.yaml` - Model definitions
 - [ ] `scripts/setup-litellm.sh` - Provider setup
@@ -321,7 +355,7 @@ Contrarian debugging with 4 techniques:
 
 ---
 
-### 7. Install & Update System ✅
+### 8. Install & Update System ✅
 **Files:** Root
 - [x] `install.sh` - Full installation (~18KB) - Reviewed, works
 - [x] `k-lean install` - CLI installer with component selection
@@ -336,7 +370,7 @@ Contrarian debugging with 4 techniques:
 
 ---
 
-### 8. Timeline System
+### 9. Timeline System (Pending)
 **Files:** `scripts/`
 - [ ] `timeline-query.sh` - Query chronological log
 - [ ] Timeline capture in `post-bash-handler.sh`
@@ -347,7 +381,7 @@ Contrarian debugging with 4 techniques:
 
 ---
 
-### 9. Statusline Integration
+### 10. Statusline Integration (Pending)
 **Files:** `scripts/`
 - [ ] `klean-statusline.py` - Claude Code statusline provider
 
@@ -358,7 +392,7 @@ Contrarian debugging with 4 techniques:
 
 ---
 
-### 10. Configuration Files
+### 11. Configuration Files (Pending)
 **Files:** Various
 - [ ] `settings.json` - Claude hooks configuration
 - [ ] `config.yaml` - LiteLLM proxy config
