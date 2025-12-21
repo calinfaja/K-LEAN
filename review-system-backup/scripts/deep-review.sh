@@ -21,8 +21,16 @@ PROMPT="${2:-Review the codebase for issues}"
 WORK_DIR="${3:-$(pwd)}"
 SCRIPTS_DIR="$(dirname "$0")"
 
+# Source kb-root.sh for unified paths
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 # Persistent output directory in project's .claude/kln/deepInspect/
-source ~/.claude/scripts/session-helper.sh
+source "$KB_SCRIPTS_DIR/session-helper.sh"
 source "$SCRIPTS_DIR/../lib/common.sh" 2>/dev/null || true
 
 # Validate model is specified
@@ -239,7 +247,7 @@ OUTPUT_FILE="$OUTPUT_DIR/$OUTPUT_FILENAME"
 echo "$REVIEW_OUTPUT"
 
 # Auto-extract facts from review (Tier 1)
-~/.claude/scripts/fact-extract.sh "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
+"$KB_SCRIPTS_DIR/fact-extract.sh" "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"

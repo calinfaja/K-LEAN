@@ -17,8 +17,12 @@
 # }
 #
 
-SCRIPTS_DIR="$HOME/.claude/scripts"
-PYTHON="$HOME/.venvs/knowledge-db/bin/python"
+# Source kb-root.sh for paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
+
+SCRIPTS_DIR="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+PYTHON="${KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
 
 # Read hook input
 if [ -n "$1" ]; then

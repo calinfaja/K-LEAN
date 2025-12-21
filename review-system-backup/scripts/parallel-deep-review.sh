@@ -18,8 +18,16 @@ PROMPT="${1:-Review the codebase for issues}"
 WORK_DIR="${2:-$(pwd)}"
 SCRIPTS_DIR="$(dirname "$0")"
 
+# Source kb-root.sh for unified paths
+if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
+    source "$SCRIPTS_DIR/kb-root.sh"
+else
+    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
+    KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+fi
+
 # Persistent output directory in project's .claude/kln/asyncDeepAudit/
-source ~/.claude/scripts/session-helper.sh
+source "$KB_SCRIPTS_DIR/session-helper.sh"
 OUTPUT_DIR=$(get_output_dir "asyncDeepAudit" "$WORK_DIR")
 TIME_STAMP=$(date +%Y-%m-%d_%H-%M-%S)
 OUTPUT_FILE="$OUTPUT_DIR/${TIME_STAMP}_parallel_$(echo "$PROMPT" | tr ' ' '-' | tr -cd '[:alnum:]-_' | head -c 30).md"
@@ -256,4 +264,4 @@ echo "Saved: $OUTPUT_FILE"
 echo "═══════════════════════════════════════════════════════════════════"
 
 # Auto-extract facts from all reviews (Tier 1)
-[ -n "$ALL_CONTENT" ] && ~/.claude/scripts/fact-extract.sh "$ALL_CONTENT" "review" "$PROMPT" "$WORK_DIR"
+[ -n "$ALL_CONTENT" ] && "$KB_SCRIPTS_DIR/fact-extract.sh" "$ALL_CONTENT" "review" "$PROMPT" "$WORK_DIR"

@@ -1,22 +1,54 @@
 #!/usr/bin/env bash
 #
-# K-LEAN kb-root.sh - Unified Project Root Detection
-# ===================================================
-# Single source of truth for project detection across ALL knowledge scripts.
-# Source this file in any script that needs project root detection.
+# K-LEAN kb-root.sh - Unified Project Root Detection & Path Configuration
+# ========================================================================
+# Single source of truth for project detection and paths across ALL scripts.
+# Source this file in any script that needs project root or path detection.
 #
 # Usage:
 #   source ~/.claude/scripts/kb-root.sh
 #   PROJECT_ROOT=$(find_kb_project_root)
 #   SOCKET=$(get_kb_socket_path "$PROJECT_ROOT")
+#   $KB_PYTHON script.py  # Uses configured Python
 #
-# Priority order:
+# Environment Variables (override defaults):
+#   KLEAN_KB_PYTHON    - Python interpreter for knowledge DB
+#   KLEAN_SCRIPTS_DIR  - K-LEAN scripts directory
+#   KLEAN_SOCKET_DIR   - Directory for Unix sockets
+#
+# Priority order for project detection:
 #   1. CLAUDE_PROJECT_DIR environment variable
 #   2. .knowledge-db directory (walk up)
 #   3. .serena directory (walk up)
 #   4. .claude directory (walk up)
 #   5. .git directory (walk up)
 #
+
+# =============================================================================
+# Path Configuration (with environment variable overrides)
+# =============================================================================
+
+# Knowledge DB Python - check multiple locations
+if [ -n "$KLEAN_KB_PYTHON" ] && [ -x "$KLEAN_KB_PYTHON" ]; then
+    KB_PYTHON="$KLEAN_KB_PYTHON"
+elif [ -x "$HOME/.venvs/knowledge-db/bin/python" ]; then
+    KB_PYTHON="$HOME/.venvs/knowledge-db/bin/python"
+elif [ -x "$HOME/.local/share/klean/venv/bin/python" ]; then
+    KB_PYTHON="$HOME/.local/share/klean/venv/bin/python"
+elif command -v python3 &>/dev/null; then
+    KB_PYTHON="python3"  # Fallback to system python
+else
+    KB_PYTHON=""
+fi
+
+# Scripts directory
+KB_SCRIPTS_DIR="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+
+# Socket directory (must be writable, /tmp works on all Unix)
+KB_SOCKET_DIR="${KLEAN_SOCKET_DIR:-/tmp}"
+
+# Export for use in subshells
+export KB_PYTHON KB_SCRIPTS_DIR KB_SOCKET_DIR
 
 # Find project root by walking up directory tree
 # Returns: project root path, or empty string if not found
@@ -72,7 +104,7 @@ get_kb_socket_path() {
     if [ -z "$hash" ]; then
         return 1
     fi
-    echo "/tmp/kb-${hash}.sock"
+    echo "${KB_SOCKET_DIR:-/tmp}/kb-${hash}.sock"
 }
 
 # Get PID file path for project's knowledge server
@@ -82,7 +114,7 @@ get_kb_pid_path() {
     if [ -z "$hash" ]; then
         return 1
     fi
-    echo "/tmp/kb-${hash}.pid"
+    echo "${KB_SOCKET_DIR:-/tmp}/kb-${hash}.pid"
 }
 
 # Check if knowledge DB is initialized for project

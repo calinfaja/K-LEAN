@@ -33,6 +33,7 @@ set -e
 # Source session helper for output management
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/session-helper.sh"
+source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
 source "$SCRIPT_DIR/../lib/common.sh" 2>/dev/null || true
 
 # Configuration
@@ -195,7 +196,12 @@ echo "" >&2
 echo "[1/3] Querying knowledge DB..." >&2
 KNOWLEDGE_CONTEXT=""
 
-if [ -f "$KNOWLEDGE_QUERY_SCRIPT" ] && [ -S "/tmp/knowledge-server.sock" ]; then
+# Get per-project socket path (uses kb-root.sh functions)
+KB_PROJECT=$(find_kb_project_root 2>/dev/null || echo "")
+KB_SOCKET=""
+[ -n "$KB_PROJECT" ] && KB_SOCKET=$(get_kb_socket_path "$KB_PROJECT" 2>/dev/null || echo "")
+
+if [ -f "$KNOWLEDGE_QUERY_SCRIPT" ] && [ -n "$KB_SOCKET" ] && [ -S "$KB_SOCKET" ]; then
     # Extract key terms from prompt for knowledge search
     SEARCH_QUERY="$PROMPT"
 

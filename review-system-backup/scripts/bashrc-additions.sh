@@ -2,6 +2,9 @@
 # Bash additions for the Review System
 # Add these to your ~/.bashrc
 
+# K-LEAN scripts directory (supports environment override)
+KLEAN_SCRIPTS="${KLEAN_SCRIPTS_DIR:-$HOME/.claude/scripts}"
+
 # --- Deep Review Functions (Tier 3) ---
 # Run thorough code reviews with LiteLLM models that have full tool access
 
@@ -9,7 +12,7 @@
 deep-review() {
     local model="${1:-qwen}"
     local prompt="${2:-Review the codebase for issues}"
-    ~/.claude/scripts/deep-review.sh "$model" "$prompt" "$(pwd)"
+    "$KLEAN_SCRIPTS/deep-review.sh" "$model" "$prompt" "$(pwd)"
 }
 
 # Convenience aliases for specific review types
@@ -33,7 +36,7 @@ quick-review() {
 # Parallel review - all 3 models with full tool access
 parallel-review() {
     local prompt="${1:-Complete code review}"
-    ~/.claude/scripts/parallel-deep-review.sh "$prompt" "$(pwd)"
+    "$KLEAN_SCRIPTS/parallel-deep-review.sh" "$prompt" "$(pwd)"
 }
 
 # Consensus review - all 3 models via curl (faster, no tool access)
