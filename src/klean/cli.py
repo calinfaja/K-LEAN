@@ -1092,14 +1092,6 @@ def status():
         else:
             table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "run: k-lean start")
 
-    # Factory Droids (prompt templates for /kln:droid command)
-    droids_exist = (FACTORY_DIR / "droids").exists()
-    if droids_exist:
-        droid_count = len(list((FACTORY_DIR / "droids").glob("*.md")))
-        table.add_row("Factory Droids", f"[green]OK ({droid_count})[/green]", "prompt templates")
-    else:
-        table.add_row("Factory Droids", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
-
     console.print(table)
 
     # Installation mode detection
