@@ -118,9 +118,15 @@ def get_git(data: dict) -> str:
     cwd = workspace.get("project_dir", os.getcwd())
 
     try:
-        # Get branch
+        # Check if git lock exists - skip polling to avoid conflicts
+        git_dir = Path(cwd) / ".git"
+        if (git_dir / "index.lock").exists():
+            # Return cached/minimal info when lock exists
+            return f"{C.DIM}git:(...){C.RESET}"
+
+        # Get branch (--no-optional-locks prevents creating index.lock)
         branch_result = subprocess.run(
-            ["git", "branch", "--show-current"],
+            ["git", "--no-optional-locks", "branch", "--show-current"],
             capture_output=True, text=True, timeout=2, cwd=cwd
         )
         if branch_result.returncode != 0:
@@ -132,16 +138,16 @@ def get_git(data: dict) -> str:
         if len(branch) > 12:
             branch = branch[:9] + "..."
 
-        # Check dirty state
+        # Check dirty state (--no-optional-locks prevents lock conflicts)
         status_result = subprocess.run(
-            ["git", "status", "--porcelain"],
+            ["git", "--no-optional-locks", "status", "--porcelain"],
             capture_output=True, text=True, timeout=2, cwd=cwd
         )
         dirty = "●" if status_result.stdout.strip() else ""
 
         # Get lines added/removed (staged + unstaged)
         diff_result = subprocess.run(
-            ["git", "diff", "--shortstat", "HEAD"],
+            ["git", "--no-optional-locks", "diff", "--shortstat", "HEAD"],
             capture_output=True, text=True, timeout=2, cwd=cwd
         )
 
