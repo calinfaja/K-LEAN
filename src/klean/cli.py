@@ -1379,7 +1379,7 @@ def test():
 
     # Test 3: KLN Commands
     console.print("\n[bold]3. KLN Commands[/bold]")
-    kln_commands = ["quick.md", "multi.md", "deep.md", "droid.md", "rethink.md",
+    kln_commands = ["quick.md", "multi.md", "deep.md", "agent.md", "rethink.md",
                     "remember.md", "status.md", "help.md", "doc.md"]
     kln_dir = CLAUDE_DIR / "commands" / "kln"
     for cmd in kln_commands:

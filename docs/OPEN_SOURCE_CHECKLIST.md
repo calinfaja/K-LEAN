@@ -128,14 +128,14 @@ SOCKET_DIR="${TMPDIR:-/tmp}"
 - [x] Only .env.example tracked
 - [x] Hooks use environment variables
 - [x] All 9 slash commands present
-- [x] All 8 droids present
+- [x] All 8 SmolKLN agents present
 
 ### Documentation
 - [x] docs/ folder structure complete
 - [x] .agents/ technical docs comprehensive
 - [x] All internal links valid
 - [x] Installation instructions functional
-- [x] Command counts accurate (9 commands, 8 droids, 5 hooks)
+- [x] Command counts accurate (9 commands, 8 agents, 5 hooks)
 
 ### Security
 - [x] No passwords or tokens

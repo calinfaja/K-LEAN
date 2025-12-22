@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - K-LEAN CLI (`k-lean status`, `k-lean doctor`, `k-lean start`)
 - Knowledge DB with per-project semantic search
 - Multi-model code review via LiteLLM proxy
-- Factory droids integration
+- SmolKLN agents (8 specialist AI agents)
 - `/kln:*` slash commands for Claude Code
 
 ### Changed
