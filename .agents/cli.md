@@ -62,10 +62,10 @@ k-lean status
 - KLN commands (9)
 - SuperClaude availability (optional)
 - Hooks (5)
-- Factory Droids (8)
+- SmolKLN Agents (8)
 - Knowledge DB (per-project status + entry count)
 - LiteLLM Proxy (model count + provider)
-- Factory CLI version
+- K-LEAN CLI version
 
 ### models
 
@@ -104,7 +104,7 @@ k-lean uninstall                  # Remove all
 k-lean uninstall --yes            # Skip confirmation
 ```
 
-**Components:** all, scripts, commands, hooks, droids, config, core, knowledge
+**Components:** all, scripts, commands, hooks, smolkln, config, core, knowledge
 
 ### setup
 
@@ -150,7 +150,7 @@ k-lean test
 5. LiteLLM Service
 6. Knowledge System
 7. Nano Profile
-8. Factory Droids
+8. SmolKLN Agents
 
 **Exit code:** 0 = all pass, 1 = failures (CI-friendly)
 

@@ -16,7 +16,7 @@
 | `k-lean models` | List available models |
 | `k-lean models --health` | Check model health |
 | `k-lean test` | Run test suite |
-| `k-lean sync` | Sync agents to ~/.klean/ |
+| `k-lean sync` | Sync files to package data for release |
 
 ## Models
 
@@ -28,6 +28,8 @@
 | `kimi-k2-thinking` | Thinking | Planning |
 | `minimax-m2` | Thinking | Research |
 | `hermes-4-70b` | Standard | Scripting |
+
+*Models are auto-discovered from LiteLLM. Use `k-lean models` for current list.*
 
 **Thinking models** return `reasoning_content` instead of `content`.
 

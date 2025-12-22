@@ -5,7 +5,7 @@ description: >
   Deep expertise in C99/C11/C17 standards, POSIX compliance, embedded systems, and kernel development.
   Use PROACTIVELY for C code review, memory safety analysis, or systems programming tasks.
 model: inherit
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
+tools: ["knowledge_search", "web_search", "visit_webpage", "read_file", "search_files", "grep"]
 ---
 
 # C Programming Expert

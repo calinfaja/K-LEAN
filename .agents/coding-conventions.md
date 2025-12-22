@@ -51,7 +51,7 @@ quick-review.sh
 knowledge-query.sh
 
 # Functions: snake_case
-get_droid_system_prompt() {
+get_agent_system_prompt() {
 
 # Variables: UPPER_SNAKE_CASE for exports
 export KB_PYTHON="..."
@@ -120,7 +120,7 @@ src/klean/data/
 ├── scripts/         # Executable scripts (chmod +x)
 ├── commands/kln/    # Slash command definitions (.md)
 ├── hooks/           # Claude Code hooks (.sh)
-├── droids/          # Specialist personas (.md)
+├── agents/          # SmolKLN agent definitions (.md)
 ├── lib/             # Shared utilities
 ├── core/            # Review engine
 └── config/          # Config templates

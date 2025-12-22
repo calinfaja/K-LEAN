@@ -11,7 +11,7 @@ K-LEAN provides **multi-model code reviews** with consensus building across 3-5 
 | Quick | `/kln:quick` | 1 model | ~10s |
 | Multi/Consensus | `/kln:multi` | 5 parallel | ~30s |
 | Deep | `/kln:deep` | Claude SDK agent | ~3min |
-| Droid | `/kln:droid` | Specialist persona | ~30s |
+| SmolKLN Agent | `/kln:agent` | Specialist persona | ~30s |
 | Rethink | `/kln:rethink` | Contrarian analysis | ~20s |
 
 ## Quick Review
@@ -97,7 +97,7 @@ Located in `src/klean/data/core/prompts/`:
 | `rethink.md` | 92 | Contrarian debugging |
 | `format-json.md` | 28 | Structured JSON output |
 | `format-text.md` | 27 | Human-readable output |
-| `droid-base.md` | 54 | Factory droid template |
+| `agent-base.md` | 54 | SmolKLN agent template |
 
 ### Review Areas (review.md)
 
@@ -224,12 +224,12 @@ Reviews automatically extract and store reusable knowledge.
 | `quick-review.sh` | Single model review |
 | `consensus-review.sh` | 5-model parallel review |
 | `deep-review.sh` | Claude SDK agent review |
-| `droid-review.sh` | Specialist droid review |
+| `smolkln-agent.sh` | SmolKLN agent execution |
 | `parallel-deep-review.sh` | Multiple deep reviews |
 | `second-opinion.sh` | Alternative perspective |
 | `fact-extract.sh` | Extract knowledge from reviews |
 | `session-helper.sh` | Output directory management |
 
 ---
-*See [droids.md](droids.md) for specialist personas*
+*See [smolkln-implementation.md](smolkln-implementation.md) for SmolKLN agent details*
 *See [troubleshooting.md](troubleshooting.md) for common issues*

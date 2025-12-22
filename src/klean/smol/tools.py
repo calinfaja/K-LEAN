@@ -216,6 +216,14 @@ def get_default_tools(
     # Always include Knowledge DB tool
     tools.append(KnowledgeRetrieverTool(project_path))
 
+    # Web research tools (DuckDuckGo search + webpage fetcher)
+    try:
+        from smolagents import DuckDuckGoSearchTool, VisitWebpageTool
+        tools.append(DuckDuckGoSearchTool(max_results=5))
+        tools.append(VisitWebpageTool(max_output_length=20000))
+    except ImportError:
+        pass  # smolagents web tools not available
+
     # Try to load MCP tools
     if use_mcp:
         try:

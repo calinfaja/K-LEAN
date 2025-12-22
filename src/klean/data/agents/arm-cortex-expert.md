@@ -7,7 +7,7 @@ description: >
   memory barriers, DMA/cache coherency, interrupt-driven I/O, and peripheral drivers.
   Use PROACTIVELY for embedded C/C++/Rust development, driver implementation, or MCU debugging.
 model: inherit
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
+tools: ["knowledge_search", "web_search", "visit_webpage", "read_file", "search_files", "grep"]
 ---
 
 # @arm-cortex-expert
