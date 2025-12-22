@@ -156,7 +156,7 @@ api_key: os.environ/NANOGPT_API_KEY
 |-----|------|
 | LiteLLM | `~/.klean/logs/litellm.log` |
 | KB Server | `~/.klean/logs/kb-server.log` |
-| Debug | `~/.klean/logs/debug.jsonl` |
+| Debug | `~/.klean/logs/debug.log` |
 | Timeline | `.knowledge-db/timeline.txt` (per-project) |
 
 ## Quick Recovery

@@ -11,10 +11,10 @@ Comprehensive checklist for open source release readiness.
 
 | Category | Status | Critical Issues |
 |----------|--------|-----------------|
-| Repository Essentials | 🟡 | License classifier mismatch |
-| Python Package | 🟡 | License classifier mismatch |
-| Scripts | 🟡 | Hardcoded /tmp paths |
-| Documentation | 🟡 | Schema inconsistency, URL mismatch |
+| Repository Essentials | ✅ | None |
+| Python Package | ✅ | None |
+| Scripts | ✅ | None (env vars with fallbacks) |
+| Documentation | 🟡 | Schema inconsistency |
 | Config & Hooks | ✅ | None |
 | Test Suite | 🔴 | No unit tests |
 
@@ -22,28 +22,14 @@ Comprehensive checklist for open source release readiness.
 
 ## 🔴 CRITICAL - Must Fix Before Release
 
-### 1. License Classifier Mismatch
-**File:** `pyproject.toml` line 20
+### 1. ✅ License Classifier - FIXED
+**File:** `pyproject.toml` line 20 already uses `"License :: OSI Approved :: Apache Software License"`
 
-```python
-# WRONG:
-"License :: OSI Approved :: MIT License",
+### 2. ✅ CODE_OF_CONDUCT.md - SKIPPED
+**Note:** Not required for this project
 
-# CORRECT:
-"License :: OSI Approved :: Apache Software License",
-```
-
-**Impact:** PyPI classification will be wrong; legal confusion
-
-### 2. Missing CODE_OF_CONDUCT.md
-**Action:** Create `CODE_OF_CONDUCT.md` with Contributor Covenant
-
-### 3. Date Inconsistency in Changelog
-**Files:**
-- `README.md:131` says `v1.0.0-beta (2025-12-16)`
-- `CHANGELOG.md:7` says `[1.0.0-beta] - 2024-12-21`
-
-**Fix:** Align both to `2025-12-21`
+### 3. ✅ CHANGELOG Date - FIXED
+**File:** `CHANGELOG.md` line 7 already uses `2025-12-21`
 
 ### 4. Knowledge DB Schema Mismatch
 **Files:**
@@ -52,35 +38,22 @@ Comprehensive checklist for open source release readiness.
 
 **Fix:** Reconcile to match actual implementation
 
-### 5. Repository URL Inconsistency
-**Files:**
-- `pyproject.toml` uses: `https://github.com/calinfaja/k-lean`
-- `.agents/development.md` uses: `https://github.com/calinfaja/K-LEAN-Companion.git`
-- `.git/config` uses: `https://github.com/calinfaja/K-LEAN-Companion.git`
-
-**Fix:** Align all to canonical URL
+### 5. ⚠️ Repository URL - PARTIALLY FIXED
+**Status:**
+- ✅ `pyproject.toml` - Correct: `https://github.com/calinfaja/k-lean`
+- ✅ `.agents/development.md` - Correct: `https://github.com/calinfaja/k-lean.git`
+- ❌ `.git/config` - Still uses old URL (update with `git remote set-url origin`)
 
 ---
 
 ## 🟡 IMPORTANT - Should Fix Before Release
 
-### 6. Hardcoded /tmp Paths in Scripts
-**Files affected:** 18 scripts
-
-**Example fixes:**
-```bash
-# Instead of:
-SOCKET_DIR="/tmp"
-
-# Use:
-SOCKET_DIR="${TMPDIR:-/tmp}"
-```
-
-**Key files:**
-- `knowledge-server.py:31` - `SOCKET_DIR = "/tmp"`
-- `knowledge-events.py:32` - `LOG_PATH = Path("/tmp/...")`
-- `consensus-review.sh:89` - `/tmp/consensus-$$`
-- `kb-doctor.sh` - Multiple `/tmp/kb-*.sock` references
+### 6. ✅ /tmp Paths - FIXED
+**Status:** All scripts now use environment variables with /tmp fallback:
+- `knowledge-server.py:31` - Uses `KLEAN_SOCKET_DIR` env var
+- `knowledge-events.py:33` - Uses `KLEAN_SOCKET_DIR` env var
+- `consensus-review.sh:89` - Uses `TMPDIR` with /tmp fallback
+- `kb-doctor.sh:272` - Uses `KLEAN_SOCKET_DIR` with /tmp fallback
 
 ### 7. Empty Test Suite
 **Issue:** `tests/` directory exists but is empty
@@ -149,17 +122,10 @@ SOCKET_DIR="${TMPDIR:-/tmp}"
 ## Quick Fix Commands
 
 ```bash
-# 1. Fix license classifier
-sed -i 's/MIT License/Apache Software License/' pyproject.toml
+# 1. Update git remote URL (if needed)
+git remote set-url origin https://github.com/calinfaja/k-lean.git
 
-# 2. Create CODE_OF_CONDUCT.md
-curl -o CODE_OF_CONDUCT.md https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md
-
-# 3. Fix dates
-sed -i 's/2024-12-21/2025-12-21/' CHANGELOG.md
-sed -i 's/2025-12-16/2025-12-21/' README.md
-
-# 4. Verify all fixes
+# 2. Verify all fixes
 k-lean doctor
 ```
 

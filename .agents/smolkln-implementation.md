@@ -89,7 +89,7 @@ SmolKLN transforms the K-LEAN agent system from basic wrappers into a production
 
 ```
 src/klean/smol/
-├── __init__.py          # All exports (100+ symbols)
+├── __init__.py          # All exports (33 symbols)
 ├── executor.py          # Main entry point - SmolKLNExecutor
 ├── loader.py            # Agent .md file parser
 ├── models.py            # LiteLLM model factory
@@ -225,6 +225,28 @@ servers = list_available_mcp_servers()
 
 # Load tools
 tools = get_mcp_tools(["serena"])
+```
+
+### Default Tool Set
+
+SmolKLN provides a comprehensive default tool set for all agents:
+
+| Tool | Type | Purpose |
+|------|------|---------|
+| `knowledge_search` | Custom | Query project Knowledge DB for prior solutions |
+| `web_search` | DuckDuckGo | Search web for documentation and articles |
+| `visit_webpage` | Smolagents | Fetch and parse webpage content |
+| `read_file` | Custom | Read file contents from project |
+| `search_files` | Custom | Find files by glob pattern |
+| `grep` | Custom | Search text patterns in files |
+
+**Tool Loading** (from `tools.py`):
+```python
+from klean.smol import get_default_tools
+
+tools = get_default_tools(project_path)
+# Returns: [KnowledgeRetrieverTool, DuckDuckGoSearchTool,
+#           VisitWebpageTool, read_file, search_files, grep]
 ```
 
 ---
@@ -457,8 +479,10 @@ result = executor.wait_for(task_id)
 
 ## Dependencies
 
-- `smolagents[litellm]` - Core agent framework
-- `txtai` - Knowledge DB (optional, for semantic search)
+- `smolagents[litellm]>=1.17.0` - Core agent framework
+- `txtai>=7.0.0` - Knowledge DB (semantic search)
+- `ddgs>=6.0.0` - DuckDuckGo web search tool
+- `markdownify>=0.11.0` - HTML to markdown for VisitWebpageTool
 - LiteLLM proxy at `localhost:4000` (configurable)
 
 ---

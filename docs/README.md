@@ -4,7 +4,7 @@ Multi-model code review and knowledge capture for Claude Code.
 
 ## What It Does
 
-- **Reviews**: 6 LLM models review your code with consensus scoring
+- **Reviews**: 12 LLM models review your code with consensus scoring
 - **Knowledge**: Captures lessons learned with semantic search
 - **SmolKLN Agents**: 8 specialist AI agents for domain-specific analysis
 
@@ -29,7 +29,7 @@ k-lean doctor
 ```bash
 # In Claude Code
 /kln:quick security          # Fast review (~30s)
-/kln:multi architecture      # 5-model consensus (~60s)
+/kln:multi architecture      # 3-5 model consensus (~60s)
 /kln:deep "full audit"       # Deep with tools (~3min)
 
 # Keywords (type directly)

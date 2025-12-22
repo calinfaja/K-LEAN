@@ -31,7 +31,7 @@ K-LEAN adds:
 |---------|-------------------|-------------|
 | Review perspectives | 1 model | 3-5 models consensus |
 | Session memory | None | Semantic KB with 1hr idle timeout |
-| Specialist review | Generic | 8 domain experts |
+| Specialist review | Generic | 8 SmolKLN agents with tools |
 | Model flexibility | Claude only | 12+ models via LiteLLM |
 
 ## Positioning
@@ -49,7 +49,7 @@ K-LEAN adds:
 2. **Per-project Knowledge DB** - Isolated semantic search per git repo
 3. **Rethink command** - Contrarian debugging with 4 techniques
 4. **Thinking model support** - Handles DeepSeek, GLM, Kimi response formats
-5. **Factory droid integration** - 8 specialist reviewers
+5. **SmolKLN agents** - 8 specialist agents with tools (web search, file access, KB)
 
 ## Version
 

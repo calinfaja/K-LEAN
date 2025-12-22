@@ -2,7 +2,7 @@
 name: rust-expert
 description: Write idiomatic Rust code with ownership, lifetimes, and type safety. Implements concurrent systems, async programming, and memory-safe abstractions. Use PROACTIVELY for Rust development, systems programming, or performance-critical code.
 model: inherit
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
+tools: ["knowledge_search", "web_search", "visit_webpage", "read_file", "search_files", "grep"]
 ---
 
 

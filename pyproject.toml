@@ -46,6 +46,8 @@ agent-sdk = [
 smolagents = [
     "smolagents[litellm]>=1.17.0",
     "txtai>=7.0.0",  # Required for KnowledgeSearchTool
+    "ddgs>=6.0.0",  # Required for DuckDuckGoSearchTool
+    "markdownify>=0.11.0",  # Required for VisitWebpageTool
 ]
 toon = [
     "python-toon>=0.1.0",

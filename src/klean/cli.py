@@ -435,6 +435,81 @@ def check_litellm_detailed() -> Dict[str, Any]:
     return result
 
 
+# K-LEAN hooks configuration for Claude Code settings.json
+KLEAN_HOOKS_CONFIG = {
+    "SessionStart": [
+        {
+            "matcher": "startup",
+            "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}]
+        },
+        {
+            "matcher": "resume",
+            "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}]
+        }
+    ],
+    "UserPromptSubmit": [
+        {
+            "hooks": [{"type": "command", "command": "~/.claude/hooks/user-prompt-handler.sh", "timeout": 30}]
+        }
+    ],
+    "PostToolUse": [
+        {
+            "matcher": "Bash",
+            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-bash-handler.sh", "timeout": 15}]
+        },
+        {
+            "matcher": "WebFetch|WebSearch",
+            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}]
+        },
+        {
+            "matcher": "mcp__tavily__.*",
+            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}]
+        }
+    ]
+}
+
+
+def merge_klean_hooks(existing_settings: dict) -> tuple[dict, list[str]]:
+    """Merge K-LEAN hooks into existing settings.json, preserving user hooks.
+
+    Returns:
+        tuple: (updated_settings, list of hooks added)
+    """
+    added = []
+
+    if "hooks" not in existing_settings:
+        existing_settings["hooks"] = {}
+
+    hooks = existing_settings["hooks"]
+
+    for hook_type, klean_hook_list in KLEAN_HOOKS_CONFIG.items():
+        if hook_type not in hooks:
+            # No hooks of this type exist - add all K-LEAN hooks
+            hooks[hook_type] = klean_hook_list
+            added.append(f"{hook_type} ({len(klean_hook_list)} entries)")
+        else:
+            # Hooks exist - merge by matcher to avoid duplicates
+            existing_matchers = set()
+            for h in hooks[hook_type]:
+                # Use matcher if present, otherwise use command path as identifier
+                matcher = h.get("matcher", "")
+                if not matcher and "hooks" in h:
+                    # For hooks without matcher, use command as identifier
+                    matcher = h["hooks"][0].get("command", "") if h["hooks"] else ""
+                existing_matchers.add(matcher)
+
+            for klean_hook in klean_hook_list:
+                klean_matcher = klean_hook.get("matcher", "")
+                if not klean_matcher and "hooks" in klean_hook:
+                    klean_matcher = klean_hook["hooks"][0].get("command", "") if klean_hook["hooks"] else ""
+
+                if klean_matcher not in existing_matchers:
+                    hooks[hook_type].append(klean_hook)
+                    added.append(f"{hook_type}[{klean_matcher or 'default'}]")
+
+    return existing_settings, added
+
+
 def start_litellm(background: bool = True, port: int = 4000) -> bool:
     """Start LiteLLM proxy server."""
     ensure_klean_dirs()
@@ -1089,16 +1164,18 @@ def version():
 
 
 @main.command()
-@click.option("--auto-fix", "-f", is_flag=True, help="Automatically fix issues (start services, detect subscription)")
+@click.option("--auto-fix", "-f", is_flag=True, help="Automatically fix issues (hooks, config, services)")
 def doctor(auto_fix: bool):
     """Validate K-LEAN configuration and services (fast).
 
-    Checks: config files, .env, API keys, subscription status, services.
+    Checks: config files, .env, API keys, subscription status, hooks, services.
     Does NOT check individual model health (use 'k-lean models --health' for that).
 
     Use --auto-fix (-f) to automatically:
-    - Start stopped services
+    - Configure Claude Code hooks in settings.json
+    - Fix quoted os.environ in LiteLLM config
     - Detect and save subscription endpoint
+    - Start stopped services
     """
     print_banner()
     console.print("\n[bold]Running diagnostics...[/bold]\n")
@@ -1253,6 +1330,72 @@ def doctor(auto_fix: bool):
             for item in check_dir.iterdir():
                 if item.is_symlink() and not item.resolve().exists():
                     issues.append(("ERROR", f"Broken symlink: {item}"))
+
+    # Check Claude Code hooks configuration
+    console.print("[bold]Hooks Configuration:[/bold]")
+    settings_file = CLAUDE_DIR / "settings.json"
+    hooks_configured = False
+    missing_hooks = []
+
+    if settings_file.exists():
+        try:
+            settings = json.loads(settings_file.read_text())
+            hooks = settings.get("hooks", {})
+
+            # Check for required K-LEAN hooks
+            if "SessionStart" in hooks:
+                # Check if our matchers are present
+                matchers = {h.get("matcher") for h in hooks["SessionStart"]}
+                if "startup" in matchers and "resume" in matchers:
+                    console.print("  [green]✓[/green] SessionStart hooks: Configured")
+                    hooks_configured = True
+                else:
+                    missing_hooks.append("SessionStart[startup/resume]")
+            else:
+                missing_hooks.append("SessionStart")
+
+            if "UserPromptSubmit" in hooks:
+                console.print("  [green]✓[/green] UserPromptSubmit hooks: Configured")
+            else:
+                missing_hooks.append("UserPromptSubmit")
+
+            if "PostToolUse" in hooks:
+                console.print("  [green]✓[/green] PostToolUse hooks: Configured")
+            else:
+                missing_hooks.append("PostToolUse")
+
+        except json.JSONDecodeError:
+            issues.append(("ERROR", "settings.json is not valid JSON"))
+            console.print("  [red]✗[/red] settings.json: Invalid JSON")
+    else:
+        missing_hooks = ["SessionStart", "UserPromptSubmit", "PostToolUse"]
+        console.print("  [yellow]○[/yellow] settings.json: Not found")
+
+    if missing_hooks:
+        issues.append(("WARNING", f"Missing hooks in settings.json: {', '.join(missing_hooks)}"))
+        console.print(f"  [yellow]○[/yellow] Missing hooks: {', '.join(missing_hooks)}")
+
+        if auto_fix:
+            console.print("  [dim]Auto-configuring hooks...[/dim]")
+            try:
+                if settings_file.exists():
+                    settings = json.loads(settings_file.read_text())
+                else:
+                    settings = {}
+
+                settings, added = merge_klean_hooks(settings)
+
+                # Write back with pretty formatting
+                settings_file.write_text(json.dumps(settings, indent=2) + "\n")
+
+                if added:
+                    console.print(f"  [green]✓[/green] Added hooks: {', '.join(added)}")
+                    fixes_applied.append(f"Configured Claude Code hooks: {', '.join(added)}")
+                else:
+                    console.print("  [green]✓[/green] All K-LEAN hooks already configured")
+            except Exception as e:
+                console.print(f"  [red]✗[/red] Failed to configure hooks: {e}")
+                issues.append(("ERROR", f"Failed to auto-configure hooks: {e}"))
 
     # Service checks with auto-fix
     console.print("[bold]Service Status:[/bold]")

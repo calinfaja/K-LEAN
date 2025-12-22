@@ -51,7 +51,7 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | Hook | Trigger | File |
 |------|---------|------|
 | [ ] `session-start.sh` | SessionStart | Auto-start LiteLLM + KB |
-| [ ] `user-prompt-handler.sh` | UserPromptSubmit | 6 keywords |
+| [ ] `user-prompt-handler.sh` | UserPromptSubmit | 7 keywords |
 | [ ] `post-bash-handler.sh` | PostToolUse (Bash) | Git events → timeline |
 | [ ] `post-web-handler.sh` | PostToolUse (Web*) | Web content → KB |
 | [ ] `async-review.sh` | Background | Async reviews |
@@ -165,7 +165,7 @@ ls ~/.claude/commands/kln/agent.md
 ### Classes to Verify
 | Class | Lines | Purpose |
 |-------|-------|---------|
-| [ ] `ModelResolver` | 52-218 | Dynamic discovery, latency caching |
+| [ ] `ModelResolver` | 61-218 | Dynamic discovery, latency caching |
 | [ ] `ReviewEngine` | 224-610 | Quick + multi-model reviews |
 
 ### Features Check
@@ -177,13 +177,15 @@ ls ~/.claude/commands/kln/agent.md
 - [ ] Model diversity (limits thinking models to 50%)
 
 ### Prompts Verification
+Location: `src/klean/data/core/prompts/`
+
 | Prompt | Lines | Check |
 |--------|-------|-------|
-| [ ] `prompts/review.md` | ~86 | 7-area checklist |
-| [ ] `prompts/rethink.md` | ~92 | 4 contrarian techniques |
-| [ ] `prompts/format-json.md` | ~28 | JSON schema |
-| [ ] `prompts/format-text.md` | ~27 | Human-readable |
-| [ ] `prompts/agent-base.md` | ~54 | Agent template |
+| [ ] `review.md` | 86 | 7-area checklist |
+| [ ] `rethink.md` | 92 | 4 contrarian techniques |
+| [ ] `format-json.md` | 28 | JSON schema |
+| [ ] `format-text.md` | 27 | Human-readable |
+| [ ] `agent-base.md` | 54 | Agent template |
 
 ---
 
@@ -304,7 +306,7 @@ cat .knowledge-db/timeline.txt | tail -5
 
 ## 11. Statusline Integration
 
-### File: `klean-statusline.py` (~266 lines)
+### File: `src/klean/data/scripts/klean-statusline.py` (~271 lines)
 
 ### Fields Verification
 | Field | Source | Check |

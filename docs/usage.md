@@ -5,7 +5,7 @@
 | Command | Description | Time |
 |---------|-------------|------|
 | `/kln:quick <focus>` | Single model review | ~30s |
-| `/kln:multi <focus>` | 5-model consensus | ~60s |
+| `/kln:multi <focus>` | 3-5 model consensus | ~60s |
 | `/kln:deep <focus>` | Full codebase with tools | ~3min |
 | `/kln:agent --role <role>` | SmolKLN specialist agent | ~30s |
 | `/kln:rethink` | Contrarian debugging | ~20s |
@@ -15,7 +15,7 @@
 /kln:quick security
 /kln:multi "check error handling"
 /kln:deep "pre-release audit"
-/kln:agent --role security-auditor
+/kln:agent --role security-auditor "audit latest changes"
 ```
 
 **Async (background):**
@@ -78,7 +78,7 @@ FindKnowledge "authentication patterns"
 
 | Type | Path |
 |------|------|
-| Reviews | `.claude/kln/{command}/` |
+| Async logs | `/tmp/claude-reviews/` |
 | Knowledge | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |
-| Logs | `~/.klean/logs/` |
+| System logs | `~/.klean/logs/` |

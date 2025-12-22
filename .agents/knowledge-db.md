@@ -115,7 +115,7 @@ In Claude Code prompts:
 
 Each project gets a unique socket:
 ```
-/tmp/kb-{md5(project_root)}.sock
+/tmp/kb-{md5_hash}.sock
 ```
 
 Benefits:

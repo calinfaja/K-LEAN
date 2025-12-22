@@ -1,5 +1,7 @@
 # Installation
 
+> **Note:** K-LEAN is in beta. Install from source until PyPI release.
+
 ## Prerequisites
 
 | Requirement | Version | Check |
@@ -7,19 +9,26 @@
 | Python | 3.9+ | `python3 --version` |
 | Claude Code | 2.0+ | `claude --version` |
 | pipx | any | `pipx --version` |
+| git | any | `git --version` |
 
 ## Install
 
 ```bash
-# 1. Install K-LEAN
-pipx install k-lean
+# 1. Clone repository
+git clone https://github.com/calinfaja/k-lean.git
+cd k-lean
 
-# 2. Install components (symlinks scripts, commands, hooks)
+# 2. Install K-LEAN
+pipx install .
+
+# 3. Install components (symlinks scripts, commands, hooks)
 k-lean install
 
-# 3. Verify
+# 4. Verify
 k-lean doctor
 ```
+
+**After PyPI release:** `pipx install k-lean`
 
 ## Configure LiteLLM
 

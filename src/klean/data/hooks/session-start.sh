@@ -15,8 +15,9 @@ if [ -f "$SCRIPTS_DIR/kb-root.sh" ]; then
 fi
 
 # === LiteLLM Proxy (Global - Port 4000) ===
-# Only start if not already running
-if ! curl -s --max-time 1 http://localhost:4000/health >/dev/null 2>&1; then
+# Only start if not already running (check both health endpoint AND process)
+if ! curl -s --max-time 1 http://localhost:4000/health >/dev/null 2>&1 && \
+   ! pgrep -f "litellm.*--port.4000" >/dev/null 2>&1; then
     # Check if config exists and surface issues
     if [ ! -f ~/.config/litellm/config.yaml ]; then
         # One-time warning per session
@@ -30,13 +31,8 @@ if ! curl -s --max-time 1 http://localhost:4000/health >/dev/null 2>&1; then
             touch /tmp/klean-litellm-warned
         fi
     else
-        # Config exists, start LiteLLM
-        (
-            source ~/.config/litellm/.env
-            nohup litellm --config ~/.config/litellm/config.yaml \
-                --port 4000 \
-                > /tmp/litellm.log 2>&1 &
-        )
+        # Config exists, start LiteLLM using canonical script (has proper singleton)
+        nohup "$SCRIPTS_DIR/start-litellm.sh" 4000 > /tmp/litellm.log 2>&1 &
     fi
 fi
 

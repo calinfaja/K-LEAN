@@ -41,8 +41,7 @@ description: >
   <Clear 1-2 sentence description of what this agent does, when to use it,
   and what makes it unique. Include "Use PROACTIVELY when..." trigger.>
 model: inherit
-tools: ["Read", "LS", "Grep", "Glob", "Create", "Edit", "MultiEdit", "Execute",
-        "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
+tools: ["knowledge_search", "web_search", "visit_webpage", "read_file", "search_files", "grep"]
 ---
 
 # Role & Identity
@@ -246,28 +245,26 @@ Next Phase Suggestion:
 
 ## Tools Recommendations
 
-### Standard Toolset (All Agents)
+### Standard Toolset (All SmolKLN Agents)
 ```yaml
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
+tools: ["knowledge_search", "web_search", "visit_webpage", "read_file", "search_files", "grep"]
 ```
 
 **Read-only by design** - agents analyze and report, they don't modify code directly.
 
-| Tool | Purpose |
-|------|---------|
-| Read, LS, Grep, Glob | File exploration and search |
-| Execute | Run tests, linters, build commands (read-only ops) |
-| WebSearch, FetchUrl | Research and documentation lookup |
-| TodoWrite | Track analysis progress |
-| Task | Delegate to other agents |
-| GenerateAgent | Spawn specialized sub-agents dynamically |
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `knowledge_search` | Query project Knowledge DB for prior solutions | `knowledge_search("JWT authentication patterns")` |
+| `web_search` | DuckDuckGo search for docs/articles | `web_search("OWASP JWT best practices 2024")` |
+| `visit_webpage` | Fetch and parse webpage content | `visit_webpage("https://owasp.org/...")` |
+| `read_file` | Read file contents | `read_file("src/auth/login.py")` |
+| `search_files` | Find files by glob pattern | `search_files("*.py", recursive=True)` |
+| `grep` | Search text patterns in files | `grep("password", file_pattern="*.py")` |
 
-### With GitHub Integration (code-reviewer)
-```yaml
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent",
-        "github___get_pull_request", "github___get_pull_request_files",
-        "github___create_pull_request_review", "github___get_pull_request_comments"]
-```
+### Tool Chains
+- **Research**: `knowledge_search` → `web_search` → `visit_webpage`
+- **Code Analysis**: `search_files` → `read_file` → `grep`
+- **Full Review**: Knowledge DB + Web research + Local analysis
 
 ---
 

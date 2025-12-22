@@ -74,7 +74,7 @@ k-lean models --health  # Check model availability
 5. LiteLLM Service (1 test)
 6. Knowledge System (2 tests)
 7. Nano Profile (3 tests)
-8. Factory Droids (1 test)
+8. SmolKLN Agents (1 test)
 
 ## Release Checklist
 
@@ -126,11 +126,11 @@ git push && git push --tags
 2. Register in `~/.claude/settings.json`
 3. Test with `k-lean debug`
 
-### Adding a New Droid
+### Adding a New SmolKLN Agent
 
-1. Copy `src/klean/data/droids/TEMPLATE.md`
+1. Copy `src/klean/data/agents/TEMPLATE.md`
 2. Customize for specialization
-3. Register in `~/.factory/droids/`
+3. Run `k-lean sync` to install
 
 ## Debugging
 
