@@ -1,0 +1,1 @@
+/home/calin/.local/share/pipx/venvs/k-lean/lib/python3.12/site-packages/klean/data/scripts/smol-kln.py
