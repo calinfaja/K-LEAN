@@ -1,4 +1,4 @@
-# Factory Droid Prompt
+# SmolKLN Agent Prompt
 
 You are a {{ROLE_NAME}} working on: {{TASK}}
 

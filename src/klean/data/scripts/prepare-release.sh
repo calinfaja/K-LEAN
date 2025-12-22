@@ -67,12 +67,12 @@ populate_data() {
     local hook_count=$(ls -1 "$DATA_DIR/hooks" 2>/dev/null | wc -l)
     log_success "Copied $hook_count hooks"
 
-    # Droids
-    log_info "Copying droids..."
-    mkdir -p "$DATA_DIR/droids"
-    cp "$SCRIPT_DIR/droids"/*.md "$DATA_DIR/droids/" 2>/dev/null || true
-    local droid_count=$(ls -1 "$DATA_DIR/droids" 2>/dev/null | wc -l)
-    log_success "Copied $droid_count droids"
+    # SmolKLN Agents
+    log_info "Copying SmolKLN agents..."
+    mkdir -p "$DATA_DIR/agents"
+    cp "$SCRIPT_DIR/src/klean/data/agents"/*.md "$DATA_DIR/agents/" 2>/dev/null || true
+    local agent_count=$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)
+    log_success "Copied $agent_count SmolKLN agents"
 
     # Config
     log_info "Copying configuration..."
@@ -154,11 +154,11 @@ check_release() {
         ((errors++))
     fi
 
-    if [ -d "$DATA_DIR/droids" ] && [ "$(ls -1 "$DATA_DIR/droids" 2>/dev/null | wc -l)" -gt 0 ]; then
-        local count=$(ls -1 "$DATA_DIR/droids" 2>/dev/null | wc -l)
-        log_success "Data/droids: $count files"
+    if [ -d "$DATA_DIR/agents" ] && [ "$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)" -gt 0 ]; then
+        local count=$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)
+        log_success "Data/agents: $count files"
     else
-        log_error "Data/droids empty or missing"
+        log_error "Data/agents empty or missing"
         ((errors++))
     fi
 

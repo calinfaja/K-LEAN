@@ -17,13 +17,12 @@ DATA_DIR = Path(__file__).parent / "data"
 
 # Default paths
 CLAUDE_DIR = Path.home() / ".claude"
-FACTORY_DIR = Path.home() / ".factory"
 VENV_DIR = Path.home() / ".venvs" / "knowledge-db"
 CONFIG_DIR = Path.home() / ".config" / "litellm"
 KLEAN_DIR = Path.home() / ".klean"
 LOGS_DIR = KLEAN_DIR / "logs"
 PIDS_DIR = KLEAN_DIR / "pids"
-SMOL_AGENTS_DIR = KLEAN_DIR / "agents"  # SmolKLN agents (independent from Factory droids)
+SMOL_AGENTS_DIR = KLEAN_DIR / "agents"  # SmolKLN agent prompts
 
 
 def get_version() -> str:

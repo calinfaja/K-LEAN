@@ -1,154 +1,72 @@
-# K-LEAN Factory Droids
+# K-LEAN Agents (formerly Factory Droids)
 
-## Overview
+## ⚠️ DEPRECATED: Factory Droids Removed
 
-Factory Droids are **specialist AI personas** for domain-specific code reviews.
+Factory Droids have been **completely removed** from K-LEAN in favor of **SmolKLN**, a more powerful and reliable agent system.
 
-## Available Droids
+## Why SmolKLN Replaced Factory Droids
 
-| Droid | Specialization | Lines |
-|-------|---------------|-------|
-| `orchestrator` | Master coordinator | 765 |
-| `code-reviewer` | OWASP, SOLID, quality | 258 |
-| `security-auditor` | Vulnerabilities, auth, crypto | 89 |
-| `debugger` | Root cause analysis | 99 |
-| `arm-cortex-expert` | Embedded ARM systems | 320 |
-| `c-pro` | C99/C11/POSIX | 275 |
-| `rust-expert` | Ownership, lifetimes, safety | 170 |
-| `performance-engineer` | Profiling, optimization | 175 |
+| Issue with Factory Droids | SmolKLN Solution |
+|---------------------------|------------------|
+| Relied on external `droid` binary | Uses native smolagents library |
+| Binary was unreliable (hung) | Pure Python, no external deps |
+| Required separate Factory CLI | Integrated into K-LEAN CLI |
+| Limited to single-model calls | True agentic with tools |
+| Could not read actual files | Has read_file, grep, search_files |
+| No knowledge integration | Built-in Knowledge DB tool |
+| No MCP support | Native MCP server support |
 
-## Usage
+## Current Agent System: SmolKLN
+
+SmolKLN uses the same **agent prompts** but with a production-grade execution engine:
+
+### Available Agents
+
+| Agent | Specialization |
+|-------|---------------|
+| `orchestrator` | Master coordinator |
+| `code-reviewer` | OWASP, SOLID, quality |
+| `security-auditor` | Vulnerabilities, auth |
+| `debugger` | Root cause analysis |
+| `arm-cortex-expert` | Embedded ARM systems |
+| `c-pro` | C99/C11/POSIX |
+| `rust-expert` | Ownership, lifetimes |
+| `performance-engineer` | Profiling, optimization |
+
+### Usage
 
 ```bash
 # Via slash command
-/kln:droid security-auditor
+/kln:agent code-reviewer
 
-# Via script
-~/.claude/scripts/droid-execute.sh security-auditor "audit auth module"
+# Via CLI
+k-lean agent code-reviewer "review auth module"
+
+# Via Python
+from klean.smol import SmolKLNExecutor
+executor = SmolKLNExecutor()
+result = executor.execute("code-reviewer", "review auth module")
 ```
 
-## Droid Structure
+### Agent Locations
 
-Each droid file (`src/klean/data/droids/*.md`) contains:
+- Prompts: `~/.klean/agents/*.md`
+- Source: `src/klean/data/agents/*.md`
 
-```markdown
----
-name: droid-name
-description: What this droid does
-model: coding-qwen  # Preferred model
-tools:
-  - Read
-  - Grep
-  - Glob
-  - TodoWrite
----
+### Key Differences
 
-# Droid Name
+| Feature | Factory Droids | SmolKLN |
+|---------|---------------|---------|
+| File reading | ❌ None | ✅ read_file tool |
+| Pattern search | ❌ None | ✅ grep, search_files |
+| Knowledge DB | ❌ Separate | ✅ Integrated tool |
+| MCP servers | ❌ None | ✅ Serena, Context7 |
+| Execution | External binary | Native Python |
+| Reliability | Poor (hung) | Stable |
 
-## Identity
-Expert persona description...
+## Migration
 
-## Immediate Actions
-```bash
-# First commands to run
-```
-
-## Review Framework
-| Area | Check |
-|------|-------|
-
-## Output Format
-🔴 Critical | 🟡 Warning | 🟢 Suggestion | 📊 Summary
-
-## Orchestrator Integration
-- Before/During/After coordination
-```
-
-## Standardized Toolset
-
-All review droids use read-only tools:
-
-```yaml
-tools:
-  - Read        # Read files
-  - LS          # List directories
-  - Grep        # Search content
-  - Glob        # Find files
-  - Execute     # Run commands
-  - WebSearch   # Research
-  - FetchUrl    # Fetch documentation
-  - TodoWrite   # Track findings
-  - Task        # Spawn sub-agents
-  - GenerateDroid  # Create new droids
-```
-
-## Orchestrator
-
-The `orchestrator` droid coordinates other droids:
-
-1. **Analyze task** - Determine which specialists needed
-2. **Spawn droids** - Run relevant specialists
-3. **Aggregate results** - Combine findings
-4. **Prioritize** - Rank by severity and agreement
-
-## Creating New Droids
-
-1. Copy template:
-   ```bash
-   cp src/klean/data/droids/TEMPLATE.md src/klean/data/droids/new-droid.md
-   ```
-
-2. Customize:
-   - Identity and expertise
-   - Immediate actions (first bash commands)
-   - Review framework (checklist table)
-   - Output format
-
-3. Sync:
-   ```bash
-   k-lean sync
-   ```
-
-## Template Guidelines
-
-Based on Factory.ai docs and Anthropic research:
-
-- **Optimal length**: 300-1000 tokens
-- **Structure**: "Goldilocks zone" - not too rigid, not too vague
-- **Subtask decomposition**: "A droid is only as good as its plan"
-- **Output format**: Consistent severity indicators
-
-## Integration with Factory CLI
-
-If Factory CLI is installed, droids can run in agentic mode:
-
-```bash
-# Check Factory CLI
-k-lean status  # Shows Factory CLI version
-
-# Agentic execution
-droid security-auditor "full security audit"
-```
-
-## File Locations
-
-- Source: `src/klean/data/droids/*.md`
-- Installed: `~/.factory/droids/*.md` (symlinked)
-- Template: `src/klean/data/droids/TEMPLATE.md`
-
-## Implementation
-
-Script: `src/klean/data/scripts/droid-execute.sh`
-
-**Key function:**
-```bash
-get_droid_system_prompt() {
-    local droid_file="$HOME/.factory/droids/${droid}.md"
-    # Extract content after YAML frontmatter
-    local end_line=$(grep -n "^---$" "$droid_file" | sed -n '2p' | cut -d: -f1)
-    tail -n +"$((end_line + 1))" "$droid_file"
-}
-```
+No migration needed - SmolKLN uses the same prompt format. Just use `/kln:agent` instead of `/kln:droid`.
 
 ---
-*See [hooks.md](hooks.md) for Claude Code integration*
+*See [smolkln-implementation.md](smolkln-implementation.md) for full details*

@@ -1,7 +1,6 @@
 """SmolKLN - Smolagents Integration for K-LEAN.
 
-This package provides an independent agent system using Smolagents + LiteLLM.
-It is 100% independent from the Factory droids system.
+A production-grade agent system using Smolagents + LiteLLM.
 
 Features:
 - Project-aware: Auto-detects project root, loads CLAUDE.md

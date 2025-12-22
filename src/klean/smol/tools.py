@@ -1,6 +1,6 @@
 """Custom tools for K-LEAN SmolKLN agents.
 
-This module is INDEPENDENT - no imports from src/klean/droids/.
+Provides file operations and knowledge search tools.
 """
 
 from pathlib import Path

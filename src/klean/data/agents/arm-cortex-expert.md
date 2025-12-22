@@ -7,7 +7,7 @@ description: >
   memory barriers, DMA/cache coherency, interrupt-driven I/O, and peripheral drivers.
   Use PROACTIVELY for embedded C/C++/Rust development, driver implementation, or MCU debugging.
 model: inherit
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateDroid"]
+tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
 ---
 
 # @arm-cortex-expert
@@ -286,7 +286,7 @@ When working as part of an orchestrated task:
 ### After Completion
 - Summarize findings with severity levels (Critical/Warning/Info)
 - Document platform-specific recommendations
-- Specify if other droids are needed (security-auditor for crypto, performance-engineer for optimization)
+- Specify if other agents are needed (security-auditor for crypto, performance-engineer for optimization)
 
 ### Context Requirements
 Always provide:

@@ -1,7 +1,7 @@
-"""K-LEAN Utilities - Helper functions for droids and tools.
+"""K-LEAN Utilities - Helper functions for agents and tools.
 
 This module provides utility functions for model discovery, caching, and other
-support functionality for Agent SDK droids.
+support functionality for SmolKLN agents.
 """
 
 from .model_discovery import (

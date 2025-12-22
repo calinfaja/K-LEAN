@@ -81,4 +81,4 @@ Use the Task tool with subagent_type="general-purpose" to execute this review.
 **NOT for:**
 - Quick feedback when time is short → use `/kln:quick`
 - Just want multiple opinions without file access → use `/kln:multi`
-- Domain-specific role-based analysis → use `/kln:droid`
+- Domain-specific role-based analysis → use `/kln:agent`

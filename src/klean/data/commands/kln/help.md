@@ -16,7 +16,7 @@ Knowledge-driven Lightweight Execution & Analysis Network
 | `/kln:quick <focus>` | API | ~30s | Fast single-model review for quick insights |
 | `/kln:multi <focus>` | API | ~60s | Multi-model consensus (parallel execution) |
 | `/kln:deep <focus>` | SDK | ~3min | Thorough review with tool access and deep analysis |
-| `/kln:droid <task>` | SDK | ~2min | Role-based specialized worker for specific tasks |
+| `/kln:agent <task>` | SDK | ~2min | SmolKLN specialist agent for domain-specific tasks |
 | `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
 | `/kln:remember` | Local | ~60s | End-of-session knowledge capture and summary |
 | `/kln:status` | Local | ~5s | System health, available models, and quick help |
@@ -95,16 +95,16 @@ Use `/kln:status` or `healthcheck` to see current model availability and latency
 /kln:deep "Optimize database queries" -a
 ```
 
-### Specialized Droids
+### SmolKLN Agents
 ```bash
-# Role-based task execution
-/kln:droid "Audit security practices"
+# Role-based specialist analysis
+/kln:agent --role security-auditor "Audit security practices"
 
-# Specific model for droid
-/kln:droid "Generate test suite" -m hermes
+# Specific model for agent
+/kln:agent --role code-reviewer "Review auth module" -m qwen
 
-# Complex multi-step task
-/kln:droid "Migrate to new API version"
+# Domain expert analysis
+/kln:agent --role performance-engineer "Optimize database queries"
 ```
 
 ### Documentation

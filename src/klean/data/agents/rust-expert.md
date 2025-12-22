@@ -2,7 +2,7 @@
 name: rust-expert
 description: Write idiomatic Rust code with ownership, lifetimes, and type safety. Implements concurrent systems, async programming, and memory-safe abstractions. Use PROACTIVELY for Rust development, systems programming, or performance-critical code.
 model: inherit
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateDroid"]
+tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
 ---
 
 
@@ -133,7 +133,7 @@ When working as part of an orchestrated task:
 ### After Completion
 - Summarize findings with severity counts
 - Document any platform-specific concerns
-- Specify if other droids are needed
+- Specify if other agents are needed
 
 ### Context Requirements
 Always provide:

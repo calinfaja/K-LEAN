@@ -9,7 +9,7 @@ Events are appended to $KLEAN_SOCKET_DIR/knowledge-events.log (default: /tmp)
 Event types:
 - knowledge:captured (new fact added)
 - knowledge:search (search executed)
-- knowledge:context_injected (droid context prepared)
+- knowledge:context_injected (agent context prepared)
 - knowledge:index_rebuilt (index rebuilt with new facts)
 
 Usage:
