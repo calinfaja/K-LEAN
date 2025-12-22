@@ -117,13 +117,14 @@ def read_file(file_path: str) -> str:
 
 
 @tool
-def search_files(pattern: str, path: str = ".") -> str:
+def search_files(pattern: str, path: str = ".", recursive: bool = True) -> str:
     """
     Search for files matching a glob pattern.
 
     Args:
         pattern: Glob pattern (e.g., "*.py", "src/**/*.ts")
         path: Directory to search in (default: current directory)
+        recursive: If True, search recursively in subdirectories (default: True)
 
     Returns:
         List of matching file paths.
@@ -132,10 +133,21 @@ def search_files(pattern: str, path: str = ".") -> str:
     if not base.exists():
         return f"Path not found: {path}"
 
-    matches = list(base.glob(pattern))
+    # If pattern doesn't contain ** and recursive is True, search recursively
+    if recursive and "**" not in pattern:
+        # Try recursive pattern first
+        matches = list(base.glob(f"**/{pattern}"))
+        if not matches:
+            # Fall back to exact pattern
+            matches = list(base.glob(pattern))
+    else:
+        matches = list(base.glob(pattern))
+
     if not matches:
         return f"No files matching '{pattern}' in {path}"
 
+    # Sort by path for consistent output
+    matches = sorted(matches, key=lambda p: str(p))
     return "\n".join(str(m) for m in matches[:50])  # Limit to 50 results
 
 

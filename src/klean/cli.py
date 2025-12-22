@@ -926,8 +926,8 @@ def install(dev: bool, component: str, yes: bool):
     # Check if smolagents is installed
     if not _check_smolagents_installed():
         console.print("\n[bold]Optional - SmolKLN agents:[/bold]")
-        console.print("  To use SmolKLN agents, install smolagents:")
-        console.print("  [cyan]pipx inject k-lean 'smolagents[litellm]'[/cyan]")
+        console.print("  To use SmolKLN agents, install:")
+        console.print("  [cyan]pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'[/cyan]")
 
 
 @main.command()
@@ -1158,7 +1158,7 @@ def doctor(auto_fix: bool):
     scripts_dir = CLAUDE_DIR / "scripts"
     if scripts_dir.exists():
         # Check key scripts
-        key_scripts = ["quick-review.sh", "deep-review.sh", "droid-execute.sh"]
+        key_scripts = ["quick-review.sh", "deep-review.sh", "smol-kln.py"]
         for script in key_scripts:
             script_path = scripts_dir / script
             if not script_path.exists():
@@ -1351,7 +1351,7 @@ def doctor(auto_fix: bool):
     else:
         issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
         console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
-        console.print("    [dim]Install with: pipx inject k-lean smolagents[litellm][/dim]")
+        console.print("    [dim]Install with: pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'[/dim]")
 
     console.print("")
 

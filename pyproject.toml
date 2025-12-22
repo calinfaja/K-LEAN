@@ -45,6 +45,7 @@ agent-sdk = [
 ]
 smolagents = [
     "smolagents[litellm]>=1.17.0",
+    "txtai>=7.0.0",  # Required for KnowledgeSearchTool
 ]
 toon = [
     "python-toon>=0.1.0",
