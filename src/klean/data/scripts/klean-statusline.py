@@ -121,7 +121,7 @@ def get_git(data: dict) -> str:
         # Get branch
         branch_result = subprocess.run(
             ["git", "branch", "--show-current"],
-            capture_output=True, text=True, timeout=1, cwd=cwd
+            capture_output=True, text=True, timeout=2, cwd=cwd
         )
         if branch_result.returncode != 0:
             return f"{C.DIM}no-git{C.RESET}"
@@ -135,14 +135,14 @@ def get_git(data: dict) -> str:
         # Check dirty state
         status_result = subprocess.run(
             ["git", "status", "--porcelain"],
-            capture_output=True, text=True, timeout=1, cwd=cwd
+            capture_output=True, text=True, timeout=2, cwd=cwd
         )
         dirty = "●" if status_result.stdout.strip() else ""
 
         # Get lines added/removed (staged + unstaged)
         diff_result = subprocess.run(
             ["git", "diff", "--shortstat", "HEAD"],
-            capture_output=True, text=True, timeout=1, cwd=cwd
+            capture_output=True, text=True, timeout=2, cwd=cwd
         )
 
         added, removed = 0, 0
