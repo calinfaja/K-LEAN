@@ -82,7 +82,7 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | [ ] `quick-review.sh` | Single model API review | Executable |
 | [ ] `consensus-review.sh` | 5-model parallel review | Executable |
 | [ ] `deep-review.sh` | Claude SDK agent review | Executable |
-| [ ] `droid-execute.sh` | Factory Droid execution | Executable |
+| [ ] `smol-kln.py` | SmolKLN agent execution | Executable |
 | [ ] `async-dispatch.sh` | Background task runner | Executable |
 
 ### Feature Verification
@@ -95,7 +95,7 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | [ ] consensus-review.sh | Temp cleanup | No leftover temp files |
 | [ ] deep-review.sh | Read-only mode | Uses allow/deny permissions |
 | [ ] deep-review.sh | Audit config | Creates `/tmp/claude-audit-$$` |
-| [ ] droid-execute.sh | Reads .md files | Uses `~/.factory/droids/` |
+| [ ] smol-kln.py | Reads .md files | Uses `~/.klean/agents/` |
 | [ ] async-dispatch.sh | Background nohup | Runs without blocking |
 
 ### Common Patterns Check
@@ -127,35 +127,33 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 
 ---
 
-## 5. Droids System
+## 5. SmolKLN Agent System
 
-### Files to Verify (8 droids)
-| Droid | Lines | Check |
+### Files to Verify (8 agents)
+| Agent | Focus | Check |
 |-------|-------|-------|
-| [ ] `orchestrator.md` | ~765 | Master coordinator |
-| [ ] `code-reviewer.md` | ~258 | OWASP, SOLID |
-| [ ] `security-auditor.md` | ~89 | Vulnerabilities |
-| [ ] `debugger.md` | ~99 | Root cause analysis |
-| [ ] `arm-cortex-expert.md` | ~320 | Embedded ARM |
-| [ ] `c-pro.md` | ~275 | C99/C11/POSIX |
-| [ ] `rust-expert.md` | ~170 | Ownership, lifetimes |
-| [ ] `performance-engineer.md` | ~175 | Profiling |
+| [ ] `orchestrator.md` | Master coordinator |
+| [ ] `code-reviewer.md` | OWASP, SOLID |
+| [ ] `security-auditor.md` | Vulnerabilities |
+| [ ] `debugger.md` | Root cause analysis |
+| [ ] `arm-cortex-expert.md` | Embedded ARM |
+| [ ] `c-pro.md` | C99/C11/POSIX |
+| [ ] `rust-expert.md` | Ownership, lifetimes |
+| [ ] `performance-engineer.md` | Profiling |
 
-### Structure Verification (each droid)
+### Structure Verification (each agent)
 - [ ] YAML frontmatter with tools list
 - [ ] Identity section
-- [ ] Immediate Actions with bash commands
-- [ ] Review Framework table
-- [ ] Output Format (🔴 🟡 🟢 📊)
-- [ ] Orchestrator Integration
+- [ ] Expertise description
+- [ ] Tool access configuration
 
 ### Functional Test
 ```bash
-# Verify droids exist
-ls ~/.factory/droids/*.md | wc -l  # Should be 8
+# Verify agents exist
+ls ~/.klean/agents/*.md | wc -l  # Should be 8+
 
-# Test droid execution
-/kln:droid code-reviewer
+# Test agent command exists
+ls ~/.claude/commands/kln/agent.md
 ```
 
 ---
@@ -185,7 +183,7 @@ ls ~/.factory/droids/*.md | wc -l  # Should be 8
 | [ ] `prompts/rethink.md` | ~92 | 4 contrarian techniques |
 | [ ] `prompts/format-json.md` | ~28 | JSON schema |
 | [ ] `prompts/format-text.md` | ~27 | Human-readable |
-| [ ] `prompts/droid-base.md` | ~54 | Droid template |
+| [ ] `prompts/agent-base.md` | ~54 | Agent template |
 
 ---
 
@@ -271,7 +269,7 @@ grep -r "/home/" src/klean/ | grep -v ".pyc"
 Scripts: OK (36+)
 KLN Commands: OK (9)
 Hooks: OK (5)
-Factory Droids: OK (8)
+SmolKLN Agents: OK (8)
 Knowledge DB: INSTALLED/RUNNING
 LiteLLM Proxy: RUNNING (12 models)
 ```
@@ -403,7 +401,7 @@ cat .knowledge-db/timeline.txt | tail -5
 | Hooks System | [ ] Pass | |
 | Core Scripts | [ ] Pass | |
 | Knowledge Scripts | [ ] Pass | |
-| Droids System | [ ] Pass | |
+| SmolKLN Agents | [ ] Pass | |
 | Core Engine | [ ] Pass | |
 | LiteLLM Integration | [ ] Pass | |
 | Path Management | [ ] Pass | |
