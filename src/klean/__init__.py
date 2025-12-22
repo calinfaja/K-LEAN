@@ -23,6 +23,7 @@ CONFIG_DIR = Path.home() / ".config" / "litellm"
 KLEAN_DIR = Path.home() / ".klean"
 LOGS_DIR = KLEAN_DIR / "logs"
 PIDS_DIR = KLEAN_DIR / "pids"
+SMOL_AGENTS_DIR = KLEAN_DIR / "agents"  # SmolKLN agents (independent from Factory droids)
 
 
 def get_version() -> str:

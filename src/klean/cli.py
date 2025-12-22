@@ -31,7 +31,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.layout import Layout
 
-from klean import __version__, CLAUDE_DIR, FACTORY_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR, KLEAN_DIR, LOGS_DIR, PIDS_DIR
+from klean import __version__, CLAUDE_DIR, FACTORY_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR, KLEAN_DIR, LOGS_DIR, PIDS_DIR, SMOL_AGENTS_DIR
 
 console = Console()
 
@@ -676,7 +676,7 @@ def main():
 @main.command()
 @click.option("--dev", is_flag=True, help="Development mode: use symlinks instead of copies")
 @click.option("--component", "-c",
-              type=click.Choice(["all", "scripts", "commands", "hooks", "droids", "config", "core", "knowledge"]),
+              type=click.Choice(["all", "scripts", "commands", "hooks", "droids", "smolkln", "config", "core", "knowledge"]),
               default="all", help="Component to install")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompts")
 def install(dev: bool, component: str, yes: bool):
@@ -699,6 +699,7 @@ def install(dev: bool, component: str, yes: bool):
         source_config = repo_root / "config"
         source_lib = repo_root / "lib"
         source_core = repo_root / "src" / "klean" / "data" / "core"
+        source_agents = repo_root / "src" / "klean" / "data" / "agents"
     else:
         # Production: use package data directory
         source_base = DATA_DIR
@@ -710,6 +711,7 @@ def install(dev: bool, component: str, yes: bool):
         source_config = source_base / "config"
         source_lib = source_base / "lib"
         source_core = source_base / "core"
+        source_agents = source_base / "agents"
 
     console.print(f"[dim]Source: {source_scripts.parent}[/dim]\n")
 
@@ -775,6 +777,35 @@ def install(dev: bool, component: str, yes: bool):
             console.print(f"  [green]Installed {count} droids[/green]")
         else:
             console.print(f"  [yellow]Droids source not found[/yellow]")
+
+    # Install SmolKLN agents (independent from Factory droids)
+    if component in ["all", "smolkln"]:
+        console.print("[bold]Installing SmolKLN agents...[/bold]")
+        # SmolKLN agents are always from package data (DATA_DIR)
+        pkg_agents = DATA_DIR / "agents"
+        if pkg_agents.exists():
+            ensure_dir(SMOL_AGENTS_DIR)
+            count = copy_files(pkg_agents, SMOL_AGENTS_DIR, "*.md", symlink=dev)
+            installed["smolkln_agents"] = count
+            console.print(f"  [green]Installed {count} SmolKLN agents to {SMOL_AGENTS_DIR}[/green]")
+        else:
+            console.print(f"  [yellow]SmolKLN agents source not found at {pkg_agents}[/yellow]")
+
+        # Install smol-kln.py script from package data
+        pkg_scripts = DATA_DIR / "scripts"
+        smolkln_script = pkg_scripts / "smol-kln.py"
+        if smolkln_script.exists():
+            scripts_dst = CLAUDE_DIR / "scripts"
+            ensure_dir(scripts_dst)
+            smolkln_dst = scripts_dst / "smol-kln.py"
+            if dev:
+                if smolkln_dst.exists() or smolkln_dst.is_symlink():
+                    smolkln_dst.unlink()
+                smolkln_dst.symlink_to(smolkln_script.resolve())
+            else:
+                shutil.copy2(smolkln_script, smolkln_dst)
+            smolkln_dst.chmod(smolkln_dst.stat().st_mode | 0o111)
+            console.print(f"  [green]Installed smol-kln.py[/green]")
 
     # Install config
     if component in ["all", "config"]:
