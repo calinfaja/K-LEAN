@@ -1092,20 +1092,13 @@ def status():
         else:
             table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "run: k-lean start")
 
-    # Factory CLI (external binary for agentic mode)
+    # Factory Droids (prompt templates for /kln:droid command)
     droids_exist = (FACTORY_DIR / "droids").exists()
-    if check_command_exists("droid"):
-        try:
-            result = subprocess.run(["droid", "--version"], capture_output=True, text=True, timeout=5)
-            version = result.stdout.strip() if result.returncode == 0 else "installed"
-        except subprocess.TimeoutExpired:
-            version = "installed"
-        table.add_row("Factory CLI", f"[green]{version}[/green]", "(agentic mode)")
-    elif droids_exist:
-        # Droids exist but CLI missing - recommend installation
-        table.add_row("Factory CLI", "[yellow]NOT INSTALLED[/yellow]", "[dim]factory.ai/cli[/dim]")
+    if droids_exist:
+        droid_count = len(list((FACTORY_DIR / "droids").glob("*.md")))
+        table.add_row("Factory Droids", f"[green]OK ({droid_count})[/green]", "prompt templates")
     else:
-        table.add_row("Factory CLI", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
+        table.add_row("Factory Droids", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
     console.print(table)
 
