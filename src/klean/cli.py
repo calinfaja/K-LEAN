@@ -243,6 +243,15 @@ def check_litellm() -> bool:
         return False
 
 
+def _check_smolagents_installed() -> bool:
+    """Check if smolagents package is installed."""
+    try:
+        import smolagents
+        return True
+    except ImportError:
+        return False
+
+
 def check_command_exists(cmd: str) -> bool:
     """Check if a command exists in PATH."""
     return shutil.which(cmd) is not None
@@ -906,13 +915,19 @@ def install(dev: bool, component: str, yes: bool):
 
     console.print("\n[bold]Next steps:[/bold]")
     env_file = CONFIG_DIR / ".env"
+    step = 1
     if not env_file.exists():
-        console.print("  1. Configure API keys: [cyan]~/.claude/scripts/setup-litellm.sh[/cyan]")
-        console.print("  2. Start services: [cyan]k-lean start[/cyan]")
-        console.print("  3. Verify: [cyan]k-lean status[/cyan]")
-    else:
-        console.print("  1. Start services: [cyan]k-lean start[/cyan]")
-        console.print("  2. Verify: [cyan]k-lean status[/cyan]")
+        console.print(f"  {step}. Configure API keys: [cyan]k-lean setup[/cyan]")
+        step += 1
+    console.print(f"  {step}. Start services: [cyan]k-lean start[/cyan]")
+    step += 1
+    console.print(f"  {step}. Verify: [cyan]k-lean status[/cyan]")
+
+    # Check if smolagents is installed
+    if not _check_smolagents_installed():
+        console.print("\n[bold]Optional - SmolKLN agents:[/bold]")
+        console.print("  To use SmolKLN agents, install smolagents:")
+        console.print("  [cyan]pipx inject k-lean 'smolagents[litellm]'[/cyan]")
 
 
 @main.command()
@@ -1021,6 +1036,22 @@ def status():
         table.add_row("Factory Droids", f"OK ({count})", names_str)
     else:
         table.add_row("Factory Droids", "[yellow]NOT INSTALLED[/yellow]", "optional")
+
+    # SmolKLN Agents
+    smolkln_agents_dir = SMOL_AGENTS_DIR
+    smolagents_installed = _check_smolagents_installed()
+    if smolkln_agents_dir.exists():
+        agent_files = list(smolkln_agents_dir.glob("*.md"))
+        count = len([f for f in agent_files if f.name != "TEMPLATE.md"])
+        if smolagents_installed:
+            table.add_row("SmolKLN Agents", f"[green]OK ({count})[/green]", "smolagents ready")
+        else:
+            table.add_row("SmolKLN Agents", f"[yellow]OK ({count})[/yellow]", "[yellow]smolagents not installed[/yellow]")
+    else:
+        if smolagents_installed:
+            table.add_row("SmolKLN Agents", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
+        else:
+            table.add_row("SmolKLN Agents", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
     # Knowledge DB
     if VENV_DIR.exists():
@@ -1305,6 +1336,22 @@ def doctor(auto_fix: bool):
         else:
             issues.append(("WARNING", "Knowledge server not running"))
             console.print("  [red]✗[/red] Knowledge Server: NOT RUNNING")
+
+    # Check SmolKLN
+    console.print("\n[bold]SmolKLN Status:[/bold]")
+    smolkln_agents_dir = SMOL_AGENTS_DIR
+    if smolkln_agents_dir.exists():
+        agent_count = len([f for f in smolkln_agents_dir.glob("*.md") if f.name != "TEMPLATE.md"])
+        console.print(f"  [green]✓[/green] SmolKLN Agents: {agent_count} installed")
+    else:
+        console.print("  [yellow]○[/yellow] SmolKLN Agents: Not installed")
+
+    if _check_smolagents_installed():
+        console.print("  [green]✓[/green] smolagents: Installed")
+    else:
+        issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
+        console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
+        console.print("    [dim]Install with: pipx inject k-lean smolagents[litellm][/dim]")
 
     console.print("")
 
