@@ -16,7 +16,7 @@
 | `k-lean models` | List available models |
 | `k-lean models --health` | Check model health |
 | `k-lean test` | Run test suite |
-| `k-lean sync` | Sync droids to ~/.factory/ |
+| `k-lean sync` | Sync agents to ~/.klean/ |
 
 ## Models
 
@@ -38,7 +38,7 @@
 | `/kln:quick` | `--model`, `--output json\|text` |
 | `/kln:multi` | `--models N`, `--output` |
 | `/kln:deep` | `--async`, `--output` |
-| `/kln:droid` | `--role` |
+| `/kln:agent` | `--role` |
 | `/kln:rethink` | - |
 | `/kln:doc` | `--type report\|session\|lessons` |
 | `/kln:remember` | - |

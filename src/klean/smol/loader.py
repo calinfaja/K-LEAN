@@ -1,6 +1,6 @@
 """Load and parse SmolKLN agent .md files.
 
-This module is INDEPENDENT - no imports from src/klean/droids/.
+Agent prompt loader for SmolKLN.
 """
 
 from pathlib import Path

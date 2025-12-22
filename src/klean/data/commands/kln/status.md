@@ -83,9 +83,9 @@ When invoked:
      Thorough review with tools (~3min)
      Full context + agentic exploration
 
-   /kln:droid <model> <role> <task>
-     Role-based worker execution
-     Roles: architect, security, perf, test, doc, refactor
+   /kln:agent --role <role> <task>
+     SmolKLN specialist agent execution
+     Roles: code-reviewer, security-auditor, debugger, performance-engineer
 
    /kln:doc [summary|detailed]
      Generate session documentation

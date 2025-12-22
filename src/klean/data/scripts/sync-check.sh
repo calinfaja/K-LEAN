@@ -23,7 +23,7 @@ source "$SCRIPT_DIR/lib/common.sh" 2>/dev/null || {
 
 REPO_DIR="$SCRIPT_DIR"
 CLAUDE_DIR="$HOME/.claude"
-FACTORY_DIR="$HOME/.factory"
+KLEAN_DIR="$HOME/.klean"
 CONFIG_DIR="$HOME/.config/litellm"
 
 # Modes
@@ -245,12 +245,12 @@ if $MODE_ORPHANS; then
 fi
 echo ""
 
-#=== DROIDS ===
-echo "=== Factory Droids ==="
-for f in "$REPO_DIR/droids"/*.md; do
+#=== SMOLKLN AGENTS ===
+echo "=== SmolKLN Agents ==="
+for f in "$REPO_DIR/src/klean/data/agents"/*.md; do
     [ -f "$f" ] || continue
     NAME=$(basename "$f")
-    INSTALLED="$FACTORY_DIR/droids/$NAME"
+    INSTALLED="$KLEAN_DIR/agents/$NAME"
 
     if $MODE_CHECK; then
         check_symlink "$INSTALLED" "$f" "$NAME" || true
@@ -262,7 +262,7 @@ for f in "$REPO_DIR/droids"/*.md; do
 done
 
 if $MODE_ORPHANS; then
-    find_orphans "$FACTORY_DIR/droids" "$REPO_DIR/droids" "*.md" || true
+    find_orphans "$KLEAN_DIR/agents" "$REPO_DIR/src/klean/data/agents" "*.md" || true
 fi
 echo ""
 

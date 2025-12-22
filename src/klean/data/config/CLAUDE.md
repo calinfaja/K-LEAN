@@ -7,7 +7,7 @@
 | `/kln:quick` | Fast review - single model (~30s) | `/kln:quick security` |
 | `/kln:multi` | Consensus review - 3-5 models (~60s) | `/kln:multi --models 5 arch` |
 | `/kln:deep` | Deep analysis - full codebase (~3min) | `/kln:deep --async security` |
-| `/kln:droid` | Factory Droid - specialist agents | `/kln:droid --role security` |
+| `/kln:agent` | SmolKLN agents - specialist analysis | `/kln:agent --role security` |
 | `/kln:rethink` | Fresh perspectives - debugging help | `/kln:rethink bug` |
 | `/kln:doc` | Documentation - session notes | `/kln:doc "Sprint Review"` |
 | `/kln:remember` | Knowledge capture - end of session | `/kln:remember` |

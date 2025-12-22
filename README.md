@@ -25,7 +25,7 @@ That's why I built K-LEAN: to access the best open-source models (DeepSeek, Qwen
 |---|---------|--------------|
 | **Multi-Model Reviews** | Get consensus from 3-5 models on any code question |
 | **Persistent Knowledge** | Semantic search across sessions using txtai embeddings |
-| **Factory Droids** | 8 specialist agents (security, performance, architecture...) |
+| **SmolKLN Agents** | 8 specialist agents (security, performance, architecture...) |
 | **Live Status Bar** | Real-time model health, KB status, active reviews |
 
 ---
@@ -46,9 +46,9 @@ k-lean doctor                 # Verify everything works
 | Component | Purpose | Usage |
 |-----------|---------|-------|
 | **Hooks** | Auto-trigger on prompts & git commits | `SaveThis`, `FindKnowledge`, `asyncReview`... |
-| **Slash Commands** | 9 consolidated `/kln:*` commands | `/kln:quick`, `/kln:multi`, `/kln:deep`, `/kln:droid` |
+| **Slash Commands** | 9 consolidated `/kln:*` commands | `/kln:quick`, `/kln:multi`, `/kln:deep`, `/kln:agent` |
 | **Review System** | Headless Claude + LiteLLM proxy | Multi-model consensus, async background reviews |
-| **Factory Droids** | 8 specialist AI agents | `--role security`, `--role architect`, `--role performance` |
+| **SmolKLN Agents** | 8 specialist AI agents | `--role security`, `--role architect`, `--role performance` |
 | **Knowledge DB** | Per-project semantic memory | Auto-captures lessons, searchable across sessions |
 | **Status Bar** | Claude Code statusline integration | Model health, KB entries, active background tasks |
 
@@ -61,7 +61,7 @@ k-lean doctor                 # Verify everything works
 | `/kln:quick` | Fast single-model review (~30s) | `/kln:quick security` |
 | `/kln:multi` | Multi-model consensus (~60s) | `/kln:multi --models 5 architecture` |
 | `/kln:deep` | Thorough review with full tool access (~3min) | `/kln:deep --async security audit` |
-| `/kln:droid` | Specialist agent review | `/kln:droid --role security` |
+| `/kln:agent` | Specialist agent review | `/kln:agent --role security` |
 | `/kln:rethink` | Fresh debugging perspectives | `/kln:rethink "bug persists after fix"` |
 | `/kln:doc` | Session documentation | `/kln:doc "Sprint Review"` |
 | `/kln:remember` | End-of-session knowledge capture | `/kln:remember` |
@@ -78,7 +78,7 @@ k-lean doctor                 # Verify everything works
 ┌──────────────────────────────────────────────────────────────┐
 │                      Claude Code                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐   │
-│  │   Hooks     │  │  /kln:*     │  │   Factory Droids    │   │
+│  │   Hooks     │  │  /kln:*     │  │   SmolKLN Agents    │   │
 │  │ SaveThis    │  │  Commands   │  │   8 Specialists     │   │
 │  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘   │
 └─────────┼────────────────┼────────────────────┼──────────────┘
@@ -109,7 +109,7 @@ k-lean doctor                 # Verify everything works
 | [Architecture](.agents/architecture.md) | System design & components |
 | [Review System](.agents/review-system.md) | Multi-model review pipeline |
 | [Knowledge DB](.agents/knowledge-db.md) | Semantic memory system |
-| [Factory Droids](.agents/droids.md) | Specialist agent roles |
+| [SmolKLN Agents](.agents/droids.md) | Specialist agent roles |
 
 ---
 

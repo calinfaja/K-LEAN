@@ -31,7 +31,7 @@ from rich.table import Table
 from rich.text import Text
 from rich.layout import Layout
 
-from klean import __version__, CLAUDE_DIR, FACTORY_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR, KLEAN_DIR, LOGS_DIR, PIDS_DIR, SMOL_AGENTS_DIR
+from klean import __version__, CLAUDE_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR, KLEAN_DIR, LOGS_DIR, PIDS_DIR, SMOL_AGENTS_DIR
 
 console = Console()
 
@@ -685,7 +685,7 @@ def main():
 @main.command()
 @click.option("--dev", is_flag=True, help="Development mode: use symlinks instead of copies")
 @click.option("--component", "-c",
-              type=click.Choice(["all", "scripts", "commands", "hooks", "droids", "smolkln", "config", "core", "knowledge"]),
+              type=click.Choice(["all", "scripts", "commands", "hooks", "smolkln", "config", "core", "knowledge"]),
               default="all", help="Component to install")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompts")
 def install(dev: bool, component: str, yes: bool):
@@ -704,7 +704,6 @@ def install(dev: bool, component: str, yes: bool):
         source_commands = repo_root / "commands"
         source_commands_kln = repo_root / "commands-kln"
         source_hooks = repo_root / "hooks"
-        source_droids = repo_root / "droids"
         source_config = repo_root / "config"
         source_lib = repo_root / "lib"
         source_core = repo_root / "src" / "klean" / "data" / "core"
@@ -716,7 +715,6 @@ def install(dev: bool, component: str, yes: bool):
         source_commands = source_base / "commands"
         source_commands_kln = source_base / "commands" / "kln"
         source_hooks = source_base / "hooks"
-        source_droids = source_base / "droids"
         source_config = source_base / "config"
         source_lib = source_base / "lib"
         source_core = source_base / "core"
@@ -776,18 +774,7 @@ def install(dev: bool, component: str, yes: bool):
         else:
             console.print(f"  [yellow]Hooks source not found[/yellow]")
 
-    # Install droids
-    if component in ["all", "droids"]:
-        console.print("[bold]Installing Factory Droid specialists...[/bold]")
-        droids_dst = FACTORY_DIR / "droids"
-        if source_droids.exists():
-            count = copy_files(source_droids, droids_dst, "*.md", symlink=dev)
-            installed["droids"] = count
-            console.print(f"  [green]Installed {count} droids[/green]")
-        else:
-            console.print(f"  [yellow]Droids source not found[/yellow]")
-
-    # Install SmolKLN agents (independent from Factory droids)
+    # Install SmolKLN agents
     if component in ["all", "smolkln"]:
         console.print("[bold]Installing SmolKLN agents...[/bold]")
         # SmolKLN agents are always from package data (DATA_DIR)
@@ -941,7 +928,7 @@ def uninstall(yes: bool):
     console.print("  - ~/.claude/scripts/")
     console.print("  - ~/.claude/commands/kln/")
     console.print("  - ~/.claude/hooks/")
-    console.print("  - ~/.factory/droids/")
+    console.print("  - ~/.klean/agents/")
 
     if not yes and not click.confirm("\nProceed with uninstallation?"):
         console.print("[yellow]Uninstallation cancelled[/yellow]")
@@ -963,7 +950,7 @@ def uninstall(yes: bool):
         CLAUDE_DIR / "scripts",
         CLAUDE_DIR / "commands" / "kln",
         CLAUDE_DIR / "hooks",
-        FACTORY_DIR / "droids",
+        SMOL_AGENTS_DIR,
     ]:
         if path.exists():
             backup_path = backup_dir / path.name
@@ -1020,22 +1007,6 @@ def status():
         table.add_row("Hooks", f"OK ({count})", "")
     else:
         table.add_row("Hooks", "[yellow]NOT INSTALLED[/yellow]", "optional")
-
-    # Droids
-    droids_dir = FACTORY_DIR / "droids"
-    if droids_dir.exists():
-        droid_files = list(droids_dir.glob("*.md"))
-        count = len(droid_files)
-        # Extract droid names (without .md extension)
-        droid_names = sorted([f.stem for f in droid_files])
-        # Show abbreviated list (e.g., "code-reviewer, debugger, ...")
-        if len(droid_names) <= 4:
-            names_str = ", ".join(droid_names)
-        else:
-            names_str = ", ".join(droid_names[:3]) + f", +{len(droid_names)-3} more"
-        table.add_row("Factory Droids", f"OK ({count})", names_str)
-    else:
-        table.add_row("Factory Droids", "[yellow]NOT INSTALLED[/yellow]", "optional")
 
     # SmolKLN Agents
     smolkln_agents_dir = SMOL_AGENTS_DIR
@@ -1370,7 +1341,7 @@ def test():
     """Run comprehensive K-LEAN test suite.
 
     Tests all components: scripts, commands, hooks, services, knowledge DB,
-    nano profile, and Factory droids.
+    nano profile, and SmolKLN agents.
     """
     print_banner()
     console.print("\n[bold]K-LEAN Test Suite[/bold]\n")
@@ -1464,14 +1435,13 @@ def test():
     else:
         test_fail("Nano profile directory missing")
 
-    # Test 8: Factory Droids
-    console.print("\n[bold]8. Factory Droids[/bold]")
-    droids_dir = FACTORY_DIR / "droids"
-    if droids_dir.exists():
-        droid_count = len(list(droids_dir.glob("*.md")))
-        test_pass(f"{droid_count} droids installed") if droid_count >= 8 else test_fail(f"Only {droid_count}/8 droids")
+    # Test 8: SmolKLN Agents
+    console.print("\n[bold]8. SmolKLN Agents[/bold]")
+    if SMOL_AGENTS_DIR.exists():
+        agent_count = len([f for f in SMOL_AGENTS_DIR.glob("*.md") if f.name != "TEMPLATE.md"])
+        test_pass(f"{agent_count} agents installed") if agent_count >= 8 else test_fail(f"Only {agent_count}/8 agents")
     else:
-        test_fail("Droids directory missing")
+        test_fail("SmolKLN agents directory missing")
 
     # Summary
     console.print("\n" + "═" * 50)
@@ -1610,7 +1580,7 @@ def get_session_stats() -> Dict[str, Any]:
         "failed_requests": 0,
         "total_latency_ms": 0,
         "models_used": set(),
-        "droids_executed": 0,
+        "agents_executed": 0,
         "knowledge_queries": 0,
     }
 
@@ -1633,8 +1603,8 @@ def get_session_stats() -> Dict[str, Any]:
             if model:
                 stats["models_used"].add(model)
 
-        if component == "droid":
-            stats["droids_executed"] += 1
+        if component == "agent" or component == "smolkln":
+            stats["agents_executed"] += 1
 
         if component == "knowledge":
             stats["knowledge_queries"] += 1
@@ -1787,7 +1757,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
         # Activity counts
         lines_out.append(f"[bold]Activity:[/bold]")
-        lines_out.append(f"  [magenta]Droids:[/magenta] {stats['droids_executed']}")
+        lines_out.append(f"  [magenta]Agents:[/magenta] {stats['agents_executed']}")
         lines_out.append(f"  [cyan]KB queries:[/cyan] {stats['knowledge_queries']}")
         if stats['models_used']:
             lines_out.append(f"  [dim]Models: {', '.join(m[:8] for m in list(stats['models_used'])[:3])}[/dim]")
@@ -2199,7 +2169,6 @@ def sync(check: bool, clean: bool, verbose: bool):
         ("scripts", "scripts", ["*.sh", "*.py"]),
         ("hooks", "hooks", ["*.sh"]),
         ("commands/kln", "commands/kln", ["*.md"]),
-        ("droids", "droids", ["*.md"]),
         ("config", "config", ["*.md", "*.yaml"]),
         ("config/litellm", "config/litellm", ["*.yaml", ".env.example"]),
         ("lib", "lib", ["*.sh"]),

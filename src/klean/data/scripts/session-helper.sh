@@ -15,8 +15,8 @@
 #   │   └── 2024-12-09_16-00-00_consensus.md
 #   ├── deepInspect/
 #   │   └── 2024-12-09_17-00-00_qwen_audit.md
-#   ├── droidExecute/
-#   │   └── 2024-12-09_18-00-00_qwen_arm-cortex.txt
+#   ├── agentExecute/
+#   │   └── 2024-12-09_18-00-00_qwen_security-auditor.txt
 #   └── asyncDeepAudit/
 #       └── 2024-12-09_18-00-00_parallel.md
 
@@ -61,7 +61,7 @@ get_kln_base_dir() {
 }
 
 # Get command-specific output directory (creates if needed)
-# Args: $1 - command name (e.g., "quickReview", "droidExecute")
+# Args: $1 - command name (e.g., "quickReview", "agentExecute")
 #       $2 - working directory (default: pwd)
 # Returns: path to command-specific output directory
 get_output_dir() {

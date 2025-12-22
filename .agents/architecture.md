@@ -15,18 +15,18 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                      K-LEAN Scripts                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │ Review       │  │ Knowledge    │  │ Droids               │   │
+│  │ Review       │  │ Knowledge    │  │ SmolKLN Agents       │   │
 │  │ quick/deep   │  │ capture/query│  │ 8 specialists        │   │
 │  │ consensus    │  │ server       │  │ orchestrator         │   │
 │  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘   │
 └─────────┼────────────────┼──────────────────────┼───────────────┘
           │                │                      │
           ▼                ▼                      ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│  LiteLLM Proxy  │  │  Knowledge DB   │  │  Factory CLI    │
-│  localhost:4000 │  │  txtai + socket │  │  (optional)     │
-│  12+ models     │  │  per-project    │  │                 │
-└────────┬────────┘  └─────────────────┘  └─────────────────┘
+┌─────────────────┐  ┌─────────────────┐
+│  LiteLLM Proxy  │  │  Knowledge DB   │
+│  localhost:4000 │  │  txtai + socket │
+│  12+ models     │  │  per-project    │
+└────────┬────────┘  └─────────────────┘
          │
          ▼
 ┌─────────────────────────────────────────┐
@@ -50,14 +50,14 @@ src/klean/
 │   ├── scripts/         # 36 .sh + 9 .py scripts
 │   ├── commands/kln/    # 9 slash commands
 │   ├── hooks/           # 5 Claude Code hooks
-│   ├── droids/          # 8 specialist personas
+│   ├── agents/          # 8 SmolKLN specialist agents
 │   ├── lib/             # Shared utilities (common.sh)
 │   ├── core/            # Review engine
 │   │   ├── klean_core.py    # 1190 lines
 │   │   ├── config.yaml      # Settings
 │   │   └── prompts/         # Review prompts
 │   └── config/          # Config templates
-├── agents/              # Agentic reviewers (architect, security, etc.)
+├── smol/                # SmolKLN agent system (smolagents + LiteLLM)
 ├── tools/               # MCP-style tools
 └── utils/               # Utilities (model_discovery.py)
 ```

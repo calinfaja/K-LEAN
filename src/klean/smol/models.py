@@ -1,6 +1,6 @@
 """LiteLLM model wrapper for Smolagents.
 
-This module is INDEPENDENT - no imports from src/klean/droids/.
+Model discovery and LiteLLM integration for SmolKLN.
 """
 
 from typing import Optional

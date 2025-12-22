@@ -1,7 +1,7 @@
-"""K-LEAN Tools - Custom tools for Agent SDK droids.
+"""K-LEAN Tools - Custom tools for SmolKLN agents.
 
 This module provides a framework for defining custom tools that can be used
-by Agent SDK-based droids for enhanced code analysis capabilities.
+by SmolKLN agents for enhanced code analysis capabilities.
 """
 
 from typing import Any, Callable, Dict, Optional
@@ -15,7 +15,7 @@ def tool(
     """Decorator for defining Agent SDK tools.
 
     This decorator marks a function as a tool that can be used by
-    Agent SDK droids. Tools are async functions that can be called
+    SmolKLN agents. Tools are async functions that can be called
     by Claude during analysis.
 
     Args:

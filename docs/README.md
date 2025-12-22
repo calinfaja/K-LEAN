@@ -6,7 +6,7 @@ Multi-model code review and knowledge capture for Claude Code.
 
 - **Reviews**: 6 LLM models review your code with consensus scoring
 - **Knowledge**: Captures lessons learned with semantic search
-- **Droids**: 8 specialist AI personas for domain-specific analysis
+- **SmolKLN Agents**: 8 specialist AI agents for domain-specific analysis
 
 ## Quick Start
 

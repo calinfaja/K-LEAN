@@ -1,6 +1,6 @@
 """SmolKLN executor - runs agents using Smolagents.
 
-This module is INDEPENDENT - no imports from src/klean/droids/.
+Primary agent execution engine for K-LEAN.
 """
 
 from pathlib import Path
@@ -22,9 +22,7 @@ from .memory import AgentMemory
 class SmolKLNExecutor:
     """Execute K-LEAN agents using Smolagents.
 
-    This is 100% independent from Factory droids.
-    When droids are deleted, SmolKLN continues working.
-
+    Primary agent execution engine for K-LEAN using smolagents + LiteLLM.
     Project-aware: Automatically detects project root, loads CLAUDE.md,
     and connects to Knowledge DB.
     """

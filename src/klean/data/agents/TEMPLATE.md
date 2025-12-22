@@ -1,4 +1,4 @@
-# Optimal Droid.md Structure Guide
+# Optimal Agent.md Structure Guide
 
 ## Research Summary
 
@@ -6,10 +6,10 @@ Based on comprehensive research of Factory.ai documentation, Anthropic's context
 
 ---
 
-## Key Principles for Autonomous Droids
+## Key Principles for Autonomous Agents
 
 ### 1. Planning-First Architecture (Factory.ai)
-> "A droid is only as good as its plan."
+> "A agent is only as good as its plan."
 
 - **Subtask decomposition**: Break complex tasks into manageable steps
 - **Model predictive control**: Plan → Execute → Validate → Adjust
@@ -32,17 +32,17 @@ Based on comprehensive research of Factory.ai documentation, Anthropic's context
 
 ---
 
-## Optimal Droid.md Template
+## Optimal Agent.md Template
 
 ```markdown
 ---
-name: <droid-name>
+name: <agent-name>
 description: >
-  <Clear 1-2 sentence description of what this droid does, when to use it,
+  <Clear 1-2 sentence description of what this agent does, when to use it,
   and what makes it unique. Include "Use PROACTIVELY when..." trigger.>
 model: inherit
 tools: ["Read", "LS", "Grep", "Glob", "Create", "Edit", "MultiEdit", "Execute",
-        "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateDroid"]
+        "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
 ---
 
 # Role & Identity
@@ -146,7 +146,7 @@ When working as part of an orchestrated task:
 
 ## Before Starting
 - Review complete task context from orchestrator
-- Identify dependencies on other droids' work
+- Identify dependencies on other agents' work
 - Check for existing artifacts from previous phases
 
 ## During Execution
@@ -157,7 +157,7 @@ When working as part of an orchestrated task:
 ## After Completion
 - Summarize what was accomplished
 - List any remaining work or blockers
-- Specify if other droids are needed
+- Specify if other agents are needed
 
 ## Context Requirements
 Always provide:
@@ -184,8 +184,8 @@ Quality Assessment:
 - Info: [count] suggestions
 
 Next Phase Suggestion:
-- [droid-name] should [task]
-- [droid-name] should [task]
+- [agent-name] should [task]
+- [agent-name] should [task]
 \`\`\`
 
 ---
@@ -210,48 +210,48 @@ Next Phase Suggestion:
 
 ## Example 1: [Scenario]
 **Input**: [User request]
-**Process**: [How droid handles it]
-**Output**: [What droid produces]
+**Process**: [How agent handles it]
+**Output**: [What agent produces]
 
 ## Example 2: [Scenario]
 **Input**: [User request]
-**Process**: [How droid handles it]
-**Output**: [What droid produces]
+**Process**: [How agent handles it]
+**Output**: [What agent produces]
 ```
 
 ---
 
-## Required Sections (Minimum Viable Droid)
+## Required Sections (Minimum Viable Agent)
 
 | Section | Purpose | Required |
 |---------|---------|----------|
 | YAML Frontmatter | Metadata, tools | ✅ Yes |
-| Role & Identity | Who the droid is | ✅ Yes |
+| Role & Identity | Who the agent is | ✅ Yes |
 | Immediate Actions | First steps when invoked | ✅ Yes |
 | Process & Methodology | How to execute tasks | ✅ Yes |
 | Output Format | Consistent structured output | ✅ Yes |
 | Quality Standards | What to always/never do | ✅ Yes |
 | Orchestrator Integration | Multi-agent coordination | ✅ Yes |
 
-## Optional Sections (Enhanced Droids)
+## Optional Sections (Enhanced Agents)
 
 | Section | Purpose | When to Include |
 |---------|---------|-----------------|
 | Tool Usage Patterns | Explicit tool chains | Complex workflows |
 | Domain-Specific Knowledge | Deep expertise | Specialized domains |
-| Examples | Concrete demonstrations | New or complex droids |
-| Memory System | Learning from past | Orchestrator-level droids |
+| Examples | Concrete demonstrations | New or complex agents |
+| Memory System | Learning from past | Orchestrator-level agents |
 
 ---
 
 ## Tools Recommendations
 
-### Standard Toolset (All Droids)
+### Standard Toolset (All Agents)
 ```yaml
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateDroid"]
+tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent"]
 ```
 
-**Read-only by design** - droids analyze and report, they don't modify code directly.
+**Read-only by design** - agents analyze and report, they don't modify code directly.
 
 | Tool | Purpose |
 |------|---------|
@@ -259,12 +259,12 @@ tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoW
 | Execute | Run tests, linters, build commands (read-only ops) |
 | WebSearch, FetchUrl | Research and documentation lookup |
 | TodoWrite | Track analysis progress |
-| Task | Delegate to other droids |
-| GenerateDroid | Spawn specialized sub-droids dynamically |
+| Task | Delegate to other agents |
+| GenerateAgent | Spawn specialized sub-agents dynamically |
 
 ### With GitHub Integration (code-reviewer)
 ```yaml
-tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateDroid",
+tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoWrite", "Task", "GenerateAgent",
         "github___get_pull_request", "github___get_pull_request_files",
         "github___create_pull_request_review", "github___get_pull_request_comments"]
 ```
@@ -273,9 +273,9 @@ tools: ["Read", "LS", "Grep", "Glob", "Execute", "WebSearch", "FetchUrl", "TodoW
 
 ## Size Guidelines
 
-Based on analysis of effective droids:
+Based on analysis of effective agents:
 
-| Droid Type | Optimal Lines | Optimal KB |
+| Agent Type | Optimal Lines | Optimal KB |
 |------------|---------------|------------|
 | Orchestrator | 400-800 | 15-30 KB |
 | Specialist (Complex) | 150-300 | 6-12 KB |
@@ -293,7 +293,7 @@ Based on analysis of effective droids:
 ✅ `~/.factory/orchestrator/memory/`
 
 ### 2. Missing Tools
-❌ `tools: []` (droid can't do anything)
+❌ `tools: []` (agent can't do anything)
 ✅ `tools: ["Read", "Grep", "Glob", ...]`
 
 ### 3. No Orchestrator Integration
@@ -312,7 +312,7 @@ Based on analysis of effective droids:
 
 ## Sources
 
-- [Factory Droid Documentation](https://docs.factory.ai/cli/configuration/custom-droids)
+- [Factory Agent Documentation](https://docs.factory.ai/cli/configuration/custom-agents)
 - [Anthropic Context Engineering Guide](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
 - [Anthropic Building Effective Agents](https://www.anthropic.com/research/building-effective-agents)
 - [Augment Code: 11 Prompting Techniques](https://www.augmentcode.com/blog/how-to-build-your-agent-11-prompting-techniques-for-better-ai-agents)

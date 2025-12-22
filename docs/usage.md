@@ -7,7 +7,7 @@
 | `/kln:quick <focus>` | Single model review | ~30s |
 | `/kln:multi <focus>` | 5-model consensus | ~60s |
 | `/kln:deep <focus>` | Full codebase with tools | ~3min |
-| `/kln:droid <role>` | Specialist persona | ~30s |
+| `/kln:agent --role <role>` | SmolKLN specialist agent | ~30s |
 | `/kln:rethink` | Contrarian debugging | ~20s |
 
 **Examples:**
@@ -15,7 +15,7 @@
 /kln:quick security
 /kln:multi "check error handling"
 /kln:deep "pre-release audit"
-/kln:droid security-auditor
+/kln:agent --role security-auditor
 ```
 
 **Async (background):**
@@ -37,11 +37,11 @@ SaveThis "always validate user input before SQL queries"
 FindKnowledge "authentication patterns"
 ```
 
-## Droids
+## SmolKLN Agents
 
-8 specialist personas for domain-specific analysis:
+8 specialist agents for domain-specific analysis:
 
-| Droid | Expertise |
+| Agent | Expertise |
 |-------|-----------|
 | `code-reviewer` | OWASP, SOLID, quality |
 | `security-auditor` | Vulnerabilities, auth, crypto |
@@ -50,7 +50,7 @@ FindKnowledge "authentication patterns"
 | `c-pro` | C99/C11/POSIX |
 | `rust-expert` | Ownership, lifetimes |
 | `performance-engineer` | Profiling, optimization |
-| `orchestrator` | Coordinates other droids |
+| `orchestrator` | Coordinates other agents |
 
 ## Workflows
 
