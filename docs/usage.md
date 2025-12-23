@@ -105,6 +105,9 @@ smol-kln security-auditor "audit" --telemetry
 
 | Type | Path |
 |------|------|
+| SmolKLN agents | `.claude/kln/agentExecute/` |
+| Quick reviews | `.claude/kln/quickReview/` |
+| Deep audits | `.claude/kln/asyncDeepAudit/` |
 | Async logs | `/tmp/claude-reviews/` |
 | Knowledge | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |

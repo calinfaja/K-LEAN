@@ -292,7 +292,7 @@ class SmolKLNOrchestrator:
 1. Identify key findings from each agent
 2. Resolve any conflicts
 3. Provide unified summary with actionable recommendations
-4. Use severity levels: 🔴 Critical | 🟡 Warning | 🟢 Suggestion
+4. Use severity levels: CRITICAL | WARNING | INFO
 """
 
         result = self.executor.execute(

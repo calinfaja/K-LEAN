@@ -5,6 +5,7 @@ Primary agent execution engine for K-LEAN.
 
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+from datetime import datetime
 import json
 import time
 
@@ -49,6 +50,66 @@ class SmolKLNExecutor:
 
         # Initialize memory system
         self.memory = AgentMemory(self.project_context)
+
+        # Output directory for agent results
+        self.output_dir = self._get_output_dir()
+
+    def _get_output_dir(self) -> Path:
+        """Get output directory for agent results.
+
+        Follows K-LEAN convention: <project_root>/.claude/kln/agentExecute/
+        Falls back to /tmp/claude-reviews/agentExecute/ if not writable.
+        """
+        output_dir = self.project_root / ".claude" / "kln" / "agentExecute"
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return output_dir
+        except (PermissionError, OSError):
+            # Fallback to /tmp
+            fallback = Path("/tmp/claude-reviews/agentExecute")
+            fallback.mkdir(parents=True, exist_ok=True)
+            return fallback
+
+    def _save_result(
+        self,
+        agent_name: str,
+        task: str,
+        model_name: str,
+        output: str,
+        duration: float,
+        success: bool,
+    ) -> Path:
+        """Save agent result to markdown file.
+
+        Returns:
+            Path to the saved file.
+        """
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        # Sanitize task for filename (max 30 chars)
+        safe_task = "".join(c if c.isalnum() or c in "-_" else "-" for c in task)[:30]
+        safe_task = safe_task.strip("-") or "review"
+
+        filename = f"{timestamp}_{agent_name}_{safe_task}.md"
+        output_path = self.output_dir / filename
+
+        # Build markdown content
+        status = "Success" if success else "Failed"
+        content = f"""# SmolKLN Agent Report
+
+**Agent:** {agent_name}
+**Model:** {model_name}
+**Task:** {task}
+**Duration:** {duration:.1f}s
+**Status:** {status}
+**Generated:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+---
+
+{output}
+"""
+        output_path.write_text(content)
+        return output_path
 
     def execute(
         self,
@@ -171,12 +232,18 @@ class SmolKLNExecutor:
             # Persist session memory to Knowledge DB for future agents
             persisted_count = self.memory.persist_session_to_kb(agent_name)
 
+            # Save result to file
+            output_file = self._save_result(
+                agent_name, task, model_name, output, duration, success=True
+            )
+
             return {
                 "output": output,
                 "agent": agent_name,
                 "model": model_name,
                 "duration_s": round(duration, 1),
                 "success": True,
+                "output_file": str(output_file),
                 "memory_history": self.memory.session.get_history() if self.memory.session else [],
                 "memory_persisted": persisted_count,
             }
@@ -191,12 +258,18 @@ class SmolKLNExecutor:
                 model=model_name
             )
 
+            # Save error result to file
+            output_file = self._save_result(
+                agent_name, task, model_name, error_msg, 0, success=False
+            )
+
             return {
                 "output": error_msg,
                 "agent": agent_name,
                 "model": model_name,
                 "duration_s": 0,
                 "success": False,
+                "output_file": str(output_file),
                 "memory_history": self.memory.session.get_history() if self.memory.session else [],
             }
 
