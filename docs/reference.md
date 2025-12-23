@@ -80,7 +80,7 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 | Flag | Command | Effect |
 |------|---------|--------|
 | `--telemetry` | `k-lean start` | Start Phoenix on :6006 |
-| `-t` / `--telemetry` | `smol-kln.py` | Enable agent tracing |
+| `-t` / `--telemetry` | `smol-kln` | Enable agent tracing |
 
 **Traced:** LLM calls (prompt, response, tokens), tool invocations, agent reasoning steps.
 
