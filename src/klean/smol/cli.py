@@ -47,9 +47,9 @@ Examples:
 
             register(project_name="smolkln")
             SmolagentsInstrumentor().instrument()
-            print("📊 Telemetry enabled - view at http://localhost:6006")
+            print("Telemetry enabled - view at http://localhost:6006")
         except ImportError:
-            print("⚠️  Telemetry not installed. Run: pipx inject k-lean 'k-lean[telemetry]'")
+            print("Warning: Telemetry not installed. Run: pipx inject k-lean 'k-lean[telemetry]'")
 
     # Check if smolagents is installed
     try:
@@ -97,11 +97,15 @@ Examples:
         if result["success"]:
             print(result["output"])
             print("-" * 60)
-            print(f"✓ Completed in {result['duration_s']}s using {result['model']}")
+            print(f"Completed in {result['duration_s']}s using {result['model']}")
+            if result.get("output_file"):
+                print(f"Saved to: {result['output_file']}")
             if result.get("memory_persisted", 0) > 0:
-                print(f"📚 Persisted {result['memory_persisted']} learnings to Knowledge DB")
+                print(f"Persisted {result['memory_persisted']} learnings to Knowledge DB")
         else:
-            print(f"✗ Error: {result['output']}")
+            print(f"Error: {result['output']}")
+            if result.get("output_file"):
+                print(f"Error log: {result['output_file']}")
             sys.exit(1)
 
     except Exception as e:

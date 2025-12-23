@@ -70,6 +70,27 @@
 | `.knowledge-db/entries.jsonl` | KB entries (per-project) |
 | `.knowledge-db/index/` | Semantic index |
 | `~/.klean/logs/phoenix.log` | Phoenix telemetry logs |
+| `.claude/kln/agentExecute/` | SmolKLN agent reports |
+| `.claude/kln/quickReview/` | Quick review outputs |
+| `.claude/kln/asyncDeepAudit/` | Deep audit outputs |
+
+## SmolKLN CLI
+
+Run SmolKLN agents from command line:
+
+```bash
+smol-kln <agent> <task> [--model MODEL] [--telemetry]
+smol-kln --list
+```
+
+**Examples:**
+```bash
+smol-kln security-auditor "audit authentication module"
+smol-kln code-reviewer "review main.py" --model qwen3-coder
+smol-kln --list  # List available agents
+```
+
+**Output:** Results saved to `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
 
 ## Telemetry
 

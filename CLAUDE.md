@@ -50,6 +50,16 @@ k-lean models     # List with health
 k-lean test       # Run test suite
 ```
 
+## SmolKLN CLI
+
+```bash
+smol-kln <agent> <task> [--model MODEL] [--telemetry]
+smol-kln security-auditor "audit auth module"
+smol-kln --list   # List available agents
+```
+
+**Output**: `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
+
 ## Available Models
 
 Auto-discovered from LiteLLM. Use `k-lean models` to see current list.

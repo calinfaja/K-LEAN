@@ -76,13 +76,19 @@ After installation, `~/.claude/` contains symlinks:
 
 ### Per-Project Isolation
 
-Each git repository gets its own Knowledge DB:
+Each git repository gets its own Knowledge DB and output directories:
 
 ```
 /tmp/kb-{md5_hash}.sock    # Unix socket for fast queries
 .knowledge-db/             # Per-project data (in .gitignore)
 ├── entries.jsonl          # V2 schema entries
 └── index/                 # Semantic embeddings
+.claude/kln/               # K-LEAN outputs (in .gitignore)
+├── agentExecute/          # SmolKLN agent reports
+├── quickReview/           # /kln:quick results
+├── quickCompare/          # /kln:multi results
+├── deepInspect/           # /kln:deep results
+└── asyncDeepAudit/        # Parallel deep reviews
 ```
 
 ## Data Flow

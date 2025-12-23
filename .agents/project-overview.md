@@ -16,7 +16,7 @@ Claude Code uses a single AI model for all tasks. This creates:
 K-LEAN adds:
 1. **Multi-Model Reviews** - Get consensus from 3-5 different LLMs in parallel
 2. **Persistent Knowledge DB** - Semantic search across sessions with txtai embeddings
-3. **Specialist Droids** - 8 expert personas (security, performance, Rust, ARM, etc.)
+3. **SmolKLN Agents** - 8 expert personas (security, performance, Rust, ARM, etc.)
 4. **LiteLLM Routing** - Access 12+ models via NanoGPT/OpenRouter
 
 ## Target Users
