@@ -93,7 +93,7 @@ When invoked, ALWAYS:
 
 ## Output Format
 
-### 🔴 Critical (>50% impact)
+### Critical Issues [>50% impact]
 ```
 File: src/api/users.ts:89
 Issue: N+1 query - fetching roles in loop
@@ -101,7 +101,7 @@ Impact: 100 users = 101 queries, ~2s response time
 Fix:   Use JOIN or batch query: SELECT * FROM roles WHERE user_id IN (...)
 ```
 
-### 🟡 Warnings (10-50% impact)
+### Warnings [10-50% impact]
 ```
 File: src/utils/transform.ts:45
 Issue: O(n²) complexity in data transformation
@@ -109,7 +109,7 @@ Impact: 1000 items = 1M operations
 Fix:   Use Map for O(1) lookups instead of .find()
 ```
 
-### 📊 Summary
+### Summary
 | Metric | Current | Target | Gap |
 |--------|---------|--------|-----|
 | API P95 | 800ms | 200ms | -75% |
@@ -148,7 +148,7 @@ Always provide:
 
 ### Example Orchestrated Output
 ```
-✅ Performance Review Complete:
+Performance Review Complete:
 
 Application: E-commerce API
 Current P95: 1.2s | Target: 200ms

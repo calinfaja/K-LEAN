@@ -167,7 +167,7 @@ Always provide:
 
 ## Example Orchestrated Output
 \`\`\`
-✅ [Task Type] Complete:
+[Task Type] Complete:
 
 Summary:
 - [Key finding 1]
@@ -224,13 +224,13 @@ Next Phase Suggestion:
 
 | Section | Purpose | Required |
 |---------|---------|----------|
-| YAML Frontmatter | Metadata, tools | ✅ Yes |
-| Role & Identity | Who the agent is | ✅ Yes |
-| Immediate Actions | First steps when invoked | ✅ Yes |
-| Process & Methodology | How to execute tasks | ✅ Yes |
-| Output Format | Consistent structured output | ✅ Yes |
-| Quality Standards | What to always/never do | ✅ Yes |
-| Orchestrator Integration | Multi-agent coordination | ✅ Yes |
+| YAML Frontmatter | Metadata, tools | Required |
+| Role & Identity | Who the agent is | Required |
+| Immediate Actions | First steps when invoked | Required |
+| Process & Methodology | How to execute tasks | Required |
+| Output Format | Consistent structured output | Required |
+| Quality Standards | What to always/never do | Required |
+| Orchestrator Integration | Multi-agent coordination | Required |
 
 ## Optional Sections (Enhanced Agents)
 
@@ -286,24 +286,24 @@ Based on analysis of effective agents:
 ## Common Issues to Avoid
 
 ### 1. Hardcoded Paths
-❌ `/Users/besi/.factory/orchestrator/memory/`
-✅ `~/.factory/orchestrator/memory/`
+Wrong: `/Users/besi/.factory/orchestrator/memory/`
+Correct: `~/.factory/orchestrator/memory/`
 
 ### 2. Missing Tools
-❌ `tools: []` (agent can't do anything)
-✅ `tools: ["Read", "Grep", "Glob", ...]`
+Wrong: `tools: []` (agent can't do anything)
+Correct: `tools: ["Read", "Grep", "Glob", ...]`
 
 ### 3. No Orchestrator Integration
-❌ Just task instructions
-✅ Before/During/After sections for multi-agent coordination
+Wrong: Just task instructions
+Correct: Before/During/After sections for multi-agent coordination
 
 ### 4. Vague Instructions
-❌ "Review the code"
-✅ "Run `git diff` to see changes, use Grep to find patterns, provide file:line references"
+Wrong: "Review the code"
+Correct: "Run `git diff` to see changes, use Grep to find patterns, provide file:line references"
 
 ### 5. No Output Structure
-❌ Free-form responses
-✅ `## Summary`, `## Findings`, `## Recommendations` sections
+Wrong: Free-form responses
+Correct: `## Summary`, `## Findings`, `## Recommendations` sections
 
 ---
 
