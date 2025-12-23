@@ -2509,6 +2509,92 @@ def detect_nanogpt_endpoint(api_key: str) -> str:
     return "https://nano-gpt.com/api/v1"
 
 
+# =============================================================================
+# Multi-Agent Command
+# =============================================================================
+
+@main.command()
+@click.argument("task")
+@click.option("--thorough", "-t", is_flag=True, help="Use 4-agent architecture (slower, more thorough)")
+@click.option("--manager-model", "-m", help="Override manager model")
+@click.option("--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format")
+@click.option("--telemetry", is_flag=True, help="Enable Phoenix telemetry (view at localhost:6006)")
+def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry: bool):
+    """Run multi-agent orchestrated review.
+
+    Uses multiple specialized agents coordinated by a manager for thorough code reviews.
+
+    \b
+    3-Agent (default):
+      - Manager (glm-4.6-thinking): Orchestration
+      - File Scout (qwen3-coder): Fast file discovery
+      - Analyzer (kimi-k2-thinking): Deep analysis
+
+    \b
+    4-Agent (--thorough):
+      - Manager (glm-4.6-thinking): Orchestration
+      - File Scout (qwen3-coder): File discovery
+      - Code Analyzer (deepseek-v3-thinking): Bug detection
+      - Security Auditor (deepseek-v3-thinking): Security analysis
+      - Synthesizer (kimi-k2): Report formatting
+
+    Examples:
+        k-lean multi "Review src/auth/ for security issues"
+        k-lean multi --thorough "Review the authentication module"
+        k-lean multi -m kimi-k2-thinking "Review cli.py"
+    """
+    # Setup telemetry if requested
+    if telemetry:
+        try:
+            from phoenix.otel import register
+            from openinference.instrumentation.smolagents import SmolagentsInstrumentor
+            register(project_name="klean-multi")
+            SmolagentsInstrumentor().instrument()
+            console.print("[dim]Telemetry enabled - view at http://localhost:6006[/dim]")
+        except ImportError:
+            console.print("[yellow]Telemetry not installed. Run: pipx inject k-lean arize-phoenix openinference-instrumentation-smolagents[/yellow]")
+
+    try:
+        from klean.smol.multi_agent import MultiAgentExecutor
+    except ImportError:
+        console.print("[red]Error: smolagents not installed[/red]")
+        console.print("Install with: pipx inject k-lean 'smolagents[litellm]'")
+        return
+
+    variant = "4-agent" if thorough else "3-agent"
+    console.print(f"\n[bold cyan]Multi-Agent Review ({variant})[/bold cyan]")
+    console.print("=" * 50)
+    console.print(f"[dim]Task: {task}[/dim]\n")
+
+    try:
+        executor = MultiAgentExecutor()
+        console.print(f"[dim]Project: {executor.project_root}[/dim]")
+        console.print("[dim]Starting agents...[/dim]\n")
+
+        result = executor.execute(
+            task=task,
+            thorough=thorough,
+            manager_model=manager_model,
+        )
+
+        if output == "json":
+            import json
+            console.print(json.dumps(result, indent=2))
+        else:
+            if result["success"]:
+                console.print(result["output"])
+                console.print("\n" + "=" * 50)
+                console.print(f"[green]✓ Completed in {result['duration_s']}s[/green]")
+                console.print(f"[dim]Agents: {', '.join(result['agents_used'])}[/dim]")
+                if result.get("output_file"):
+                    console.print(f"[dim]Saved to: {result['output_file']}[/dim]")
+            else:
+                console.print(f"[red]Error: {result['output']}[/red]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+
+
 def find_config_template(name: str) -> Optional[Path]:
     """Find config template in package data or repo."""
     # Check package data directory

@@ -48,6 +48,14 @@ When invoked, ALWAYS:
    - Use TodoWrite to track analysis progress
    - Prioritize by severity (memory safety > security > performance)
 
+## Tool Selection Strategy
+
+1. **Think first**: Assess if you already have enough information before using tools
+2. **Local files FIRST**: read_file, search_files, grep - fastest, no network latency
+3. **Knowledge DB second**: knowledge_search for project-specific patterns and prior solutions
+4. **Web search LAST**: Only for obscure compiler bugs, platform-specific documentation
+5. **NEVER web search for**: C syntax, standard library functions, common memory patterns you already know
+
 4. **Report Findings**
    - Provide file:line references for all issues
    - Include code snippets showing the problem

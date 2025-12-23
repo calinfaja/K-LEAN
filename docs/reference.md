@@ -92,6 +92,43 @@ smol-kln --list  # List available agents
 
 **Output:** Results saved to `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
 
+## Multi-Agent (k-lean multi)
+
+Orchestrated multi-agent reviews using smolagents `managed_agents`:
+
+```bash
+# 3-agent (default) - fast
+k-lean multi "Review src/klean/cli.py for bugs"
+
+# 4-agent (thorough) - comprehensive
+k-lean multi --thorough "Security audit of auth module"
+
+# With telemetry
+k-lean multi "Review changes" --telemetry
+```
+
+### Agent Configurations
+
+| Variant | Agents | Time | Use Case |
+|---------|--------|------|----------|
+| 3-agent (default) | manager + file_scout + analyzer | 30-90s | Quick reviews |
+| 4-agent (--thorough) | manager + file_scout + code_analyzer + security_auditor + synthesizer | 60-180s | Deep audits |
+
+### Model Assignments
+
+| Agent | Model | Role |
+|-------|-------|------|
+| manager | `glm-4.6-thinking` | Orchestration (90.6% tool-calling) |
+| file_scout | `qwen3-coder` | Fast file discovery |
+| analyzer | `deepseek-v3-thinking` | Deep code analysis |
+| code_analyzer | `deepseek-v3-thinking` | Bug detection |
+| security_auditor | `deepseek-v3-thinking` | Security analysis |
+| synthesizer | `qwen3-coder` | Report formatting |
+
+**Output:** `.claude/kln/multiAgent/<timestamp>_multi-[3|4]-agent_<task>.md`
+
+See [multi-agent-implementation-plan.md](multi-agent-implementation-plan.md) for architecture details.
+
 ## Telemetry
 
 SmolKLN agents can be traced with Phoenix for debugging and performance analysis.

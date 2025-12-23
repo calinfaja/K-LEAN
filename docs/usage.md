@@ -101,11 +101,31 @@ smol-kln security-auditor "audit" --telemetry
 /kln:rethink
 ```
 
+## Multi-Agent Reviews (k-lean multi)
+
+Orchestrated reviews using multiple specialized agents:
+
+```bash
+# 3-agent (default) - manager + file_scout + analyzer
+k-lean multi "Review src/klean/cli.py for bugs"
+
+# 4-agent (thorough) - adds code_analyzer + security_auditor + synthesizer
+k-lean multi --thorough "Security audit of auth module"
+
+# With telemetry
+k-lean multi "Review changes" --telemetry
+```
+
+**Output:** `.claude/kln/multiAgent/<timestamp>_multi-[3|4]-agent_<task>.md`
+
+See [reference.md](reference.md#multi-agent-k-lean-multi) for agent configurations.
+
 ## Output Locations
 
 | Type | Path |
 |------|------|
 | SmolKLN agents | `.claude/kln/agentExecute/` |
+| Multi-agent reviews | `.claude/kln/multiAgent/` |
 | Quick reviews | `.claude/kln/quickReview/` |
 | Deep audits | `.claude/kln/asyncDeepAudit/` |
 | Async logs | `/tmp/claude-reviews/` |

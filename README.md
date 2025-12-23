@@ -201,6 +201,8 @@ k-lean stop             # Stop all services
 k-lean debug            # Live dashboard
 k-lean models           # List available models
 k-lean models --health  # Check model health (~60s)
+k-lean multi "task"     # Multi-agent review (3 agents)
+k-lean multi -t "task"  # Thorough review (4 agents)
 k-lean test             # Run test suite (27 tests)
 k-lean sync             # Sync package data (dev)
 ```
