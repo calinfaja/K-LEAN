@@ -89,7 +89,7 @@ When invoked, ALWAYS:
 
 ## Output Format
 
-### 🔴 Critical Issues
+### Critical Issues
 ```
 File: src/parser.rs:142
 Issue: Unsafe block without safety comment
@@ -98,7 +98,7 @@ Fix:   // SAFETY: ptr is valid and aligned, checked at line 140
        unsafe { ptr.read() }
 ```
 
-### 🟡 Warnings
+### Warnings
 ```
 File: src/main.rs:89
 Issue: unwrap() on Result in production code
@@ -106,7 +106,7 @@ Code:  let value = result.unwrap();
 Fix:   let value = result.context("failed to get value")?;
 ```
 
-### 📊 Summary
+### Summary
 - Files analyzed: X
 - Unsafe blocks: X (with/without safety docs)
 - Unwrap calls: X
@@ -144,7 +144,7 @@ Always provide:
 
 ### Example Orchestrated Output
 ```
-✅ Rust Code Review Complete:
+Rust Code Review Complete:
 
 Toolchain: Rust 1.75, Edition 2021
 Component: Async HTTP client

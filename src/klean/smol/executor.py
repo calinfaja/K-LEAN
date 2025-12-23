@@ -294,21 +294,14 @@ class SmolKLNExecutor:
         if context:
             prompt_parts.append(f"\n# Additional Context\n{context}")
 
-        # Instructions - keep simple, don't over-prescribe format
+        # Instructions - minimal, let agent .md file control output format
         prompt_parts.append(f"""
 # Instructions
-IMPORTANT: You MUST examine actual files before providing feedback.
 Working directory: {self.project_root}
 
-Required Steps:
-1. Use knowledge_search to find relevant prior solutions
-2. Use search_files to find relevant files
-3. Use read_file to examine actual content
-
-Output Requirements:
-- Provide specific file:line references for ALL findings
-- Use severity levels: CRITICAL, WARNING, INFO
-- List concrete issues with actionable recommendations
+You MUST examine actual files before providing feedback.
+Use your tools: knowledge_search, search_files, read_file to investigate.
+Provide specific file:line references for findings.
 """)
 
         return "\n".join(prompt_parts)

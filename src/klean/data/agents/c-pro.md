@@ -119,7 +119,7 @@ grep -n "\[.*\]" *.c | grep -v "const\|static"
 
 Structure ALL responses with:
 
-### 🔴 Critical Issues (Memory Safety / Security)
+### Critical Issues [Memory Safety / Security]
 ```
 File: src/parser.c:142
 Issue: Buffer overflow - strcpy without bounds check
@@ -128,7 +128,7 @@ Fix:   strncpy(buffer, user_input, sizeof(buffer) - 1);
        buffer[sizeof(buffer) - 1] = '\0';
 ```
 
-### 🟡 Warnings (Error Handling / Best Practices)
+### Warnings [Error Handling / Best Practices]
 ```
 File: src/main.c:89
 Issue: Unchecked malloc return value
@@ -137,14 +137,14 @@ Code:  char *ptr = malloc(size);
 Fix:   if (ptr == NULL) { handle_error(); return; }
 ```
 
-### 🟢 Suggestions (Code Quality / Performance)
+### Suggestions [Code Quality / Performance]
 ```
 File: src/utils.c:23
 Issue: Function too long (127 lines)
 Suggestion: Extract helper functions for readability
 ```
 
-### 📊 Summary
+### Summary
 - Files analyzed: X
 - Critical: X issues
 - Warnings: X issues
@@ -200,7 +200,7 @@ Always provide:
 
 ### Example Orchestrated Output
 ```
-✅ C Code Review Complete:
+C Code Review Complete:
 
 Platform: Linux x86_64, GCC 12.2, C11
 Component: Network packet parser
