@@ -64,7 +64,7 @@ The `/kln:remember` command:
 
 **Tracing:** Enable telemetry for debugging agent behavior:
 ```bash
-smol-kln.py security-auditor "audit" --telemetry
+smol-kln security-auditor "audit" --telemetry
 # View at http://localhost:6006
 ```
 

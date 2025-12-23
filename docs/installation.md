@@ -24,7 +24,10 @@ pipx install .
 # 3. Install components (symlinks scripts, commands, hooks)
 k-lean install
 
-# 4. Verify
+# 4. Install SmolKLN agents (optional but recommended)
+pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'
+
+# 5. Verify
 k-lean doctor
 ```
 
@@ -70,8 +73,8 @@ This installs:
 
 **Usage:**
 ```bash
-k-lean start --telemetry                      # Start Phoenix on :6006
-smol-kln.py security-auditor "audit" -t       # Run agent with tracing
+k-lean start --telemetry                 # Start Phoenix on :6006
+smol-kln security-auditor "audit" -t     # Run agent with tracing
 ```
 
 View traces at `http://localhost:6006`

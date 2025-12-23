@@ -70,6 +70,7 @@ dev = [
 
 [project.scripts]
 k-lean = "klean.cli:main"
+smol-kln = "klean.smol.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/calinfaja/k-lean"

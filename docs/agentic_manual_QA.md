@@ -82,7 +82,7 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | [ ] `quick-review.sh` | Single model API review | Executable |
 | [ ] `consensus-review.sh` | 5-model parallel review | Executable |
 | [ ] `deep-review.sh` | Claude SDK agent review | Executable |
-| [ ] `smol-kln.py` | SmolKLN agent execution | Executable |
+| [ ] `smol-kln` | SmolKLN agent CLI command | `smol-kln --list` |
 | [ ] `async-dispatch.sh` | Background task runner | Executable |
 
 ### Feature Verification
@@ -95,7 +95,8 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | [ ] consensus-review.sh | Temp cleanup | No leftover temp files |
 | [ ] deep-review.sh | Read-only mode | Uses allow/deny permissions |
 | [ ] deep-review.sh | Audit config | Creates `/tmp/claude-audit-$$` |
-| [ ] smol-kln.py | Reads .md files | Uses `~/.klean/agents/` |
+| [ ] smol-kln | Lists agents | `smol-kln --list` shows 8 agents |
+| [ ] smol-kln | Uses smolagents | Requires `pipx inject k-lean 'smolagents[litellm]'` |
 | [ ] async-dispatch.sh | Background nohup | Runs without blocking |
 
 ### Common Patterns Check
