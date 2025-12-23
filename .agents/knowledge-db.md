@@ -111,6 +111,55 @@ In Claude Code prompts:
 
 **Note:** Use `kb-init.sh` or `k-lean install` to initialize KB for a project.
 
+## Unified Memory System
+
+Knowledge DB integrates with multiple sources:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     KNOWLEDGE DB SOURCES                         │
+├─────────────────────────────────────────────────────────────────┤
+│  source: "manual"        ← SaveThis keyword                      │
+│  source: "web"           ← GoodJob auto-capture                  │
+│  source: "agent_*"       ← SmolKLN session memory (auto)         │
+│  source: "serena"        ← Synced from Serena (/kln:remember)    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### SmolKLN Agent Integration
+
+Agents automatically persist learnings to KB after execution:
+
+```python
+# In executor.py - happens automatically
+result = executor.execute("security-auditor", "audit auth")
+# Session memory saved to KB with source="agent_security-auditor"
+# result["memory_persisted"] shows count of entries saved
+```
+
+Future agents can search these learnings:
+```python
+# Agent's knowledge_search tool finds prior agent insights
+results = knowledge_search("SQL injection auth")
+# Returns: entries from security-auditor's prior runs
+```
+
+### Serena Sync
+
+Curated Serena lessons can be synced to KB for agent access:
+
+```bash
+# Manual sync
+~/.venvs/knowledge-db/bin/python ~/.claude/scripts/sync-serena-kb.py
+
+# Dry run (see what would sync)
+~/.venvs/knowledge-db/bin/python ~/.claude/scripts/sync-serena-kb.py --dry-run
+```
+
+Or via `/kln:remember` command at session end.
+
+**Result**: SmolKLN agents can search all your Serena lessons via `knowledge_search`.
+
 ## Socket Architecture
 
 Each project gets a unique socket:

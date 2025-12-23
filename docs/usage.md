@@ -37,9 +37,36 @@ SaveThis "always validate user input before SQL queries"
 FindKnowledge "authentication patterns"
 ```
 
+## Session Management
+
+| Command | Action |
+|---------|--------|
+| `/kln:remember` | End-of-session capture |
+| `/kln:doc` | Generate session docs |
+
+**End-of-session workflow:**
+```bash
+/kln:remember    # Captures learnings to KB + syncs Serena → KB
+/clear           # Clear context
+```
+
+The `/kln:remember` command:
+1. Extracts learnings from git diff/log
+2. Saves entries to Knowledge DB
+3. Appends summary to Serena lessons-learned
+4. Syncs Serena lessons to KB (makes them searchable by agents)
+
 ## SmolKLN Agents
 
-8 specialist agents for domain-specific analysis:
+8 specialist agents for domain-specific analysis.
+
+**Agent Memory:** Agents persist session learnings to KB after execution. Future agents can search prior findings via `knowledge_search` tool.
+
+**Tracing:** Enable telemetry for debugging agent behavior:
+```bash
+smol-kln.py security-auditor "audit" --telemetry
+# View at http://localhost:6006
+```
 
 | Agent | Expertise |
 |-------|-----------|
@@ -82,3 +109,4 @@ FindKnowledge "authentication patterns"
 | Knowledge | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |
 | System logs | `~/.klean/logs/` |
+| Phoenix traces | `http://localhost:6006` |

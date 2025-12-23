@@ -49,11 +49,17 @@ smolagents = [
     "ddgs>=6.0.0",  # Required for DuckDuckGoSearchTool
     "markdownify>=0.11.0",  # Required for VisitWebpageTool
 ]
+telemetry = [
+    "arize-phoenix>=4.0",
+    "opentelemetry-sdk",
+    "opentelemetry-exporter-otlp",
+    "openinference-instrumentation-smolagents",
+]
 toon = [
     "python-toon>=0.1.0",
 ]
 all = [
-    "k-lean[knowledge,agent-sdk,smolagents,toon]",
+    "k-lean[knowledge,agent-sdk,smolagents,telemetry,toon]",
 ]
 dev = [
     "pytest>=7.0.0",

@@ -335,6 +335,47 @@ def list_knowledge_servers() -> list:
     return servers
 
 
+def check_phoenix() -> bool:
+    """Check if Phoenix telemetry server is running on port 6006."""
+    try:
+        import urllib.request
+        urllib.request.urlopen("http://localhost:6006", timeout=1)
+        return True
+    except Exception:
+        return False
+
+
+def start_phoenix(background: bool = True) -> bool:
+    """Start Phoenix telemetry server on port 6006.
+
+    Returns:
+        True if Phoenix started or already running, False if failed.
+    """
+    if check_phoenix():
+        return True  # Already running
+
+    try:
+        import subprocess
+        cmd = [sys.executable, "-m", "phoenix.server.main", "serve"]
+        if background:
+            log_file = LOGS_DIR / "phoenix.log"
+            subprocess.Popen(
+                cmd,
+                stdout=open(log_file, "w"),
+                stderr=subprocess.STDOUT,
+                start_new_session=True
+            )
+            # Give it a moment to start
+            import time
+            time.sleep(1)
+            return check_phoenix()
+        else:
+            subprocess.run(cmd)
+            return True
+    except Exception:
+        return False
+
+
 def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool:
     """Start knowledge server for a project in background if not running.
 
@@ -1602,7 +1643,8 @@ def test():
               type=click.Choice(["all", "litellm", "knowledge"]),
               default="litellm", help="Service to start (default: litellm only)")
 @click.option("--port", "-p", default=4000, help="LiteLLM proxy port")
-def start(service: str, port: int):
+@click.option("--telemetry", "-t", is_flag=True, help="Also start Phoenix telemetry server")
+def start(service: str, port: int, telemetry: bool):
     """Start K-LEAN services.
 
     By default, only starts LiteLLM proxy. Knowledge servers are per-project
@@ -1644,6 +1686,21 @@ def start(service: str, port: int):
                     failed.append("Knowledge")
         else:
             console.print("[yellow]○[/yellow] Knowledge Server: No project found (auto-starts on query)")
+
+    # Phoenix telemetry (optional)
+    if telemetry:
+        if check_phoenix():
+            console.print("[green]✓[/green] Phoenix Telemetry: Already running")
+        else:
+            console.print("[yellow]○[/yellow] Starting Phoenix Telemetry...")
+            if start_phoenix(background=True):
+                console.print("[green]✓[/green] Phoenix Telemetry: Started on http://localhost:6006")
+                started.append("Phoenix")
+                log_debug_event("cli", "service_start", service="phoenix")
+            else:
+                console.print("[red]✗[/red] Phoenix Telemetry: Failed to start")
+                console.print("[dim]  Install with: pipx inject k-lean 'k-lean[telemetry]'[/dim]")
+                failed.append("Phoenix")
 
     # Show running knowledge servers
     servers = list_knowledge_servers()
@@ -1826,7 +1883,11 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         if knowledge_ok:
             lines.append("[bold]Knowledge[/bold] [green]● ON[/green]")
         else:
-            lines.append("[bold]Knowledge[/bold] [red]● OFF[/red]")
+            lines.append("[bold]Knowledge[/bold] [dim]○ OFF[/dim]")
+
+        # Phoenix Telemetry - only show when running
+        if check_phoenix():
+            lines.append("[bold]Phoenix[/bold]   [green]● ON[/green] :6006")
 
         return Panel("\n".join(lines), title="[bold]Services[/bold]", border_style="blue")
 

@@ -17,6 +17,8 @@
 | `k-lean models --health` | Check model health |
 | `k-lean test` | Run test suite |
 | `k-lean sync` | Sync files to package data for release |
+| `k-lean start --telemetry` | Start Phoenix telemetry server |
+| `k-lean debug` | Live dashboard (shows Phoenix status) |
 
 ## Models
 
@@ -43,7 +45,7 @@
 | `/kln:agent` | `--role` |
 | `/kln:rethink` | - |
 | `/kln:doc` | `--type report\|session\|lessons` |
-| `/kln:remember` | - |
+| `/kln:remember` | Syncs Serena → KB |
 | `/kln:status` | - |
 | `/kln:help` | - |
 
@@ -67,6 +69,22 @@
 | `~/.claude/settings.json` | Claude Code settings |
 | `.knowledge-db/entries.jsonl` | KB entries (per-project) |
 | `.knowledge-db/index/` | Semantic index |
+| `~/.klean/logs/phoenix.log` | Phoenix telemetry logs |
+
+## Telemetry
+
+SmolKLN agents can be traced with Phoenix for debugging and performance analysis.
+
+**Install:** `pipx inject k-lean 'k-lean[telemetry]'`
+
+| Flag | Command | Effect |
+|------|---------|--------|
+| `--telemetry` | `k-lean start` | Start Phoenix on :6006 |
+| `-t` / `--telemetry` | `smol-kln.py` | Enable agent tracing |
+
+**Traced:** LLM calls (prompt, response, tokens), tool invocations, agent reasoning steps.
+
+**UI:** `http://localhost:6006`
 
 ## Knowledge DB Schema (V2)
 
@@ -77,10 +95,16 @@
   "type": "lesson|finding|solution|pattern",
   "key_concepts": ["keyword1", "keyword2"],
   "quality": "high|medium|low",
-  "source": "manual|conversation|web|file",
+  "source": "manual|web|agent_<name>|serena",
   "found_date": "2024-12-21T10:30:00"
 }
 ```
+
+**Source types:**
+- `manual` - SaveThis keyword
+- `web` - Auto-captured from web research
+- `agent_<name>` - SmolKLN agent session persistence (e.g., `agent_security-auditor`)
+- `serena` - Synced from Serena lessons-learned
 
 ## Review Areas
 

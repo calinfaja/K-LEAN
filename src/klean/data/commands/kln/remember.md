@@ -134,19 +134,124 @@ For architectural decisions that need full detail in Serena (not just summary):
 **Impact**: <why it matters>
 ```
 
-### Step 6: Verify and Clear
+### Step 6: Sync Serena Lessons → Knowledge DB (NEW)
+
+**This is the bridge that makes Serena lessons searchable by SmolKLN agents.**
+
+After updating Serena, sync the lessons to Knowledge DB so agents can find them:
+
+```python
+# Run this Python snippet to sync
+import sys
+sys.path.insert(0, str(__import__('pathlib').Path.home() / '.claude' / 'scripts'))
+from knowledge_db import KnowledgeDB
+
+# Read Serena lessons-learned
+serena_path = __import__('pathlib').Path.home() / 'claudeAgentic' / '.serena' / 'memories' / 'lessons-learned.md'
+if serena_path.exists():
+    content = serena_path.read_text()
+
+    # Import to KB using the bridge function
+    sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent.parent.parent / 'src' / 'klean' / 'smol'))
+    from memory import AgentMemory
+    from context import gather_project_context
+
+    ctx = gather_project_context()
+    mem = AgentMemory(ctx)
+    synced = mem.sync_serena_to_kb(content)
+    print(f"✅ Synced {synced} Serena lessons to Knowledge DB")
+```
+
+Or use the quick bash command:
+```bash
+# Quick sync command
+~/.venvs/knowledge-db/bin/python -c "
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.home() / '.claude' / 'scripts'))
+
+# Read Serena
+serena_file = Path.home() / 'claudeAgentic' / '.serena' / 'memories' / 'lessons-learned.md'
+if not serena_file.exists():
+    print('No Serena lessons-learned found')
+    exit(0)
+
+content = serena_file.read_text()
+
+# Parse and sync
+from knowledge_db import KnowledgeDB
+db = KnowledgeDB()
+
+synced = 0
+current_lesson = {}
+current_content = []
+
+for line in content.split('\n'):
+    if line.startswith('### '):
+        if current_lesson.get('title'):
+            try:
+                db.add_structured({
+                    'title': current_lesson['title'],
+                    'summary': '\n'.join(current_content).strip()[:1000],
+                    'type': current_lesson.get('type', 'lesson'),
+                    'source': 'serena',
+                    'tags': ['serena', 'lessons-learned'],
+                    'quality': 'high',
+                })
+                synced += 1
+            except: pass
+
+        header = line[4:].strip()
+        lesson_type = 'lesson'
+        if header.startswith('GOTCHA:'): lesson_type, header = 'warning', header[7:].strip()
+        elif header.startswith('TIP:'): lesson_type, header = 'tip', header[4:].strip()
+        elif header.startswith('PATTERN:'): lesson_type, header = 'pattern', header[8:].strip()
+        current_lesson = {'title': header, 'type': lesson_type}
+        current_content = []
+    elif current_lesson.get('title'):
+        current_content.append(line)
+
+# Save last
+if current_lesson.get('title'):
+    try:
+        db.add_structured({
+            'title': current_lesson['title'],
+            'summary': '\n'.join(current_content).strip()[:1000],
+            'type': current_lesson.get('type', 'lesson'),
+            'source': 'serena',
+            'tags': ['serena', 'lessons-learned'],
+            'quality': 'high',
+        })
+        synced += 1
+    except: pass
+
+print(f'✅ Synced {synced} Serena lessons to Knowledge DB')
+"
+```
+
+**Why this matters:**
+- SmolKLN agents can now search Serena lessons via `knowledge_search`
+- Your curated cross-project wisdom becomes available to all agents
+- Agents learn from your documented gotchas, patterns, and solutions
+
+### Step 7: Verify and Clear
 
 1. **Verify KB saves:**
    ```
    FindKnowledge <topic from session>
    ```
 
-2. **Check Serena summary was added:**
+2. **Verify Serena lessons synced:**
+   ```
+   FindKnowledge serena lessons
+   ```
+
+3. **Check Serena summary was added:**
    ```
    tail -20 ~/claudeAgentic/.serena/memories/lessons-learned.md
    ```
 
-3. **Clear context when ready:**
+4. **Clear context when ready:**
    - `/compact` - Keep some context, compress the rest
    - `/clear` - Full reset (use after /kln:remember)
 
@@ -189,11 +294,24 @@ Recent commits: "Fix SessionStart for resume", "Add kb-doctor.sh"
 
 ✅ Appended to lessons-learned
 
+🔄 Syncing Serena → Knowledge DB...
+
+📖 Reading Serena: ~/claudeAgentic/.serena/memories/lessons-learned.md
+   Found 25 lessons
+📚 Knowledge DB: .knowledge-db
+  ✓ [warning] Thinking models need longer timeouts
+  ✓ [tip] Simpler CLI for knowledge_db.py
+  ✓ [pattern] docs/ folder organization
+  ... (22 more)
+✅ Synced 25 Serena lessons to Knowledge DB
+   SmolKLN agents can now search these lessons!
+
 🎯 Session learnings captured. Ready for /clear when you are.
 
 After /clear, you can:
 - See summary: Read lessons-learned in Serena
 - Get details: FindKnowledge <topic>
+- Agents can search: knowledge_search("gotcha timeouts")
 ```
 
 ## Quick Reference

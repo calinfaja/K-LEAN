@@ -53,7 +53,28 @@ k-lean setup
 ```bash
 k-lean start              # LiteLLM proxy only
 k-lean start -s all       # LiteLLM + Knowledge server
+k-lean start --telemetry  # Also start Phoenix telemetry server
 ```
+
+## Optional: Agent Telemetry
+
+Install Phoenix for SmolKLN agent tracing:
+
+```bash
+pipx inject k-lean 'k-lean[telemetry]'
+```
+
+This installs:
+- `arize-phoenix` - Local OpenTelemetry collector with web UI
+- `openinference-instrumentation-smolagents` - Auto-instrumentation for smolagents
+
+**Usage:**
+```bash
+k-lean start --telemetry                      # Start Phoenix on :6006
+smol-kln.py security-auditor "audit" -t       # Run agent with tracing
+```
+
+View traces at `http://localhost:6006`
 
 ## Verify
 

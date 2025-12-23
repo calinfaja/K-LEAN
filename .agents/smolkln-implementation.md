@@ -139,8 +139,8 @@ Project memories and lessons-learned are accessible.
 **Purpose**: Agents maintain session memory and can query/save to Knowledge DB.
 
 **Components**:
-- `MemoryEntry` - Single memory item with timestamp and type
-- `SessionMemory` - Working memory for current task (max 50 entries)
+- `MemoryEntry` - Single memory item with timestamp and type (serializable)
+- `SessionMemory` - Working memory for current task (max 50 entries, serializable)
 - `AgentMemory` - Full memory system with KB integration
 
 **Features**:
@@ -149,13 +149,36 @@ Project memories and lessons-learned are accessible.
 - Queries prior knowledge from Knowledge DB
 - Saves lessons learned back to Knowledge DB
 - Token-limited context retrieval
+- **Auto-persistence**: Session memory saved to KB after execution
+- **Serena sync**: Bridge function to import Serena lessons to KB
+
+**New in Dec 2024**:
+- `persist_session_to_kb()` - Auto-saves meaningful entries after agent completes
+- `sync_serena_to_kb()` - Imports Serena lessons-learned for agent access
+- `to_dict()`/`from_dict()` - Serialization for future persistence
+- `get_history()` - Inspect session memory entries
 
 **Usage**:
 ```python
 executor = SmolKLNExecutor()
-# Memory automatically active
 result = executor.execute("code-reviewer", "review main.py")
-# Session recorded, prior knowledge queried
+
+# Memory automatically persisted to KB
+print(f"Persisted: {result['memory_persisted']} entries")
+print(f"History: {result['memory_history']}")
+
+# Future agents find these learnings via knowledge_search
+```
+
+**Serena Sync**:
+```python
+# Sync Serena lessons to KB (makes them searchable by agents)
+from klean.smol import AgentMemory, gather_project_context
+
+ctx = gather_project_context()
+mem = AgentMemory(ctx)
+synced = mem.sync_serena_to_kb(serena_content)
+print(f"Synced {synced} lessons")
 ```
 
 ---
