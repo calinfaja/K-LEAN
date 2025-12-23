@@ -61,6 +61,14 @@ When invoked, ALWAYS:
    - Use TodoWrite to track analysis progress
    - Prioritize: unsafe code > error handling > performance
 
+## Tool Selection Strategy
+
+1. **Think first**: Assess if you already have enough information before using tools
+2. **Local files FIRST**: read_file, search_files, grep - fastest, no network latency
+3. **Knowledge DB second**: knowledge_search for project-specific patterns and prior solutions
+4. **Web search LAST**: Only for crate documentation, obscure lifetime issues
+5. **NEVER web search for**: Rust syntax, ownership basics, standard library traits you already know
+
 ---
 
 ## Review Framework

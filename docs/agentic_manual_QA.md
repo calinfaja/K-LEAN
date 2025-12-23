@@ -312,11 +312,13 @@ cat .knowledge-db/timeline.txt | tail -5
 ### Fields Verification
 | Field | Source | Check |
 |-------|--------|-------|
-| [ ] Model | Claude API | Shows [opus]/[sonnet]/[haiku] |
-| [ ] Project | Workspace | Project name |
-| [ ] Git | subprocess | Branch + dirty state |
-| [ ] LLM | HTTP | Model count |
-| [ ] KB | Socket | ✓ or status |
+| [ ] Project | Workspace | Project name from CWD |
+| [ ] Git | subprocess | Branch + dirty state (M/+/?) |
+| [ ] LLM | HTTP localhost:4000 | Model count from LiteLLM proxy |
+| [ ] KB | Socket localhost:8765 | ✓ (ready) or status message |
+
+> **Note:** The statusline shows LiteLLM proxy status, not Claude API model.
+> Model info shows available count (e.g., "6 models") from the local proxy.
 
 ### Performance Check
 - [ ] LiteLLM timeout: 0.5s

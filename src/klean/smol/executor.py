@@ -70,6 +70,32 @@ class SmolKLNExecutor:
             fallback.mkdir(parents=True, exist_ok=True)
             return fallback
 
+    def _format_result(self, result) -> str:
+        """Format agent result to clean markdown.
+
+        smolagents CodeAgent may return dict like:
+        {'thought': '...', 'code': '## Summary\\n...'}
+
+        This extracts and formats the content properly.
+        """
+        if isinstance(result, dict):
+            # Extract code (main content) if present
+            if 'code' in result:
+                content = result['code']
+                # Handle escaped newlines from JSON serialization
+                if isinstance(content, str) and '\\n' in content:
+                    content = content.replace('\\n', '\n')
+                return content
+            # Fallback: format dict as readable markdown
+            parts = []
+            if 'thought' in result:
+                parts.append(f"## Analysis Summary\n\n{result['thought']}")
+            for key, value in result.items():
+                if key not in ('thought', 'code'):
+                    parts.append(f"## {key.title()}\n\n{value}")
+            return '\n\n'.join(parts) if parts else str(result)
+        return str(result)
+
     def _save_result(
         self,
         agent_name: str,
@@ -117,7 +143,7 @@ class SmolKLNExecutor:
         task: str,
         model_override: str = None,
         context: str = None,
-        max_steps: int = 10,
+        max_steps: int = 15,
     ) -> Dict[str, Any]:
         """Execute an agent with the given task.
 
@@ -126,7 +152,7 @@ class SmolKLNExecutor:
             task: Task description/prompt
             model_override: Override the agent's default model
             context: Additional context (e.g., from knowledge DB)
-            max_steps: Maximum agent steps (default: 10)
+            max_steps: Maximum agent steps (default: 15)
 
         Returns:
             Dict with:
@@ -199,10 +225,21 @@ class SmolKLNExecutor:
 
         # Create smolagents CodeAgent
         # CodeAgent is ~30% more efficient than ToolCallingAgent
+        # use_structured_outputs_internally improves JSON parsing reliability by 2-7%
+        # Safe imports beyond default (collections, datetime, itertools, math,
+        # queue, random, re, stat, statistics, time, unicodedata are default)
+        # Avoid: os, subprocess, sys, socket, pathlib, shutil, io
+        safe_imports = [
+            "json", "typing", "functools", "copy", "string",
+            "decimal", "enum", "dataclasses", "operator", "textwrap",
+        ]
+
         smol_agent = CodeAgent(
             tools=tools,
             model=model,
             max_steps=max_steps,
+            use_structured_outputs_internally=True,
+            additional_authorized_imports=safe_imports,
         )
 
         # Prepend agent's system prompt to the default system prompt
@@ -218,7 +255,7 @@ class SmolKLNExecutor:
             result = smol_agent.run(full_prompt)
             duration = time.time() - start_time
 
-            output = str(result)
+            output = self._format_result(result)
 
             # Record successful result to memory
             self.memory.record(

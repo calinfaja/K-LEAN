@@ -66,6 +66,16 @@ When invoked, ALWAYS:
 
 ---
 
+# Tool Selection Strategy
+
+1. **Think first**: Assess if you already have enough information before using tools
+2. **Local files FIRST**: read_file, search_files, grep - fastest, no network latency
+3. **Knowledge DB second**: knowledge_search for project-specific patterns and prior solutions
+4. **Web search LAST**: Only for external APIs/libraries NOT found in codebase
+5. **NEVER web search for**: basic concepts, syntax, things you already know
+
+---
+
 # Process & Methodology
 
 ## Step 1: [Phase Name]

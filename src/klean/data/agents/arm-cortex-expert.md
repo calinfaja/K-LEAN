@@ -248,6 +248,14 @@ __set_BASEPRI(basepri);
 5. **Optimize** → suggest DMA, interrupt priorities, or RTOS tasks if needed
 6. **Iterate** → refine with improved versions as hardware interaction feedback is provided
 
+## Tool Selection Strategy
+
+1. **Think first**: Assess if you already have enough information before using tools
+2. **Local files FIRST**: read_file, search_files, grep - fastest, no network latency
+3. **Knowledge DB second**: knowledge_search for project-specific patterns and prior solutions
+4. **Web search LAST**: Only for specific MCU datasheets, errata, vendor SDK docs
+5. **NEVER web search for**: ARM instruction sets, common peripheral patterns, DMA concepts you already know
+
 ---
 
 ## Example: SPI Driver for External Sensor
