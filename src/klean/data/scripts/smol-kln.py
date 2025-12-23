@@ -2,13 +2,14 @@
 """SmolKLN CLI - Run SmolKLN agents from command line.
 
 Usage:
-    smol-kln.py <agent> <task> [--model MODEL]
+    smol-kln.py <agent> <task> [--model MODEL] [--telemetry]
     smol-kln.py --list
     smol-kln.py --help
 
 Examples:
     smol-kln.py security-auditor "audit authentication module"
     smol-kln.py code-reviewer "review main.py" --model qwen3-coder
+    smol-kln.py security-auditor "audit auth" --telemetry  # With tracing
     smol-kln.py --list
 """
 
@@ -33,8 +34,22 @@ Examples:
     parser.add_argument("--model", "-m", help="Override model")
     parser.add_argument("--list", "-l", action="store_true", help="List available agents")
     parser.add_argument("--api-base", default="http://localhost:4000", help="LiteLLM API base URL")
+    parser.add_argument("--telemetry", "-t", action="store_true",
+                        help="Enable Phoenix telemetry (view at localhost:6006)")
 
     args = parser.parse_args()
+
+    # Setup telemetry if requested
+    if args.telemetry:
+        try:
+            from phoenix.otel import register
+            from openinference.instrumentation.smolagents import SmolagentsInstrumentor
+
+            register(project_name="smolkln")
+            SmolagentsInstrumentor().instrument()
+            print("📊 Telemetry enabled - view at http://localhost:6006")
+        except ImportError:
+            print("⚠️  Telemetry not installed. Run: pipx inject k-lean 'k-lean[telemetry]'")
 
     # Check if smolagents is installed
     try:

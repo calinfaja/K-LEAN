@@ -3,6 +3,11 @@
 # 12 NanoGPT Models - Clean minimal config
 # Start: source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml
 
+# Admin UI (optional) - requires: pipx inject litellm prisma && prisma generate
+# general_settings:
+#   master_key: "sk-klean-master"
+#   database_url: "sqlite:///~/.config/litellm/litellm.db"
+
 litellm_settings:
   drop_params: true
 

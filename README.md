@@ -196,7 +196,9 @@ k-lean doctor           # Diagnose configuration issues
 k-lean doctor -f        # Auto-fix common issues
 k-lean start            # Start LiteLLM proxy
 k-lean start -s all     # Start LiteLLM + Knowledge server
+k-lean start --telemetry # Also start Phoenix (agent tracing)
 k-lean stop             # Stop all services
+k-lean debug            # Live dashboard
 k-lean models           # List available models
 k-lean models --health  # Check model health (~60s)
 k-lean test             # Run test suite (27 tests)

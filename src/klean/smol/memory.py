@@ -17,6 +17,25 @@ class MemoryEntry:
     entry_type: str  # "action", "result", "lesson", "error"
     metadata: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize entry to dictionary."""
+        return {
+            "content": self.content,
+            "timestamp": self.timestamp,
+            "entry_type": self.entry_type,
+            "metadata": self.metadata,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "MemoryEntry":
+        """Deserialize entry from dictionary."""
+        return cls(
+            content=data["content"],
+            timestamp=data["timestamp"],
+            entry_type=data["entry_type"],
+            metadata=data.get("metadata", {}),
+        )
+
 
 @dataclass
 class SessionMemory:
@@ -24,6 +43,7 @@ class SessionMemory:
     task: str
     entries: List[MemoryEntry] = field(default_factory=list)
     max_entries: int = 50
+    start_time: float = field(default_factory=time.time)
 
     def add(self, content: str, entry_type: str, **metadata):
         """Add entry to session memory."""
@@ -49,6 +69,28 @@ class SessionMemory:
             parts.insert(0, f"[{entry.entry_type}] {entry.content}")
             tokens += entry_tokens
         return "\n".join(parts)
+
+    def get_history(self) -> List[Dict[str, Any]]:
+        """Get full history as list of dicts (for inspection/debugging)."""
+        return [entry.to_dict() for entry in self.entries]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize session to dictionary."""
+        return {
+            "task": self.task,
+            "start_time": self.start_time,
+            "entries": [e.to_dict() for e in self.entries],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "SessionMemory":
+        """Deserialize session from dictionary."""
+        session = cls(
+            task=data["task"],
+            start_time=data.get("start_time", time.time()),
+        )
+        session.entries = [MemoryEntry.from_dict(e) for e in data.get("entries", [])]
+        return session
 
 
 class AgentMemory:
@@ -166,3 +208,139 @@ class AgentMemory:
                     parts.append(f"## Prior Knowledge\n{knowledge}")
 
         return "\n\n".join(parts)
+
+    def persist_session_to_kb(self, agent_name: str) -> int:
+        """Persist meaningful session memory entries to Knowledge DB.
+
+        Saves 'result' and 'lesson' type entries so future agents can
+        learn from past executions.
+
+        Args:
+            agent_name: Name of the agent that ran
+
+        Returns:
+            Number of entries persisted
+        """
+        if self.knowledge_db is None or self.session is None:
+            return 0
+
+        persisted = 0
+        session_id = f"{agent_name}_{int(self.session.start_time)}"
+
+        for entry in self.session.entries:
+            # Only persist meaningful entries (results and lessons)
+            if entry.entry_type not in ("result", "lesson"):
+                continue
+
+            # Skip very short entries
+            if len(entry.content) < 20:
+                continue
+
+            try:
+                # Extract a title from the content
+                content_lines = entry.content.strip().split('\n')
+                title = content_lines[0][:100] if content_lines else "Agent finding"
+
+                self.knowledge_db.add_structured({
+                    "title": title,
+                    "summary": entry.content[:500],
+                    "type": "lesson" if entry.entry_type == "lesson" else "solution",
+                    "source": f"agent_{agent_name}",
+                    "tags": [agent_name, "smolkln", entry.entry_type],
+                    "key_concepts": [agent_name],
+                    "quality": "medium",
+                    # Store session metadata
+                    "source_path": session_id,
+                })
+                persisted += 1
+            except Exception:
+                # Don't fail execution if persistence fails
+                pass
+
+        return persisted
+
+    def sync_serena_to_kb(self, serena_content: str) -> int:
+        """Sync Serena lessons-learned content to Knowledge DB.
+
+        Parses the lessons-learned markdown and imports each lesson
+        as a searchable KB entry.
+
+        Args:
+            serena_content: Raw content from Serena lessons-learned memory
+
+        Returns:
+            Number of lessons synced
+        """
+        if self.knowledge_db is None:
+            return 0
+
+        synced = 0
+        current_lesson = {}
+        current_content = []
+
+        for line in serena_content.split('\n'):
+            # Detect lesson headers (### GOTCHA:, ### TIP:, ### PATTERN:, etc.)
+            if line.startswith('### '):
+                # Save previous lesson if exists
+                if current_lesson.get('title'):
+                    self._save_serena_lesson(current_lesson, '\n'.join(current_content))
+                    synced += 1
+
+                # Parse new lesson header
+                header = line[4:].strip()
+                lesson_type = "lesson"
+                if header.startswith("GOTCHA:"):
+                    lesson_type = "warning"
+                    header = header[7:].strip()
+                elif header.startswith("TIP:"):
+                    lesson_type = "tip"
+                    header = header[4:].strip()
+                elif header.startswith("PATTERN:"):
+                    lesson_type = "pattern"
+                    header = header[8:].strip()
+
+                current_lesson = {
+                    'title': header,
+                    'type': lesson_type,
+                }
+                current_content = []
+
+            elif line.startswith('**Date**:'):
+                current_lesson['date'] = line.split(':', 1)[1].strip()
+            elif line.startswith('**Context**:'):
+                current_lesson['context'] = line.split(':', 1)[1].strip()
+            elif current_lesson.get('title'):
+                current_content.append(line)
+
+        # Save last lesson
+        if current_lesson.get('title'):
+            self._save_serena_lesson(current_lesson, '\n'.join(current_content))
+            synced += 1
+
+        return synced
+
+    def _save_serena_lesson(self, lesson: Dict, content: str) -> bool:
+        """Save a single Serena lesson to KB."""
+        if self.knowledge_db is None:
+            return False
+
+        try:
+            # Check if already synced (by title + source)
+            existing = self.knowledge_db.search(lesson['title'], limit=1)
+            for e in existing:
+                if e.get('source') == 'serena' and e.get('title') == lesson['title']:
+                    return False  # Already exists
+
+            self.knowledge_db.add_structured({
+                "title": lesson['title'],
+                "summary": content.strip()[:1000],
+                "type": lesson.get('type', 'lesson'),
+                "source": "serena",
+                "tags": ["serena", "lessons-learned", lesson.get('type', 'lesson')],
+                "key_concepts": [lesson.get('context', '')] if lesson.get('context') else [],
+                "quality": "high",  # Serena lessons are curated
+                "source_path": f"serena:{lesson.get('date', 'unknown')}",
+            })
+            return True
+        except Exception:
+            return False

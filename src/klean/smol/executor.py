@@ -74,6 +74,7 @@ class SmolKLNExecutor:
                 - model: str (model used)
                 - duration_s: float
                 - success: bool
+                - memory_history: List[Dict] (session memory entries)
         """
         try:
             from smolagents import CodeAgent
@@ -167,12 +168,17 @@ class SmolKLNExecutor:
                 duration=duration
             )
 
+            # Persist session memory to Knowledge DB for future agents
+            persisted_count = self.memory.persist_session_to_kb(agent_name)
+
             return {
                 "output": output,
                 "agent": agent_name,
                 "model": model_name,
                 "duration_s": round(duration, 1),
                 "success": True,
+                "memory_history": self.memory.session.get_history() if self.memory.session else [],
+                "memory_persisted": persisted_count,
             }
         except Exception as e:
             error_msg = f"Execution error: {str(e)}"
@@ -191,6 +197,7 @@ class SmolKLNExecutor:
                 "model": model_name,
                 "duration_s": 0,
                 "success": False,
+                "memory_history": self.memory.session.get_history() if self.memory.session else [],
             }
 
     def _build_prompt(
