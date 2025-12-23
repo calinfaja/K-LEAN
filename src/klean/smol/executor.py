@@ -137,7 +137,7 @@ class SmolKLNExecutor:
         tools = get_default_tools(str(self.project_root))
 
         # Create smolagents CodeAgent
-        # First create with defaults, then customize system prompt
+        # CodeAgent is ~30% more efficient than ToolCallingAgent
         smol_agent = CodeAgent(
             tools=tools,
             model=model,
@@ -221,7 +221,7 @@ class SmolKLNExecutor:
         if context:
             prompt_parts.append(f"\n# Additional Context\n{context}")
 
-        # Instructions
+        # Instructions - keep simple, don't over-prescribe format
         prompt_parts.append(f"""
 # Instructions
 IMPORTANT: You MUST examine actual files before providing feedback.
@@ -234,7 +234,7 @@ Required Steps:
 
 Output Requirements:
 - Provide specific file:line references for ALL findings
-- Use severity levels: 🔴 Critical | 🟡 Warning | 🟢 Suggestion
+- Use severity levels: CRITICAL, WARNING, INFO
 - List concrete issues with actionable recommendations
 """)
 
