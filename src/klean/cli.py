@@ -942,6 +942,15 @@ def install(dev: bool, component: str, yes: bool):
                     shutil.copy2(cfg_file, dst)
             console.print("  [green]Installed LiteLLM configs[/green]")
 
+            # Install callbacks for thinking models support
+            callbacks_src = litellm_src / "callbacks"
+            if callbacks_src.exists():
+                callbacks_dst = CONFIG_DIR / "callbacks"
+                ensure_dir(callbacks_dst)
+                count = copy_files(callbacks_src, callbacks_dst, "*.py", symlink=dev)
+                if count > 0:
+                    console.print(f"  [green]Installed {count} LiteLLM callbacks (thinking models)[/green]")
+
     # Install core module (klean_core.py, prompts)
     if component in ["all", "core"]:
         console.print("[bold]Installing core module...[/bold]")
@@ -1358,6 +1367,17 @@ def doctor(auto_fix: bool):
                             console.print("  [yellow]○[/yellow] NanoGPT Subscription: Could not verify")
                     else:
                         console.print("  [green]✓[/green] LiteLLM .env: Pay-per-use configured")
+
+        # Check thinking models callback
+        callbacks_dir = CONFIG_DIR / "callbacks"
+        thinking_callback = callbacks_dir / "thinking_transform.py"
+        if thinking_callback.exists():
+            console.print("  [green]✓[/green] Thinking models: Callback installed")
+        else:
+            issues.append(("WARNING", "Thinking models callback not installed"))
+            console.print("  [yellow]○[/yellow] Thinking models: Callback not installed")
+            console.print("    [dim]SmolKLN won't work with glm-4.6-thinking, kimi-k2-thinking, etc.[/dim]")
+            console.print("    [dim]Fix: k-lean install -c config[/dim]")
 
     # Check Python venv
     if VENV_DIR.exists():

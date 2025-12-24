@@ -39,16 +39,20 @@ def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
     if not final_answer or not agent_memory:
         return True  # No validation needed
 
+    # Convert final_answer to string if needed (can be dict, int, etc.)
+    answer_str = str(final_answer) if not isinstance(final_answer, str) else final_answer
+
     # Extract citations from answer (format: file.ext:123 or path/file.ext:123-456)
     citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?'
-    citations = re.findall(citation_pattern, final_answer)
+    citations = re.findall(citation_pattern, answer_str)
 
     if not citations:
         return True  # No citations to validate
 
     # Collect all valid file:line references from tool outputs
     valid_refs = set()
-    for step in agent_memory:
+    steps = agent_memory.get_full_steps() if hasattr(agent_memory, 'get_full_steps') else []
+    for step in steps:
         # Handle different memory step formats
         tool_output = None
         if hasattr(step, 'observations'):
@@ -105,7 +109,8 @@ def get_citation_stats(final_answer: str, agent_memory=None) -> Dict[str, Any]:
     # Collect valid refs
     valid_refs = set()
     if agent_memory:
-        for step in agent_memory:
+        steps = agent_memory.get_full_steps() if hasattr(agent_memory, 'get_full_steps') else []
+        for step in steps:
             tool_output = None
             if hasattr(step, 'observations'):
                 tool_output = step.observations

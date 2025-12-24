@@ -17,16 +17,21 @@ MODEL_ALIASES = {
 }
 
 # Role -> Best model mapping
+# NOTE: Tested 2024-12-24 with smolagents:
+# - kimi-k2-thinking: WORKS for complex tasks (90s), best thinking model
+# - glm-4.6-thinking: FAILS - systematic JSON parse errors, DO NOT USE
+# - deepseek-v3-thinking: Too slow (5+ min), unreliable
+# - qwen3-coder/devstral-2: Most reliable (36s), works for all tasks
 ROLE_MODELS = {
-    "security-auditor": "glm-4.6-thinking",
-    "debugger": "qwen3-coder",
-    "code-reviewer": "qwen3-coder",
-    "orchestrator": "deepseek-v3-thinking",
-    "architect": "deepseek-v3-thinking",
-    "performance-engineer": "deepseek-v3-thinking",
-    "arm-cortex-expert": "qwen3-coder",
-    "c-pro": "qwen3-coder",
-    "rust-expert": "qwen3-coder",
+    "security-auditor": "kimi-k2-thinking",  # Complex analysis benefits from reasoning
+    "debugger": "kimi-k2-thinking",          # Complex analysis benefits from reasoning
+    "code-reviewer": "qwen3-coder",          # Fast, reliable
+    "orchestrator": "kimi-k2-thinking",      # Complex orchestration benefits from reasoning
+    "architect": "devstral-2",               # Architecture design
+    "performance-engineer": "qwen3-coder",   # Fast, reliable
+    "arm-cortex-expert": "qwen3-coder",      # Domain expertise
+    "c-pro": "qwen3-coder",                  # Domain expertise
+    "rust-expert": "qwen3-coder",            # Domain expertise
 }
 
 

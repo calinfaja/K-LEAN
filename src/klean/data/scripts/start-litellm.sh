@@ -101,5 +101,9 @@ echo "📡 Starting on port $PORT..."
 echo "   Config: $CONFIG_FILE"
 echo ""
 
+# Add callbacks to Python path for thinking models support
+# This allows LiteLLM to load callbacks.thinking_transform
+export PYTHONPATH="$CONFIG_DIR:${PYTHONPATH:-}"
+
 # Start LiteLLM
 exec litellm --config "$CONFIG_FILE" --port "$PORT"
