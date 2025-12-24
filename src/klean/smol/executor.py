@@ -11,7 +11,13 @@ import time
 
 from .loader import load_agent, list_available_agents, Agent
 from .models import create_model, get_model_for_role
-from .tools import get_default_tools, KnowledgeRetrieverTool
+from .tools import (
+    get_default_tools,
+    get_tools_for_agent,
+    KnowledgeRetrieverTool,
+    validate_citations,
+    get_citation_stats,
+)
 from .context import (
     gather_project_context,
     format_context_for_prompt,
@@ -220,8 +226,11 @@ class SmolKLNExecutor:
         # Build full prompt with project context and memory
         full_prompt = self._build_prompt(agent, task, combined_context if combined_context else None)
 
-        # Get tools for this agent - pass project path for Knowledge DB
-        tools = get_default_tools(str(self.project_root))
+        # Get tools for this agent - use agent-specific tools if defined
+        if agent.config.tools:
+            tools = get_tools_for_agent(agent.config.tools, str(self.project_root))
+        else:
+            tools = get_default_tools(str(self.project_root))
 
         # Create smolagents CodeAgent
         # CodeAgent is ~30% more efficient than ToolCallingAgent
@@ -240,6 +249,7 @@ class SmolKLNExecutor:
             max_steps=max_steps,
             use_structured_outputs_internally=True,
             additional_authorized_imports=safe_imports,
+            final_answer_checks=[validate_citations],  # Verify file:line citations
         )
 
         # Prepend agent's system prompt to the default system prompt
@@ -256,6 +266,9 @@ class SmolKLNExecutor:
             duration = time.time() - start_time
 
             output = self._format_result(result)
+
+            # Get citation statistics
+            citation_stats = get_citation_stats(output, smol_agent.memory)
 
             # Record successful result to memory
             self.memory.record(
@@ -283,6 +296,7 @@ class SmolKLNExecutor:
                 "output_file": str(output_file),
                 "memory_history": self.memory.session.get_history() if self.memory.session else [],
                 "memory_persisted": persisted_count,
+                "citation_stats": citation_stats,
             }
         except Exception as e:
             error_msg = f"Execution error: {str(e)}"

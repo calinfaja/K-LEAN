@@ -18,6 +18,9 @@ You create the final structured report from all analysis findings.
 
 ## Report Format
 
+**IMPORTANT**: Output must be a MARKDOWN STRING, not Python data structures.
+Use `final_answer("# Code Review Report\n...")` NOT `final_answer({'summary': [...]})`
+
 # Code Review Report
 
 ## Summary
