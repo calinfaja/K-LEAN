@@ -10,7 +10,7 @@ import time
 
 from .multi_config import get_3_agent_config, get_4_agent_config, AgentConfig
 from .models import create_model
-from .tools import get_tools_for_agent
+from .tools import get_tools_for_agent, validate_citations, get_citation_stats
 from .context import gather_project_context, format_context_for_prompt
 
 
@@ -228,6 +228,7 @@ class MultiAgentExecutor:
                 max_steps=manager_config.max_steps,
                 use_structured_outputs_internally=True,
                 additional_authorized_imports=safe_imports,
+                final_answer_checks=[validate_citations],  # Verify file:line citations
             )
 
             if manager_prompt:
@@ -261,6 +262,9 @@ class MultiAgentExecutor:
             duration = time.time() - start_time
             output = self._format_result(result)
 
+            # Get citation statistics from agent memory
+            citation_stats = get_citation_stats(output, manager.memory)
+
             # Save result
             agents_used = [a.name for a in specialists]
             output_file = self._save_result(
@@ -274,6 +278,7 @@ class MultiAgentExecutor:
                 "duration_s": round(duration, 1),
                 "success": True,
                 "output_file": str(output_file),
+                "citation_stats": citation_stats,
             }
         except Exception as e:
             duration = time.time() - start_time

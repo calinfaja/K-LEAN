@@ -43,6 +43,9 @@ When writing Python code:
 
 ## Output Format
 
+**IMPORTANT**: Your final answer must be a MARKDOWN STRING, not Python data structures.
+Use `final_answer("## Summary\n- bullet1\n...")` NOT `final_answer({'summary': [...]})`
+
 Your final report must include:
 
 ## Summary

@@ -4,8 +4,9 @@ Provides file operations and knowledge search tools.
 """
 
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import sys
+import re
 
 # Import smolagents Tool class - required for this module
 try:
@@ -15,6 +16,404 @@ except ImportError:
     SMOLAGENTS_AVAILABLE = False
     Tool = object  # Fallback for type hints
     tool = lambda f: f  # No-op decorator
+
+
+# =============================================================================
+# Citation Validation for final_answer_checks
+# =============================================================================
+
+def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
+    """Verify all file:line citations in final answer exist in tool call history.
+
+    This function is designed to be used with smolagents' final_answer_checks.
+    smolagents calls: check_function(final_answer, self.memory, agent=self)
+
+    Args:
+        final_answer: The agent's final answer string
+        agent_memory: List of agent memory steps (ActionStep objects)
+        **kwargs: Accepts additional args (e.g., agent=) passed by smolagents
+
+    Returns:
+        True if all citations are valid or no citations present, False otherwise
+    """
+    if not final_answer or not agent_memory:
+        return True  # No validation needed
+
+    # Extract citations from answer (format: file.ext:123 or path/file.ext:123-456)
+    citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?'
+    citations = re.findall(citation_pattern, final_answer)
+
+    if not citations:
+        return True  # No citations to validate
+
+    # Collect all valid file:line references from tool outputs
+    valid_refs = set()
+    for step in agent_memory:
+        # Handle different memory step formats
+        tool_output = None
+        if hasattr(step, 'observations'):
+            tool_output = step.observations
+        elif hasattr(step, 'tool_output'):
+            tool_output = step.tool_output
+        elif isinstance(step, dict) and 'observations' in step:
+            tool_output = step['observations']
+
+        if tool_output:
+            # Extract all file:line patterns from tool output
+            refs = re.findall(r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)', str(tool_output))
+            for file_path, line_num in refs:
+                valid_refs.add((file_path, int(line_num)))
+                # Also add basename for flexibility
+                basename = Path(file_path).name
+                valid_refs.add((basename, int(line_num)))
+
+    # Verify each citation
+    invalid_count = 0
+    for file_path, line_start, line_end in citations:
+        line_num = int(line_start)
+        basename = Path(file_path).name
+
+        # Check if citation exists in valid refs (full path or basename)
+        if (file_path, line_num) not in valid_refs and (basename, line_num) not in valid_refs:
+            invalid_count += 1
+
+    # Allow some tolerance - fail only if >= 20% citations are invalid
+    total_citations = len(citations)
+    if invalid_count > 0:
+        invalid_ratio = invalid_count / total_citations
+        if invalid_ratio >= 0.2:
+            return False  # smolagents raises AgentError with function name
+
+    return True
+
+
+def get_citation_stats(final_answer: str, agent_memory=None) -> Dict[str, Any]:
+    """Get statistics about citations in the final answer.
+
+    Useful for debugging and reporting on citation quality.
+
+    Args:
+        final_answer: The agent's final answer string
+        agent_memory: List of agent memory steps
+
+    Returns:
+        Dict with citation statistics
+    """
+    citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?'
+    citations = re.findall(citation_pattern, final_answer or "")
+
+    # Collect valid refs
+    valid_refs = set()
+    if agent_memory:
+        for step in agent_memory:
+            tool_output = None
+            if hasattr(step, 'observations'):
+                tool_output = step.observations
+            elif hasattr(step, 'tool_output'):
+                tool_output = step.tool_output
+            elif isinstance(step, dict) and 'observations' in step:
+                tool_output = step['observations']
+
+            if tool_output:
+                refs = re.findall(r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)', str(tool_output))
+                for file_path, line_num in refs:
+                    valid_refs.add((file_path, int(line_num)))
+                    valid_refs.add((Path(file_path).name, int(line_num)))
+
+    # Check each citation
+    valid_citations = []
+    invalid_citations = []
+    for file_path, line_start, line_end in citations:
+        line_num = int(line_start)
+        basename = Path(file_path).name
+        citation = f"{file_path}:{line_start}"
+        if line_end:
+            citation += f"-{line_end}"
+
+        if (file_path, line_num) in valid_refs or (basename, line_num) in valid_refs:
+            valid_citations.append(citation)
+        else:
+            invalid_citations.append(citation)
+
+    return {
+        "total": len(citations),
+        "valid": len(valid_citations),
+        "invalid": len(invalid_citations),
+        "valid_citations": valid_citations,
+        "invalid_citations": invalid_citations,
+        "validation_passed": len(invalid_citations) == 0 or len(invalid_citations) / max(len(citations), 1) < 0.2
+    }
+
+
+# =============================================================================
+# Structured Grep Tool with Context
+# =============================================================================
+
+class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
+    """Enhanced grep tool that returns structured output with context lines.
+
+    This tool provides file:line references that can be validated by
+    the validate_citations final_answer_check.
+    """
+
+    name = "grep_with_context"
+    description = (
+        "Search for text patterns in files with context lines. Returns structured "
+        "results with exact file:line references for citations. Use this for findings "
+        "that need to be cited in the review output."
+    )
+    inputs = {
+        "pattern": {
+            "type": "string",
+            "description": "Text or regex pattern to search for"
+        },
+        "path": {
+            "type": "string",
+            "description": "Directory to search in (default: current directory)",
+            "nullable": True
+        },
+        "file_pattern": {
+            "type": "string",
+            "description": "Glob pattern for files to search (e.g., '*.py', '*.c')",
+            "nullable": True
+        },
+        "context_lines": {
+            "type": "integer",
+            "description": "Number of context lines before and after match (default: 2)",
+            "nullable": True
+        }
+    }
+    output_type = "string"
+
+    def __init__(self, project_path: str = None):
+        if SMOLAGENTS_AVAILABLE:
+            super().__init__()
+        self.project_path = project_path or "."
+
+    def forward(
+        self,
+        pattern: str,
+        path: str = None,
+        file_pattern: str = None,
+        context_lines: int = None
+    ) -> str:
+        """Execute grep with context and return structured output."""
+        search_path = Path(path) if path else Path(self.project_path)
+        file_glob = file_pattern or "*"
+        ctx_lines = context_lines if context_lines is not None else 2
+
+        if not search_path.exists():
+            return f"Path not found: {search_path}"
+
+        try:
+            regex = re.compile(pattern, re.IGNORECASE)
+        except re.error:
+            regex = re.compile(re.escape(pattern), re.IGNORECASE)
+
+        results = []
+        files_searched = 0
+
+        for file_path in search_path.glob(f"**/{file_glob}"):
+            if not file_path.is_file():
+                continue
+            files_searched += 1
+
+            try:
+                content = file_path.read_text()
+                lines = content.splitlines()
+
+                for i, line in enumerate(lines):
+                    if regex.search(line):
+                        line_num = i + 1  # 1-indexed
+
+                        # Get context lines
+                        start_ctx = max(0, i - ctx_lines)
+                        end_ctx = min(len(lines), i + ctx_lines + 1)
+
+                        context_before = []
+                        for j in range(start_ctx, i):
+                            context_before.append(f"  {j+1:4d}| {lines[j]}")
+
+                        context_after = []
+                        for j in range(i + 1, end_ctx):
+                            context_after.append(f"  {j+1:4d}| {lines[j]}")
+
+                        # Format result with clear file:line reference
+                        result = f"\n### {file_path}:{line_num}\n"
+                        if context_before:
+                            result += "\n".join(context_before) + "\n"
+                        result += f"> {line_num:4d}| {line}\n"  # Highlighted match line
+                        if context_after:
+                            result += "\n".join(context_after)
+
+                        results.append(result)
+
+                        if len(results) >= 30:  # Limit results
+                            break
+
+            except Exception:
+                continue
+
+            if len(results) >= 30:
+                break
+
+        if not results:
+            return f"No matches for '{pattern}' in {search_path} ({files_searched} files searched)"
+
+        header = f"## Search Results for '{pattern}'\n"
+        header += f"Files searched: {files_searched} | Matches: {len(results)}\n"
+        header += "Use file:line references below for citations.\n"
+
+        return header + "\n".join(results)
+
+
+# =============================================================================
+# Test Coverage Analysis Tool
+# =============================================================================
+
+class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
+    """Analyze test coverage by mapping source functions to test functions.
+
+    Helps identify which source code functions have corresponding tests.
+    """
+
+    name = "analyze_test_coverage"
+    description = (
+        "Analyze test coverage by finding which functions in source files have "
+        "corresponding test functions. Returns a coverage matrix showing tested "
+        "and untested functions."
+    )
+    inputs = {
+        "source_path": {
+            "type": "string",
+            "description": "Path to source file or directory to analyze"
+        },
+        "test_pattern": {
+            "type": "string",
+            "description": "Glob pattern for test files (default: 'test_*.py' or '*_test.c')",
+            "nullable": True
+        }
+    }
+    output_type = "string"
+
+    def __init__(self, project_path: str = None):
+        if SMOLAGENTS_AVAILABLE:
+            super().__init__()
+        self.project_path = project_path or "."
+
+    def forward(self, source_path: str, test_pattern: str = None) -> str:
+        """Analyze test coverage for source files."""
+        src_path = Path(source_path)
+        if not src_path.is_absolute():
+            src_path = Path(self.project_path) / src_path
+
+        if not src_path.exists():
+            return f"Source path not found: {source_path}"
+
+        # Determine file type and patterns
+        if src_path.is_file():
+            source_files = [src_path]
+            suffix = src_path.suffix
+        else:
+            # Get all source files in directory
+            source_files = list(src_path.glob("**/*.py")) + \
+                          list(src_path.glob("**/*.c")) + \
+                          list(src_path.glob("**/*.js")) + \
+                          list(src_path.glob("**/*.ts"))
+            suffix = ".py"  # Default
+
+        # Determine test pattern based on file type
+        if test_pattern:
+            t_pattern = test_pattern
+        elif suffix == ".py":
+            t_pattern = "test_*.py"
+        elif suffix in [".c", ".h"]:
+            t_pattern = "*_test.c"
+        else:
+            t_pattern = "*.test.*"
+
+        # Find test files
+        project_root = Path(self.project_path)
+        test_files = list(project_root.glob(f"**/{t_pattern}"))
+
+        # Extract function names from source files
+        func_pattern_py = r'^\s*def\s+(\w+)\s*\('
+        func_pattern_c = r'^\s*(?:static\s+)?(?:\w+\s+)+(\w+)\s*\([^)]*\)\s*\{'
+
+        source_functions = {}
+        for src_file in source_files:
+            try:
+                content = src_file.read_text()
+                if src_file.suffix == ".py":
+                    funcs = re.findall(func_pattern_py, content, re.MULTILINE)
+                else:
+                    funcs = re.findall(func_pattern_c, content, re.MULTILINE)
+                # Filter out common non-function matches
+                funcs = [f for f in funcs if not f.startswith('_') or f.startswith('__init')]
+                source_functions[str(src_file)] = funcs
+            except Exception:
+                continue
+
+        # Extract test function names
+        test_functions = set()
+        for test_file in test_files:
+            try:
+                content = test_file.read_text()
+                # Look for test_ prefix functions
+                tests = re.findall(r'def\s+(test_\w+)', content)
+                test_functions.update(tests)
+                # Also look for Test classes
+                tests = re.findall(r'class\s+(Test\w+)', content)
+                test_functions.update(tests)
+            except Exception:
+                continue
+
+        # Build coverage report
+        output = "## Test Coverage Analysis\n\n"
+        output += f"Source files: {len(source_files)}\n"
+        output += f"Test files: {len(test_files)}\n"
+        output += f"Test functions found: {len(test_functions)}\n\n"
+
+        total_funcs = 0
+        tested_funcs = 0
+        untested_list = []
+
+        for src_file, funcs in source_functions.items():
+            output += f"### {Path(src_file).name}\n"
+            file_tested = 0
+            file_untested = []
+
+            for func in funcs:
+                total_funcs += 1
+                # Check if function has a corresponding test
+                test_name = f"test_{func}"
+                if test_name in test_functions or any(func.lower() in t.lower() for t in test_functions):
+                    file_tested += 1
+                    tested_funcs += 1
+                    output += f"  [TESTED] {func}\n"
+                else:
+                    file_untested.append(func)
+                    untested_list.append(f"{Path(src_file).name}:{func}")
+                    output += f"  [MISSING] {func}\n"
+
+            coverage_pct = (file_tested / len(funcs) * 100) if funcs else 0
+            output += f"  Coverage: {file_tested}/{len(funcs)} ({coverage_pct:.0f}%)\n\n"
+
+        # Summary
+        overall_coverage = (tested_funcs / total_funcs * 100) if total_funcs > 0 else 0
+        output += f"## Summary\n"
+        output += f"- **Overall Coverage**: {tested_funcs}/{total_funcs} ({overall_coverage:.0f}%)\n"
+        output += f"- **Tested**: {tested_funcs}\n"
+        output += f"- **Untested**: {total_funcs - tested_funcs}\n\n"
+
+        if untested_list:
+            output += "### Priority: Untested Functions\n"
+            for item in untested_list[:20]:  # Show top 20
+                output += f"- {item}\n"
+            if len(untested_list) > 20:
+                output += f"... and {len(untested_list) - 20} more\n"
+
+        return output
 
 
 class KnowledgeRetrieverTool(Tool if SMOLAGENTS_AVAILABLE else object):
@@ -436,15 +835,15 @@ def list_directory(path: str = ".", recursive: bool = False, max_depth: int = 2)
                 if item.name.startswith('.'):
                     continue  # Skip hidden files
                 if item.is_dir():
-                    items.append(f"{indent}📁 {item.name}/")
+                    items.append(f"{indent}[DIR] {item.name}/")
                     if recursive and depth < max_depth:
                         items.extend(list_dir(item, depth + 1))
                 else:
                     size = item.stat().st_size
                     size_str = f"{size:,} bytes" if size < 1024 else f"{size/1024:.1f} KB"
-                    items.append(f"{indent}📄 {item.name} ({size_str})")
+                    items.append(f"{indent}[FILE] {item.name} ({size_str})")
         except PermissionError:
-            items.append(f"{indent}⛔ Permission denied")
+            items.append(f"{indent}[ERROR] Permission denied")
         return items
 
     output = f"## Directory: {path}\n\n"
@@ -781,5 +1180,11 @@ def get_tools_for_agent(
         tools.append(list_directory)
     if "get_file_info" in tool_names:
         tools.append(get_file_info)
+
+    # Add enhanced tools for citation-aware output
+    if "grep_with_context" in tool_names:
+        tools.append(GrepWithContextTool(project_path))
+    if "analyze_test_coverage" in tool_names:
+        tools.append(TestCoverageAnalyzerTool(project_path))
 
     return tools
