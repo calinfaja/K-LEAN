@@ -21,17 +21,27 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 import click
 from rich.console import Console
+from rich.layout import Layout
 from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-from rich.layout import Layout
 
-from klean import __version__, CLAUDE_DIR, VENV_DIR, CONFIG_DIR, DATA_DIR, KLEAN_DIR, LOGS_DIR, PIDS_DIR, SMOL_AGENTS_DIR
+from klean import (
+    CLAUDE_DIR,
+    CONFIG_DIR,
+    DATA_DIR,
+    KLEAN_DIR,
+    LOGS_DIR,
+    PIDS_DIR,
+    SMOL_AGENTS_DIR,
+    VENV_DIR,
+    __version__,
+)
 
 console = Console()
 
@@ -121,7 +131,12 @@ def get_kb_project_status() -> tuple:
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
 
-        from kb_utils import find_project_root, is_server_running, is_kb_initialized, get_socket_path
+        from kb_utils import (
+            find_project_root,
+            get_socket_path,
+            is_kb_initialized,
+            is_server_running,
+        )
 
         project = find_project_root(Path.cwd())
         if not project:
@@ -186,6 +201,10 @@ def ensure_dir(path: Path) -> None:
 
 def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) -> int:
     """Copy or symlink files from source to destination."""
+    # Handle case where dst is a symlink (e.g., from previous dev mode install)
+    # When switching to production mode, we need a real directory
+    if not symlink and dst.is_symlink():
+        dst.unlink()
     ensure_dir(dst)
     count = 0
 
@@ -202,6 +221,10 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
                     dst_file.unlink()
                 dst_file.symlink_to(item.resolve())
             else:
+                # Skip if source and destination are the same file
+                if dst_file.exists() and os.path.samefile(item, dst_file):
+                    count += 1
+                    continue
                 shutil.copy2(item, dst_file)
             count += 1
         elif item.is_dir() and pattern == "*":
@@ -232,8 +255,8 @@ def make_executable(path: Path) -> None:
 def check_litellm() -> bool:
     """Check if LiteLLM proxy is running."""
     try:
-        import urllib.request
         import json
+        import urllib.request
         # Try /models endpoint which LiteLLM supports
         req = urllib.request.Request("http://localhost:4000/models")
         response = urllib.request.urlopen(req, timeout=2)
@@ -246,7 +269,7 @@ def check_litellm() -> bool:
 def _check_smolagents_installed() -> bool:
     """Check if smolagents package is installed."""
     try:
-        import smolagents
+        import smolagents  # noqa: F401
         return True
     except ImportError:
         return False
@@ -294,7 +317,7 @@ def check_knowledge_server(project_path: Path = None) -> bool:
         client.connect(str(socket_path))
         client.close()
         return True
-    except (sock.error, OSError):
+    except OSError:
         # Socket exists but no server - clean up stale socket
         try:
             socket_path.unlink()
@@ -305,8 +328,8 @@ def check_knowledge_server(project_path: Path = None) -> bool:
 
 def list_knowledge_servers() -> list:
     """List all running knowledge servers."""
-    import socket as sock
     import json
+    import socket as sock
 
     servers = []
     for socket_file in Path("/tmp").glob("kb-*.sock"):
@@ -469,8 +492,8 @@ def check_litellm_detailed() -> Dict[str, Any]:
         if isinstance(data, dict) and "data" in data:
             result["running"] = True
             result["models"] = [m.get("id", "unknown") for m in data.get("data", [])]
-    except urllib.error.URLError as e:
-        result["error"] = f"Connection refused (proxy not running)"
+    except urllib.error.URLError:
+        result["error"] = "Connection refused (proxy not running)"
     except Exception as e:
         result["error"] = str(e)
     return result
@@ -734,7 +757,7 @@ def read_debug_log(lines: int = 50, component: Optional[str] = None) -> List[Dic
 
     entries = []
     try:
-        with open(log_file, 'r') as f:
+        with open(log_file) as f:
             all_lines = f.readlines()
             for line in all_lines[-lines * 2:]:  # Read extra to filter
                 try:
@@ -812,29 +835,15 @@ def install(dev: bool, component: str, yes: bool):
     console.print(f"\n[bold]Installation Mode:[/bold] {mode}")
 
     # Determine source directory
-    # For development, use the repo's actual directories
-    if dev:
-        # Find the repo root (parent of src/)
-        repo_root = Path(__file__).parent.parent.parent
-        source_scripts = repo_root / "scripts"
-        source_commands = repo_root / "commands"
-        source_commands_kln = repo_root / "commands-kln"
-        source_hooks = repo_root / "hooks"
-        source_config = repo_root / "config"
-        source_lib = repo_root / "lib"
-        source_core = repo_root / "src" / "klean" / "data" / "core"
-        source_agents = repo_root / "src" / "klean" / "data" / "agents"
-    else:
-        # Production: use package data directory
-        source_base = DATA_DIR
-        source_scripts = source_base / "scripts"
-        source_commands = source_base / "commands"
-        source_commands_kln = source_base / "commands" / "kln"
-        source_hooks = source_base / "hooks"
-        source_config = source_base / "config"
-        source_lib = source_base / "lib"
-        source_core = source_base / "core"
-        source_agents = source_base / "agents"
+    # Both dev and production use the same package data directory
+    # The only difference is dev creates symlinks, production copies files
+    source_base = DATA_DIR
+    source_scripts = source_base / "scripts"
+    source_commands_kln = source_base / "commands" / "kln"
+    source_hooks = source_base / "hooks"
+    source_config = source_base / "config"
+    source_lib = source_base / "lib"
+    source_core = source_base / "core"
 
     console.print(f"[dim]Source: {source_scripts.parent}[/dim]\n")
 
@@ -888,7 +897,7 @@ def install(dev: bool, component: str, yes: bool):
             installed["hooks"] = count
             console.print(f"  [green]Installed {count} hooks[/green]")
         else:
-            console.print(f"  [yellow]Hooks source not found[/yellow]")
+            console.print("  [yellow]Hooks source not found[/yellow]")
 
     # Install SmolKLN agents
     if component in ["all", "smolkln"]:
@@ -917,7 +926,7 @@ def install(dev: bool, component: str, yes: bool):
             else:
                 shutil.copy2(smolkln_script, smolkln_dst)
             smolkln_dst.chmod(smolkln_dst.stat().st_mode | 0o111)
-            console.print(f"  [green]Installed smol-kln.py[/green]")
+            console.print("  [green]Installed smol-kln.py[/green]")
 
     # Install config
     if component in ["all", "config"]:
@@ -1357,7 +1366,7 @@ def doctor(auto_fix: bool):
                             # Append to .env
                             with open(env_file, "a") as f:
                                 f.write(f"\nNANOGPT_API_BASE={api_base}\n")
-                            console.print(f"    [green]✓ Saved NANOGPT_API_BASE to .env[/green]")
+                            console.print("    [green]✓ Saved NANOGPT_API_BASE to .env[/green]")
                             fixes_applied.append("Auto-detected and saved NANOGPT_API_BASE")
                         except Exception as e:
                             console.print(f"    [red]✗ Could not detect: {e}[/red]")
@@ -1416,7 +1425,6 @@ def doctor(auto_fix: bool):
     # Check Claude Code hooks configuration
     console.print("[bold]Hooks Configuration:[/bold]")
     settings_file = CLAUDE_DIR / "settings.json"
-    hooks_configured = False
     missing_hooks = []
 
     if settings_file.exists():
@@ -1430,7 +1438,6 @@ def doctor(auto_fix: bool):
                 matchers = {h.get("matcher") for h in hooks["SessionStart"]}
                 if "startup" in matchers and "resume" in matchers:
                     console.print("  [green]✓[/green] SessionStart hooks: Configured")
-                    hooks_configured = True
                 else:
                     missing_hooks.append("SessionStart[startup/resume]")
             else:
@@ -1563,7 +1570,7 @@ def doctor(auto_fix: bool):
         console.print("[green]No issues found![/green]")
 
     if fixes_applied:
-        console.print(f"\n[bold green]Auto-fixes applied:[/bold green]")
+        console.print("\n[bold green]Auto-fixes applied:[/bold green]")
         for fix in fixes_applied:
             console.print(f"  • {fix}")
 
@@ -1680,7 +1687,6 @@ def test():
 
     # Summary
     console.print("\n" + "═" * 50)
-    total = passed + failed
     if failed == 0:
         console.print(f"[bold green]All {passed} tests passed![/bold green]")
     else:
@@ -1944,7 +1950,6 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
     # Cache for model latencies (to avoid slow API calls every refresh)
     model_latency_cache = {}
-    last_latency_check = [0]  # Use list for mutable closure
 
     def render_models_panel() -> Panel:
         """Render models status panel - NO token consumption (uses /models endpoint only)."""
@@ -1985,7 +1990,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
                 duration = datetime.now() - start_dt
                 mins = int(duration.total_seconds() // 60)
                 lines_out.append(f"[bold]Session:[/bold] {mins}m ago")
-            except:
+            except (ValueError, TypeError, KeyError):
                 lines_out.append(f"[bold]Session:[/bold] {start_time}")
         else:
             lines_out.append("[bold]Session:[/bold] No activity")
@@ -2011,7 +2016,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         lines_out.append("")
 
         # Activity counts
-        lines_out.append(f"[bold]Activity:[/bold]")
+        lines_out.append("[bold]Activity:[/bold]")
         lines_out.append(f"  [magenta]Agents:[/magenta] {stats['agents_executed']}")
         lines_out.append(f"  [cyan]KB queries:[/cyan] {stats['knowledge_queries']}")
         if stats['models_used']:
@@ -2163,7 +2168,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         header.append("K-LEAN ", style="bold cyan")
         header.append("Live Dashboard", style="bold")
         header.append(f"  {datetime.now().strftime('%H:%M:%S')}", style="green")
-        header.append(f"  [Ctrl+C to exit]", style="dim")
+        header.append("  [Ctrl+C to exit]", style="dim")
 
         # Top section: Services + Models
         top_layout = Layout()
@@ -2441,7 +2446,6 @@ def sync(check: bool, clean: bool, verbose: bool):
     total_synced = 0
     total_missing = 0
     total_stale = 0
-    issues = []
 
     for src_subdir, dst_subdir, patterns in sync_dirs:
         src_dir = repo_root / src_subdir
@@ -2517,7 +2521,7 @@ def sync(check: bool, clean: bool, verbose: bool):
             console.print("[green]✓ Package is in sync with source[/green]")
             sys.exit(0)
         else:
-            console.print(f"[red]✗ Package is out of sync:[/red]")
+            console.print("[red]✗ Package is out of sync:[/red]")
             if total_missing:
                 console.print(f"  [yellow]• {total_missing} files need to be added[/yellow]")
             if total_stale:
@@ -2598,8 +2602,8 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
     # Setup telemetry if requested
     if telemetry:
         try:
-            from phoenix.otel import register
             from openinference.instrumentation.smolagents import SmolagentsInstrumentor
+            from phoenix.otel import register
             register(project_name="klean-multi")
             SmolagentsInstrumentor().instrument()
             console.print("[dim]Telemetry enabled - view at http://localhost:6006[/dim]")
@@ -2785,7 +2789,7 @@ OPENROUTER_API_KEY={api_key}
     console.print("\n" + "=" * 40)
     console.print("[bold green]Setup Complete![/bold green]")
     console.print("=" * 40)
-    console.print(f"\nConfiguration saved to:")
+    console.print("\nConfiguration saved to:")
     console.print(f"  Config:  [cyan]{CONFIG_DIR}/config.yaml[/cyan]")
     console.print(f"  Secrets: [cyan]{CONFIG_DIR}/.env[/cyan] (keep safe!)")
     console.print("\n[bold]Next steps:[/bold]")

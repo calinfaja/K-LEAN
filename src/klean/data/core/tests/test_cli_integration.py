@@ -5,11 +5,9 @@ Tests 7-10: CLI commands (quick, multi, multi+telemetry, rethink).
 These tests verify the CLI interface works correctly.
 """
 
-import sys
-import os
+import json
 import subprocess
 import unittest
-import json
 from pathlib import Path
 
 # K-LEAN paths
@@ -103,8 +101,8 @@ class TestCLIMulti(unittest.TestCase):
     def test_multi_review_accepts_model_list(self):
         """Test 8b: Should accept comma-separated model list (dynamic discovery)."""
         # Discover models dynamically from LiteLLM proxy
-        import urllib.request
         import json
+        import urllib.request
         try:
             req = urllib.request.Request(
                 "http://localhost:4000/models",
@@ -143,8 +141,6 @@ class TestCLIMultiTelemetry(unittest.TestCase):
             ["multi", "--telemetry", "--models", "1", "test"],
             timeout=120
         )
-        # Check telemetry was enabled
-        combined = stdout + stderr
         # Should mention telemetry or phoenix
         self.assertNotIn("unrecognized arguments: --telemetry", stderr)
 
@@ -179,7 +175,7 @@ class TestNoHttpxImports(unittest.TestCase):
 
     def test_no_httpx_import(self):
         """Should not import httpx."""
-        with open(KLEAN_CORE, 'r') as f:
+        with open(KLEAN_CORE) as f:
             content = f.read()
 
         # Check no active httpx import
@@ -195,14 +191,14 @@ class TestNoHttpxImports(unittest.TestCase):
 
     def test_has_litellm_import(self):
         """Should import litellm."""
-        with open(KLEAN_CORE, 'r') as f:
+        with open(KLEAN_CORE) as f:
             content = f.read()
 
         self.assertIn('import litellm', content)
 
     def test_has_urllib_import(self):
         """Should import urllib for model discovery."""
-        with open(KLEAN_CORE, 'r') as f:
+        with open(KLEAN_CORE) as f:
             content = f.read()
 
         self.assertIn('import urllib', content)

@@ -11,17 +11,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install
-        run: pip install -e .
+
+      # ----------------------------------------
+      # Code Quality (catches real bugs)
+      # ----------------------------------------
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint (bugs only)
+        run: ruff check src/ --select=F,E722
+        # F: Pyflakes (undefined names, unused imports)
+        # E722: Bare except clauses
+        # Skips style issues (line length, import order)
+
+      # ----------------------------------------
+      # Package Installation
+      # ----------------------------------------
+      - name: Install package
+        run: pip install -e ".[dev]"
+
       - name: Version check
         run: k-lean --version
+
+      # ----------------------------------------
+      # Unit Tests (mocked, no services needed)
+      # ----------------------------------------
+      - name: Run pytest
+        run: pytest tests/ -v --tb=short
+
+      # ----------------------------------------
+      # Package Integrity
+      # ----------------------------------------
+      - name: Sync check
+        run: k-lean sync --check
+
       - name: Install components
         run: k-lean install --yes
+
       - name: Doctor check
         run: k-lean doctor
-      - name: Run tests
-        run: k-lean test
-        continue-on-error: true  # Service tests expected to fail in CI
+
+      # ----------------------------------------
+      # Build Verification
+      # ----------------------------------------
+      - name: Build package
+        run: pip install build && python -m build
+
+      - name: Check package
+        run: pip install twine && twine check dist/*

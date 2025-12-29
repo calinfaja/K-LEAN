@@ -30,25 +30,29 @@ Examples:
   knowledge-capture.py --json-input '{"title":"Validation","summary":"Always validate","atomic_insight":"Validate all inputs"}' --json
 """
 
+import argparse
 import json
-import sys
 import os
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
-import argparse
 
 # Import shared utilities
 try:
-    from kb_utils import (
-        find_project_root, get_socket_path, is_server_running,
-        PYTHON_BIN, debug_log
+    from kb_utils import (  # noqa: F401
+        PYTHON_BIN,
+        debug_log,
+        find_project_root,
+        get_socket_path,
+        is_server_running,
     )
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
     from kb_utils import (
-        find_project_root, get_socket_path, is_server_running,
-        PYTHON_BIN, debug_log
+        PYTHON_BIN,
+        debug_log,
+        is_server_running,
     )
 
 # Result of initialization
@@ -278,7 +282,7 @@ Examples:
 
         # Silent init - only mention if both new dir AND server started (and not json mode)
         if init_result.newly_created and init_result.server_started and not args.json:
-            print(f"[init: .knowledge-db + server]")
+            print("[init: .knowledge-db + server]")
 
         # Create entry based on input mode
         if args.json_input:

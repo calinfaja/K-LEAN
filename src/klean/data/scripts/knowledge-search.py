@@ -73,7 +73,7 @@ def format_detailed(results):
                 try:
                     import json
                     concepts = json.loads(concepts)
-                except:
+                except (json.JSONDecodeError, TypeError):
                     concepts = [concepts]
             if isinstance(concepts, list):
                 lines.append(f"Concepts: {', '.join(concepts)}")

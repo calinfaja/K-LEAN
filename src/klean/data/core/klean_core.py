@@ -10,19 +10,19 @@ import os
 import re
 import sys
 import time
-import yaml
 import urllib.request
-from pathlib import Path
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 # LiteLLM for LLM calls (replaces httpx for better telemetry)
 import litellm
+import yaml
 
 # Claude Agent SDK
 try:
-    from claude_agent_sdk import ClaudeSDKClient, query
+    from claude_agent_sdk import ClaudeSDKClient, query  # noqa: F401
     SDK_AVAILABLE = True
 except ImportError:
     SDK_AVAILABLE = False
@@ -594,7 +594,6 @@ class ReviewEngine:
         consensus_grade = max(grade_counts, key=grade_counts.get) if grade_counts else None
 
         # Calculate risk consensus
-        risk_order = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
         risk_counts = {}
         for r in risks:
             risk_counts[r] = risk_counts.get(r, 0) + 1
@@ -1079,7 +1078,7 @@ def cli_multi(args):
         # Medium confidence findings
         med_conf = consensus.get("medium_confidence", [])
         if med_conf:
-            print(f"\nMEDIUM CONFIDENCE (2+ models agree):")
+            print("\nMEDIUM CONFIDENCE (2+ models agree):")
             for f in med_conf:
                 models = ', '.join(f.get('models', []))
                 print(f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}")
@@ -1088,7 +1087,7 @@ def cli_multi(args):
         # Low confidence findings
         low_conf = consensus.get("low_confidence", [])
         if low_conf:
-            print(f"\nLOW CONFIDENCE (single model - investigate):")
+            print("\nLOW CONFIDENCE (single model - investigate):")
             for f in low_conf[:5]:  # Limit to 5
                 models = ', '.join(f.get('models', []))
                 print(f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}")
@@ -1197,15 +1196,15 @@ def _print_rethink_single_results(result):
         print(f"{'─'*65}")
 
         if idea.get("why_untried"):
-            print(f"\n**Why You Probably Didn't Try This**:")
+            print("\n**Why You Probably Didn't Try This**:")
             print(f"  {idea['why_untried']}")
 
         if idea.get("why_might_work"):
-            print(f"\n**Why It Might Work**:")
+            print("\n**Why It Might Work**:")
             print(f"  {idea['why_might_work']}")
 
         if idea.get("first_step"):
-            print(f"\n**First Step**:")
+            print("\n**First Step**:")
             print(f"  {idea['first_step']}")
 
     print(f"\n{'='*65}")
@@ -1214,7 +1213,7 @@ def _print_rethink_single_results(result):
 def _print_rethink_multi_results(result):
     """Print results from multi-model rethink"""
     if not result["success"]:
-        print(f"Error: All models failed", file=sys.stderr)
+        print("Error: All models failed", file=sys.stderr)
         for r in result.get("individual_results", []):
             if not r.get("success"):
                 print(f"  {r['model']}: {r.get('error')}", file=sys.stderr)
