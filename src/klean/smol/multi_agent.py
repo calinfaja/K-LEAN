@@ -192,6 +192,7 @@ class MultiAgentExecutor:
                     name=agent_config.name,
                     description=agent_config.description,
                     max_steps=agent_config.max_steps,
+                    planning_interval=agent_config.planning_interval,
                     additional_authorized_imports=safe_imports,
                 )
 
@@ -234,6 +235,7 @@ class MultiAgentExecutor:
                 tools=[],  # Manager only delegates
                 managed_agents=specialists,
                 max_steps=manager_config.max_steps,
+                planning_interval=manager_config.planning_interval,
                 additional_authorized_imports=safe_imports,
                 final_answer_checks=[validate_citations],  # Verify file:line citations
             )
