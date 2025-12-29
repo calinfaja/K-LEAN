@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-K-LEAN Core Module
+K-LEAN v3 Core Module
 Multi-model code review system with Claude Agent SDK integration
 """
 
@@ -83,8 +83,8 @@ class ModelResolver:
                         available=info.get("available", True),
                         last_tested=datetime.fromisoformat(info["last_tested"]) if info.get("last_tested") else None
                     )
-            except Exception as e:
-                print(f"Warning: Could not load latency cache: {e}", file=sys.stderr)
+            except Exception:
+                pass
 
     def _save_cache(self):
         """Save latency cache to disk"""
@@ -302,8 +302,7 @@ class ReviewEngine:
         # Resolve model
         if model == "auto":
             models = self.resolver.select_models(count=1, task=focus, prefer_fastest=True)
-            fallback_model = CONFIG.get("models", {}).get("fallback", "qwen3-coder")
-            model = models[0] if models else fallback_model
+            model = models[0] if models else "qwen3-coder"
 
         prompt = self._load_prompt(focus, context)
 
@@ -926,18 +925,36 @@ def cli_multi(args):
     import argparse
     parser = argparse.ArgumentParser(description="Multi-model review")
     parser.add_argument("focus", nargs="*", help="Review focus")
-    parser.add_argument("-n", "--models", type=int, default=3, help="Number of models")
-    parser.add_argument("-m", "--model", action="append", help="Specific models")
+    parser.add_argument("-n", "--models", default="3", help="Number of models OR comma-separated list")
+    parser.add_argument("-m", "--model", action="append", help="Specific models (deprecated, use --models)")
     parser.add_argument("-o", "--output", choices=["text", "json", "markdown"], default="text")
+    parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
 
     focus = " ".join(parsed.focus) or "general code review"
     engine = ReviewEngine()
 
+    # Parse --models: integer OR comma-separated list
+    model_count = 3
+    specific_models = parsed.model or []
+
+    if parsed.models:
+        if "," in parsed.models:
+            # Comma-separated list of models
+            specific_models = [m.strip() for m in parsed.models.split(",")]
+            model_count = len(specific_models)
+        else:
+            try:
+                model_count = int(parsed.models)
+            except ValueError:
+                # Single model name
+                specific_models = [parsed.models]
+                model_count = 1
+
     result = asyncio.run(engine.multi_review(
         focus,
-        model_count=parsed.models,
-        models=parsed.model
+        model_count=model_count,
+        models=specific_models if specific_models else None
     ))
 
     if parsed.output == "json":

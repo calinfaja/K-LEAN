@@ -28,9 +28,8 @@ $ARGUMENTS
 
 ## Flags
 
-- `--models, -n` - Number of models (default: 3) OR comma-separated list
-- `--fastest` - Prefer fastest models by latency
-- `--async, -a` - Run in background
+- `--models, -n` - Number of models (default: 3) OR comma-separated model names
+- `--telemetry` - Enable Phoenix telemetry tracing
 - `--output, -o` - Output format: text (default), json, markdown
 
 ## Execution
@@ -48,15 +47,15 @@ Execute the command above and display the aggregated results showing:
 2. Individual reviews from each model
 3. Consensus analysis (common issues, grade agreement)
 
-## Smart Model Selection
+## Model Discovery
+
+Models are **dynamically discovered** from LiteLLM proxy - no hardcoded names.
+Run `k-lean models` to see currently available models.
 
 The system automatically:
-1. Discovers available models from LiteLLM
+1. Queries LiteLLM for available models at runtime
 2. Applies latency-based ranking (fastest first)
-3. Boosts models based on task keywords:
-   - "security" → prefers glm-4.6-thinking
-   - "architecture" → prefers deepseek-v3-thinking
-   - "performance" → prefers qwen3-coder
+3. Boosts models based on task keywords (security, architecture, performance)
 4. Ensures diversity (mix of thinking + fast models)
 
 ## Examples
@@ -64,8 +63,8 @@ The system automatically:
 ```
 /kln:multi security audit                    # 3 models, auto-selected
 /kln:multi --models 5 full review            # 5 models
-/kln:multi --models qwen3-coder,kimi-k2,glm-4.6-thinking check error handling
-/kln:multi --fastest architecture patterns   # Prefer lowest latency
+/kln:multi --models qwen3-coder,kimi-k2,deepseek-r1 check error handling
+/kln:multi --models gemini-2.5-flash,grok-4.1-fast --telemetry review auth
 ```
 
 ## Output Format
