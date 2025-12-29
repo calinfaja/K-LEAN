@@ -50,9 +50,14 @@ k-lean test       # Run test suite
 
 ## Available Models
 
-Auto-discovered from LiteLLM. Use `k-lean models` to see current list.
+**Dynamic discovery** from LiteLLM proxy. Models depend on your configuration.
 
-Common: `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
+```bash
+k-lean models          # List all available models
+k-lean models --first  # Show default model
+```
+
+Configure in `~/.config/litellm/config.yaml`. Supports NanoGPT, OpenRouter, Ollama, etc.
 
 ## Profiles
 
@@ -72,10 +77,11 @@ Chronological log at `.knowledge-db/timeline.txt`
 ## LiteLLM Setup
 
 ```bash
-~/.claude/scripts/setup-litellm.sh
+k-lean setup      # Interactive configuration
+k-lean start      # Start LiteLLM proxy
 ```
 
-Providers: NanoGPT, OpenRouter
+Providers: NanoGPT, OpenRouter, Ollama (any OpenAI-compatible)
 
 ## Serena Memories
 
