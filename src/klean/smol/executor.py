@@ -10,7 +10,8 @@ import json
 import time
 
 from .loader import load_agent, list_available_agents, Agent
-from .models import create_model, get_model_for_role
+from .models import create_model
+from klean.discovery import get_model, list_models
 from .tools import (
     get_default_tools,
     get_tools_for_agent,
@@ -198,13 +199,13 @@ class SmolKLNExecutor:
                 "success": False,
             }
 
-        # Determine model to use
+        # Determine model to use (simple: override > agent config > first available)
         if model_override:
             model_name = model_override
         elif agent.config.model and agent.config.model != "inherit":
             model_name = agent.config.model
         else:
-            model_name = get_model_for_role(agent_name)
+            model_name = get_model()  # First available from LiteLLM
 
         # Create model
         try:

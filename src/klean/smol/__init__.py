@@ -34,7 +34,8 @@ Multi-agent:
 # Core
 from .executor import SmolKLNExecutor
 from .loader import load_agent, list_available_agents, Agent, AgentConfig
-from .models import create_model, get_model_for_role
+from .models import create_model
+from klean.discovery import get_model, list_models
 
 # Tools
 from .tools import KnowledgeRetrieverTool, get_default_tools
@@ -86,7 +87,8 @@ __all__ = [
     "Agent",
     "AgentConfig",
     "create_model",
-    "get_model_for_role",
+    "get_model",
+    "list_models",
     # Tools
     "KnowledgeRetrieverTool",
     "get_default_tools",

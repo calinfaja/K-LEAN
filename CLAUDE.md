@@ -41,13 +41,27 @@ Per-project semantic search. **Auto-initializes on first SaveThis.**
 ## K-LEAN CLI
 
 ```bash
-k-lean install    # Install components
-k-lean setup      # Configure API provider
-k-lean status     # Component status
-k-lean doctor -f  # Diagnose + auto-fix
-k-lean start      # Start services
-k-lean models     # List with health
-k-lean test       # Run test suite
+# Core Setup
+k-lean install    # Install components to ~/.claude/
+k-lean setup      # Configure API provider (interactive)
+k-lean uninstall  # Remove components from ~/.claude/
+
+# Service Management
+k-lean start      # Start LiteLLM proxy and services
+k-lean stop       # Stop all K-LEAN services
+k-lean status     # Component status and health
+k-lean debug      # Real-time monitoring dashboard
+
+# Diagnostics
+k-lean doctor -f  # Diagnose + auto-fix issues
+k-lean models     # List available models with health
+k-lean test       # Run full test suite (27 tests)
+k-lean test-model # Test a specific model with quick prompt
+
+# Development
+k-lean multi      # Run multi-agent orchestrated review
+k-lean sync       # Sync root directories for PyPI packaging
+k-lean version    # Show version information
 ```
 
 ## SmolKLN CLI
@@ -62,9 +76,14 @@ smol-kln --list   # List available agents
 
 ## Available Models
 
-Auto-discovered from LiteLLM. Use `k-lean models` to see current list.
+**Dynamic discovery** from LiteLLM proxy. Models depend on your configuration.
 
-Common: `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
+```bash
+k-lean models          # List all available models
+k-lean models --first  # Show default model
+```
+
+Configure models in `~/.config/litellm/config.yaml`. Supports any provider (NanoGPT, OpenRouter, Ollama, etc.).
 
 ## Profiles
 

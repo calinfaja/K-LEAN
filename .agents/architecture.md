@@ -45,7 +45,7 @@
 ```
 src/klean/
 ├── __init__.py          # Package init, path constants
-├── cli.py               # Main CLI (~2300 lines, 12 commands)
+├── cli.py               # Main CLI (~2766 lines, 12 commands)
 ├── data/                # Installable assets (symlinked to ~/.claude/)
 │   ├── scripts/         # 36 .sh + 9 .py scripts
 │   ├── commands/kln/    # 9 slash commands
