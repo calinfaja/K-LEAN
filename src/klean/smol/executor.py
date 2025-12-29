@@ -173,6 +173,7 @@ class SmolKLNExecutor:
         """
         try:
             from smolagents import CodeAgent
+            from smolagents.agents import EMPTY_PROMPT_TEMPLATES
         except ImportError:
             return {
                 "output": "Error: smolagents not installed. Install with: pip install smolagents[litellm]",
@@ -251,11 +252,16 @@ class SmolKLNExecutor:
         if agent.system_prompt:
             system_prompt = agent.system_prompt + "\n\n" + KLEAN_SYSTEM_PROMPT
 
+        # Build prompt_templates with all required keys (smolagents 1.23+ requirement)
+        # EMPTY_PROMPT_TEMPLATES provides defaults, we only override system_prompt
+        prompt_templates = EMPTY_PROMPT_TEMPLATES.copy()
+        prompt_templates["system_prompt"] = system_prompt
+
         smol_agent = CodeAgent(
             tools=tools,
             model=model,
             max_steps=max_steps,
-            prompt_templates={"system_prompt": system_prompt},
+            prompt_templates=prompt_templates,
             use_structured_outputs_internally=True,
             additional_authorized_imports=safe_imports,
             final_answer_checks=[validate_citations],  # Verify file:line citations
