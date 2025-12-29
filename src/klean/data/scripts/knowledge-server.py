@@ -87,7 +87,7 @@ def list_running_servers():
                 try:
                     f.unlink()
                     pid_file.unlink()
-                except:
+                except OSError:
                     pass
     return servers
 
@@ -191,7 +191,7 @@ class KnowledgeServer:
         except Exception as e:
             try:
                 conn.sendall(json.dumps({"error": str(e)}).encode('utf-8'))
-            except:
+            except OSError:
                 pass
         finally:
             conn.close()
@@ -226,7 +226,7 @@ class KnowledgeServer:
         with open(self.pid_path, 'w') as f:
             f.write(str(os.getpid()))
 
-        print(f"Knowledge server started")
+        print("Knowledge server started")
         print(f"  Socket:  {self.socket_path}")
         print(f"  Project: {self.project_root}")
         print(f"  Timeout: {IDLE_TIMEOUT}s idle")

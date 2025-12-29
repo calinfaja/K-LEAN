@@ -21,19 +21,18 @@ Usage:
 """
 
 import json
-import os
 import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 # Import shared utilities
 try:
-    from kb_utils import find_project_root, migrate_entry, SCHEMA_V2_DEFAULTS, debug_log
+    from kb_utils import SCHEMA_V2_DEFAULTS, debug_log, find_project_root, migrate_entry  # noqa: F401
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
-    from kb_utils import find_project_root, migrate_entry, SCHEMA_V2_DEFAULTS, debug_log
+    from kb_utils import debug_log, find_project_root, migrate_entry
 
 # txtai imports
 try:

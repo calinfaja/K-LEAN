@@ -23,27 +23,30 @@ Environment:
   LITELLM_MODEL - Model to use (default: qwen3-coder)
 """
 
-import json
-import sys
-import os
 import argparse
-import urllib.request
+import json
+import os
+import sys
 import urllib.parse
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
 # Import shared utilities
 try:
-    from kb_utils import (
-        find_project_root, get_socket_path, is_server_running,
-        PYTHON_BIN, debug_log
+    from kb_utils import (  # noqa: F401
+        PYTHON_BIN,
+        debug_log,
+        find_project_root,
+        get_socket_path,
+        is_server_running,
     )
 except ImportError:
     # Fallback for standalone use
     sys.path.insert(0, str(Path(__file__).parent))
     from kb_utils import (
-        find_project_root, get_socket_path, is_server_running,
-        PYTHON_BIN, debug_log
+        PYTHON_BIN,
+        find_project_root,
     )
 
 # Allowed URL schemes for security
@@ -117,7 +120,7 @@ def fetch_url(url: str, max_chars: int = 15000) -> str:
 def read_file(path: str, max_chars: int = 15000) -> str:
     """Read file content."""
     try:
-        with open(path, 'r', errors='ignore') as f:
+        with open(path, errors='ignore') as f:
             content = f.read()
             if len(content) > max_chars:
                 content = content[:max_chars] + "\n... [truncated]"
@@ -178,8 +181,8 @@ def call_litellm(prompt: str) -> dict:
 
 def save_to_kb(entry: dict, project_path: Path) -> bool:
     """Save entry to knowledge database."""
-    import subprocess
     import os
+    import subprocess
 
     # Use KB_SCRIPTS_DIR from environment or kb_utils
     from kb_utils import KB_SCRIPTS_DIR
@@ -199,7 +202,7 @@ def save_to_kb(entry: dict, project_path: Path) -> bool:
             env={**os.environ, "CLAUDE_PROJECT_DIR": str(project_path)}
         )
         return result.returncode == 0
-    except:
+    except (subprocess.SubprocessError, OSError):
         return False
 
 
