@@ -4,12 +4,12 @@ Coordinates multiple agents for tasks that require planning,
 parallel execution, and result synthesis.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from enum import Enum
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 class TaskStatus(Enum):

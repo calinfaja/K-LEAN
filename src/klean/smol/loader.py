@@ -3,11 +3,12 @@
 Agent prompt loader for SmolKLN.
 """
 
-from pathlib import Path
-from dataclasses import dataclass, field
-from typing import List, Optional
-import yaml
 import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import List
+
+import yaml
 
 from klean.discovery import get_model
 

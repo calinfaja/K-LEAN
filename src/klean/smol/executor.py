@@ -3,29 +3,27 @@
 Primary agent execution engine for K-LEAN.
 """
 
-from pathlib import Path
-from typing import Optional, Dict, Any, List
-from datetime import datetime
-import json
 import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
-from .loader import load_agent, list_available_agents, Agent
+from klean.discovery import get_model
+
+from .context import (
+    format_context_for_prompt,
+    gather_project_context,
+)
+from .loader import Agent, list_available_agents, load_agent
+from .memory import AgentMemory
 from .models import create_model
-from klean.discovery import get_model, list_models
+from .prompts import KLEAN_SYSTEM_PROMPT
 from .tools import (
+    get_citation_stats,
     get_default_tools,
     get_tools_for_agent,
-    KnowledgeRetrieverTool,
     validate_citations,
-    get_citation_stats,
 )
-from .context import (
-    gather_project_context,
-    format_context_for_prompt,
-    ProjectContext,
-)
-from .memory import AgentMemory
-from .prompts import KLEAN_SYSTEM_PROMPT
 
 
 class SmolKLNExecutor:
@@ -236,7 +234,6 @@ class SmolKLNExecutor:
 
         # Create smolagents CodeAgent
         # CodeAgent is ~30% more efficient than ToolCallingAgent
-        # use_structured_outputs_internally improves JSON parsing reliability by 2-7%
         # Safe imports beyond default (collections, datetime, itertools, math,
         # queue, random, re, stat, statistics, time, unicodedata are default)
         # Avoid: os, subprocess, sys, socket, pathlib, shutil, io
@@ -246,20 +243,28 @@ class SmolKLNExecutor:
         ]
 
         # Build custom instructions from agent definition
-        # Uses smolagents' {{custom_instructions}} placeholder in default template
-        custom_instructions = KLEAN_SYSTEM_PROMPT
+        custom_instructions = ""
         if agent.system_prompt:
-            custom_instructions = agent.system_prompt + "\n\n" + KLEAN_SYSTEM_PROMPT
+            custom_instructions = agent.system_prompt
 
         smol_agent = CodeAgent(
             tools=tools,
             model=model,
             max_steps=max_steps,
-            instructions=custom_instructions,  # Injected via {{custom_instructions}}
-            use_structured_outputs_internally=True,
             additional_authorized_imports=safe_imports,
             final_answer_checks=[validate_citations],  # Verify file:line citations
         )
+
+        # REPLACE default system prompt to remove John Doe/Ulam examples
+        # KLEAN_SYSTEM_PROMPT uses Jinja2 placeholders for tools/managed_agents
+        from jinja2 import Template
+        template = Template(KLEAN_SYSTEM_PROMPT)
+        rendered_prompt = template.render(
+            tools={t.name: t for t in tools},
+            managed_agents={},
+            custom_instructions=custom_instructions,
+        )
+        smol_agent.prompt_templates["system_prompt"] = rendered_prompt
 
         try:
             # Execute with timing

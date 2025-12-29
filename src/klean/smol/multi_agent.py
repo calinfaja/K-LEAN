@@ -3,15 +3,15 @@
 Uses smolagents managed_agents for orchestrated multi-model reviews.
 """
 
-from pathlib import Path
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
 
-from .multi_config import get_3_agent_config, get_4_agent_config, AgentConfig
+from .context import format_context_for_prompt, gather_project_context
 from .models import create_model
-from .tools import get_tools_for_agent, validate_citations, get_citation_stats
-from .context import gather_project_context, format_context_for_prompt
+from .multi_config import get_3_agent_config, get_4_agent_config
+from .tools import get_citation_stats, get_tools_for_agent, validate_citations
 
 
 class MultiAgentExecutor:
@@ -49,7 +49,11 @@ class MultiAgentExecutor:
             return fallback
 
     def _load_agent_prompt(self, agent_name: str) -> str:
-        """Load system prompt for an agent from .md file."""
+        """Load system prompt for an agent from .md file.
+
+        Returns just the agent-specific instructions.
+        Code rules are injected via KLEAN_SYSTEM_PROMPT template.
+        """
         prompts_dir = Path(__file__).parent.parent / "data" / "multi-agents"
         prompt_file = prompts_dir / f"{agent_name}.md"
 
@@ -188,16 +192,20 @@ class MultiAgentExecutor:
                     name=agent_config.name,
                     description=agent_config.description,
                     max_steps=agent_config.max_steps,
-                    use_structured_outputs_internally=True,
                     additional_authorized_imports=safe_imports,
                 )
 
-                # Set system prompt if available
-                if system_prompt:
-                    default_prompt = agent.prompt_templates.get("system_prompt", "")
-                    agent.prompt_templates["system_prompt"] = (
-                        system_prompt + "\n\n" + default_prompt
-                    )
+                # REPLACE default system prompt (removes John Doe/Ulam examples)
+                # Use KLEAN base template with agent-specific prompt as custom_instructions
+                from .prompts import KLEAN_SYSTEM_PROMPT
+                from jinja2 import Template
+                template = Template(KLEAN_SYSTEM_PROMPT)
+                rendered_prompt = template.render(
+                    tools={t.name: t for t in tools},
+                    managed_agents={},
+                    custom_instructions=system_prompt,
+                )
+                agent.prompt_templates["system_prompt"] = rendered_prompt
 
                 specialists.append(agent)
             except Exception as e:
@@ -226,16 +234,20 @@ class MultiAgentExecutor:
                 tools=[],  # Manager only delegates
                 managed_agents=specialists,
                 max_steps=manager_config.max_steps,
-                use_structured_outputs_internally=True,
                 additional_authorized_imports=safe_imports,
                 final_answer_checks=[validate_citations],  # Verify file:line citations
             )
 
-            if manager_prompt:
-                default_prompt = manager.prompt_templates.get("system_prompt", "")
-                manager.prompt_templates["system_prompt"] = (
-                    manager_prompt + "\n\n" + default_prompt
-                )
+            # REPLACE default system prompt for manager too
+            from .prompts import KLEAN_SYSTEM_PROMPT
+            from jinja2 import Template
+            template = Template(KLEAN_SYSTEM_PROMPT)
+            rendered_prompt = template.render(
+                tools={},
+                managed_agents={a.name: a for a in specialists},
+                custom_instructions=manager_prompt,
+            )
+            manager.prompt_templates["system_prompt"] = rendered_prompt
         except Exception as e:
             return {
                 "output": f"Error creating manager: {e}",

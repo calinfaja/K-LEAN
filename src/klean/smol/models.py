@@ -4,9 +4,8 @@ Model discovery and LiteLLM integration for SmolKLN.
 Uses central discovery module - no hardcoded model names.
 """
 
-from typing import Optional
 
-from klean.discovery import get_model, list_models
+from klean.discovery import get_model
 
 
 def create_model(

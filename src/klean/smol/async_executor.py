@@ -5,10 +5,10 @@ Provides a worker thread that processes queued tasks in the background.
 
 import threading
 import time
-from typing import Optional, Dict, List, Any
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from .task_queue import TaskQueue, TaskState
+from .task_queue import TaskQueue
 
 
 class AsyncExecutor:

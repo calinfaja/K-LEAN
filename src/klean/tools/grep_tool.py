@@ -3,7 +3,7 @@
 This tool allows droids to search for patterns in code using ripgrep.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from ..tools import tool
 
@@ -46,7 +46,6 @@ async def grep_codebase(
     """
     try:
         # Import Grep tool from Claude Code
-        from pathlib import Path
 
         # Prepare grep arguments
         grep_kwargs = {

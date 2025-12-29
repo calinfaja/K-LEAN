@@ -32,52 +32,53 @@ Multi-agent:
 """
 
 # Core
-from .executor import SmolKLNExecutor
-from .loader import load_agent, list_available_agents, Agent, AgentConfig
-from .models import create_model
 from klean.discovery import get_model, list_models
 
-# Tools
-from .tools import KnowledgeRetrieverTool, get_default_tools
+from .async_executor import (
+    AsyncExecutor,
+    get_async_executor,
+    get_task_status,
+    submit_async,
+)
 
 # Context
 from .context import (
     ProjectContext,
-    gather_project_context,
-    format_context_for_prompt,
     detect_project_root,
+    format_context_for_prompt,
+    gather_project_context,
 )
-
-# Memory
-from .memory import AgentMemory, SessionMemory, MemoryEntry
-
-# Reflection
-from .reflection import (
-    ReflectionEngine,
-    Critique,
-    CritiqueVerdict,
-    create_reflection_engine,
-)
+from .executor import SmolKLNExecutor
+from .loader import Agent, AgentConfig, list_available_agents, load_agent
 
 # MCP Tools
 from .mcp_tools import (
-    get_mcp_tools,
     get_mcp_server_config,
+    get_mcp_tools,
     list_available_mcp_servers,
     load_mcp_config,
 )
 
+# Memory
+from .memory import AgentMemory, MemoryEntry, SessionMemory
+from .models import create_model
+
 # Orchestrator
 from .orchestrator import SmolKLNOrchestrator, quick_orchestrate
 
-# Async Execution
-from .task_queue import TaskQueue, QueuedTask, TaskState
-from .async_executor import (
-    AsyncExecutor,
-    get_async_executor,
-    submit_async,
-    get_task_status,
+# Reflection
+from .reflection import (
+    Critique,
+    CritiqueVerdict,
+    ReflectionEngine,
+    create_reflection_engine,
 )
+
+# Async Execution
+from .task_queue import QueuedTask, TaskQueue, TaskState
+
+# Tools
+from .tools import KnowledgeRetrieverTool, get_default_tools
 
 __all__ = [
     # Core

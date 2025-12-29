@@ -5,8 +5,8 @@ and retry with feedback if quality is insufficient.
 """
 
 from dataclasses import dataclass
-from typing import List, Callable, Dict, Any, Optional
 from enum import Enum
+from typing import Any, Callable, Dict, List
 
 from klean.discovery import get_model
 

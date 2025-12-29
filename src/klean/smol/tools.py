@@ -3,10 +3,10 @@
 Provides file operations and knowledge search tools.
 """
 
-from pathlib import Path
-from typing import Optional, List, Dict, Any
-import sys
 import re
+import sys
+from pathlib import Path
+from typing import Any, Dict, List
 
 # Import smolagents Tool class - required for this module
 try:
@@ -406,7 +406,7 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
 
         # Summary
         overall_coverage = (tested_funcs / total_funcs * 100) if total_funcs > 0 else 0
-        output += f"## Summary\n"
+        output += "## Summary\n"
         output += f"- **Overall Coverage**: {tested_funcs}/{total_funcs} ({overall_coverage:.0f}%)\n"
         output += f"- **Tested**: {tested_funcs}\n"
         output += f"- **Untested**: {total_funcs - tested_funcs}\n\n"
@@ -876,8 +876,8 @@ def get_file_info(file_path: str) -> str:
     Returns:
         File information including size, modification date, and type.
     """
-    from pathlib import Path
     from datetime import datetime
+    from pathlib import Path
 
     path = Path(file_path)
     if not path.exists():

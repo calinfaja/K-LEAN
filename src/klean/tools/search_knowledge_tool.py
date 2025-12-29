@@ -6,7 +6,7 @@ This tool allows droids to query the knowledge database in real-time during anal
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from ..tools import tool
 

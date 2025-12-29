@@ -267,11 +267,9 @@ Works seamlessly with other Claude Code extensions:
 | [Installation](docs/installation.md) | Detailed setup guide |
 | [Usage](docs/usage.md) | Commands, workflows, examples |
 | [Reference](docs/reference.md) | Complete config reference |
-| [Architecture](.agents/architecture.md) | System design |
-| [SmolKLN Agents](.agents/smolkln-implementation.md) | Agent system details |
-| [Knowledge DB](.agents/knowledge-db.md) | Semantic memory system |
-| [Review System](.agents/review-system.md) | Multi-model pipeline |
-| [Troubleshooting](.agents/troubleshooting.md) | Common issues & fixes |
+| [System Overview](docs/architecture/OVERVIEW.md) | Architecture & design |
+| [Components](docs/architecture/COMPONENTS.md) | Module breakdown |
+| [Development](docs/architecture/DEVELOPMENT.md) | Contributing guide |
 
 ---
 
@@ -280,16 +278,18 @@ Works seamlessly with other Claude Code extensions:
 ```
 k-lean/
 ├── src/klean/              # Main package
-│   ├── cli.py              # CLI entry point (~2766 lines)
+│   ├── cli.py              # CLI entry point
 │   ├── smol/               # SmolKLN agent system
+│   ├── knowledge/          # Knowledge DB integration
 │   └── data/               # Installable assets
-│       ├── scripts/        # 36+ shell & Python scripts
-│       ├── commands/kln/   # 9 slash commands
+│       ├── scripts/        # 43 shell & Python scripts
+│       ├── commands/kln/   # 10 slash commands
 │       ├── hooks/          # 5 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
-│       └── core/           # Review engine & prompts
+│       └── config/         # Configuration templates
 ├── docs/                   # User documentation
-├── .agents/                # Technical documentation
+│   └── architecture/       # Technical documentation
+├── tests/                  # Test suite
 ├── CLAUDE.md               # Claude Code instructions
 └── AGENTS.md               # Universal AI instructions
 ```

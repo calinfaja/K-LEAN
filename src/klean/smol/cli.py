@@ -42,8 +42,8 @@ Examples:
     # Setup telemetry if requested
     if args.telemetry:
         try:
-            from phoenix.otel import register
             from openinference.instrumentation.smolagents import SmolagentsInstrumentor
+            from phoenix.otel import register
 
             register(project_name="smolkln")
             SmolagentsInstrumentor().instrument()
