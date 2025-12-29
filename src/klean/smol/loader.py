@@ -9,13 +9,15 @@ from typing import List, Optional
 import yaml
 import re
 
+from klean.discovery import get_model
+
 
 @dataclass
 class AgentConfig:
     """Parsed agent configuration from YAML frontmatter."""
     name: str
     description: str
-    model: str = "qwen3-coder"
+    model: str = ""  # Empty = use first available from LiteLLM
     tools: List[str] = field(default_factory=lambda: ["knowledge_search", "read_file", "search_files"])
 
     def __post_init__(self):
@@ -63,13 +65,13 @@ def parse_agent_file(path: Path) -> Agent:
     config = AgentConfig(
         name=config_dict.get("name", path.stem),
         description=config_dict.get("description", ""),
-        model=config_dict.get("model", "qwen3-coder"),
+        model=config_dict.get("model", ""),
         tools=config_dict.get("tools"),
     )
 
-    # Handle "inherit" model - default to qwen3-coder
-    if config.model == "inherit":
-        config.model = "qwen3-coder"
+    # Resolve model: empty, "auto", or "inherit" = first available from LiteLLM
+    if not config.model or config.model in ("auto", "inherit"):
+        config.model = get_model() or "auto"
 
     return Agent(
         config=config,
