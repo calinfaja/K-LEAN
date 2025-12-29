@@ -951,6 +951,16 @@ def install(dev: bool, component: str, yes: bool):
                 if count > 0:
                     console.print(f"  [green]Installed {count} LiteLLM callbacks (thinking models)[/green]")
 
+        # Install rules (loaded every Claude session)
+        rules_src = DATA_DIR / "rules"
+        if rules_src.exists():
+            rules_dst = CLAUDE_DIR / "rules"
+            ensure_dir(rules_dst)
+            count = copy_files(rules_src, rules_dst, "*.md", symlink=dev)
+            if count > 0:
+                console.print(f"  [green]Installed {count} rules to {rules_dst}[/green]")
+                installed["rules"] = count
+
     # Install core module (klean_core.py, prompts)
     if component in ["all", "core"]:
         console.print("[bold]Installing core module...[/bold]")
@@ -1053,6 +1063,7 @@ def uninstall(yes: bool):
     console.print("  - ~/.claude/scripts/")
     console.print("  - ~/.claude/commands/kln/")
     console.print("  - ~/.claude/hooks/")
+    console.print("  - ~/.claude/rules/k-lean.md")
     console.print("  - ~/.klean/agents/")
 
     if not yes and not click.confirm("\nProceed with uninstallation?"):
@@ -1075,12 +1086,15 @@ def uninstall(yes: bool):
         CLAUDE_DIR / "scripts",
         CLAUDE_DIR / "commands" / "kln",
         CLAUDE_DIR / "hooks",
+        CLAUDE_DIR / "rules" / "k-lean.md",
         SMOL_AGENTS_DIR,
     ]:
         if path.exists():
             backup_path = backup_dir / path.name
             if path.is_symlink():
                 path.unlink()
+            elif path.is_file():
+                shutil.move(str(path), str(backup_path))
             else:
                 shutil.move(str(path), str(backup_path))
             removed.append(str(path))
@@ -1148,6 +1162,13 @@ def status():
             table.add_row("SmolKLN Agents", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
         else:
             table.add_row("SmolKLN Agents", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
+
+    # Rules
+    rules_file = CLAUDE_DIR / "rules" / "k-lean.md"
+    if rules_file.exists():
+        table.add_row("Rules", "[green]OK[/green]", "~/.claude/rules/k-lean.md")
+    else:
+        table.add_row("Rules", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
 
     # Knowledge DB
     if VENV_DIR.exists():
@@ -1512,6 +1533,16 @@ def doctor(auto_fix: bool):
         issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
         console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
         console.print("    [dim]Install with: pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'[/dim]")
+
+    # Check rules
+    console.print("\n[bold]Rules:[/bold]")
+    rules_file = CLAUDE_DIR / "rules" / "k-lean.md"
+    if rules_file.exists():
+        console.print("  [green]✓[/green] k-lean.md: Installed")
+    else:
+        issues.append(("INFO", "Rules not installed - run k-lean install"))
+        console.print("  [yellow]○[/yellow] k-lean.md: NOT INSTALLED")
+        console.print("    [dim]Install with: k-lean install[/dim]")
 
     console.print("")
 
@@ -2396,6 +2427,7 @@ def sync(check: bool, clean: bool, verbose: bool):
         ("config", "config", ["*.md", "*.yaml"]),
         ("config/litellm", "config/litellm", ["*.yaml", ".env.example"]),
         ("lib", "lib", ["*.sh"]),
+        ("rules", "rules", ["*.md"]),
     ]
 
     console.print(f"\n[bold]Repository root:[/bold] {repo_root}")
