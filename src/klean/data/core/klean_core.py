@@ -11,11 +11,14 @@ import re
 import sys
 import time
 import yaml
-import httpx
+import urllib.request
 from pathlib import Path
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
+
+# LiteLLM for LLM calls (replaces httpx for better telemetry)
+import litellm
 
 # Claude Agent SDK
 try:
@@ -47,6 +50,105 @@ def load_config() -> dict:
 CONFIG = load_config()
 
 #------------------------------------------------------------------------------
+# LLM Client (litellm-based, replaces httpx)
+#------------------------------------------------------------------------------
+
+class LLMClient:
+    """Unified LLM client using litellm for full telemetry support.
+
+    Replaces direct httpx calls with litellm.completion/acompletion.
+    Benefits:
+    - Full Phoenix telemetry (prompts, responses, tokens, reasoning)
+    - Automatic reasoning_content extraction for thinking models
+    - Consistent error handling across providers
+    """
+
+    def __init__(self, endpoint: str = None):
+        self.endpoint = endpoint or CONFIG["litellm"]["endpoint"]
+        self.timeout = CONFIG["litellm"].get("timeout", 120)
+        self._configure_litellm()
+
+    def _configure_litellm(self):
+        """Configure litellm to use our LiteLLM proxy."""
+        litellm.api_base = self.endpoint
+        litellm.drop_params = True  # Handle model differences gracefully
+
+    def _proxy_model(self, model: str) -> str:
+        """Add openai/ prefix for proxy routing.
+
+        LiteLLM library needs this prefix to route to custom endpoints.
+        """
+        if model.startswith("openai/"):
+            return model
+        return f"openai/{model}"
+
+    def discover_models(self) -> list:
+        """Discover available models from LiteLLM proxy."""
+        try:
+            req = urllib.request.Request(
+                f"{self.endpoint}/models",
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+            return [m["id"] for m in data.get("data", [])]
+        except Exception as e:
+            print(f"Model discovery failed: {e}", file=sys.stderr)
+            return []
+
+    def enable_telemetry(self, project_name: str):
+        """Enable Phoenix telemetry for full traces."""
+        os.environ["PHOENIX_PROJECT_NAME"] = project_name
+        os.environ.setdefault("PHOENIX_COLLECTOR_HTTP_ENDPOINT", "http://localhost:6006")
+        litellm.callbacks = ["arize_phoenix"]
+        print(f"Telemetry enabled - project: {project_name}")
+        print("View at http://localhost:6006")
+
+    def completion(self, model: str, messages: list, **kwargs) -> dict:
+        """Sync LLM completion with full response extraction."""
+        proxy_model = self._proxy_model(model)
+
+        response = litellm.completion(
+            model=proxy_model,
+            messages=messages,
+            max_tokens=kwargs.get("max_tokens", 4000),
+            temperature=kwargs.get("temperature", 0.7),
+            timeout=kwargs.get("timeout", self.timeout),
+            api_key="not-needed"  # Proxy handles auth
+        )
+
+        message = response.choices[0].message
+        return {
+            "content": message.content or "",
+            "reasoning_content": getattr(message, 'reasoning_content', None),
+            "thinking_blocks": getattr(message, 'thinking_blocks', None),
+            "usage": dict(response.usage) if response.usage else {},
+            "model": response.model
+        }
+
+    async def acompletion(self, model: str, messages: list, **kwargs) -> dict:
+        """Async LLM completion for parallel calls."""
+        proxy_model = self._proxy_model(model)
+
+        response = await litellm.acompletion(
+            model=proxy_model,
+            messages=messages,
+            max_tokens=kwargs.get("max_tokens", 4000),
+            temperature=kwargs.get("temperature", 0.7),
+            timeout=kwargs.get("timeout", self.timeout),
+            api_key="not-needed"
+        )
+
+        message = response.choices[0].message
+        return {
+            "content": message.content or "",
+            "reasoning_content": getattr(message, 'reasoning_content', None),
+            "thinking_blocks": getattr(message, 'thinking_blocks', None),
+            "usage": dict(response.usage) if response.usage else {},
+            "model": response.model
+        }
+
+#------------------------------------------------------------------------------
 # Model Discovery & Resolution
 #------------------------------------------------------------------------------
 
@@ -68,6 +170,7 @@ class ModelResolver:
         ))
         self.cache_max_age = timedelta(hours=CONFIG["cache"].get("max_age_hours", 24))
         self._models: dict[str, ModelInfo] = {}
+        self._llm_client = LLMClient(self.endpoint)
         self._load_cache()
 
     def _load_cache(self):
@@ -106,10 +209,7 @@ class ModelResolver:
     def discover_models(self) -> list[str]:
         """Discover available models from LiteLLM"""
         try:
-            resp = httpx.get(f"{self.endpoint}/models", timeout=10)
-            resp.raise_for_status()
-            data = resp.json()
-            models = [m["id"] for m in data.get("data", [])]
+            models = self._llm_client.discover_models()
 
             # Update cache with discovered models
             for model_id in models:
@@ -126,16 +226,12 @@ class ModelResolver:
         """Test model latency with a simple query"""
         try:
             start = time.time()
-            resp = httpx.post(
-                f"{self.endpoint}/chat/completions",
-                json={
-                    "model": model_id,
-                    "messages": [{"role": "user", "content": "Hi"}],
-                    "max_tokens": 5
-                },
+            self._llm_client.completion(
+                model_id,
+                [{"role": "user", "content": "Hi"}],
+                max_tokens=5,
                 timeout=30
             )
-            resp.raise_for_status()
             latency = (time.time() - start) * 1000
 
             # Update cache
@@ -229,6 +325,7 @@ class ReviewEngine:
         self.endpoint = CONFIG["litellm"]["endpoint"]
         self.timeout = CONFIG["litellm"].get("timeout", 120)
         self._available_models = None
+        self._llm_client = LLMClient(self.endpoint)
 
     def get_available_models(self) -> list[str]:
         """Get available models from LiteLLM (cached)"""
@@ -308,31 +405,24 @@ class ReviewEngine:
 
         try:
             start = time.time()
-            resp = httpx.post(
-                f"{self.endpoint}/chat/completions",
-                json={
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 4000
-                },
+            result = self._llm_client.completion(
+                model,
+                [{"role": "user", "content": prompt}],
+                max_tokens=4000,
                 timeout=self.timeout
             )
-            resp.raise_for_status()
-            data = resp.json()
             latency = (time.time() - start) * 1000
 
             # Extract response (handle thinking models)
-            content = ""
-            choice = data.get("choices", [{}])[0]
-            message = choice.get("message", {})
-            content = message.get("content") or message.get("reasoning_content") or ""
+            content = result["content"] or result.get("reasoning_content") or ""
 
             return {
                 "success": True,
                 "model": model,
                 "latency_ms": latency,
                 "content": content,
-                "usage": data.get("usage", {})
+                "reasoning_content": result.get("reasoning_content"),
+                "usage": result.get("usage", {})
             }
         except Exception as e:
             return {
@@ -364,32 +454,24 @@ class ReviewEngine:
             """Run single model review async"""
             try:
                 start = time.time()
-                async with httpx.AsyncClient() as client:
-                    resp = await client.post(
-                        f"{self.endpoint}/chat/completions",
-                        json={
-                            "model": model,
-                            "messages": [{"role": "user", "content": prompt}],
-                            "max_tokens": 4000
-                        },
-                        timeout=self.timeout
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    latency = (time.time() - start) * 1000
+                result = await self._llm_client.acompletion(
+                    model,
+                    [{"role": "user", "content": prompt}],
+                    max_tokens=4000,
+                    timeout=self.timeout
+                )
+                latency = (time.time() - start) * 1000
 
-                    # Extract response
-                    content = ""
-                    choice = data.get("choices", [{}])[0]
-                    message = choice.get("message", {})
-                    content = message.get("content") or message.get("reasoning_content") or ""
+                # Extract response
+                content = result["content"] or result.get("reasoning_content") or ""
 
-                    return {
-                        "success": True,
-                        "model": model,
-                        "latency_ms": latency,
-                        "content": content
-                    }
+                return {
+                    "success": True,
+                    "model": model,
+                    "latency_ms": latency,
+                    "content": content,
+                    "reasoning_content": result.get("reasoning_content")
+                }
             except Exception as e:
                 return {
                     "success": False,
@@ -629,34 +711,27 @@ and give a concrete first step. NEVER suggest things already tried."""
 
         try:
             start = time.time()
-            resp = httpx.post(
-                f"{self.endpoint}/chat/completions",
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": context}
-                    ],
-                    "max_tokens": 4000,
-                    "temperature": 0.7  # Higher temp for more creative ideas
-                },
+            result = self._llm_client.completion(
+                model,
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": context}
+                ],
+                max_tokens=4000,
+                temperature=0.7,  # Higher temp for more creative ideas
                 timeout=self.timeout
             )
-            resp.raise_for_status()
-            data = resp.json()
             latency = (time.time() - start) * 1000
 
             # Extract response (handle thinking models)
-            content = ""
-            choice = data.get("choices", [{}])[0]
-            message = choice.get("message", {})
-            content = message.get("content") or message.get("reasoning_content") or ""
+            content = result["content"] or result.get("reasoning_content") or ""
 
             return {
                 "success": True,
                 "model": model,
                 "latency_ms": latency,
                 "content": content,
+                "reasoning_content": result.get("reasoning_content"),
                 "ideas": self._parse_rethink_ideas(content)
             }
         except Exception as e:
@@ -690,36 +765,28 @@ and give a concrete first step. NEVER suggest things already tried."""
             """Run single model rethink async"""
             try:
                 start = time.time()
-                async with httpx.AsyncClient() as client:
-                    resp = await client.post(
-                        f"{self.endpoint}/chat/completions",
-                        json={
-                            "model": model,
-                            "messages": [
-                                {"role": "system", "content": system_prompt},
-                                {"role": "user", "content": context}
-                            ],
-                            "max_tokens": 4000,
-                            "temperature": 0.7
-                        },
-                        timeout=self.timeout
-                    )
-                    resp.raise_for_status()
-                    data = resp.json()
-                    latency = (time.time() - start) * 1000
+                result = await self._llm_client.acompletion(
+                    model,
+                    [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": context}
+                    ],
+                    max_tokens=4000,
+                    temperature=0.7,
+                    timeout=self.timeout
+                )
+                latency = (time.time() - start) * 1000
 
-                    content = ""
-                    choice = data.get("choices", [{}])[0]
-                    message = choice.get("message", {})
-                    content = message.get("content") or message.get("reasoning_content") or ""
+                content = result["content"] or result.get("reasoning_content") or ""
 
-                    return {
-                        "success": True,
-                        "model": model,
-                        "latency_ms": latency,
-                        "content": content,
-                        "ideas": self._parse_rethink_ideas(content)
-                    }
+                return {
+                    "success": True,
+                    "model": model,
+                    "latency_ms": latency,
+                    "content": content,
+                    "reasoning_content": result.get("reasoning_content"),
+                    "ideas": self._parse_rethink_ideas(content)
+                }
             except Exception as e:
                 return {
                     "success": False,
@@ -905,10 +972,17 @@ def cli_quick(args):
     parser.add_argument("focus", nargs="*", help="Review focus")
     parser.add_argument("-m", "--model", default="auto", help="Model to use")
     parser.add_argument("-o", "--output", choices=["text", "json", "markdown"], default="text")
+    parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
 
     focus = " ".join(parsed.focus) or "general code review"
+
     engine = ReviewEngine()
+
+    # Setup telemetry if requested (uses litellm.callbacks for full traces)
+    if parsed.telemetry:
+        engine._llm_client.enable_telemetry("kln-quick")
+
     result = engine.quick_review(focus, model=parsed.model)
 
     if parsed.output == "json":
@@ -932,7 +1006,12 @@ def cli_multi(args):
     parsed = parser.parse_args(args)
 
     focus = " ".join(parsed.focus) or "general code review"
+
     engine = ReviewEngine()
+
+    # Setup telemetry if requested (uses litellm.callbacks for full traces)
+    if parsed.telemetry:
+        engine._llm_client.enable_telemetry("kln-multi")
 
     # Parse --models: integer OR comma-separated list
     model_count = 3
@@ -1039,9 +1118,14 @@ def cli_rethink(args):
     parser.add_argument("-n", "--models", default="5", help="Number of models OR specific model name")
     parser.add_argument("-c", "--context-file", help="File containing debugging context")
     parser.add_argument("-o", "--output", choices=["text", "json"], default="text")
+    parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
 
     engine = ReviewEngine()
+
+    # Setup telemetry if requested (uses litellm.callbacks for full traces)
+    if parsed.telemetry:
+        engine._llm_client.enable_telemetry("kln-rethink")
 
     # Get context from file or stdin
     context = ""
