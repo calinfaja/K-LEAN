@@ -1,24 +1,34 @@
 # K-LEAN
 
-Use `/kln:help` for full command reference.
+Multi-model code review and knowledge capture system. Use `/kln:help` for commands.
 
-## Quick Reference
+## Behavioral Triggers
 
-| When you want to... | Use |
-|---------------------|-----|
-| Fast code review | `/kln:quick <focus>` |
-| Multi-model consensus | `/kln:multi <focus>` |
-| Run specialist agent | `/kln:agent <role> <task>` |
-| Check system health | `/kln:status` |
-| Capture a lesson | `SaveThis <lesson>` |
-| Search knowledge | `FindKnowledge <query>` |
+**Proactively suggest K-LEAN when:**
+- User completes significant code changes → `/kln:quick` for fast review
+- User is stuck debugging 10+ minutes → `/kln:rethink` for fresh perspective
+- User asks for thorough review → `/kln:multi` for consensus
+- User discovers important pattern/gotcha → `SaveThis <lesson>`
+- User asks "how did we solve X before?" → `FindKnowledge <query>`
 
-## CLI
+## Knowledge Workflow
 
 ```
-k-lean status    # Health check
-k-lean models    # List available models
-k-lean doctor    # Diagnose issues
+SaveThis <lesson>     # Capture insight to project's knowledge DB
+FindKnowledge <query> # Search past lessons (semantic)
 ```
 
-Models: Discovered from LiteLLM. Configure in `~/.config/litellm/config.yaml`
+Knowledge is per-project, stored in `.knowledge-db/`. Auto-initializes on first save.
+
+## Quick Commands
+
+| Task | Command |
+|------|---------|
+| Fast review | `/kln:quick <focus>` |
+| Multi-model | `/kln:multi` |
+| Specialist agent | `/kln:agent <role> <task>` |
+| System health | `/kln:status` |
+
+## Troubleshooting
+
+If models unavailable: `k-lean doctor -f` (auto-fix)
