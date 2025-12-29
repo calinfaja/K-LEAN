@@ -182,7 +182,7 @@ k-lean debug --compact    # Minimal output (for hooks)
 
 ## Implementation
 
-Main CLI: `src/klean/cli.py` (~2300 lines)
+Main CLI: `src/klean/cli.py` (~2766 lines)
 
 Uses:
 - `click` for CLI framework

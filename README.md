@@ -188,23 +188,36 @@ Type these directly in Claude Code:
 ## CLI Reference
 
 ```bash
+# Core Setup
 k-lean install          # Install components to ~/.claude/
 k-lean setup            # Configure API provider (interactive)
-k-lean uninstall        # Remove components
-k-lean status           # Show component status
-k-lean doctor           # Diagnose configuration issues
-k-lean doctor -f        # Auto-fix common issues
+k-lean uninstall        # Remove components from ~/.claude/
+
+# Service Management
 k-lean start            # Start LiteLLM proxy
 k-lean start -s all     # Start LiteLLM + Knowledge server
 k-lean start --telemetry # Also start Phoenix (agent tracing)
 k-lean stop             # Stop all services
-k-lean debug            # Live dashboard
+
+# Status & Diagnostics
+k-lean status           # Show component status
+k-lean doctor           # Diagnose configuration issues
+k-lean doctor -f        # Auto-fix common issues
+k-lean debug            # Live monitoring dashboard
+
+# Models
 k-lean models           # List available models
 k-lean models --health  # Check model health (~60s)
+k-lean test-model       # Test a specific model with quick prompt
+
+# Reviews & Testing
 k-lean multi "task"     # Multi-agent review (3 agents)
 k-lean multi -t "task"  # Thorough review (4 agents)
 k-lean test             # Run test suite (27 tests)
-k-lean sync             # Sync package data (dev)
+
+# Development & Info
+k-lean sync             # Sync package data for PyPI
+k-lean version          # Show K-LEAN version information
 ```
 
 ---
@@ -266,7 +279,7 @@ Works seamlessly with other Claude Code extensions:
 ```
 k-lean/
 ├── src/klean/              # Main package
-│   ├── cli.py              # CLI entry point (~2300 lines)
+│   ├── cli.py              # CLI entry point (~2766 lines)
 │   ├── smol/               # SmolKLN agent system
 │   └── data/               # Installable assets
 │       ├── scripts/        # 36+ shell & Python scripts
