@@ -1,62 +1,41 @@
-# Temp files
-*.tmp
-*.log
-*.swp
-*~
+# K-LEAN .gitignore
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Don't track the local .claude folder (it's a copy)
-.claude/
-.serena/
-.knowledge-db/
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+MANIFEST
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
 
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
-.coverage.*
+.nox/
 .cache
 nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
 
-# Virtual environments
-venv/
-ENV/
-env/
-.venv/
-
 # IDE
-.vscode/
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
@@ -64,19 +43,34 @@ env/
 .pydevproject
 .settings/
 
-# OS specific
-Thumbs.db
+# OS
 .DS_Store
+Thumbs.db
 ehthumbs.db
 
-# Configuration files with secrets
+# Claude Code runtime outputs
+.claude/
+.serena/
+
+# Knowledge DB (per-project, auto-generated)
+.knowledge-db/
+
+# Generated index files
+PROJECT_INDEX.json
+PROJECT_INDEX.md
+
+# Environment files (contain API keys)
 .env
 .env.local
 .env.*.local
-config/settings*.json
-~/.config/litellm/.env
+*.env
+!.env.example
 
-# API keys and credentials (never commit these)
+# Local config overrides
+*.local.yaml
+*.local.json
+
+# API keys and credentials
 *.key
 *.pem
 credentials.json
@@ -88,62 +82,12 @@ secrets.json
 litellm-local.yaml
 config-local.yaml
 
-# Session and review outputs
+# Session outputs
 /tmp/claude-reviews/
-# K-LEAN .gitignore
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-.eggs/
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.Python
-
-# Virtual environments
-.venv/
-venv/
-ENV/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# Knowledge DB (per-project, not repo)
-.knowledge-db/
-
-# Environment (contains API keys)
-.env
-.env.local
-*.env
-!.env.example
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Local config overrides
-*.local.yaml
-*.local.json
 
 # Temporary files
 *.tmp
 *.temp
 *.bak
-
-# Backups
+*.log
 backups/

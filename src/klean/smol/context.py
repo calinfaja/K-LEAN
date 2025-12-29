@@ -9,12 +9,11 @@ know about:
 - .claude folder configuration
 """
 
-from pathlib import Path
-from typing import Optional, Dict, Any, List
-from dataclasses import dataclass, field
-import subprocess
 import json
-import os
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 @dataclass

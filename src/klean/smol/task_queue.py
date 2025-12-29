@@ -3,13 +3,13 @@
 Provides file-based persistence for background task management.
 """
 
-from dataclasses import dataclass, asdict
-from typing import Optional, List, Dict, Any
-from pathlib import Path
-from enum import Enum
 import json
 import time
 import uuid
+from dataclasses import asdict, dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional
 
 
 class TaskState(Enum):

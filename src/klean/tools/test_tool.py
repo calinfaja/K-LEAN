@@ -3,7 +3,6 @@
 This tool allows droids to execute test suites and analyze results.
 """
 
-import json
 import subprocess
 from typing import Any, Dict, Optional
 

@@ -4,8 +4,8 @@ Simple dataclass-based configuration for 3-agent and 4-agent variants.
 Uses dynamic model discovery - all agents use first available model from LiteLLM.
 """
 
-from dataclasses import dataclass, field
-from typing import List, Dict
+from dataclasses import dataclass
+from typing import Dict, List
 
 from klean.discovery import get_model
 

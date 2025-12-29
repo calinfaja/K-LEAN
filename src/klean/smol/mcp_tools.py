@@ -4,9 +4,9 @@ Uses smolagents' native MCP support via ToolCollection.from_mcp()
 to integrate with MCP servers like Serena, filesystem, etc.
 """
 
-from pathlib import Path
-from typing import Dict, Any, List, Optional
 import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 
 def load_mcp_config() -> Dict[str, Any]:

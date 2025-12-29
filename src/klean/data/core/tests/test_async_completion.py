@@ -4,11 +4,11 @@
 Test 4: Async completion via litellm.acompletion.
 """
 
-import sys
-import os
-import unittest
-from unittest.mock import patch, MagicMock, AsyncMock
 import asyncio
+import os
+import sys
+import unittest
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

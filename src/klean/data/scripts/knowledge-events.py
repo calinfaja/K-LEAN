@@ -23,12 +23,12 @@ Or via CLI:
     python knowledge-events.py tail 20  # Last 20 events
 """
 
+import json
 import os
 import sys
-import json
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 LOG_PATH = Path(os.environ.get("KLEAN_SOCKET_DIR", "/tmp")) / "knowledge-events.log"
 
