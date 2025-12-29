@@ -500,7 +500,6 @@ smol-kln my-agent "test task"
 | `k-lean doctor -f` | Diagnose + auto-fix |
 | `k-lean status` | Component status |
 | `k-lean models --health` | Check model health |
-| `healthcheck` | Quick model health (in Claude) |
 
 ### Issue: LiteLLM Proxy Not Running
 
@@ -651,7 +650,7 @@ k-lean start -s all
 
 # Reset knowledge DB (per-project)
 rm -rf .knowledge-db/
-# Will auto-recreate on next SaveThis
+# Will auto-recreate on next /kln:learn or FindKnowledge
 
 # Complete reinstall
 k-lean uninstall

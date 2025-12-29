@@ -20,7 +20,6 @@
 
 | Shortcut | Action |
 |----------|--------|
-| `healthcheck` | Check all LiteLLM models |
 | `SaveThis <lesson>` | Save a lesson learned |
 | `FindKnowledge <query>` | Search knowledge DB |
 
@@ -91,6 +90,5 @@ Curated insights via `mcp__serena__*_memory` tools:
 
 ## Hooks
 
-- **UserPromptSubmit**: SaveThis, FindKnowledge, healthcheck
 - **PostToolUse (Bash)**: Post-commit docs, timeline
 - **PostToolUse (Web*)**: Auto-capture to knowledge DB

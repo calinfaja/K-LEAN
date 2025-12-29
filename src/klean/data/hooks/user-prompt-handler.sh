@@ -5,12 +5,13 @@
 #
 # Keywords handled:
 #   - InitKB              → Initialize knowledge DB for project
-#   - SaveThis <lesson>   → Save lesson learned directly (no AI eval)
 #   - SaveInfo <url>      → Smart save with LLM evaluation
 #   - FindKnowledge <q>   → Search knowledge DB
 #   - asyncDeepReview     → 3 models with tools (background)
 #   - asyncConsensus      → 3 models quick review (background)
 #   - asyncReview         → Single model quick review (background)
+#
+# Note: SaveThis was replaced by /kln:learn slash command (context-aware)
 #
 
 # Read JSON input from stdin
@@ -73,63 +74,6 @@ if echo "$USER_PROMPT" | grep -qi "^InitKB$\|^InitKB "; then
 fi
 
 #------------------------------------------------------------------------------
-# SAVETHIS <lesson> [--type TYPE] [--tags TAGS] [--priority LEVEL]
-# Direct save using knowledge-capture.py
-#------------------------------------------------------------------------------
-if echo "$USER_PROMPT" | grep -qi "^SaveThis "; then
-    # Extract the full argument string after SaveThis
-    ARGS=$(echo "$USER_PROMPT" | sed -E 's/^SaveThis[[:space:]]+//i')
-
-    if [ -z "$ARGS" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: SaveThis <lesson> [--type TYPE] [--tags TAG1,TAG2] [--priority LEVEL]\\nTypes: lesson, finding, solution, pattern, warning, best-practice\\nPriority: low, medium, high, critical\"}"
-        exit 0
-    fi
-
-    echo "💾 Saving to knowledge DB..." >&2
-
-    # Use knowledge-capture.py with proper interface
-    CAPTURE_SCRIPT="$SCRIPTS_DIR/knowledge-capture.py"
-
-    if [ -f "$CAPTURE_SCRIPT" ] && [ -x "$PYTHON_BIN" ]; then
-        # Strip surrounding quotes from user input
-        CONTENT=$(echo "$ARGS" | sed 's/^["'"'"']//' | sed 's/["'"'"']$//')
-        cd "$PROJECT_DIR"
-        RESULT=$($PYTHON_BIN "$CAPTURE_SCRIPT" "$CONTENT" 2>&1)
-        EXIT_CODE=$?
-
-        if [ $EXIT_CODE -eq 0 ]; then
-            RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
-            echo "{\"systemMessage\": $RESULT_ESCAPED}"
-        else
-            echo "{\"systemMessage\": \"❌ Error: $RESULT\"}"
-        fi
-    else
-        # Fallback to simple append if script not available
-        LESSON=$(echo "$ARGS" | sed -E 's/[[:space:]]*--[a-z]+[[:space:]]+[^[:space:]]+//g')
-        KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge-db"
-        mkdir -p "$KNOWLEDGE_DIR"
-
-        # Build compact JSONL entry (single line, properly escaped)
-        ENTRY=$(jq -nc \
-            --arg title "Lesson Learned" \
-            --arg summary "$LESSON" \
-            --arg date "$(date -Iseconds)" \
-            '{
-                title: $title,
-                summary: $summary,
-                type: "lesson",
-                source: "manual",
-                found_date: $date,
-                relevance_score: 0.9,
-                key_concepts: ["lesson"]
-            }')
-        echo "$ENTRY" >> "$KNOWLEDGE_DIR/entries.jsonl"
-        echo "{\"systemMessage\": \"✅ Lesson saved (fallback mode)\"}"
-    fi
-    exit 0
-fi
-
-#------------------------------------------------------------------------------
 # SAVEINFO <url> [--search-context "context"] - Smart save with LLM evaluation
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
@@ -164,7 +108,7 @@ if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
                 echo "{\"systemMessage\": \"⚠️ Evaluation result: $RESULT\"}"
             fi
         else
-            echo "{\"systemMessage\": \"⚠️ SaveInfo expects a URL. For lessons, use SaveThis instead.\"}"
+            echo "{\"systemMessage\": \"⚠️ SaveInfo expects a URL. For context-aware saves, use /kln:learn instead.\"}"
         fi
     else
         echo "{\"systemMessage\": \"⚠️ smart-capture.py not found or Python not available\"}"

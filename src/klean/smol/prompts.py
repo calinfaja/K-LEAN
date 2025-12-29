@@ -1,26 +1,13 @@
 """K-LEAN prompt templates for SmolKLN agents.
 
-Replaces generic smolagents examples with code-review-focused examples.
-Keeps the Thought/Code/Observation format that CodeAgent requires.
+Custom instructions injected into smolagents' default template via {{custom_instructions}}.
+Provides code-review-focused examples and citation requirements.
 """
 
-# Base prompt with K-LEAN-specific few-shot examples
-# {{tool_descriptions}} is replaced by smolagents with actual tool docs
+# Custom instructions for K-LEAN agents
+# Injected into smolagents' default system prompt via the `instructions` parameter
 KLEAN_SYSTEM_PROMPT = """\
 You are a code analysis agent. You examine code using tools and provide findings with specific file:line references.
-
-To solve tasks, proceed in Thought/Code/Observation cycles:
-
-Thought: Explain your reasoning and which tools to use.
-```py
-# Python code to execute
-```
-Observation: Tool output appears here.
-
-Continue until you have enough information, then call final_answer() with your analysis.
-
-## Available Tools
-{{tool_descriptions}}
 
 ## Example
 ---

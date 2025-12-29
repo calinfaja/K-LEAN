@@ -18,6 +18,7 @@ Knowledge-driven Lightweight Execution & Analysis Network
 | `/kln:deep <focus>` | SDK | ~3min | Thorough review with tool access and deep analysis |
 | `/kln:agent <task>` | SDK | ~2min | SmolKLN specialist agent for domain-specific tasks |
 | `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
+| `/kln:learn [topic]` | Local | ~30s | Extract learnings from context (mid-session) |
 | `/kln:remember` | Local | ~60s | End-of-session knowledge capture and summary |
 | `/kln:status` | Local | ~5s | System health, available models, and quick help |
 
@@ -52,7 +53,7 @@ When no model is specified, K-LEAN selects based on task type:
 
 ### Model Health
 
-Use `/kln:status` or `healthcheck` to see current model availability and latency.
+Use `/kln:status` or `k-lean models` to see current model availability.
 
 ## Command Examples
 
@@ -116,12 +117,18 @@ Use `/kln:status` or `healthcheck` to see current model availability and latency
 /kln:doc "API Design Review" -o markdown
 ```
 
-### Session Capture
+### Knowledge Capture
 ```bash
-# End-of-session summary and knowledge capture
+# Mid-session: extract learnings from context
+/kln:learn
+
+# Focused extraction on specific topic
+/kln:learn "auth bug fix"
+
+# End-of-session: comprehensive capture
 /kln:remember
 
-# Include specific learnings
+# With markdown output
 /kln:remember -o markdown
 ```
 
@@ -136,13 +143,13 @@ Use `/kln:status` or `healthcheck` to see current model availability and latency
 
 ## Knowledge Commands
 
-Quick-access commands for knowledge management:
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `healthcheck` | Test all 6 LiteLLM models | `healthcheck` |
-| `SaveThis <lesson>` | Save a lesson learned | `SaveThis "Always validate inputs before DB queries"` |
-| `FindKnowledge <query>` | Search knowledge database | `FindKnowledge "postgres optimization"` |
+| Command | Type | Description |
+|---------|------|-------------|
+| `/kln:learn` | Slash | Extract learnings from context (mid-session, context-aware) |
+| `/kln:learn "topic"` | Slash | Focused extraction on specific topic |
+| `/kln:remember` | Slash | Comprehensive end-of-session capture |
+| `FindKnowledge <query>` | Hook | Semantic search knowledge database |
+| `SaveInfo <url>` | Hook | Evaluate URL with LLM and save if relevant |
 
 ## K-LEAN CLI
 
@@ -159,7 +166,7 @@ k-lean models --test  # Test all models with latency
 
 ## Getting Started
 
-1. **Check system health**: `/kln:status` or `healthcheck`
+1. **Check system health**: `/kln:status`
 2. **Start simple**: Try `/kln:quick "Review my latest changes"`
 3. **Use consensus**: For important decisions, use `/kln:multi`
 4. **Go deep**: When you need thorough analysis, use `/kln:deep`
@@ -174,7 +181,7 @@ k-lean models --test  # Test all models with latency
 ## Need Help?
 
 - Quick reference: `/kln:status`
-- Model health: `healthcheck` or `k-lean models --test`
+- Model health: `k-lean models --health`
 - System diagnostics: `k-lean doctor -f`
 - Timeline: `~/.claude/scripts/timeline-query.sh today`
 

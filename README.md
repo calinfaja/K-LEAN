@@ -76,13 +76,14 @@ MEDIUM CONFIDENCE (2/5 models agree):
 Never lose insights. K-LEAN captures lessons and makes them searchable:
 
 ```bash
-# Save knowledge (in Claude)
-SaveThis "Always validate JWT signatures server-side, not just client"
+# Save knowledge from context (in Claude)
+/kln:learn "JWT validation issue"    # Extracts insights from conversation
 
 # Search later
 FindKnowledge "JWT validation"
 ```
 
+- **Context-aware capture** — `/kln:learn` extracts insights from conversation
 - **Per-project isolation** — Each repo gets its own knowledge base
 - **Semantic search** — Find by meaning, not just keywords
 - **Auto-capture** — Git commits and reviews automatically logged
@@ -147,8 +148,8 @@ Uses 4 contrarian techniques:
 │                        Claude Code                                │
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐ │
 │  │    Hooks      │  │   /kln:*      │  │   SmolKLN Agents      │ │
-│  │ SaveThis      │  │   Commands    │  │   8 Specialists       │ │
-│  │ FindKnowledge │  │   (9 total)   │  │   + Tools             │ │
+│  │ FindKnowledge │  │   Commands    │  │   8 Specialists       │ │
+│  │ SaveInfo      │  │   (10 total)  │  │   + Tools             │ │
 │  └───────┬───────┘  └───────┬───────┘  └───────────┬───────────┘ │
 └──────────┼──────────────────┼──────────────────────┼─────────────┘
            │                  │                      │
@@ -175,13 +176,13 @@ Type these directly in Claude Code:
 
 | Keyword | Action |
 |---------|--------|
-| `SaveThis <text>` | Save insight to knowledge DB |
-| `SaveInfo <text>` | Smart save with LLM evaluation |
-| `FindKnowledge <query>` | Semantic search |
+| `FindKnowledge <query>` | Semantic search knowledge DB |
+| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `asyncReview <focus>` | Background quick review |
 | `asyncDeepReview <focus>` | Background deep review |
 | `asyncConsensus <focus>` | Background multi-model review |
-| `healthcheck` | Check all model health |
+
+**Note:** For context-aware knowledge capture, use `/kln:learn` (slash command).
 
 ---
 
