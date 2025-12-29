@@ -31,10 +31,9 @@ k-lean doctor
 /kln:quick security          # Fast review (~30s)
 /kln:multi architecture      # 3-5 model consensus (~60s)
 /kln:deep "full audit"       # Deep with tools (~3min)
+/kln:learn "topic"           # Extract learnings from context
 
 # Keywords (type directly)
-healthcheck                   # Check all models
-SaveThis "lesson learned"     # Capture knowledge
 FindKnowledge "topic"         # Search knowledge
 ```
 

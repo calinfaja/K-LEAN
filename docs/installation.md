@@ -84,7 +84,6 @@ View traces at `http://localhost:6006`
 ```bash
 k-lean status             # Component status
 k-lean models --health    # Model health
-healthcheck               # In Claude (tests all models)
 ```
 
 ## Uninstall

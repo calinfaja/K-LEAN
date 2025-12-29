@@ -270,13 +270,14 @@ K-LEAN integrates with Claude Code via **5 hooks** that trigger on specific even
 
 | Keyword | Action |
 |---------|--------|
-| `SaveThis: <text>` | Capture insight to KB |
-| `SaveInfo: <text>` | Smart save with LLM evaluation |
-| `FindKnowledge: <query>` | Search KB |
+| `FindKnowledge <query>` | Search KB |
+| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `InitKB` | Initialize project KB |
 | `asyncReview` | Background quick review |
 | `asyncDeepReview` | Background deep review |
 | `asyncConsensus` | Background consensus review |
+
+**Note:** `SaveThis` was replaced by `/kln:learn` for context-aware capture.
 
 ---
 
@@ -432,9 +433,9 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
 ```
 +-----------------------------------------------------+
 |                   Claude Code                        |
-|  "SaveThis: important insight"                       |
+|  /kln:learn "topic" (context-aware extraction)       |
 +---------------------+-------------------------------+
-                      | user-prompt-handler.sh
+                      | Claude extracts insights
                       v
 +-----------------------------------------------------+
 |               knowledge-capture.py                   |
@@ -526,15 +527,15 @@ Each knowledge entry contains:
 
 ---
 
-### 3.5 Trigger Keywords
+### 3.5 Knowledge Capture Methods
 
-In Claude Code prompts:
-
-| Keyword | Action |
-|---------|--------|
-| `SaveThis: <text>` | Capture insight to KB |
-| `SaveInfo: <text>` | Smart save with LLM evaluation |
-| `FindKnowledge: <query>` | Search KB |
+| Method | Type | Context-Aware | Description |
+|--------|------|---------------|-------------|
+| `/kln:learn` | Slash | Yes | Extract learnings from conversation context |
+| `/kln:learn "topic"` | Slash | Yes | Focused extraction on specific topic |
+| `/kln:remember` | Slash | Yes | End-of-session comprehensive capture |
+| `FindKnowledge <query>` | Hook | N/A | Search KB |
+| `SaveInfo <url>` | Hook | Partial | LLM evaluates URL content |
 
 **Note:** Use `kb-init.sh` or `k-lean install` to initialize KB for a project.
 
@@ -548,7 +549,7 @@ Knowledge DB integrates with multiple sources:
 +---------------------------------------------------------------+
 |                     KNOWLEDGE DB SOURCES                       |
 +---------------------------------------------------------------+
-|  source: "manual"        <-- SaveThis keyword                  |
+|  source: "manual"        <-- /kln:learn (context-aware)        |
 |  source: "web"           <-- GoodJob auto-capture              |
 |  source: "agent_*"       <-- SmolKLN session memory (auto)     |
 |  source: "serena"        <-- Synced from Serena (/kln:remember)|
@@ -1619,6 +1620,7 @@ smol-kln --list   # List available agents
 | `/kln:agent` | SmolKLN - specialist agents | `/kln:agent --role security` |
 | `/kln:rethink` | Fresh perspectives - debugging help | `/kln:rethink bug` |
 | `/kln:doc` | Documentation - session notes | `/kln:doc "Sprint Review"` |
+| `/kln:learn` | Extract learnings from context | `/kln:learn "auth bug"` |
 | `/kln:remember` | Knowledge capture - end of session | `/kln:remember` |
 | `/kln:status` | System status - models, health | `/kln:status` |
 | `/kln:help` | Command reference | `/kln:help` |
@@ -1631,9 +1633,8 @@ smol-kln --list   # List available agents
 
 | Shortcut | Action |
 |----------|--------|
-| `healthcheck` | Check all LiteLLM models |
-| `SaveThis <lesson>` | Save a lesson learned |
 | `FindKnowledge <query>` | Search knowledge DB |
+| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 
 ---
 

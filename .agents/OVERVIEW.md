@@ -14,7 +14,7 @@ K-LEAN (Knowledge-Lean) is an addon for Claude Code that provides:
 - **Consensus reviews** from 3-5 models in parallel
 - **Persistent Knowledge DB** with semantic search (210+ entries)
 - **8 SmolKLN agents** for domain-specific analysis
-- **9 slash commands** for reviews, debugging, and documentation
+- **10 slash commands** for reviews, debugging, and documentation
 - **5 hooks** for automatic knowledge capture
 
 ### The Problem
@@ -72,9 +72,9 @@ Claude Code uses a single AI model. K-LEAN adds:
 | Component | Count | Description |
 |-----------|-------|-------------|
 | Models | 18 | Via LiteLLM (dynamic discovery) |
-| Slash Commands | 9 | /kln:quick, multi, deep, agent, rethink, doc, remember, status, help |
+| Slash Commands | 10 | /kln:quick, multi, deep, agent, rethink, doc, learn, remember, status, help |
 | SmolKLN Agents | 8 | code-reviewer, security-auditor, debugger, performance-engineer, rust-expert, c-pro, arm-cortex-expert, orchestrator |
-| Hooks | 5 | SaveThis, FindKnowledge, async reviews, healthcheck |
+| Hooks | 5 | FindKnowledge, SaveInfo, async reviews, session-start, post-tool |
 | Rules | 1 | ~/.claude/rules/k-lean.md |
 
 ---
@@ -89,6 +89,7 @@ Claude Code uses a single AI model. K-LEAN adds:
 | `/kln:agent <role>` | Specialist agent | ~30s |
 | `/kln:rethink` | Contrarian debugging (4 techniques) | ~20s |
 | `/kln:doc <title>` | Generate session docs | ~30s |
+| `/kln:learn [topic]` | Extract learnings from context (mid-session) | ~30s |
 | `/kln:remember` | End-of-session knowledge capture | ~20s |
 | `/kln:status` | System health check | ~2s |
 | `/kln:help` | Command reference | instant |
@@ -120,13 +121,13 @@ Type directly in Claude Code:
 
 | Keyword | Action |
 |---------|--------|
-| `SaveThis <text>` | Save insight to knowledge DB |
-| `SaveInfo <text>` | Smart save with LLM evaluation |
-| `FindKnowledge <query>` | Semantic search |
+| `FindKnowledge <query>` | Semantic search knowledge DB |
+| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `asyncReview <focus>` | Background quick review |
 | `asyncDeepReview <focus>` | Background deep review |
 | `asyncConsensus <focus>` | Background multi-model review |
-| `healthcheck` | Check all model health |
+
+**Note:** For context-aware knowledge capture, use `/kln:learn` (slash command) instead of hook keywords.
 
 ---
 
@@ -190,7 +191,7 @@ k-lean/
 │   ├── smol/               # SmolKLN agent system
 │   └── data/               # Installable assets
 │       ├── scripts/        # 36+ shell & Python scripts
-│       ├── commands/kln/   # 9 slash commands
+│       ├── commands/kln/   # 10 slash commands
 │       ├── hooks/          # 5 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── core/           # Review engine & prompts
@@ -242,7 +243,7 @@ Each git repository gets its own:
 
 ### Knowledge Capture Flow
 ```
-SaveThis "insight" -> user-prompt-handler.sh
+/kln:learn "topic" -> Claude extracts from context
   -> knowledge-capture.py -> V2 schema -> entries.jsonl
   -> txtai re-index (on next query)
 ```

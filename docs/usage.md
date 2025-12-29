@@ -25,24 +25,50 @@
 
 ## Knowledge Commands
 
-| Keyword | Action |
-|---------|--------|
-| `SaveThis <text>` | Save a lesson learned |
-| `SaveInfo <text>` | Smart save with LLM evaluation |
-| `FindKnowledge <query>` | Semantic search |
+### Saving Knowledge
+
+**Recommended:** Use `/kln:learn` for context-aware extraction:
+
+| Command | Description |
+|---------|-------------|
+| `/kln:learn` | Extract learnings from recent conversation context |
+| `/kln:learn "topic"` | Focused extraction on specific topic |
+| `/kln:remember` | End-of-session comprehensive capture |
 
 **Examples:**
 ```bash
-SaveThis "always validate user input before SQL queries"
+/kln:learn                     # Auto-detect learnings from context
+/kln:learn "auth bug fix"      # Extract insights about auth bug
+/kln:remember                  # End-of-session, reviews git diff/log
+```
+
+### Searching Knowledge
+
+| Keyword | Action |
+|---------|--------|
+| `FindKnowledge <query>` | Semantic search knowledge DB |
+| `SaveInfo <url>` | Smart save URL with LLM evaluation |
+
+**Examples:**
+```bash
 FindKnowledge "authentication patterns"
+SaveInfo https://docs.example.com/api
 ```
 
 ## Session Management
 
 | Command | Action |
 |---------|--------|
+| `/kln:learn` | Mid-session knowledge capture |
 | `/kln:remember` | End-of-session capture |
 | `/kln:doc` | Generate session docs |
+
+**Mid-session workflow:**
+```bash
+# Work on feature, find bugs, research solutions...
+/kln:learn "the fixes we made"   # Capture learnings
+# Continue working...
+```
 
 **End-of-session workflow:**
 ```bash
@@ -99,6 +125,11 @@ smol-kln security-auditor "audit" --telemetry
 **Stuck debugging:**
 ```bash
 /kln:rethink
+```
+
+**Found something useful:**
+```bash
+/kln:learn "the solution"
 ```
 
 ## Multi-Agent Reviews (k-lean multi)

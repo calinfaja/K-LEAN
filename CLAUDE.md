@@ -10,6 +10,7 @@
 | `/kln:agent` | SmolKLN - specialist agents | `/kln:agent --role security` |
 | `/kln:rethink` | Fresh perspectives - debugging help | `/kln:rethink bug` |
 | `/kln:doc` | Documentation - session notes | `/kln:doc "Sprint Review"` |
+| `/kln:learn` | Save learnings from context (mid-session) | `/kln:learn "auth bug"` |
 | `/kln:remember` | Knowledge capture - end of session | `/kln:remember` |
 | `/kln:status` | System status - models, health | `/kln:status` |
 | `/kln:help` | Command reference | `/kln:help` |
@@ -20,19 +21,43 @@
 
 | Shortcut | Action |
 |----------|--------|
-| `healthcheck` | Check all LiteLLM models |
-| `SaveThis <lesson>` | Save a lesson learned |
 | `FindKnowledge <query>` | Search knowledge DB |
+| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 
 ## Knowledge Database
 
-Per-project semantic search. **Auto-initializes on first SaveThis.**
+Per-project semantic search. **Auto-initializes on first use.**
 
+### Saving Knowledge
+
+**Recommended:** Use `/kln:learn` - context-aware extraction from session:
 ```bash
+/kln:learn                    # Auto-detect learnings from recent context
+/kln:learn "auth bug"         # Focused extraction on specific topic
+```
+
+**Hook keywords:**
+```bash
+FindKnowledge <query>         # Semantic search
+SaveInfo <url>                # Evaluate URL and save if relevant
+```
+
+### Direct Script Usage (for automation)
+```bash
+# Capture entry - CORRECT syntax (no "add" subcommand)
+~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-capture.py \
+    "lesson text here" \
+    --type lesson \
+    --tags tag1,tag2 \
+    --priority medium
+
+# Types: lesson, finding, solution, pattern, warning, best-practice
+# Priority: low, medium, high, critical
+
 # Query via server (~30ms)
 ~/.claude/scripts/knowledge-query.sh "<topic>"
 
-# Direct query (~17s cold)
+# Direct query (~17s cold start)
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
 ```
 
@@ -116,6 +141,7 @@ Curated insights via `mcp__serena__*_memory` tools:
 
 ## Hooks
 
-- **UserPromptSubmit**: SaveThis, FindKnowledge, healthcheck
+- **UserPromptSubmit**: FindKnowledge, SaveInfo, async reviews
 - **PostToolUse (Bash)**: Post-commit docs, timeline
 - **PostToolUse (Web*)**: Auto-capture to knowledge DB
+- **SessionStart**: Auto-start LiteLLM + Knowledge Server

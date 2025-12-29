@@ -53,12 +53,13 @@
 
 | Keyword | Action |
 |---------|--------|
-| `SaveThis` | Direct save to KB |
-| `SaveInfo` | LLM-evaluated save |
-| `FindKnowledge` | Semantic search |
+| `FindKnowledge` | Semantic search KB |
+| `SaveInfo` | LLM-evaluated URL save |
 | `asyncReview` | Background quick review |
 | `asyncDeepReview` | Background deep review |
 | `asyncConsensus` | Background consensus |
+
+**Note:** For context-aware saves, use `/kln:learn` slash command.
 
 ## Configuration Files
 
@@ -159,7 +160,7 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 ```
 
 **Source types:**
-- `manual` - SaveThis keyword
+- `manual` - /kln:learn command
 - `web` - Auto-captured from web research
 - `agent_<name>` - SmolKLN agent session persistence (e.g., `agent_security-auditor`)
 - `serena` - Synced from Serena lessons-learned
