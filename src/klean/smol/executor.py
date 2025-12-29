@@ -25,6 +25,7 @@ from .context import (
     ProjectContext,
 )
 from .memory import AgentMemory
+from .prompts import KLEAN_SYSTEM_PROMPT
 
 
 class SmolKLNExecutor:
@@ -244,21 +245,21 @@ class SmolKLNExecutor:
             "decimal", "enum", "dataclasses", "operator", "textwrap",
         ]
 
+        # Build system prompt: agent-specific role + K-LEAN base (format + examples)
+        # This replaces smolagents' generic examples with code-review-focused ones
+        system_prompt = KLEAN_SYSTEM_PROMPT
+        if agent.system_prompt:
+            system_prompt = agent.system_prompt + "\n\n" + KLEAN_SYSTEM_PROMPT
+
         smol_agent = CodeAgent(
             tools=tools,
             model=model,
             max_steps=max_steps,
+            prompt_templates={"system_prompt": system_prompt},
             use_structured_outputs_internally=True,
             additional_authorized_imports=safe_imports,
             final_answer_checks=[validate_citations],  # Verify file:line citations
         )
-
-        # Prepend agent's system prompt to the default system prompt
-        if agent.system_prompt:
-            default_prompt = smol_agent.prompt_templates.get("system_prompt", "")
-            smol_agent.prompt_templates["system_prompt"] = (
-                agent.system_prompt + "\n\n" + default_prompt
-            )
 
         try:
             # Execute with timing
