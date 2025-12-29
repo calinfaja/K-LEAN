@@ -247,22 +247,6 @@ def get_services(data: dict) -> str:
     return f"{C.DIM}llm:{llm} kb:{kb}{C.RESET}"
 
 # ============================================================================
-# Field 7: Context Usage
-# ============================================================================
-def get_context(data: dict) -> str:
-    """Context % with color: green <80, yellow 80-90, red >90."""
-    ctx = data.get("context_window", {})
-    usage = ctx.get("current_usage", {})
-    # Current context = input + cache_creation + cache_read tokens
-    used = (usage.get("input_tokens", 0) +
-            usage.get("cache_creation_input_tokens", 0) +
-            usage.get("cache_read_input_tokens", 0))
-    total = ctx.get("context_window_size", 200000)
-    pct = (used / total * 100) if total else 0
-    color = C.GREEN if pct < 80 else C.YELLOW if pct < 90 else C.RED
-    return f"{C.DIM}ctx:{color}{pct:.0f}%{C.RESET}"
-
-# ============================================================================
 # Main
 # ============================================================================
 def main():
@@ -277,10 +261,9 @@ def main():
     project = get_project(data)
     git = get_git(data)
     services = get_services(data)
-    context = get_context(data)
 
-    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓ │ 23%
-    line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}{SEP}{context}"
+    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:18 kb:✓
+    line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}"
 
     print(line)
 
