@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import List, Callable, Dict, Any, Optional
 from enum import Enum
 
+from klean.discovery import get_model
+
 
 class CritiqueVerdict(Enum):
     """Verdict from critique evaluation."""
@@ -62,18 +64,18 @@ class ReflectionEngine:
         self,
         model_factory: Callable[[str], Any],
         max_retries: int = 2,
-        critic_model: str = "qwen3-coder"
+        critic_model: str = ""  # Empty = use first available from LiteLLM
     ):
         """Initialize reflection engine.
 
         Args:
             model_factory: Function to create model by name
             max_retries: Maximum number of retry attempts
-            critic_model: Model to use for critique
+            critic_model: Model to use for critique (empty = first available)
         """
         self.model_factory = model_factory
         self.max_retries = max_retries
-        self.critic_model = critic_model
+        self.critic_model = critic_model or get_model() or "auto"
 
     def critique(self, task: str, output: str) -> Critique:
         """Critique agent output.
