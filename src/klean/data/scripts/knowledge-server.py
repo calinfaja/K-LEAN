@@ -117,7 +117,8 @@ class KnowledgeServer:
         # Heavy imports happen once
         from txtai import Embeddings
 
-        self.embeddings = Embeddings()
+        # Use WAL mode for concurrent read/write access
+        self.embeddings = Embeddings(sqlite={"wal": True})
         self.embeddings.load(str(index_path))
 
         self.load_time = time.time() - start

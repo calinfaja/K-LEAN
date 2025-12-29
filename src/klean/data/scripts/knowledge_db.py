@@ -79,10 +79,12 @@ class KnowledgeDB:
         self.db_path.mkdir(parents=True, exist_ok=True)
 
         # Initialize embeddings with SQLite backend
+        # WAL mode enables concurrent read/write access (fixes "database is locked" error)
         self.embeddings = Embeddings(
             content=True,  # Store content alongside vectors
             backend="sqlite",  # Use SQLite for storage
-            path="sentence-transformers/all-MiniLM-L6-v2"  # Fast, good quality model
+            path="sentence-transformers/all-MiniLM-L6-v2",  # Fast, good quality model
+            sqlite={"wal": True}  # Enable WAL for concurrent access
         )
 
         # Load existing index if present
