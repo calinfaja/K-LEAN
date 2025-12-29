@@ -18,6 +18,7 @@ class AgentConfig:
     tools: List[str]
     max_steps: int
     description: str
+    planning_interval: int = 3  # Plan every N steps to stay on track
 
 
 def get_default_model() -> str:
@@ -53,21 +54,21 @@ def get_3_agent_config() -> Dict[str, AgentConfig]:
             name="manager",
             model=models["manager"],
             tools=[],  # Manager only delegates
-            max_steps=15,
+            max_steps=7,
             description="Orchestrates the review. Delegates file reading to file_scout and analysis to analyzer.",
         ),
         "file_scout": AgentConfig(
             name="file_scout",
             model=models["file-scout"],
             tools=["read_file", "search_files", "grep", "knowledge_search", "git_diff", "git_status", "git_log", "list_directory"],
-            max_steps=10,
+            max_steps=6,
             description="Fast file discovery. Give it paths, patterns, or topics to find and read files. Can also get git diff, status, log, and list directories.",
         ),
         "analyzer": AgentConfig(
             name="analyzer",
             model=models["analyzer"],
             tools=["read_file", "grep", "get_file_info"],
-            max_steps=15,
+            max_steps=6,
             description="Deep code analyzer. Give it code to analyze for bugs, security, and quality issues.",
         ),
     }
@@ -85,35 +86,35 @@ def get_4_agent_config() -> Dict[str, AgentConfig]:
             name="manager",
             model=models["manager"],
             tools=[],
-            max_steps=15,
+            max_steps=7,
             description="Orchestrates the review process.",
         ),
         "file_scout": AgentConfig(
             name="file_scout",
             model=models["file-scout"],
             tools=["read_file", "search_files", "grep", "knowledge_search", "git_diff", "git_status", "git_log", "list_directory"],
-            max_steps=10,
+            max_steps=6,
             description="Fast file discovery, git operations, and knowledge lookup.",
         ),
         "code_analyzer": AgentConfig(
             name="code_analyzer",
             model=models["code-analyzer"],
             tools=["read_file", "grep", "get_file_info"],
-            max_steps=12,
+            max_steps=6,
             description="Code quality analyzer. Finds bugs, logic errors, and maintainability issues.",
         ),
         "security_auditor": AgentConfig(
             name="security_auditor",
             model=models["security-auditor"],
             tools=["read_file", "grep", "web_search", "get_file_info"],
-            max_steps=12,
+            max_steps=6,
             description="Security analyzer. Finds vulnerabilities using OWASP Top 10 framework.",
         ),
         "synthesizer": AgentConfig(
             name="synthesizer",
             model=models["synthesizer"],
             tools=["read_file"],
-            max_steps=8,
+            max_steps=6,
             description="Report formatter. Creates structured final report from analysis findings.",
         ),
     }

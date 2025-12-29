@@ -12,7 +12,7 @@ K-LEAN SmolKLN supports multi-agent orchestration via the `k-lean multi` command
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Manager (glm-4.6-thinking)                          │
+│ Manager (max_steps=7, planning_interval=3)          │
 │ Orchestration only - delegates all work             │
 └──────────────────┬──────────────────────────────────┘
                    │
@@ -20,27 +20,29 @@ K-LEAN SmolKLN supports multi-agent orchestration via the `k-lean multi` command
          ▼                   ▼
    ┌───────────┐       ┌───────────┐
    │file_scout │       │ analyzer  │
-   │qwen3-coder│       │deepseek-  │
-   │           │       │v3-thinking│
+   │max_steps=6│       │max_steps=6│
+   │           │       │           │
    │Tools:     │       │Tools:     │
    │- read_file│       │- read_file│
    │- search   │       │- grep     │
-   │- grep     │       │           │
+   │- grep     │       │- git ops  │
    │- knowledge│       │           │
    └───────────┘       └───────────┘
 ```
 
-| Agent | Model | Tools | Role |
-|-------|-------|-------|------|
-| **manager** | `glm-4.6-thinking` | None (delegates only) | Orchestration |
-| **file_scout** | `qwen3-coder` | read_file, search_files, grep, knowledge_search | Fast file discovery |
-| **analyzer** | `deepseek-v3-thinking` | read_file, grep | Deep code analysis |
+| Agent | Tools | Role |
+|-------|-------|------|
+| **manager** | None (delegates only) | Orchestration |
+| **file_scout** | read_file, search_files, grep, knowledge_search, git ops | Fast file discovery |
+| **analyzer** | read_file, grep, get_file_info | Deep code analysis |
+
+**Models:** All agents use first available model from LiteLLM (dynamic discovery).
 
 ### 4-Agent Architecture (--thorough)
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Manager (glm-4.6-thinking)                          │
+│ Manager (max_steps=7, planning_interval=3)          │
 │ Orchestration only - delegates all work             │
 └──────────────────┬──────────────────────────────────┘
                    │
@@ -49,24 +51,25 @@ K-LEAN SmolKLN supports multi-agent orchestration via the `k-lean multi` command
 ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌───────────┐
 │file_    │  │code_     │  │security_ │  │synthesizer│
 │scout    │  │analyzer  │  │auditor   │  │           │
-│qwen3-   │  │deepseek- │  │deepseek- │  │qwen3-     │
-│coder    │  │v3-think  │  │v3-think  │  │coder      │
+│steps=6  │  │steps=6   │  │steps=6   │  │steps=6    │
 │         │  │          │  │          │  │           │
 │Tools:   │  │Tools:    │  │Tools:    │  │Tools:     │
 │- read   │  │- read    │  │- read    │  │- read     │
 │- search │  │- grep    │  │- grep    │  │           │
-│- grep   │  │          │  │- web     │  │           │
-│- KB     │  │          │  │          │  │           │
+│- grep   │  │- info    │  │- web     │  │           │
+│- KB     │  │          │  │- info    │  │           │
 └─────────┘  └──────────┘  └──────────┘  └───────────┘
 ```
 
-| Agent | Model | Tools | Role |
-|-------|-------|-------|------|
-| **manager** | `glm-4.6-thinking` | None | Orchestration |
-| **file_scout** | `qwen3-coder` | read_file, search_files, grep, knowledge_search | File discovery |
-| **code_analyzer** | `deepseek-v3-thinking` | read_file, grep | Bug detection, code quality |
-| **security_auditor** | `deepseek-v3-thinking` | read_file, grep, web_search | Security analysis |
-| **synthesizer** | `qwen3-coder` | read_file | Report formatting |
+| Agent | Tools | Role |
+|-------|-------|------|
+| **manager** | None | Orchestration |
+| **file_scout** | read_file, search_files, grep, knowledge_search, git ops | File discovery |
+| **code_analyzer** | read_file, grep, get_file_info | Bug detection, code quality |
+| **security_auditor** | read_file, grep, web_search, get_file_info | Security analysis |
+| **synthesizer** | read_file | Report formatting |
+
+**Models:** All agents use first available model from LiteLLM (dynamic discovery).
 
 ---
 
@@ -94,7 +97,7 @@ k-lean multi --output json "Check for security issues"
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--thorough`, `-t` | False | Use 4-agent architecture |
-| `--manager-model`, `-m` | glm-4.6-thinking | Override manager model |
+| `--manager-model`, `-m` | (first available) | Override manager model |
 | `--output`, `-o` | text | Output format: text, json |
 | `--telemetry` | False | Enable Phoenix tracing |
 
@@ -126,20 +129,24 @@ src/klean/cli.py        # 'multi' command at line 2522
 From `src/klean/smol/multi_config.py`:
 
 ```python
-MODELS = {
-    "manager": "glm-4.6-thinking",      # 90.6% tool-calling success
-    "file-scout": "qwen3-coder",         # Fastest for file navigation
-    "analyzer": "deepseek-v3-thinking",  # Best for code analysis
-    "code-analyzer": "deepseek-v3-thinking",  # Bug detection
-    "security-auditor": "deepseek-v3-thinking",  # Security analysis
-    "synthesizer": "qwen3-coder",        # Reliable report output
-}
+def get_models() -> Dict[str, str]:
+    """All agents use first available from LiteLLM."""
+    default = get_default_model()  # Dynamic discovery
+    return {
+        "manager": default,
+        "file-scout": default,
+        "analyzer": default,
+        ...
+    }
 ```
 
-**Model Selection Rationale:**
-- **GLM-4.6-thinking**: 90.6% tool-calling success rate (best for orchestration)
-- **Qwen3-coder**: Fastest response times (file operations, formatting)
-- **DeepSeek-v3-thinking**: Best reasoning quality (code analysis, security)
+**Configuration:**
+- **Models**: Dynamic - uses first available from LiteLLM proxy
+- **User control**: Reorder models in `~/.config/litellm/config.yaml` to set priority
+- **Single agent max_steps**: 10
+- **Manager max_steps**: 7
+- **Specialist max_steps**: 6
+- **planning_interval**: 3 (all agents)
 
 ---
 
@@ -198,7 +205,10 @@ class MultiAgentExecutor:
                 name=agent_config.name,
                 description=agent_config.description,
                 max_steps=agent_config.max_steps,
+                planning_interval=agent_config.planning_interval,
             )
+            # REPLACE default prompt (removes John Doe/Ulam examples)
+            agent.prompt_templates["system_prompt"] = rendered_prompt
             specialists.append(agent)
 
         # Manager with managed_agents
@@ -207,6 +217,7 @@ class MultiAgentExecutor:
             tools=[],
             managed_agents=specialists,
             max_steps=manager_config.max_steps,
+            planning_interval=manager_config.planning_interval,
         )
 
         result = manager.run(full_prompt)

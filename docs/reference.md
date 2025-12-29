@@ -115,16 +115,16 @@ k-lean multi "Review changes" --telemetry
 | 3-agent (default) | manager + file_scout + analyzer | 30-90s | Quick reviews |
 | 4-agent (--thorough) | manager + file_scout + code_analyzer + security_auditor + synthesizer | 60-180s | Deep audits |
 
-### Model Assignments
+### Configuration
 
-| Agent | Model | Role |
-|-------|-------|------|
-| manager | `glm-4.6-thinking` | Orchestration (90.6% tool-calling) |
-| file_scout | `qwen3-coder` | Fast file discovery |
-| analyzer | `deepseek-v3-thinking` | Deep code analysis |
-| code_analyzer | `deepseek-v3-thinking` | Bug detection |
-| security_auditor | `deepseek-v3-thinking` | Security analysis |
-| synthesizer | `qwen3-coder` | Report formatting |
+All agents use **dynamic model discovery** - first available model from LiteLLM.
+User controls priority via model order in `~/.config/litellm/config.yaml`.
+
+| Setting | Value |
+|---------|-------|
+| Manager max_steps | 7 |
+| Specialist max_steps | 6 |
+| planning_interval | 3 (all agents) |
 
 **Output:** `.claude/kln/multiAgent/<timestamp>_multi-[3|4]-agent_<task>.md`
 

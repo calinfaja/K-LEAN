@@ -149,7 +149,7 @@ class SmolKLNExecutor:
         task: str,
         model_override: str = None,
         context: str = None,
-        max_steps: int = 15,
+        max_steps: int = 10,
     ) -> Dict[str, Any]:
         """Execute an agent with the given task.
 
@@ -251,6 +251,7 @@ class SmolKLNExecutor:
             tools=tools,
             model=model,
             max_steps=max_steps,
+            planning_interval=3,  # Plan every 3 steps to stay on track
             additional_authorized_imports=safe_imports,
             final_answer_checks=[validate_citations],  # Verify file:line citations
         )
