@@ -22,12 +22,12 @@ if ! curl -s --max-time 1 http://localhost:4000/health >/dev/null 2>&1 && \
     if [ ! -f ~/.config/litellm/config.yaml ]; then
         # One-time warning per session
         if [ ! -f /tmp/klean-litellm-warned ]; then
-            echo "{\"systemMessage\": \"⚠️ LiteLLM config not found. Run: \$SCRIPTS_DIR/setup-litellm.sh\"}" >&2
+            echo "{\"systemMessage\": \"[WARN] LiteLLM config not found. Run: \$SCRIPTS_DIR/setup-litellm.sh\"}" >&2
             touch /tmp/klean-litellm-warned
         fi
     elif [ ! -f ~/.config/litellm/.env ]; then
         if [ ! -f /tmp/klean-litellm-warned ]; then
-            echo "{\"systemMessage\": \"⚠️ LiteLLM .env not found. Add API keys to ~/.config/litellm/.env\"}" >&2
+            echo "{\"systemMessage\": \"[WARN] LiteLLM .env not found. Add API keys to ~/.config/litellm/.env\"}" >&2
             touch /tmp/klean-litellm-warned
         fi
     else

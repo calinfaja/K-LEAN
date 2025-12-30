@@ -111,7 +111,7 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
                 "source_path": f"serena:{lesson.get('date', 'unknown')}",
             })
             synced += 1
-            print(f"  ✓ [{lesson['type']}] {lesson['title'][:60]}")
+            print(f"  [OK] [{lesson['type']}] {lesson['title'][:60]}")
         except Exception as e:
             print(f"  ✗ Failed: {lesson['title'][:40]} - {e}")
 
@@ -141,7 +141,7 @@ def main():
                 break
 
     if not serena_path or not serena_path.exists():
-        print("❌ Serena lessons-learned not found")
+        print("[ERROR] Serena lessons-learned not found")
         print("   Tried:", candidates if not args.serena_path else [args.serena_path])
         sys.exit(1)
 
@@ -163,23 +163,23 @@ def main():
             db = KnowledgeDB(args.project)
             print(f"📚 Knowledge DB: {db.db_path}")
         except ImportError:
-            print("❌ knowledge_db module not found")
+            print("[ERROR] knowledge_db module not found")
             print("   Install: pip install txtai")
             sys.exit(1)
         except Exception as e:
-            print(f"❌ Knowledge DB error: {e}")
+            print(f"[ERROR] Knowledge DB error: {e}")
             sys.exit(1)
     else:
         db = None
-        print("🔍 Dry run - showing what would be synced:")
+        print(" Dry run - showing what would be synced:")
 
     # Sync
     synced = sync_to_kb(lessons, db, args.dry_run)
 
     if args.dry_run:
-        print(f"\n📊 Would sync {synced} lessons")
+        print(f"\n Would sync {synced} lessons")
     else:
-        print(f"\n✅ Synced {synced} Serena lessons to Knowledge DB")
+        print(f"\n[OK] Synced {synced} Serena lessons to Knowledge DB")
         print("   SmolKLN agents can now search these lessons!")
 
 

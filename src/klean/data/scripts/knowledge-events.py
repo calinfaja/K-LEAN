@@ -122,7 +122,7 @@ if __name__ == "__main__":
             print(f"Invalid JSON: {e}")
             sys.exit(1)
         log.emit(args.event_type, data)
-        print(f"✓ Event emitted: {args.event_type}")
+        print(f"[OK] Event emitted: {args.event_type}")
 
     elif args.command == "tail":
         events = log.tail(args.limit)
@@ -147,7 +147,7 @@ if __name__ == "__main__":
 
     elif args.command == "clear":
         log.clear()
-        print("✓ Event log cleared")
+        print("[OK] Event log cleared")
 
     elif args.command == "stats":
         events = log.tail(1000)  # Load recent events

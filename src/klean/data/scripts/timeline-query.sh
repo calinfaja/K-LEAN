@@ -28,15 +28,15 @@ find_project_root() {
 
 PROJECT_ROOT=$(find_project_root)
 if [ -z "$PROJECT_ROOT" ]; then
-    echo "❌ No project root found (no .knowledge-db/, .serena/, or .claude/)"
+    echo "[ERROR] No project root found (no .knowledge-db/, .serena/, or .claude/)"
     exit 1
 fi
 
 TIMELINE="$PROJECT_ROOT/.knowledge-db/timeline.txt"
 
 if [ ! -f "$TIMELINE" ]; then
-    echo "📋 Timeline: $TIMELINE"
-    echo "ℹ️  No timeline events yet. Events are logged automatically after:"
+    echo " Timeline: $TIMELINE"
+    echo "[INFO]  No timeline events yet. Events are logged automatically after:"
     echo "   - Code reviews (fact extraction)"
     echo "   - Git commits"
     exit 0
@@ -46,24 +46,24 @@ QUERY="${1:-last}"
 
 case "$QUERY" in
     last|"")
-        echo "📋 Last 20 events from $TIMELINE"
+        echo " Last 20 events from $TIMELINE"
         echo "─────────────────────────────────────────────"
         tail -20 "$TIMELINE"
         ;;
     today)
         TODAY=$(date '+%m-%d')
-        echo "📋 Today's events ($TODAY)"
+        echo " Today's events ($TODAY)"
         echo "─────────────────────────────────────────────"
         grep "^$TODAY" "$TIMELINE" || echo "No events today"
         ;;
     yesterday)
         YESTERDAY=$(date -d "yesterday" '+%m-%d' 2>/dev/null || date -v-1d '+%m-%d')
-        echo "📋 Yesterday's events ($YESTERDAY)"
+        echo " Yesterday's events ($YESTERDAY)"
         echo "─────────────────────────────────────────────"
         grep "^$YESTERDAY" "$TIMELINE" || echo "No events yesterday"
         ;;
     week)
-        echo "📋 Last 7 days of events"
+        echo " Last 7 days of events"
         echo "─────────────────────────────────────────────"
         for i in $(seq 0 6); do
             DAY=$(date -d "$i days ago" '+%m-%d' 2>/dev/null || date -v-${i}d '+%m-%d')
@@ -71,17 +71,17 @@ case "$QUERY" in
         done | sort -r
         ;;
     commits)
-        echo "📋 All commits"
+        echo " All commits"
         echo "─────────────────────────────────────────────"
         grep "| commit |" "$TIMELINE" || echo "No commits logged"
         ;;
     reviews)
-        echo "📋 All reviews"
+        echo " All reviews"
         echo "─────────────────────────────────────────────"
         grep "| review |" "$TIMELINE" || echo "No reviews logged"
         ;;
     facts)
-        echo "📋 All fact extractions"
+        echo " All fact extractions"
         echo "─────────────────────────────────────────────"
         grep "facts" "$TIMELINE" || echo "No facts logged"
         ;;
@@ -92,7 +92,7 @@ case "$QUERY" in
         FIRST=$(head -1 "$TIMELINE" | cut -d'|' -f1 | xargs)
         LAST=$(tail -1 "$TIMELINE" | cut -d'|' -f1 | xargs)
 
-        echo "📊 Timeline Statistics"
+        echo " Timeline Statistics"
         echo "─────────────────────────────────────────────"
         echo "Total events:  $TOTAL"
         echo "Commits:       $COMMITS"
@@ -100,8 +100,8 @@ case "$QUERY" in
         echo "First event:   $FIRST"
         echo "Last event:    $LAST"
         echo ""
-        echo "📁 File: $TIMELINE"
-        echo "📦 Size: $(du -h "$TIMELINE" | cut -f1)"
+        echo " File: $TIMELINE"
+        echo " Size: $(du -h "$TIMELINE" | cut -f1)"
         ;;
     help|-h|--help)
         echo "Timeline Query Helper"
@@ -127,7 +127,7 @@ case "$QUERY" in
         echo "  timeline-query.sh stats       # Show statistics"
         ;;
     *)
-        echo "📋 Search results for: $QUERY"
+        echo " Search results for: $QUERY"
         echo "─────────────────────────────────────────────"
         grep -i "$QUERY" "$TIMELINE" || echo "No matches found for '$QUERY'"
         ;;

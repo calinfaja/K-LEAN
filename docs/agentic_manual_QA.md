@@ -206,7 +206,7 @@ Location: `src/klean/data/core/prompts/`
 |------|---------|----------|
 | [ ] Proxy running | `curl http://localhost:4000/models` | JSON response |
 | [ ] List models | `~/.claude/scripts/get-models.sh` | 6+ models |
-| [ ] Health check | `~/.claude/scripts/health-check.sh` | ✅ for models |
+| [ ] Health check | `~/.claude/scripts/health-check.sh` | [OK] for models |
 | [ ] Single health | `~/.claude/scripts/health-check-model.sh qwen3-coder` | OK |
 | [ ] Validate model | `~/.claude/scripts/validate-model.sh qwen3-coder` | Valid |
 
@@ -233,8 +233,8 @@ Location: `src/klean/data/core/prompts/`
 ### Validation Functions Test
 ```bash
 source ~/.claude/scripts/kb-root.sh
-require_kb_python && echo "✅ Python OK"
-require_kb_scripts && echo "✅ Scripts OK"
+require_kb_python && echo "[OK] Python OK"
+require_kb_scripts && echo "[OK] Scripts OK"
 ```
 
 ### No Hardcoded Paths Check
@@ -311,7 +311,7 @@ cat .knowledge-db/timeline.txt | tail -5
 | [ ] Project | Workspace | Project name from CWD |
 | [ ] Git | subprocess | Branch + dirty state (M/+/?) |
 | [ ] LLM | HTTP localhost:4000 | Model count from LiteLLM proxy |
-| [ ] KB | Socket localhost:8765 | ✓ (ready) or status message |
+| [ ] KB | Socket localhost:8765 | [OK] (ready) or status message |
 
 > **Note:** The statusline shows LiteLLM proxy status, not Claude API model.
 > Model info shows available count (e.g., "6 models") from the local proxy.

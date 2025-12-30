@@ -1417,7 +1417,7 @@ def doctor(auto_fix: bool):
                         import re
                         fixed = re.sub(r'["\']os\.environ/([^"\']+)["\']', r'os.environ/\1', config_content)
                         config_yaml.write_text(fixed)
-                        console.print("    [green]✓ Auto-fixed: Removed quotes from os.environ[/green]")
+                        console.print("    [green][OK] Auto-fixed: Removed quotes from os.environ[/green]")
                         fixes_applied.append("Fixed quoted os.environ in LiteLLM config")
 
                 # Check for hardcoded API keys (security risk)
@@ -1445,7 +1445,7 @@ def doctor(auto_fix: bool):
                 issues.append(("ERROR", "NANOGPT_API_KEY not configured in .env"))
                 console.print("  [red]✗[/red] LiteLLM .env: NANOGPT_API_KEY not set")
             else:
-                console.print("  [green]✓[/green] LiteLLM .env: NANOGPT_API_KEY configured")
+                console.print("  [green][OK][/green] LiteLLM .env: NANOGPT_API_KEY configured")
 
             if not has_api_base:
                 issues.append(("WARNING", "NANOGPT_API_BASE not set - will auto-detect on start"))
@@ -1468,7 +1468,7 @@ def doctor(auto_fix: bool):
                             data = json.loads(response.read().decode())
                             if data.get("active"):
                                 api_base = "https://nano-gpt.com/api/subscription/v1"
-                                console.print("    [green]✓ Subscription account detected[/green]")
+                                console.print("    [green][OK] Subscription account detected[/green]")
                             else:
                                 api_base = "https://nano-gpt.com/api/v1"
                                 console.print("    [yellow]○ Pay-per-use account detected[/yellow]")
@@ -1476,7 +1476,7 @@ def doctor(auto_fix: bool):
                             # Append to .env
                             with open(env_file, "a") as f:
                                 f.write(f"\nNANOGPT_API_BASE={api_base}\n")
-                            console.print("    [green]✓ Saved NANOGPT_API_BASE to .env[/green]")
+                            console.print("    [green][OK] Saved NANOGPT_API_BASE to .env[/green]")
                             fixes_applied.append("Auto-detected and saved NANOGPT_API_BASE")
                         except Exception as e:
                             console.print(f"    [red]✗ Could not detect: {e}[/red]")
@@ -1499,20 +1499,20 @@ def doctor(auto_fix: bool):
                             data = json.loads(response.read().decode())
                             if data.get("active"):
                                 remaining = data.get("daily", {}).get("remaining", 0)
-                                console.print(f"  [green]✓[/green] NanoGPT Subscription: ACTIVE ({remaining} daily remaining)")
+                                console.print(f"  [green][OK][/green] NanoGPT Subscription: ACTIVE ({remaining} daily remaining)")
                             else:
                                 issues.append(("WARNING", "NanoGPT subscription is not active"))
                                 console.print("  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE")
                         except Exception:
                             console.print("  [yellow]○[/yellow] NanoGPT Subscription: Could not verify")
                     else:
-                        console.print("  [green]✓[/green] LiteLLM .env: Pay-per-use configured")
+                        console.print("  [green][OK][/green] LiteLLM .env: Pay-per-use configured")
 
         # Check thinking models callback
         callbacks_dir = CONFIG_DIR / "callbacks"
         thinking_callback = callbacks_dir / "thinking_transform.py"
         if thinking_callback.exists():
-            console.print("  [green]✓[/green] Thinking models: Callback installed")
+            console.print("  [green][OK][/green] Thinking models: Callback installed")
         else:
             issues.append(("WARNING", "Thinking models callback not installed"))
             console.print("  [yellow]○[/yellow] Thinking models: Callback not installed")
@@ -1547,19 +1547,19 @@ def doctor(auto_fix: bool):
                 # Check if our matchers are present
                 matchers = {h.get("matcher") for h in hooks["SessionStart"]}
                 if "startup" in matchers and "resume" in matchers:
-                    console.print("  [green]✓[/green] SessionStart hooks: Configured")
+                    console.print("  [green][OK][/green] SessionStart hooks: Configured")
                 else:
                     missing_hooks.append("SessionStart[startup/resume]")
             else:
                 missing_hooks.append("SessionStart")
 
             if "UserPromptSubmit" in hooks:
-                console.print("  [green]✓[/green] UserPromptSubmit hooks: Configured")
+                console.print("  [green][OK][/green] UserPromptSubmit hooks: Configured")
             else:
                 missing_hooks.append("UserPromptSubmit")
 
             if "PostToolUse" in hooks:
-                console.print("  [green]✓[/green] PostToolUse hooks: Configured")
+                console.print("  [green][OK][/green] PostToolUse hooks: Configured")
             else:
                 missing_hooks.append("PostToolUse")
 
@@ -1588,10 +1588,10 @@ def doctor(auto_fix: bool):
                 settings_file.write_text(json.dumps(settings, indent=2) + "\n")
 
                 if added:
-                    console.print(f"  [green]✓[/green] Added hooks: {', '.join(added)}")
+                    console.print(f"  [green][OK][/green] Added hooks: {', '.join(added)}")
                     fixes_applied.append(f"Configured Claude Code hooks: {', '.join(added)}")
                 else:
-                    console.print("  [green]✓[/green] All K-LEAN hooks already configured")
+                    console.print("  [green][OK][/green] All K-LEAN hooks already configured")
             except Exception as e:
                 console.print(f"  [red]✗[/red] Failed to configure hooks: {e}")
                 issues.append(("ERROR", f"Failed to auto-configure hooks: {e}"))
@@ -1602,7 +1602,7 @@ def doctor(auto_fix: bool):
     # Check LiteLLM
     litellm_status = check_litellm_detailed()
     if litellm_status["running"]:
-        console.print(f"  [green]✓[/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
+        console.print(f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
 
         # Note: Model health moved to 'k-lean models --health' for faster doctor execution
         console.print("  [dim]○[/dim] Model Health: Use [cyan]k-lean models --health[/cyan]")
@@ -1610,7 +1610,7 @@ def doctor(auto_fix: bool):
         if auto_fix:
             console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
             if start_litellm():
-                console.print("  [green]✓[/green] LiteLLM Proxy: STARTED")
+                console.print("  [green][OK][/green] LiteLLM Proxy: STARTED")
                 fixes_applied.append("Started LiteLLM proxy")
             else:
                 issues.append(("ERROR", "Failed to start LiteLLM proxy"))
@@ -1621,12 +1621,12 @@ def doctor(auto_fix: bool):
 
     # Check Knowledge Server
     if check_knowledge_server():
-        console.print("  [green]✓[/green] Knowledge Server: RUNNING")
+        console.print("  [green][OK][/green] Knowledge Server: RUNNING")
     else:
         if auto_fix:
             console.print("  [yellow]○[/yellow] Knowledge Server: NOT RUNNING - Starting...")
             if start_knowledge_server():
-                console.print("  [green]✓[/green] Knowledge Server: STARTED")
+                console.print("  [green][OK][/green] Knowledge Server: STARTED")
                 fixes_applied.append("Started Knowledge server")
             else:
                 issues.append(("ERROR", "Failed to start Knowledge server"))
@@ -1640,12 +1640,12 @@ def doctor(auto_fix: bool):
     smolkln_agents_dir = SMOL_AGENTS_DIR
     if smolkln_agents_dir.exists():
         agent_count = len([f for f in smolkln_agents_dir.glob("*.md") if f.name != "TEMPLATE.md"])
-        console.print(f"  [green]✓[/green] SmolKLN Agents: {agent_count} installed")
+        console.print(f"  [green][OK][/green] SmolKLN Agents: {agent_count} installed")
     else:
         console.print("  [yellow]○[/yellow] SmolKLN Agents: Not installed")
 
     if _check_smolagents_installed():
-        console.print("  [green]✓[/green] smolagents: Installed")
+        console.print("  [green][OK][/green] smolagents: Installed")
     else:
         issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
         console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
@@ -1655,7 +1655,7 @@ def doctor(auto_fix: bool):
     console.print("\n[bold]Rules:[/bold]")
     rules_file = CLAUDE_DIR / "rules" / "k-lean.md"
     if rules_file.exists():
-        console.print("  [green]✓[/green] k-lean.md: Installed")
+        console.print("  [green][OK][/green] k-lean.md: Installed")
     else:
         issues.append(("INFO", "Rules not installed - run k-lean install"))
         console.print("  [yellow]○[/yellow] k-lean.md: NOT INSTALLED")
@@ -1703,7 +1703,7 @@ def test():
 
     def test_pass(msg: str):
         nonlocal passed
-        console.print(f"  [green]✓[/green] {msg}")
+        console.print(f"  [green][OK][/green] {msg}")
         passed += 1
 
     def test_fail(msg: str):
@@ -1825,11 +1825,11 @@ def start(service: str, port: int, telemetry: bool):
 
     if service in ["all", "litellm"]:
         if check_litellm():
-            console.print("[green]✓[/green] LiteLLM Proxy: Already running")
+            console.print("[green][OK][/green] LiteLLM Proxy: Already running")
         else:
             console.print("[yellow]○[/yellow] Starting LiteLLM Proxy...")
             if start_litellm(background=True, port=port):
-                console.print(f"[green]✓[/green] LiteLLM Proxy: Started on port {port}")
+                console.print(f"[green][OK][/green] LiteLLM Proxy: Started on port {port}")
                 started.append("LiteLLM")
                 log_debug_event("cli", "service_start", service="litellm", port=port)
             else:
@@ -1841,11 +1841,11 @@ def start(service: str, port: int, telemetry: bool):
         project = find_project_root()
         if project:
             if check_knowledge_server(project):
-                console.print(f"[green]✓[/green] Knowledge Server: Running for {project.name}")
+                console.print(f"[green][OK][/green] Knowledge Server: Running for {project.name}")
             else:
                 console.print(f"[yellow]○[/yellow] Starting Knowledge Server for {project.name}...")
                 if start_knowledge_server(project, wait=False):
-                    console.print(f"[green]✓[/green] Knowledge Server: Starting for {project.name}")
+                    console.print(f"[green][OK][/green] Knowledge Server: Starting for {project.name}")
                     started.append("Knowledge")
                     log_debug_event("cli", "service_start", service="knowledge", project=str(project))
                 else:
@@ -1857,11 +1857,11 @@ def start(service: str, port: int, telemetry: bool):
     # Phoenix telemetry (optional)
     if telemetry:
         if check_phoenix():
-            console.print("[green]✓[/green] Phoenix Telemetry: Already running")
+            console.print("[green][OK][/green] Phoenix Telemetry: Already running")
         else:
             console.print("[yellow]○[/yellow] Starting Phoenix Telemetry...")
             if start_phoenix(background=True):
-                console.print("[green]✓[/green] Phoenix Telemetry: Started on http://localhost:6006")
+                console.print("[green][OK][/green] Phoenix Telemetry: Started on http://localhost:6006")
                 started.append("Phoenix")
                 log_debug_event("cli", "service_start", service="phoenix")
             else:
@@ -1901,7 +1901,7 @@ def stop(service: str, all_projects: bool):
 
     if service in ["all", "litellm"]:
         if stop_litellm():
-            console.print("[green]✓[/green] LiteLLM Proxy: Stopped")
+            console.print("[green][OK][/green] LiteLLM Proxy: Stopped")
             stopped.append("LiteLLM")
             log_debug_event("cli", "service_stop", service="litellm")
         else:
@@ -1913,7 +1913,7 @@ def stop(service: str, all_projects: bool):
             servers = list_knowledge_servers()
             if servers:
                 stop_knowledge_server(stop_all=True)
-                console.print(f"[green]✓[/green] Knowledge Servers: Stopped {len(servers)} server(s)")
+                console.print(f"[green][OK][/green] Knowledge Servers: Stopped {len(servers)} server(s)")
                 stopped.append(f"Knowledge ({len(servers)})")
                 log_debug_event("cli", "service_stop", service="knowledge", count=len(servers))
             else:
@@ -1923,7 +1923,7 @@ def stop(service: str, all_projects: bool):
             project = find_project_root()
             if project:
                 if stop_knowledge_server(project):
-                    console.print(f"[green]✓[/green] Knowledge Server: Stopped for {project.name}")
+                    console.print(f"[green][OK][/green] Knowledge Server: Stopped for {project.name}")
                     stopped.append("Knowledge")
                     log_debug_event("cli", "service_stop", service="knowledge", project=str(project))
                 else:
@@ -2027,7 +2027,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         knowledge_ok = check_knowledge_server()
         models = discover_models() if litellm_ok else []
         healthy = sum(1 for m in models if m in ["qwen3-coder", "deepseek-v3-thinking"])  # Known working
-        status = "✓" if litellm_ok and knowledge_ok else "⚠"
+        status = "[OK]" if litellm_ok and knowledge_ok else "[WARN]"
         console.print(f"{status} K-LEAN: LiteLLM({'OK' if litellm_ok else 'DOWN'}) Knowledge({'OK' if knowledge_ok else 'DOWN'}) Models({healthy}/{len(models)})")
         return
 
@@ -2408,7 +2408,7 @@ def models(test: bool, health: bool):
 
             # Summary
             if unhealthy_count == 0:
-                console.print(f"[green]✓ All {healthy_count} models healthy[/green]\n")
+                console.print(f"[green][OK] All {healthy_count} models healthy[/green]\n")
             elif healthy_count == 0:
                 console.print(f"[red]✗ All {unhealthy_count} models unhealthy![/red]")
                 console.print("[dim]Check: k-lean doctor -f[/dim]\n")
@@ -2463,7 +2463,7 @@ def models(test: bool, health: bool):
                 urllib.request.urlopen(req, timeout=5)
                 latency = int((time.time() - start) * 1000)
                 results.append((model, latency))
-                console.print(f"  [green]✓[/green] {model}: {latency}ms")
+                console.print(f"  [green][OK][/green] {model}: {latency}ms")
             except Exception:
                 results.append((model, None))
                 console.print(f"  [red]✗[/red] {model}: FAIL")
@@ -2674,7 +2674,7 @@ def sync(check: bool, clean: bool, verbose: bool):
     console.print()
     if check:
         if total_missing == 0 and total_stale == 0:
-            console.print("[green]✓ Package is in sync with source[/green]")
+            console.print("[green][OK] Package is in sync with source[/green]")
             sys.exit(0)
         else:
             console.print("[red]✗ Package is out of sync:[/red]")
@@ -2685,7 +2685,7 @@ def sync(check: bool, clean: bool, verbose: bool):
             console.print("\n[dim]Run 'k-lean sync' to sync, or 'k-lean sync --clean' to also remove stale files[/dim]")
             sys.exit(1)
     else:
-        console.print(f"[green]✓ Synced {total_synced} files[/green]")
+        console.print(f"[green][OK] Synced {total_synced} files[/green]")
         if total_stale and not clean:
             console.print(f"[yellow]! {total_stale} stale files remain (use --clean to remove)[/yellow]")
 
@@ -2796,7 +2796,7 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
             if result["success"]:
                 console.print(result["output"])
                 console.print("\n" + "=" * 50)
-                console.print(f"[green]✓ Completed in {result['duration_s']}s[/green]")
+                console.print(f"[green][OK] Completed in {result['duration_s']}s[/green]")
                 console.print(f"[dim]Agents: {', '.join(result['agents_used'])}[/dim]")
                 if result.get("output_file"):
                     console.print(f"[dim]Saved to: {result['output_file']}[/dim]")
@@ -2889,9 +2889,9 @@ def setup(provider: Optional[str]):
         api_base = detect_nanogpt_endpoint(api_key)
 
         if "subscription" in api_base:
-            console.print("[green]✓ Subscription account detected[/green]")
+            console.print("[green][OK] Subscription account detected[/green]")
         else:
-            console.print("[cyan]ℹ Pay-per-use account detected[/cyan]")
+            console.print("[cyan][INFO] Pay-per-use account detected[/cyan]")
 
         # Create .env file
         env_content = f"""# K-LEAN LiteLLM Environment Variables - NanoGPT
@@ -2908,7 +2908,7 @@ NANOGPT_API_KEY={api_key}
         template = find_config_template("config.yaml")
         if template:
             shutil.copy(template, CONFIG_DIR / "config.yaml")
-            console.print("[green]✓ NanoGPT configuration created[/green]")
+            console.print("[green][OK] NanoGPT configuration created[/green]")
         else:
             console.print("[yellow]! Config template not found - run 'k-lean install' first[/yellow]")
 
@@ -2937,7 +2937,7 @@ OPENROUTER_API_KEY={api_key}
         template = find_config_template("openrouter.yaml")
         if template:
             shutil.copy(template, CONFIG_DIR / "config.yaml")
-            console.print("[green]✓ OpenRouter configuration created[/green]")
+            console.print("[green][OK] OpenRouter configuration created[/green]")
         else:
             console.print("[yellow]! Config template not found - run 'k-lean install' first[/yellow]")
 

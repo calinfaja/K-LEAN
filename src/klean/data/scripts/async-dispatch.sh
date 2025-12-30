@@ -56,9 +56,9 @@ check_all_models() {
             -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"user\", \"content\": \"hi\"}], \"max_tokens\": 5}" 2>/dev/null)
         local content=$(echo "$resp" | jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // empty' 2>/dev/null)
         if [ -n "$content" ]; then
-            results="$results ✅ $model"
+            results="$results [OK] $model"
         else
-            results="$results ❌ $model"
+            results="$results [ERROR] $model"
         fi
     done
     echo "$results"
@@ -67,7 +67,7 @@ check_all_models() {
 # Health check keyword - run full model check
 if echo "$PROMPT" | grep -qi "^healthcheck$\|^health check$\|^checkhealth$"; then
     if ! check_proxy_health; then
-        block_with_message "❌ LiteLLM proxy not running on localhost:4000. Run: start-nano-proxy"
+        block_with_message "[ERROR] LiteLLM proxy not running on localhost:4000. Run: start-nano-proxy"
     fi
     RESULTS=$(check_all_models)
     block_with_message "Model Health:$RESULTS"
@@ -76,7 +76,7 @@ fi
 # Pre-check: If any async keyword detected, verify proxy is up first
 if echo "$PROMPT" | grep -qi "asyncQuickCompare\|asyncQuickReview\|asyncQuickConsult"; then
     if ! check_proxy_health; then
-        block_with_message "❌ LiteLLM proxy not running. Start it first: start-nano-proxy"
+        block_with_message "[ERROR] LiteLLM proxy not running. Start it first: start-nano-proxy"
     fi
 fi
 
@@ -85,7 +85,7 @@ if echo "$PROMPT" | grep -qi "asyncQuickCompare"; then
     FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickCompare[[:space:]]*//')
     [ -z "$FOCUS" ] && FOCUS="General code review"
     nohup "$KB_SCRIPTS_DIR/consensus-review.sh" "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-compare-latest.log" 2>&1 &
-    block_with_message "🚀 Quick compare started (3 models, API). Results: $OUTPUT_DIR/quick-compare-latest.log"
+    block_with_message " Quick compare started (3 models, API). Results: $OUTPUT_DIR/quick-compare-latest.log"
 fi
 
 # asyncQuickReview with model (API)
@@ -94,17 +94,17 @@ if echo "$PROMPT" | grep -qi "asyncQuickReview"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickReview[[:space:]]*qwen[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="General review"
         nohup "$KB_SCRIPTS_DIR/quick-review.sh" qwen "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-qwen-latest.log" 2>&1 &
-        block_with_message "🚀 Quick review started (qwen, API). Results: $OUTPUT_DIR/quick-review-qwen-latest.log"
+        block_with_message " Quick review started (qwen, API). Results: $OUTPUT_DIR/quick-review-qwen-latest.log"
     elif echo "$PROMPT" | grep -qi "deepseek"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickReview[[:space:]]*deepseek[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="General review"
         nohup "$KB_SCRIPTS_DIR/quick-review.sh" deepseek "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-deepseek-latest.log" 2>&1 &
-        block_with_message "🚀 Quick review started (deepseek, API). Results: $OUTPUT_DIR/quick-review-deepseek-latest.log"
+        block_with_message " Quick review started (deepseek, API). Results: $OUTPUT_DIR/quick-review-deepseek-latest.log"
     elif echo "$PROMPT" | grep -qi "glm"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickReview[[:space:]]*glm[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="General review"
         nohup "$KB_SCRIPTS_DIR/quick-review.sh" glm "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-review-glm-latest.log" 2>&1 &
-        block_with_message "🚀 Quick review started (glm, API). Results: $OUTPUT_DIR/quick-review-glm-latest.log"
+        block_with_message " Quick review started (glm, API). Results: $OUTPUT_DIR/quick-review-glm-latest.log"
     fi
 fi
 
@@ -114,17 +114,17 @@ if echo "$PROMPT" | grep -qi "asyncQuickConsult"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickConsult[[:space:]]*qwen[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="Is this implementation correct?"
         nohup "$KB_SCRIPTS_DIR/second-opinion.sh" qwen "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-qwen-latest.log" 2>&1 &
-        block_with_message "🚀 Quick consult started (qwen, API). Results: $OUTPUT_DIR/quick-consult-qwen-latest.log"
+        block_with_message " Quick consult started (qwen, API). Results: $OUTPUT_DIR/quick-consult-qwen-latest.log"
     elif echo "$PROMPT" | grep -qi "deepseek"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickConsult[[:space:]]*deepseek[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="Is this implementation correct?"
         nohup "$KB_SCRIPTS_DIR/second-opinion.sh" deepseek "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-deepseek-latest.log" 2>&1 &
-        block_with_message "🚀 Quick consult started (deepseek, API). Results: $OUTPUT_DIR/quick-consult-deepseek-latest.log"
+        block_with_message " Quick consult started (deepseek, API). Results: $OUTPUT_DIR/quick-consult-deepseek-latest.log"
     elif echo "$PROMPT" | grep -qi "glm"; then
         FOCUS=$(echo "$PROMPT" | sed 's/.*asyncQuickConsult[[:space:]]*glm[[:space:]]*//')
         [ -z "$FOCUS" ] && FOCUS="Is this implementation correct?"
         nohup "$KB_SCRIPTS_DIR/second-opinion.sh" glm "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/quick-consult-glm-latest.log" 2>&1 &
-        block_with_message "🚀 Quick consult started (glm, API). Results: $OUTPUT_DIR/quick-consult-glm-latest.log"
+        block_with_message " Quick consult started (glm, API). Results: $OUTPUT_DIR/quick-consult-glm-latest.log"
     fi
 fi
 

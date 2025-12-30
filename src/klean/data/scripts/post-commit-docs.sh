@@ -99,7 +99,7 @@ $DIFF_STAT"
         echo "$(date '+%m-%d %H:%M') | commit | $COMMIT_HASH: $COMMIT_MSG" >> "$TIMELINE_FILE"
     fi
 
-    echo "📝 Post-commit Serena documentation started. Results: $RESULT_FILE"
+    echo " Post-commit Serena documentation started. Results: $RESULT_FILE"
     echo "📚 Auto-extracting facts from commit..."
 fi
 

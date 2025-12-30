@@ -159,7 +159,7 @@ if serena_path.exists():
     ctx = gather_project_context()
     mem = AgentMemory(ctx)
     synced = mem.sync_serena_to_kb(content)
-    print(f"✅ Synced {synced} Serena lessons to Knowledge DB")
+    print(f"[OK] Synced {synced} Serena lessons to Knowledge DB")
 ```
 
 Or use the quick bash command:
@@ -225,7 +225,7 @@ if current_lesson.get('title'):
         synced += 1
     except: pass
 
-print(f'✅ Synced {synced} Serena lessons to Knowledge DB')
+print(f'[OK] Synced {synced} Serena lessons to Knowledge DB')
 "
 ```
 
@@ -260,12 +260,12 @@ print(f'✅ Synced {synced} Serena lessons to Knowledge DB')
 ```
 /kln:remember
 
-📋 Reviewing session...
+ Reviewing session...
 
 Git shows 6 files changed across hooks/, scripts/, settings.json
 Recent commits: "Fix SessionStart for resume", "Add kb-doctor.sh"
 
-🧠 Extracting learnings...
+ Extracting learnings...
 
 **Warnings (2):**
 - SessionStart hook needs BOTH startup+resume matchers
@@ -278,11 +278,11 @@ Recent commits: "Fix SessionStart for resume", "Add kb-doctor.sh"
 **Solutions (1):**
 - kb-doctor.sh diagnoses and auto-repairs KB issues
 
-💾 Saving to Knowledge DB...
+ Saving to Knowledge DB...
 
-✅ Saved 5 entries to .knowledge-db/entries.jsonl
+[OK] Saved 5 entries to .knowledge-db/entries.jsonl
 
-📝 Generating Serena auto-summary...
+ Generating Serena auto-summary...
 
 ---
 ### Remember: 2025-12-17 15:45
@@ -292,21 +292,21 @@ Recent commits: "Fix SessionStart for resume", "Add kb-doctor.sh"
 → Search KB: "SessionStart" "per-project" "JSONL" "kb-doctor"
 ---
 
-✅ Appended to lessons-learned
+[OK] Appended to lessons-learned
 
 🔄 Syncing Serena → Knowledge DB...
 
 📖 Reading Serena: ~/claudeAgentic/.serena/memories/lessons-learned.md
    Found 25 lessons
 📚 Knowledge DB: .knowledge-db
-  ✓ [warning] Thinking models need longer timeouts
-  ✓ [tip] Simpler CLI for knowledge_db.py
-  ✓ [pattern] docs/ folder organization
+  [OK] [warning] Thinking models need longer timeouts
+  [OK] [tip] Simpler CLI for knowledge_db.py
+  [OK] [pattern] docs/ folder organization
   ... (22 more)
-✅ Synced 25 Serena lessons to Knowledge DB
+[OK] Synced 25 Serena lessons to Knowledge DB
    SmolKLN agents can now search these lessons!
 
-🎯 Session learnings captured. Ready for /clear when you are.
+ Session learnings captured. Ready for /clear when you are.
 
 After /clear, you can:
 - See summary: Read lessons-learned in Serena

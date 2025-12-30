@@ -3,7 +3,7 @@
 Comprehensive checklist for open source release readiness.
 
 **Analysis Date:** 2025-12-21
-**Status:** 🟡 **READY WITH FIXES**
+**Status:**  **READY WITH FIXES**
 
 ---
 
@@ -11,24 +11,24 @@ Comprehensive checklist for open source release readiness.
 
 | Category | Status | Critical Issues |
 |----------|--------|-----------------|
-| Repository Essentials | ✅ | None |
-| Python Package | ✅ | None |
-| Scripts | ✅ | None (env vars with fallbacks) |
-| Documentation | 🟡 | Schema inconsistency |
-| Config & Hooks | ✅ | None |
-| Test Suite | 🔴 | No unit tests |
+| Repository Essentials | [OK] | None |
+| Python Package | [OK] | None |
+| Scripts | [OK] | None (env vars with fallbacks) |
+| Documentation |  | Schema inconsistency |
+| Config & Hooks | [OK] | None |
+| Test Suite |  | No unit tests |
 
 ---
 
-## 🔴 CRITICAL - Must Fix Before Release
+##  CRITICAL - Must Fix Before Release
 
-### 1. ✅ License Classifier - FIXED
+### 1. [OK] License Classifier - FIXED
 **File:** `pyproject.toml` line 20 already uses `"License :: OSI Approved :: Apache Software License"`
 
-### 2. ✅ CODE_OF_CONDUCT.md - SKIPPED
+### 2. [OK] CODE_OF_CONDUCT.md - SKIPPED
 **Note:** Not required for this project
 
-### 3. ✅ CHANGELOG Date - FIXED
+### 3. [OK] CHANGELOG Date - FIXED
 **File:** `CHANGELOG.md` line 7 already uses `2025-12-21`
 
 ### 4. Knowledge DB Schema Mismatch
@@ -38,17 +38,17 @@ Comprehensive checklist for open source release readiness.
 
 **Fix:** Reconcile to match actual implementation
 
-### 5. ⚠️ Repository URL - PARTIALLY FIXED
+### 5. [WARN] Repository URL - PARTIALLY FIXED
 **Status:**
-- ✅ `pyproject.toml` - Correct: `https://github.com/calinfaja/k-lean`
-- ✅ `.agents/development.md` - Correct: `https://github.com/calinfaja/k-lean.git`
-- ❌ `.git/config` - Still uses old URL (update with `git remote set-url origin`)
+- [OK] `pyproject.toml` - Correct: `https://github.com/calinfaja/k-lean`
+- [OK] `.agents/development.md` - Correct: `https://github.com/calinfaja/k-lean.git`
+- [X] `.git/config` - Still uses old URL (update with `git remote set-url origin`)
 
 ---
 
-## 🟡 IMPORTANT - Should Fix Before Release
+##  IMPORTANT - Should Fix Before Release
 
-### 6. ✅ /tmp Paths - FIXED
+### 6. [OK] /tmp Paths - FIXED
 **Status:** All scripts now use environment variables with /tmp fallback:
 - `knowledge-server.py:31` - Uses `KLEAN_SOCKET_DIR` env var
 - `knowledge-events.py:33` - Uses `KLEAN_SOCKET_DIR` env var
@@ -77,7 +77,7 @@ Comprehensive checklist for open source release readiness.
 
 ---
 
-## ✅ VERIFIED - Ready for Release
+## [OK] VERIFIED - Ready for Release
 
 ### Repository Essentials
 - [x] LICENSE - Apache 2.0, properly formatted
@@ -133,8 +133,8 @@ k-lean doctor
 
 ## Release Procedure
 
-1. [ ] Fix all 🔴 CRITICAL issues above
-2. [ ] Fix 🟡 IMPORTANT issues (recommended)
+1. [ ] Fix all  CRITICAL issues above
+2. [ ] Fix  IMPORTANT issues (recommended)
 3. [ ] Run `k-lean sync` to sync package data
 4. [ ] Run `k-lean test` to verify installation
 5. [ ] Build package: `python -m build`

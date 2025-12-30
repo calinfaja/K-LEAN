@@ -13,8 +13,8 @@ echo ""
 PASS=0
 FAIL=0
 
-test_pass() { echo "✅ PASS: $1"; ((PASS++)); }
-test_fail() { echo "❌ FAIL: $1"; ((FAIL++)); }
+test_pass() { echo "[OK] PASS: $1"; ((PASS++)); }
+test_fail() { echo "[ERROR] FAIL: $1"; ((FAIL++)); }
 
 # 1. Check proxy + models (if any model works, proxy is up)
 echo "1. Proxy & Model Health (localhost:4000)"
@@ -45,7 +45,7 @@ done
 
 if [ $HEALTHY_COUNT -eq 0 ]; then
     echo ""
-    echo "   ⚠️  No models responding. Is proxy running? (start-nano-proxy)"
+    echo "   [WARN]  No models responding. Is proxy running? (start-nano-proxy)"
 fi
 echo ""
 
@@ -119,7 +119,7 @@ echo "════════════════════════�
 
 if [ $FAIL -eq 0 ]; then
     echo ""
-    echo "🎉 All tests passed! System ready."
+    echo " All tests passed! System ready."
     echo ""
     echo "Try these commands:"
     echo "  ~/.claude/scripts/quick-review.sh qwen 'test review'"
@@ -127,5 +127,5 @@ if [ $FAIL -eq 0 ]; then
     echo "  ~/.claude/scripts/consensus-review.sh 'general check'"
 else
     echo ""
-    echo "⚠️  Some tests failed. Fix issues above before using."
+    echo "[WARN]  Some tests failed. Fix issues above before using."
 fi

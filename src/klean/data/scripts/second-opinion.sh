@@ -66,13 +66,13 @@ find_healthy_model() {
         return 0
     fi
 
-    echo "⚠️  $preferred unhealthy, trying fallback..." >&2
+    echo "[WARN]  $preferred unhealthy, trying fallback..." >&2
 
     # Try others in priority order
     for model in $MODELS_PRIORITY; do
         if [ "$model" != "$preferred" ]; then
             if check_model_health "$model"; then
-                echo "✓ Falling back to $model" >&2
+                echo "[OK] Falling back to $model" >&2
                 echo "$model"
                 return 0
             fi

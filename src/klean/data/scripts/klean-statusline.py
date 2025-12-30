@@ -9,10 +9,10 @@ Optimized statusline with actionable metrics:
 3. Git       - Branch + dirty state + lines changed
 4. Services  - LiteLLM + Knowledge DB status
 
-Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:✓
+Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:[OK]
 
 Knowledge DB Status:
-- kb:✓        (green)  - Server running
+- kb:[OK]        (green)  - Server running
 - run InitKB  (cyan)   - Not initialized, prompts user
 - kb:starting (yellow) - Server starting up
 - kb:—        (dim)    - No project root found
@@ -230,7 +230,7 @@ def get_services(data: dict) -> str:
 
     # Knowledge DB status - meaningful messages
     if kb_status == "running":
-        kb = f"{C.GREEN}✓{C.RESET}"
+        kb = f"{C.GREEN}[OK]{C.RESET}"
     elif kb_status == "init":
         # Not initialized - cyan prompt to run InitKB
         return f"{C.DIM}llm:{llm}{C.RESET} {C.CYAN}run InitKB{C.RESET}"
@@ -258,7 +258,7 @@ def main():
     git = get_git(data)
     services = get_services(data)
 
-    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:18 kb:✓
+    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:18 kb:[OK]
     line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}"
 
     print(line)

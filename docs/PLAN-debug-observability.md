@@ -1,12 +1,12 @@
 # Implementation Plan: K-LEAN Debug Observability
 
-**Status: ✅ IMPLEMENTED** (2024-12-22, docs updated 2024-12-23)
+**Status: [OK] IMPLEMENTED** (2024-12-22, docs updated 2024-12-23)
 
 ## Overview
 
 Enhance `k-lean debug` with:
 1. **LiteLLM Routing Health** - Via `/health` endpoint (on-demand via `k-lean models --health`)
-2. **SmolKLN Agent Telemetry** - Trace agent execution with Phoenix ✅
+2. **SmolKLN Agent Telemetry** - Trace agent execution with Phoenix [OK]
 
 > **Note:** LiteLLM Admin UI was evaluated but requires prisma/database setup.
 > The `/health` endpoint takes 60s (makes real API calls) so it's not suitable for
@@ -25,7 +25,7 @@ Enhance `k-lean debug` with:
 
 #### Step 1.1: Enable LiteLLM Database (for UI)
 
-**⚠️ Note:** The Admin UI requires additional dependencies. Install with:
+**[WARN] Note:** The Admin UI requires additional dependencies. Install with:
 ```bash
 pipx inject litellm prisma
 cd ~/.local/share/pipx/venvs/litellm && bin/prisma generate
@@ -128,9 +128,9 @@ if args.telemetry:
 
         register(project_name="smolkln")
         SmolagentsInstrumentor().instrument()
-        print("📊 Telemetry enabled - view at http://localhost:6006")
+        print(" Telemetry enabled - view at http://localhost:6006")
     except ImportError:
-        print("⚠️  Telemetry not installed. Run: pipx inject k-lean 'k-lean[telemetry]'")
+        print("[WARN]  Telemetry not installed. Run: pipx inject k-lean 'k-lean[telemetry]'")
 ```
 
 #### Step 2.3: Add Phoenix Server Management
@@ -187,7 +187,7 @@ def start(service, telemetry):
     if telemetry:
         console.print("[bold]Starting Phoenix telemetry...[/bold]")
         if start_phoenix():
-            console.print("  [green]✓[/green] Phoenix: http://localhost:6006")
+            console.print("  [green][OK][/green] Phoenix: http://localhost:6006")
 ```
 
 ---
@@ -231,14 +231,14 @@ k-lean debug --ui        # Opens LiteLLM UI
 
 | Phase | Task | Status | Files |
 |-------|------|--------|-------|
-| 1.1 | Add database_url to config template | ✅ | config/litellm/config.yaml |
-| 1.2 | Add UI link to debug output | ✅ | cli.py |
-| 1.3 | Add `--ui` flag | ✅ | cli.py |
-| 2.1 | Add telemetry deps to pyproject | ✅ | pyproject.toml |
-| 2.2 | Add `--telemetry` to smol-kln.py | ✅ | smol-kln.py |
-| 2.3 | Add Phoenix start/check functions | ✅ | cli.py |
-| 2.4 | Add Phoenix to debug dashboard | ✅ | cli.py |
-| 2.5 | Add `--telemetry` to k-lean start | ✅ | cli.py |
+| 1.1 | Add database_url to config template | [OK] | config/litellm/config.yaml |
+| 1.2 | Add UI link to debug output | [OK] | cli.py |
+| 1.3 | Add `--ui` flag | [OK] | cli.py |
+| 2.1 | Add telemetry deps to pyproject | [OK] | pyproject.toml |
+| 2.2 | Add `--telemetry` to smol-kln.py | [OK] | smol-kln.py |
+| 2.3 | Add Phoenix start/check functions | [OK] | cli.py |
+| 2.4 | Add Phoenix to debug dashboard | [OK] | cli.py |
+| 2.5 | Add `--telemetry` to k-lean start | [OK] | cli.py |
 
 **All phases completed.**
 

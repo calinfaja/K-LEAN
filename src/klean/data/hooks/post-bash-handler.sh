@@ -51,9 +51,9 @@ if echo "$COMMAND" | grep -qE "git commit|git merge|git rebase"; then
         TIMESTAMP=$(date '+%m-%d %H:%M')
         if echo "$TIMESTAMP | commit | $COMMIT_HASH: $COMMIT_MSG" >> "$TIMELINE_FILE" 2>/dev/null; then
             # Output confirmation
-            echo "{\"systemMessage\": \"📝 Commit logged to timeline: $COMMIT_HASH\"}"
+            echo "{\"systemMessage\": \" Commit logged to timeline: $COMMIT_HASH\"}"
         else
-            echo "{\"systemMessage\": \"⚠️ Could not write to timeline: $TIMELINE_FILE\"}"
+            echo "{\"systemMessage\": \"[WARN] Could not write to timeline: $TIMELINE_FILE\"}"
         fi
 
         # Emit event (Phase 4) - log errors instead of discarding
@@ -84,7 +84,7 @@ if echo "$COMMAND" | grep -qE "git push"; then
     TIMESTAMP=$(date '+%m-%d %H:%M')
     BRANCH=$(cd "$PROJECT_DIR" && git branch --show-current 2>/dev/null)
     if ! echo "$TIMESTAMP | push | Pushed $BRANCH to remote" >> "$TIMELINE_FILE" 2>/dev/null; then
-        echo "{\"systemMessage\": \"⚠️ Could not log push to timeline\"}"
+        echo "{\"systemMessage\": \"[WARN] Could not log push to timeline\"}"
     fi
 fi
 

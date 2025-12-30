@@ -20,19 +20,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "🚀 K-LEAN LiteLLM Proxy"
-echo "========================"
+echo "K-LEAN LiteLLM Proxy"
+echo "===================="
 
 # Check config exists
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo -e "${RED}❌ Config not found: $CONFIG_FILE${NC}"
+    echo -e "${RED}ERROR: Config not found: $CONFIG_FILE${NC}"
     echo "   Run: k-lean install"
     exit 1
 fi
 
 # Check for quoted os.environ (common mistake that breaks auth)
-if grep -q '"os.environ/' "$CONFIG_FILE" || grep -q "'os.environ/" "$CONFIG_FILE"; then
-    echo -e "${RED}❌ Config has quoted os.environ/ - this breaks authentication!${NC}"
+# Ignore commented lines (starting with #)
+if grep -v '^\s*#' "$CONFIG_FILE" | grep -q '"os.environ/' || grep -v '^\s*#' "$CONFIG_FILE" | grep -q "'os.environ/"; then
+    echo -e "${RED}ERROR: Config has quoted os.environ/ - this breaks authentication!${NC}"
     echo "   Fix: Remove quotes around os.environ/... values"
     echo "   Quick fix: sed -i 's/\"os.environ\\/\\([^\"]*\\)\"/os.environ\\/\\1/g' $CONFIG_FILE"
     exit 1
@@ -40,12 +41,12 @@ fi
 
 # Load environment variables from .env
 if [ -f "$ENV_FILE" ]; then
-    echo "📦 Loading environment from $ENV_FILE"
+    echo "Loading environment from $ENV_FILE"
     set -a
     source "$ENV_FILE"
     set +a
 else
-    echo -e "${YELLOW}⚠️  No .env file found${NC}"
+    echo -e "${YELLOW}WARNING: No .env file found${NC}"
     echo "   Create one from .env.example:"
     echo "   cp $CONFIG_DIR/.env.example $CONFIG_DIR/.env"
     exit 1
@@ -53,7 +54,7 @@ fi
 
 # Validate API key is configured
 if [ -z "$NANOGPT_API_KEY" ] || [ "$NANOGPT_API_KEY" = "your-nanogpt-api-key-here" ]; then
-    echo -e "${RED}❌ NANOGPT_API_KEY not configured${NC}"
+    echo -e "${RED}ERROR: NANOGPT_API_KEY not configured${NC}"
     echo "   Edit $ENV_FILE and add your NanoGPT API key"
     echo "   Get one at: https://nano-gpt.com"
     exit 1
@@ -61,7 +62,7 @@ fi
 
 # Validate API base is configured
 if [ -z "$NANOGPT_API_BASE" ]; then
-    echo -e "${YELLOW}⚠️  NANOGPT_API_BASE not set - auto-detecting...${NC}"
+    echo -e "${YELLOW}WARNING: NANOGPT_API_BASE not set - auto-detecting...${NC}"
 
     # Check subscription status
     SUBSCRIPTION_CHECK=$(curl -s --max-time 5 "https://nano-gpt.com/api/subscription/v1/usage" \
@@ -69,24 +70,24 @@ if [ -z "$NANOGPT_API_BASE" ]; then
 
     if echo "$SUBSCRIPTION_CHECK" | grep -q '"active":true'; then
         export NANOGPT_API_BASE="https://nano-gpt.com/api/subscription/v1"
-        echo -e "${GREEN}   ✓ Subscription account detected${NC}"
+        echo -e "${GREEN}   Subscription account detected${NC}"
     else
         export NANOGPT_API_BASE="https://nano-gpt.com/api/v1"
-        echo -e "${YELLOW}   ℹ Pay-per-use account detected${NC}"
+        echo -e "${YELLOW}   Pay-per-use account detected${NC}"
     fi
 
     # Save to .env for future runs
     echo "NANOGPT_API_BASE=$NANOGPT_API_BASE" >> "$ENV_FILE"
-    echo -e "${GREEN}   ✓ Saved to $ENV_FILE${NC}"
+    echo -e "${GREEN}   Saved to $ENV_FILE${NC}"
 fi
 
 # Check if port is already in use
 if lsof -i :$PORT > /dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️  Port $PORT is already in use${NC}"
+    echo -e "${YELLOW}WARNING: Port $PORT is already in use${NC}"
 
     # Check if it's LiteLLM already running
     if curl -s --max-time 2 "http://localhost:$PORT/models" > /dev/null 2>&1; then
-        echo -e "${GREEN}   ✓ LiteLLM is already running${NC}"
+        echo -e "${GREEN}   LiteLLM is already running${NC}"
         exit 0
     fi
 
@@ -97,7 +98,7 @@ if lsof -i :$PORT > /dev/null 2>&1; then
     exit 1
 fi
 
-echo "📡 Starting on port $PORT..."
+echo "Starting on port $PORT..."
 echo "   Config: $CONFIG_FILE"
 echo ""
 

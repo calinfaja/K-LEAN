@@ -25,12 +25,12 @@ echo ""
 # Check proxy first (use /models endpoint - faster than /health)
 echo "Checking LiteLLM proxy (localhost:4000)..."
 if ! curl -s --max-time 5 http://localhost:4000/models > /dev/null 2>&1; then
-    echo "❌ FAIL: LiteLLM proxy not responding"
+    echo "[ERROR] FAIL: LiteLLM proxy not responding"
     echo ""
     echo "Start it with: start-nano-proxy"
     exit 1
 fi
-echo "✅ Proxy is running"
+echo "[OK] Proxy is running"
 echo ""
 
 if $QUICK_MODE; then
@@ -58,13 +58,13 @@ for model in $MODELS; do
     reasoning=$(echo "$resp" | jq -r '.choices[0].message.reasoning_content // empty' 2>/dev/null)
 
     if [ -n "$content" ]; then
-        echo "✅ OK (content)"
+        echo "[OK] OK (content)"
         ((HEALTHY++))
     elif [ -n "$reasoning" ]; then
-        echo "✅ OK (thinking)"
+        echo "[OK] OK (thinking)"
         ((HEALTHY++))
     else
-        echo "❌ FAIL"
+        echo "[ERROR] FAIL"
         error=$(echo "$resp" | jq -r '.error.message // "No response"' 2>/dev/null | head -c 50)
         echo "   Error: $error"
     fi
@@ -76,12 +76,12 @@ echo "  RESULT: $HEALTHY/$TOTAL models healthy"
 echo "═══════════════════════════════════════════════════════════════"
 
 if [ $HEALTHY -eq $TOTAL ]; then
-    echo "🎉 All models operational!"
+    echo " All models operational!"
     exit 0
 elif [ $HEALTHY -gt 0 ]; then
-    echo "⚠️  Some models unavailable, but system functional"
+    echo "[WARN]  Some models unavailable, but system functional"
     exit 0
 else
-    echo "❌ No models responding - check NanoGPT API"
+    echo "[ERROR] No models responding - check NanoGPT API"
     exit 1
 fi
