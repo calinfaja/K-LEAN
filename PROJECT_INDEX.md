@@ -91,9 +91,9 @@ Multi-agent orchestration (3 or 4 agent configurations):
 |---------|------|---------|
 | `/kln:quick` | commands/kln/quick.md | Fast single-model review |
 | `/kln:multi` | commands/kln/multi.md | Multi-model consensus |
-| `/kln:deep` | commands/kln/deep.md | Deep codebase analysis |
 | `/kln:agent` | commands/kln/agent.md | SmolKLN specialist agents |
 | `/kln:rethink` | commands/kln/rethink.md | Fresh perspective debugging |
+| `/kln:learn` | commands/kln/learn.md | Context-aware learning extraction |
 | `/kln:remember` | commands/kln/remember.md | End-of-session capture |
 | `/kln:doc` | commands/kln/doc.md | Documentation generation |
 | `/kln:status` | commands/kln/status.md | System status |
