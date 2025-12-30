@@ -158,7 +158,7 @@ class SmolKLNExecutor:
             task: Task description/prompt
             model_override: Override the agent's default model
             context: Additional context (e.g., from knowledge DB)
-            max_steps: Maximum agent steps (default: 15)
+            max_steps: Maximum agent steps (default: 10)
 
         Returns:
             Dict with:

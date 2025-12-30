@@ -1,78 +1,39 @@
 ---
 name: quick
-description: "Calls single LiteLLM model for fast code review (~30s). Returns GRADE, RISK, and findings without file access. Use for quick feedback before commits."
-allowed-tools: Bash, Read
-argument-hint: "[--model MODEL] [--async] <focus>"
+description: "Fast code review via LiteLLM (~30s). Returns GRADE, RISK, findings."
+allowed-tools: Bash, Read, Glob, Grep
+argument-hint: "<what to review> [--model MODEL]"
 ---
 
-# /kln:quick - Fast Code Review
+# /kln:quick
 
-Quick single-model review via LiteLLM API (localhost:4000). Fast (~30s), no file access.
+You gather the code, script does the review.
 
-## When to Use
+## Your Job
 
-- Quick feedback on small changes before commit
-- Fast sanity check when time is limited (~30s)
-- Single opinion needed, not consensus
-- Checking specific concern (security, performance, etc.)
+Understand what user wants reviewed and gather the relevant code:
 
-**NOT for:**
-- Thorough investigation needing file access → use `/kln:deep`
-- Multiple perspectives needed → use `/kln:multi`
-- Evidence-based findings with code snippets → use `/kln:deep`
+| User wants | You gather |
+|------------|------------|
+| "current changes" / "my changes" | `git diff` (unstaged) + `git diff --cached` (staged) |
+| "last commit" | `git diff HEAD~1..HEAD` |
+| "last N commits" | `git diff HEAD~N..HEAD` |
+| "feature X" / "the auth module" | Read relevant files, get recent changes |
+| "this file" / "file.py" | Read the file content |
+| "PR" / "branch changes" | `git diff main..HEAD` |
 
-## Arguments
+Be smart - if user says "review the auth changes", find auth-related files and their diffs.
 
-$ARGUMENTS
-
-## Flags
-
-- `--model, -m` - Specific model (from discovery) or "auto" for fastest
-- `--async, -a` - Run in background
-- `--output, -o` - Output format: text (default), json, markdown
-
-## Execution
+## Execute
 
 ```bash
-# Parse arguments
-ARGS="$ARGUMENTS"
-MODEL="auto"
-ASYNC=false
-OUTPUT="text"
-FOCUS=""
+# 1. Gather code into temp file (adapt based on what user wants)
+git diff HEAD~1..HEAD | head -500 > /tmp/kln-review.txt
 
-# Extract flags
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -m|--model) MODEL="$2"; shift 2 ;;
-        -a|--async) ASYNC=true; shift ;;
-        -o|--output) OUTPUT="$2"; shift 2 ;;
-        *) FOCUS="$FOCUS $1"; shift ;;
-    esac
-done
-
-PYTHON=~/.local/share/pipx/venvs/k-lean/bin/python
-CORE=~/.claude/k-lean/klean_core.py
-
-if [ "$ASYNC" = true ]; then
-    # Run in background
-    LOG="/tmp/claude-reviews/quick-$(date +%Y%m%d-%H%M%S).log"
-    mkdir -p /tmp/claude-reviews
-    nohup $PYTHON $CORE quick -m "$MODEL" -o "$OUTPUT" $FOCUS > "$LOG" 2>&1 &
-    echo "Running in background. Log: $LOG"
-else
-    $PYTHON $CORE quick -m "$MODEL" -o "$OUTPUT" $FOCUS
-fi
+# 2. Send to review
+cat /tmp/kln-review.txt | ~/.local/share/pipx/venvs/k-lean/bin/python \
+    ~/.claude/k-lean/klean_core.py quick -m "MODEL" "FOCUS"
 ```
 
-Run the above bash script to execute the review. Display the output to the user.
-
-If no focus is provided, use "general code review" as default.
-
-## Examples
-
-```
-/kln:quick security audit
-/kln:quick --model qwen3-coder check memory safety
-/kln:quick -a architecture review   # async
-```
+**MODEL**: `--model` flag or "auto"
+**FOCUS**: Extract from user request (e.g., "security", "performance") or "code quality"
