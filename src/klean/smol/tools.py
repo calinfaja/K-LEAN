@@ -560,13 +560,19 @@ def search_files(pattern: str, path: str = ".", recursive: bool = True) -> str:
     Search for files matching a glob pattern.
 
     Args:
-        pattern: Glob pattern (e.g., "*.py", "src/**/*.ts")
+        pattern: Glob pattern (e.g., "*.py", "src/**/*.ts"). ONE pattern only, no '|'.
         path: Directory to search in (default: current directory)
         recursive: If True, search recursively in subdirectories (default: True)
 
     Returns:
         List of matching file paths.
     """
+    # Validate pattern
+    if '|' in pattern:
+        return f"Invalid pattern '{pattern}'. Use ONE pattern at a time, not '|' separated. Call multiple times for multiple patterns."
+    if pattern == '**':
+        return "Invalid pattern '**'. Use '**/*' to match all files or '**/*.py' for specific types."
+
     base = Path(path)
     if not base.exists():
         return f"Path not found: {path}"
@@ -635,7 +641,7 @@ def grep(pattern: str, path: str = ".", file_pattern: str = "*") -> str:
 
 
 @tool
-def git_diff(commits: int = 3, path: str = ".") -> str:
+def git_diff(commits: int = 3, path: str = ".", **kwargs) -> str:
     """
     Get git diff for recent commits showing what changed.
 
@@ -646,6 +652,10 @@ def git_diff(commits: int = 3, path: str = ".") -> str:
     Returns:
         Git diff output showing file changes in recent commits.
     """
+    # Catch common param mistakes
+    if kwargs:
+        return f"Invalid params: {list(kwargs.keys())}. Use: git_diff(commits=N, path='.')"
+
     import subprocess
     from pathlib import Path
 
@@ -764,7 +774,7 @@ def git_status(path: str = ".") -> str:
 
 
 @tool
-def git_log(commits: int = 10, path: str = ".") -> str:
+def git_log(commits: int = 10, path: str = ".", **kwargs) -> str:
     """
     Get git commit history with details.
 
@@ -775,6 +785,10 @@ def git_log(commits: int = 10, path: str = ".") -> str:
     Returns:
         Git log showing commit history with authors, dates, and messages.
     """
+    # Catch common param mistakes
+    if kwargs:
+        return f"Invalid params: {list(kwargs.keys())}. Use: git_log(commits=N, path='.')"
+
     import subprocess
     from pathlib import Path
 
@@ -812,17 +826,22 @@ def git_log(commits: int = 10, path: str = ".") -> str:
 
 
 @tool
-def git_show(commit: str, path: str = ".") -> str:
+def git_show(commit: str = "HEAD", path: str = ".", **kwargs) -> str:
     """
     Show the diff for a specific commit.
 
     Args:
-        commit: Commit hash (e.g., "abc123" or "HEAD~1")
+        commit: Commit hash (e.g., "abc123", "HEAD", "HEAD~1"). NOT 'hash'.
         path: Directory path of the git repository (default: current directory)
 
     Returns:
         Commit message and diff showing what changed in that commit.
     """
+    # Catch common param mistakes (agents often use 'hash' instead of 'commit')
+    if kwargs:
+        hint = "Use 'commit' not 'hash'" if 'hash' in kwargs else ""
+        return f"Invalid params: {list(kwargs.keys())}. {hint} Use: git_show(commit='HEAD')"
+
     import subprocess
     from pathlib import Path
 
@@ -1418,13 +1437,19 @@ def get_tools_for_agent(
             """Search for files matching a glob pattern.
 
             Args:
-                pattern: Glob pattern (e.g., "*.py", "src/**/*.ts")
+                pattern: Glob pattern (e.g., "*.py", "src/**/*.ts"). ONE pattern only, no '|'.
                 path: Directory to search in (default: project root)
                 recursive: If True, search recursively in subdirectories
 
             Returns:
                 List of matching file paths.
             """
+            # Validate pattern
+            if '|' in pattern:
+                return f"Invalid pattern '{pattern}'. Use ONE pattern, not '|' separated."
+            if pattern == '**':
+                return "Invalid pattern '**'. Use '**/*' or '**/*.py'."
+
             base = Path(path)
             if not base.is_absolute():
                 base = Path(root) / base
