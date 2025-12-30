@@ -941,28 +941,109 @@ def scan_secrets(path: str = ".", file_pattern: str = "*") -> str:
 @tool
 def get_complexity(file_path: str) -> str:
     """
-    Analyze code complexity metrics for a Python file.
+    Analyze code complexity metrics for a source file.
+
+    Supports Python (.py) via ast module, and C/C++ (.c, .cpp, .h, .hpp, .cc, .cxx) via lizard.
 
     Args:
-        file_path: Path to the Python file to analyze
+        file_path: Path to the source file to analyze
 
     Returns:
-        Complexity metrics including function length, nesting depth, and cognitive complexity.
+        Complexity metrics including function length, cyclomatic complexity, and nesting depth.
     """
-    import ast
     from pathlib import Path
 
     path = Path(file_path)
     if not path.exists():
         return f"File not found: {file_path}"
-    if path.suffix != '.py':
-        return f"Only Python files supported. Got: {path.suffix}"
+
+    ext = path.suffix.lower()
+
+    # Route to appropriate analyzer
+    if ext == '.py':
+        return _python_complexity(path)
+    elif ext in ['.c', '.cpp', '.cc', '.cxx', '.h', '.hpp']:
+        return _lizard_complexity(path)
+    else:
+        return f"Unsupported file type: {ext}. Supported: .py, .c, .cpp, .cc, .cxx, .h, .hpp"
+
+
+def _lizard_complexity(path) -> str:
+    """Analyze C/C++ complexity using lizard."""
+    try:
+        import lizard
+    except ImportError:
+        return "lizard not installed. Install with: pipx inject k-lean lizard"
+
+    result = lizard.analyze_file(str(path))
+    if not result:
+        return f"Could not analyze {path.name}"
+
+    functions = result.function_list
+    total_lines = result.nloc
+
+    output = f"## Complexity Analysis: {path.name}\n\n"
+    output += f"Total NLOC: {total_lines}\n"
+    output += f"Functions analyzed: {len(functions)}\n\n"
+
+    if not functions:
+        return output + "No functions found in file."
+
+    # Summary table
+    output += "| Function | Line | NLOC | CCN | Params | Status |\n"
+    output += "|----------|------|------|-----|--------|--------|\n"
+
+    critical_count = 0
+    warn_count = 0
+    problem_funcs = []
+
+    for f in functions:
+        status = "OK"
+        issues = []
+
+        if f.nloc > 50:
+            issues.append(f"long ({f.nloc} lines)")
+            status = "WARN"
+        if f.cyclomatic_complexity > 10:
+            issues.append(f"complex (CCN={f.cyclomatic_complexity})")
+            status = "WARN"
+        if f.parameter_count > 6:
+            issues.append(f"many params ({f.parameter_count})")
+            status = "WARN"
+
+        if f.nloc > 100 or f.cyclomatic_complexity > 15:
+            status = "CRITICAL"
+
+        if status == "CRITICAL":
+            critical_count += 1
+        elif status == "WARN":
+            warn_count += 1
+
+        if issues:
+            problem_funcs.append((f, issues))
+
+        name = f.name[:30] if len(f.name) > 30 else f.name
+        output += f"| {name} | {f.start_line} | {f.nloc} | {f.cyclomatic_complexity} | {f.parameter_count} | {status} |\n"
+
+    output += f"\n**Summary**: {critical_count} critical, {warn_count} warnings, {len(functions) - critical_count - warn_count} OK\n"
+
+    if problem_funcs:
+        output += "\n### Issues Found\n\n"
+        for f, issues in problem_funcs:
+            output += f"- `{path.name}:{f.start_line}` **{f.name}**: {', '.join(issues)}\n"
+
+    return output
+
+
+def _python_complexity(path) -> str:
+    """Analyze Python complexity using ast module."""
+    import ast
 
     try:
         content = path.read_text()
         tree = ast.parse(content)
     except SyntaxError as e:
-        return f"Syntax error in {file_path}: {e}"
+        return f"Syntax error in {path}: {e}"
 
     lines = content.splitlines()
     total_lines = len(lines)

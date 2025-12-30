@@ -48,6 +48,7 @@ smolagents = [
     "txtai>=7.0.0",  # Required for KnowledgeSearchTool
     "ddgs>=6.0.0",  # Required for DuckDuckGoSearchTool
     "markdownify>=0.11.0",  # Required for VisitWebpageTool
+    "lizard>=1.17.0",  # Required for get_complexity (C/C++ support)
 ]
 telemetry = [
     "arize-phoenix>=4.0",

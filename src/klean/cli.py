@@ -249,7 +249,11 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
 def make_executable(path: Path) -> None:
     """Make shell scripts executable."""
     for script in path.glob("*.sh"):
-        script.chmod(script.stat().st_mode | 0o111)
+        if script.exists():
+            script.chmod(script.stat().st_mode | 0o111)
+        elif script.is_symlink():
+            target = os.readlink(script)
+            click.echo(f"  Warning: broken symlink {script.name} -> {target}", err=True)
 
 
 def check_litellm() -> bool:
@@ -1028,21 +1032,7 @@ def install(dev: bool, component: str, yes: bool):
         else:
             console.print(f"  [yellow]SmolKLN agents source not found at {pkg_agents}[/yellow]")
 
-        # Install smol-kln.py script from package data
-        pkg_scripts = DATA_DIR / "scripts"
-        smolkln_script = pkg_scripts / "smol-kln.py"
-        if smolkln_script.exists():
-            scripts_dst = CLAUDE_DIR / "scripts"
-            ensure_dir(scripts_dst)
-            smolkln_dst = scripts_dst / "smol-kln.py"
-            if dev:
-                if smolkln_dst.exists() or smolkln_dst.is_symlink():
-                    smolkln_dst.unlink()
-                smolkln_dst.symlink_to(smolkln_script.resolve())
-            else:
-                shutil.copy2(smolkln_script, smolkln_dst)
-            smolkln_dst.chmod(smolkln_dst.stat().st_mode | 0o111)
-            console.print("  [green]Installed smol-kln.py[/green]")
+        # Note: smol-kln command is installed via pipx as part of k-lean package
 
     # Install config
     if component in ["all", "config"]:
@@ -1387,7 +1377,7 @@ def doctor(auto_fix: bool):
     scripts_dir = CLAUDE_DIR / "scripts"
     if scripts_dir.exists():
         # Check key scripts
-        key_scripts = ["quick-review.sh", "smol-kln.py"]
+        key_scripts = ["quick-review.sh"]
         for script in key_scripts:
             script_path = scripts_dir / script
             if not script_path.exists():
@@ -1396,6 +1386,10 @@ def doctor(auto_fix: bool):
                 issues.append(("WARNING", f"Script not executable: {script}"))
     else:
         issues.append(("ERROR", "Scripts directory not found"))
+
+    # Check smol-kln command (installed via pipx as part of k-lean)
+    if not shutil.which("smol-kln"):
+        issues.append(("WARNING", "smol-kln command not found - SmolKLN agents won't work"))
 
     # Check lib/common.sh
     common_sh = CLAUDE_DIR / "lib" / "common.sh"
