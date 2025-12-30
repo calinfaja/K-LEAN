@@ -1,101 +1,104 @@
 # K-LEAN LiteLLM Configuration
 # ============================
-# 12 NanoGPT Models - Clean minimal config
-# Start: source ~/.config/litellm/.env && litellm --config ~/.config/litellm/config.yaml
 #
-# CRITICAL: os.environ/ syntax MUST NOT have quotes!
-#   CORRECT: api_base: os.environ/NANOGPT_API_BASE
-#   WRONG:   api_base: "os.environ/NANOGPT_API_BASE"
+# ENDPOINT RULES:
+#   *-thinking models -> NANOGPT_THINKING_API_BASE
+#   all other models  -> NANOGPT_API_BASE
 #
-# THINKING MODELS NOTE:
-# - Thinking models return reasoning_content, not content
-# - merge_reasoning_content_in_choices: true does NOT work with openai/ prefix
-# - For smolagents: use non-thinking models (qwen3-coder, kimi-k2, devstral-2)
-# - For /kln:quick, /kln:multi: scripts handle reasoning_content fallback
-# - See docs/thinking-models-fix.md for details
+# No quotes around os.environ/ values!
 
 litellm_settings:
   drop_params: true
 
 model_list:
-  # Elite Coders - Use for smolagents
+  # ===================
+  # TOP 8 AGENTIC MODELS
+  # ===================
+
+  # #1 Kimi K2 Thinking
+  - model_name: kimi-k2-thinking
+    litellm_params:
+      model: openai/moonshotai/kimi-k2-thinking
+      api_base: os.environ/NANOGPT_THINKING_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  # #2 GLM 4.7 Thinking
+  - model_name: glm-4.7-thinking
+    litellm_params:
+      model: openai/zai-org/glm-4.7:thinking
+      api_base: os.environ/NANOGPT_THINKING_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  # #3 DeepSeek V3.2 Thinking
+  - model_name: deepseek-v3.2-thinking
+    litellm_params:
+      model: openai/deepseek/deepseek-v3.2:thinking
+      api_base: os.environ/NANOGPT_THINKING_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  # #4 GPT-OSS 120B
+  - model_name: gpt-oss-120b
+    litellm_params:
+      model: openai/openai/gpt-oss-120b
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  # #5 Qwen3 Coder
   - model_name: qwen3-coder
     litellm_params:
       model: openai/qwen/qwen3-coder
       api_base: os.environ/NANOGPT_API_BASE
       api_key: os.environ/NANOGPT_API_KEY
 
-  - model_name: devstral-2
-    litellm_params:
-      model: openai/mistralai/devstral-2-123b-instruct-2512
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # Reasoning - Use for /kln:quick, /kln:multi (scripts handle reasoning_content)
-  - model_name: deepseek-r1
-    litellm_params:
-      model: openai/deepseek-ai/DeepSeek-R1-0528
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-      merge_reasoning_content_in_choices: true
-
-  - model_name: deepseek-v3-thinking
-    litellm_params:
-      model: openai/deepseek-ai/deepseek-v3.2-exp-thinking
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-      merge_reasoning_content_in_choices: true
-
-  - model_name: glm-4.6-thinking
-    litellm_params:
-      model: openai/z-ai/glm-4.6:thinking
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-      merge_reasoning_content_in_choices: true
-
-  # Agents - Non-thinking versions for smolagents compatibility
-  - model_name: kimi-k2
-    litellm_params:
-      model: openai/moonshotai/kimi-k2-instruct
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  - model_name: kimi-k2-thinking
-    litellm_params:
-      model: openai/moonshotai/kimi-k2-thinking
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-      merge_reasoning_content_in_choices: true
-
-  # Speed
-  - model_name: llama-4-scout
-    litellm_params:
-      model: openai/meta-llama/llama-4-scout
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
+  # #6 Llama 4 Maverick
   - model_name: llama-4-maverick
     litellm_params:
       model: openai/meta-llama/llama-4-maverick
       api_base: os.environ/NANOGPT_API_BASE
       api_key: os.environ/NANOGPT_API_KEY
 
-  # Specialist
-  - model_name: minimax-m2
+  # #7 MiMo V2 Flash
+  - model_name: mimo-v2-flash
     litellm_params:
-      model: openai/MiniMax-M2
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-      merge_reasoning_content_in_choices: true
-
-  - model_name: hermes-4-70b
-    litellm_params:
-      model: openai/nousresearch/hermes-4-70b
+      model: openai/xiaomi/mimo-v2-flash
       api_base: os.environ/NANOGPT_API_BASE
       api_key: os.environ/NANOGPT_API_KEY
 
-  - model_name: qwen3-235b
+  # #8 DeepSeek R1
+  - model_name: deepseek-r1
     litellm_params:
-      model: openai/Qwen/Qwen3-235B-A22B-Instruct-2507
+      model: openai/deepseek-ai/DeepSeek-R1-0528
+      api_base: os.environ/NANOGPT_THINKING_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  # ===================
+  # NON-THINKING VERSIONS
+  # ===================
+
+  - model_name: kimi-k2
+    litellm_params:
+      model: openai/moonshotai/kimi-k2-instruct
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  - model_name: glm-4.7
+    litellm_params:
+      model: openai/zai-org/glm-4.7
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  - model_name: deepseek-v3.2
+    litellm_params:
+      model: openai/deepseek/deepseek-v3.2
+      api_base: os.environ/NANOGPT_API_BASE
+      api_key: os.environ/NANOGPT_API_KEY
+
+  # ===================
+  # GOOGLE
+  # ===================
+
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: openai/gemini-2.5-flash
       api_base: os.environ/NANOGPT_API_BASE
       api_key: os.environ/NANOGPT_API_KEY
