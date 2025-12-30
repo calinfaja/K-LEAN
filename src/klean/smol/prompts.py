@@ -21,6 +21,12 @@ You can delegate tasks to team members:
 {%- endfor %}
 {%- endif %}
 
+## CRITICAL - This is Python, NOT Jupyter/Shell
+- NEVER use !command syntax (e.g., !git, !ls) - use tools instead
+- NEVER import os, subprocess, sys - use tools instead
+- For git: use git_log(), git_diff() tools
+- For files: use read_file(), grep() tools
+
 ## Code Rules (MUST FOLLOW)
 1. Wrap ALL code in ```py blocks - never output bare code or JSON
 2. NEVER assign a variable with the same name as a tool (breaks the tool!)
@@ -73,6 +79,10 @@ final_answer('''## Security Findings
 
 # Shorter version for appending (when we can't replace)
 KLEAN_CODE_RULES = """
+## CRITICAL - Python Only, NOT Jupyter/Shell
+- NEVER use !command (e.g., !git) - use tools instead
+- NEVER import os, subprocess, sys - use tools instead
+
 ## Code Rules (MUST FOLLOW)
 1. Wrap code in ```py blocks - never output bare code or JSON
 2. NEVER assign a variable with the same name as a tool (breaks it!)
