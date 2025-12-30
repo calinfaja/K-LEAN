@@ -37,3 +37,5 @@ cat /tmp/kln-review.txt | ~/.local/share/pipx/venvs/k-lean/bin/python \
 
 **MODEL**: `--model` flag or "auto"
 **FOCUS**: Extract from user request (e.g., "security", "performance") or "code quality"
+
+**Model names:** If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
