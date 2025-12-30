@@ -7,7 +7,6 @@
 #   - InitKB              → Initialize knowledge DB for project
 #   - SaveInfo <url>      → Smart save with LLM evaluation
 #   - FindKnowledge <q>   → Search knowledge DB
-#   - asyncDeepReview     → 3 models with tools (background)
 #   - asyncConsensus      → 3 models quick review (background)
 #   - asyncReview         → Single model quick review (background)
 #
@@ -161,35 +160,6 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
         else
             echo "{\"systemMessage\": \"Knowledge DB not found at $KNOWLEDGE_DIR\"}"
         fi
-    fi
-    exit 0
-fi
-
-#------------------------------------------------------------------------------
-# ASYNCDEEPREVIEW <focus>
-#------------------------------------------------------------------------------
-if echo "$USER_PROMPT" | grep -qi "^asyncDeepReview\|^async.*deep.*review"; then
-    # Extract focus
-    FOCUS=$(echo "$USER_PROMPT" | sed -E 's/^(asyncDeepReview|async[[:space:]]*deep[[:space:]]*review)[[:space:]]*//i')
-
-    if [ -z "$FOCUS" ]; then
-        FOCUS="General code review"
-    fi
-
-    echo "🚀 Starting async deep review: $FOCUS" >&2
-
-    if [ -x "$SCRIPTS_DIR/parallel-deep-review.sh" ]; then
-        LOG_FILE="$REVIEWS_DIR/deep-review-$SESSION_ID.log"
-        nohup "$SCRIPTS_DIR/parallel-deep-review.sh" "$FOCUS" "$PROJECT_DIR" > "$LOG_FILE" 2>&1 &
-        PID=$!
-        sleep 0.1
-        if kill -0 $PID 2>/dev/null; then
-            echo "{\"systemMessage\": \"🚀 Deep review started (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
-        else
-            echo "{\"systemMessage\": \"❌ Deep review failed to start. Check: $LOG_FILE\"}"
-        fi
-    else
-        echo "{\"systemMessage\": \"⚠️ parallel-deep-review.sh not found\"}"
     fi
     exit 0
 fi

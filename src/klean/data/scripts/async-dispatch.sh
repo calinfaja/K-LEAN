@@ -74,18 +74,10 @@ if echo "$PROMPT" | grep -qi "^healthcheck$\|^health check$\|^checkhealth$"; the
 fi
 
 # Pre-check: If any async keyword detected, verify proxy is up first
-if echo "$PROMPT" | grep -qi "asyncDeepAudit\|asyncQuickCompare\|asyncQuickReview\|asyncQuickConsult"; then
+if echo "$PROMPT" | grep -qi "asyncQuickCompare\|asyncQuickReview\|asyncQuickConsult"; then
     if ! check_proxy_health; then
         block_with_message "❌ LiteLLM proxy not running. Start it first: start-nano-proxy"
     fi
-fi
-
-# asyncDeepAudit - 3 models with full tools (CLI)
-if echo "$PROMPT" | grep -qi "asyncDeepAudit"; then
-    FOCUS=$(echo "$PROMPT" | sed 's/.*asyncDeepAudit[[:space:]]*//')
-    [ -z "$FOCUS" ] && FOCUS="General code review"
-    nohup "$KB_SCRIPTS_DIR/parallel-deep-review.sh" "$FOCUS" "$WORK_DIR" > "$OUTPUT_DIR/deep-audit-latest.log" 2>&1 &
-    block_with_message "🚀 Deep audit started (3 models, CLI). Results: $OUTPUT_DIR/deep-audit-latest.log"
 fi
 
 # asyncQuickCompare - 3 models via curl (API)

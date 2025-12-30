@@ -13,12 +13,8 @@
 #   │   └── 2024-12-09_14-30-25_qwen_security.md
 #   ├── quickCompare/
 #   │   └── 2024-12-09_16-00-00_consensus.md
-#   ├── deepInspect/
-#   │   └── 2024-12-09_17-00-00_qwen_audit.md
-#   ├── agentExecute/
-#   │   └── 2024-12-09_18-00-00_qwen_security-auditor.txt
-#   └── asyncDeepAudit/
-#       └── 2024-12-09_18-00-00_parallel.md
+#   └── agentExecute/
+#       └── 2024-12-09_18-00-00_qwen_security-auditor.txt
 
 # Find git root (project root)
 # Walks up directory tree looking for .git directory

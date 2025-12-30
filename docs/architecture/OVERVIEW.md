@@ -85,8 +85,7 @@ Claude Code uses a single AI model. K-LEAN adds:
 |---------|-------------|------|
 | `/kln:quick <focus>` | Single model review | ~30s |
 | `/kln:multi <focus>` | 3-5 model consensus | ~60s |
-| `/kln:deep <focus>` | Deep review with tool access | ~3min |
-| `/kln:agent <role>` | Specialist agent | ~30s |
+| `/kln:agent <role>` | Specialist agent with tools | ~2min |
 | `/kln:rethink` | Contrarian debugging (4 techniques) | ~20s |
 | `/kln:doc <title>` | Generate session docs | ~30s |
 | `/kln:learn [topic]` | Extract learnings from context (mid-session) | ~30s |
@@ -124,7 +123,6 @@ Type directly in Claude Code:
 | `FindKnowledge <query>` | Semantic search knowledge DB |
 | `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `asyncReview <focus>` | Background quick review |
-| `asyncDeepReview <focus>` | Background deep review |
 | `asyncConsensus <focus>` | Background multi-model review |
 
 **Note:** For context-aware knowledge capture, use `/kln:learn` (slash command) instead of hook keywords.
@@ -226,8 +224,7 @@ Each git repository gets its own:
 .claude/kln/                # K-LEAN outputs (in .gitignore)
 ├── agentExecute/           # SmolKLN agent reports
 ├── quickReview/            # /kln:quick results
-├── quickCompare/           # /kln:multi results
-└── deepInspect/            # /kln:deep results
+└── quickCompare/           # /kln:multi results
 ```
 
 ---

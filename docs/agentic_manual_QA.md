@@ -63,7 +63,6 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | [ ] `SaveInfo` | `SaveInfo insight` | LLM-evaluated save |
 | [ ] `FindKnowledge` | `FindKnowledge topic` | Semantic search |
 | [ ] `asyncReview` | `asyncReview security` | Background quick review |
-| [ ] `asyncDeepReview` | `asyncDeepReview audit` | Background deep review |
 | [ ] `asyncConsensus` | `asyncConsensus check` | Background consensus |
 
 ### Hook Integration Tests
@@ -81,7 +80,6 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 |--------|---------|-------|
 | [ ] `quick-review.sh` | Single model API review | Executable |
 | [ ] `consensus-review.sh` | 5-model parallel review | Executable |
-| [ ] `deep-review.sh` | Claude SDK agent review | Executable |
 | [ ] `smol-kln` | SmolKLN agent CLI command | `smol-kln --list` |
 | [ ] `async-dispatch.sh` | Background task runner | Executable |
 
@@ -93,8 +91,6 @@ Expected fields: `title`, `summary`, `type`, `key_concepts`, `quality`, `source`
 | [ ] quick-review.sh | Thinking model support | Checks `reasoning_content` |
 | [ ] consensus-review.sh | Parallel curl | Queries 5 models |
 | [ ] consensus-review.sh | Temp cleanup | No leftover temp files |
-| [ ] deep-review.sh | Read-only mode | Uses allow/deny permissions |
-| [ ] deep-review.sh | Audit config | Creates `/tmp/claude-audit-$$` |
 | [ ] smol-kln | Lists agents | `smol-kln --list` shows 8 agents |
 | [ ] smol-kln | Uses smolagents | Requires `pipx inject k-lean 'smolagents[litellm]'` |
 | [ ] async-dispatch.sh | Background nohup | Runs without blocking |
@@ -368,14 +364,13 @@ cat .knowledge-db/timeline.txt | tail -5
 - [ ] Shows consensus (HIGH/MEDIUM/LOW)
 - [ ] Groups similar findings
 
-### Deep Review
+### SmolKLN Agent Review
 ```bash
-/kln:deep "full audit"
+/kln:agent --role security-auditor "full audit"
 ```
-- [ ] Uses Claude headless
-- [ ] Read-only mode (no writes)
-- [ ] Full codebase access
-- [ ] Saves to `.claude/kln/deepInspect/`
+- [ ] Uses SmolKLN with smolagents
+- [ ] Tool access for file reading
+- [ ] Saves to `.claude/kln/agentExecute/`
 
 ### Rethink
 ```bash

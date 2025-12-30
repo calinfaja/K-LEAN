@@ -8,10 +8,11 @@
 
 | Pattern | K-LEAN Script | Why It Works |
 |---------|---------------|--------------|
-| **Fanning Out** | `parallel-deep-review.sh` | Run 3+ models in parallel, no waiting |
+| **Multi-Model Consensus** | `consensus-review.sh` | Run 3+ models in parallel via API |
 | **Health Fallback** | `get-healthy-models.sh` | Auto-switch to working model if one fails |
 | **Thinking Models** | All review scripts | Check `reasoning_content` for DeepSeek/GLM |
 | **Knowledge Inject** | Review scripts | Query KB, add to prompt if relevant |
+| **SmolKLN Agents** | `smol-kln` | Tool-equipped specialist agents |
 
 These are solid. Don't change.
 
@@ -40,27 +41,7 @@ fi
 
 ---
 
-### 2. Simple Build Check (Stop Hook)
-
-**What:** After deep review, check if build still works.
-
-**Why:** Catches when reviewer suggests breaking changes.
-
-**How:** Add to end of `deep-review.sh`:
-```bash
-# Optional build check
-if [ -f "package.json" ]; then
-    npm run build 2>&1 | tail -5 || echo "Build check: FAIL"
-elif [ -f "Makefile" ]; then
-    make 2>&1 | tail -5 || echo "Build check: FAIL"
-fi
-```
-
-**Effort:** 15 min
-
----
-
-### 3. Session Summary Before Clear
+### 2. Session Summary Before Clear
 
 **What:** Quick command to dump session learnings to KB.
 
@@ -207,7 +188,7 @@ mcp__klean__health_check()
 
 3. **txtai for KB is solid** - Simple, local, no external dependencies.
 
-4. **Headless Claude is powerful** - Our `deep-review.sh` with allow/deny is best practice.
+4. **SmolKLN agents are powerful** - Tool-equipped agents with structured output.
 
 5. **Top competitors focus on PR integration** - That's the gap if we want team adoption.
 
@@ -216,9 +197,8 @@ mcp__klean__health_check()
 ## Next Steps (Priority Order)
 
 1. [ ] Add `--json` to quick-review.sh
-2. [ ] Add build check to deep-review.sh
-3. [ ] Test /kln:remember command
-4. [ ] Document in README for OSS release
+2. [ ] Test /kln:remember command
+3. [ ] Document in README for OSS release
 
 ---
 

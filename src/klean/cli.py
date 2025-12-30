@@ -1271,7 +1271,7 @@ def doctor(auto_fix: bool):
     scripts_dir = CLAUDE_DIR / "scripts"
     if scripts_dir.exists():
         # Check key scripts
-        key_scripts = ["quick-review.sh", "deep-review.sh", "smol-kln.py"]
+        key_scripts = ["quick-review.sh", "smol-kln.py"]
         for script in key_scripts:
             script_path = scripts_dir / script
             if not script_path.exists():
@@ -1610,7 +1610,7 @@ def test():
 
     # Test 2: Scripts executable
     console.print("\n[bold]2. Scripts Executable[/bold]")
-    key_scripts = ["quick-review.sh", "deep-review.sh", "klean-statusline.py", "kb-doctor.sh"]
+    key_scripts = ["quick-review.sh", "klean-statusline.py", "kb-doctor.sh"]
     scripts_dir = CLAUDE_DIR / "scripts"
     for script in key_scripts:
         script_path = scripts_dir / script
@@ -1621,7 +1621,7 @@ def test():
 
     # Test 3: KLN Commands
     console.print("\n[bold]3. KLN Commands[/bold]")
-    kln_commands = ["quick.md", "multi.md", "deep.md", "agent.md", "rethink.md",
+    kln_commands = ["quick.md", "multi.md", "agent.md", "rethink.md",
                     "remember.md", "status.md", "help.md", "doc.md"]
     kln_dir = CLAUDE_DIR / "commands" / "kln"
     for cmd in kln_commands:

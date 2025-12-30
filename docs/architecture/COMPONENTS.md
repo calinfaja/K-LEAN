@@ -274,7 +274,6 @@ K-LEAN integrates with Claude Code via **5 hooks** that trigger on specific even
 | `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `InitKB` | Initialize project KB |
 | `asyncReview` | Background quick review |
-| `asyncDeepReview` | Background deep review |
 | `asyncConsensus` | Background consensus review |
 
 **Note:** `SaveThis` was replaced by `/kln:learn` for context-aware capture.
@@ -851,8 +850,7 @@ K-LEAN provides **multi-model code reviews** with consensus building across 3-5 
 |------|---------|--------|-------|
 | Quick | `/kln:quick` | 1 model | ~10s |
 | Multi/Consensus | `/kln:multi` | 5 parallel | ~30s |
-| Deep | `/kln:deep` | Claude SDK agent | ~3min |
-| SmolKLN Agent | `/kln:agent` | Specialist persona | ~30s |
+| SmolKLN Agent | `/kln:agent` | Specialist persona | ~2min |
 | Rethink | `/kln:rethink` | Contrarian analysis | ~20s |
 
 ---
@@ -893,23 +891,7 @@ consensus-review.sh "review authentication logic"
 
 ---
 
-### 5.3 Deep Review
-
-Uses Claude Agent SDK for comprehensive analysis.
-
-```bash
-# Script: src/klean/data/scripts/deep-review.sh
-deep-review.sh "full security audit"
-```
-
-**Features:**
-- Read-only mode (no modifications)
-- Comprehensive allow/deny lists
-- Full codebase access
-
----
-
-### 5.4 Rethink (Contrarian Debugging)
+### 5.3 Rethink (Contrarian Debugging)
 
 **Unique K-LEAN feature**: Challenges assumptions.
 
@@ -1014,10 +996,8 @@ Reviews are saved to the project's `.claude/kln/` directory.
 |   `-- 2024-12-09_14-30-25_qwen_security.md
 |-- quickCompare/
 |   `-- 2024-12-09_16-00-00_consensus.md
-|-- deepInspect/
-|   `-- 2024-12-09_17-00-00_qwen_audit.md
-`-- asyncDeepAudit/
-    `-- 2024-12-09_18-00-00_parallel.md
+`-- agentExecute/
+    `-- 2024-12-09_18-00-00_security-auditor.md
 ```
 
 **Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.md`
@@ -1026,36 +1006,14 @@ Reviews are saved to the project's `.claude/kln/` directory.
 
 ---
 
-### 5.11 Audit Mode (Security)
+### 5.11 SmolKLN Agents
 
-Deep reviews run in **read-only audit mode** for safe automation.
+SmolKLN agents use smolagents framework for tool-equipped analysis.
 
-**Implementation:** `src/klean/data/scripts/deep-review.sh` (lines 180-212)
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Read", "Glob", "Grep", "LS", "Agent", "Task",
-      "WebFetch", "WebSearch",
-      "mcp__tavily__*", "mcp__context7__*", "mcp__serena__find_*",
-      "mcp__serena__list_*", "mcp__serena__read_*", "mcp__serena__search_*",
-      "Bash(git diff:*)", "Bash(git log:*)", "Bash(git status:*)",
-      "Bash(cat:*)", "Bash(find:*)", "Bash(ls:*)", "Bash(grep:*)"
-    ],
-    "deny": [
-      "Write", "Edit", "NotebookEdit",
-      "Bash(rm:*)", "Bash(mv:*)", "Bash(cp:*)", "Bash(mkdir:*)",
-      "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
-      "Bash(pip install:*)", "Bash(npm install:*)", "Bash(sudo:*)",
-      "mcp__serena__replace_*", "mcp__serena__insert_*",
-      "mcp__serena__rename_*", "mcp__serena__write_*", "mcp__serena__delete_*"
-    ]
-  }
-}
-```
-
-Uses `--dangerously-skip-permissions` with restricted `allowedTools` for fast, safe automation.
+**Features:**
+- Agent-based execution with tool access
+- Read/search/knowledge tools available
+- Structured output with citations
 
 ---
 
@@ -1071,7 +1029,7 @@ Reviews automatically extract and store reusable knowledge.
 3. Stores in `.knowledge-db/` if `relevance_score >= 0.6`
 4. Logs to `.knowledge-db/timeline.txt`
 
-**Called from deep-review.sh:**
+**Called from review scripts:**
 ```bash
 "$KB_SCRIPTS_DIR/fact-extract.sh" "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
 ```
@@ -1090,9 +1048,7 @@ Reviews automatically extract and store reusable knowledge.
 |--------|---------|
 | `quick-review.sh` | Single model review |
 | `consensus-review.sh` | 5-model parallel review |
-| `deep-review.sh` | Claude SDK agent review |
 | `smolkln-agent.sh` | SmolKLN agent execution |
-| `parallel-deep-review.sh` | Multiple deep reviews |
 | `second-opinion.sh` | Alternative perspective |
 | `fact-extract.sh` | Extract knowledge from reviews |
 | `session-helper.sh` | Output directory management |
@@ -1616,8 +1572,7 @@ smol-kln --list   # List available agents
 |---------|-------------|---------|
 | `/kln:quick` | Fast review - single model (~30s) | `/kln:quick security` |
 | `/kln:multi` | Consensus review - 3-5 models (~60s) | `/kln:multi --models 5 arch` |
-| `/kln:deep` | Deep analysis - full codebase (~3min) | `/kln:deep --async security` |
-| `/kln:agent` | SmolKLN - specialist agents | `/kln:agent --role security` |
+| `/kln:agent` | SmolKLN - specialist agents (~2min) | `/kln:agent --role security` |
 | `/kln:rethink` | Fresh perspectives - debugging help | `/kln:rethink bug` |
 | `/kln:doc` | Documentation - session notes | `/kln:doc "Sprint Review"` |
 | `/kln:learn` | Extract learnings from context | `/kln:learn "auth bug"` |

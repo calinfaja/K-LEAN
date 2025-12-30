@@ -19,7 +19,7 @@ with latency-based ranking and task-aware routing.
 
 **NOT for:**
 - Quick feedback when time is short → use `/kln:quick`
-- Need to actually read files for evidence → use `/kln:deep`
+- Need to actually read files for evidence → use `/kln:agent`
 - Domain-specific expertise needed → use `/kln:agent`
 
 ## Arguments

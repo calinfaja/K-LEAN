@@ -30,7 +30,7 @@ k-lean doctor
 # In Claude Code
 /kln:quick security          # Fast review (~30s)
 /kln:multi architecture      # 3-5 model consensus (~60s)
-/kln:deep "full audit"       # Deep with tools (~3min)
+/kln:agent security-auditor  # Specialist agent (~2min)
 /kln:learn "topic"           # Extract learnings from context
 
 # Keywords (type directly)

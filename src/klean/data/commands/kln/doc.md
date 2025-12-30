@@ -19,7 +19,7 @@ Create comprehensive session documentation and persist to Serena memories.
 **NOT for:**
 - End-of-session knowledge capture with KB → use `/kln:remember`
 - Quick notes → use `SaveThis` keyword
-- Code review documentation → use `/kln:deep` with `--save`
+- Code review documentation → use `/kln:agent` for detailed review
 
 ## Arguments
 

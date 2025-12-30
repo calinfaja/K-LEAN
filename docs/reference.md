@@ -41,7 +41,6 @@
 |---------|-------|
 | `/kln:quick` | `--model`, `--output json\|text` |
 | `/kln:multi` | `--models N`, `--output` |
-| `/kln:deep` | `--async`, `--output` |
 | `/kln:agent` | `--role` |
 | `/kln:rethink` | - |
 | `/kln:doc` | `--type report\|session\|lessons` |
@@ -56,7 +55,6 @@
 | `FindKnowledge` | Semantic search KB |
 | `SaveInfo` | LLM-evaluated URL save |
 | `asyncReview` | Background quick review |
-| `asyncDeepReview` | Background deep review |
 | `asyncConsensus` | Background consensus |
 
 **Note:** For context-aware saves, use `/kln:learn` slash command.
@@ -73,7 +71,6 @@
 | `~/.klean/logs/phoenix.log` | Phoenix telemetry logs |
 | `.claude/kln/agentExecute/` | SmolKLN agent reports |
 | `.claude/kln/quickReview/` | Quick review outputs |
-| `.claude/kln/asyncDeepAudit/` | Deep audit outputs |
 
 ## SmolKLN CLI
 

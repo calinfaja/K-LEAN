@@ -6,21 +6,19 @@
 |---------|-------------|------|
 | `/kln:quick <focus>` | Single model review | ~30s |
 | `/kln:multi <focus>` | 3-5 model consensus | ~60s |
-| `/kln:deep <focus>` | Full codebase with tools | ~3min |
-| `/kln:agent --role <role>` | SmolKLN specialist agent | ~30s |
+| `/kln:agent --role <role>` | SmolKLN specialist agent | ~2min |
 | `/kln:rethink` | Contrarian debugging | ~20s |
 
 **Examples:**
 ```bash
 /kln:quick security
 /kln:multi "check error handling"
-/kln:deep "pre-release audit"
 /kln:agent --role security-auditor "audit latest changes"
 ```
 
 **Async (background):**
 ```bash
-/kln:deep --async "full audit"    # Run in background
+/kln:multi --async "full audit"    # Run in background
 ```
 
 ## Knowledge Commands
@@ -119,7 +117,7 @@ smol-kln security-auditor "audit" --telemetry
 
 **Pre-release:**
 ```bash
-/kln:deep "comprehensive security and quality audit"
+/kln:agent --role security-auditor "comprehensive security and quality audit"
 ```
 
 **Stuck debugging:**
@@ -158,7 +156,6 @@ See [reference.md](reference.md#multi-agent-k-lean-multi) for agent configuratio
 | SmolKLN agents | `.claude/kln/agentExecute/` |
 | Multi-agent reviews | `.claude/kln/multiAgent/` |
 | Quick reviews | `.claude/kln/quickReview/` |
-| Deep audits | `.claude/kln/asyncDeepAudit/` |
 | Async logs | `/tmp/claude-reviews/` |
 | Knowledge | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |

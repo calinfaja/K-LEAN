@@ -728,18 +728,7 @@ k-lean unknown-command; echo "Exit: $?"
 # - Results formatted
 ```
 
-### SLASH-005: /kln:deep
-```
-# In Claude Code session
-/kln:deep security
-
-# Expected
-# - Deep analysis runs
-# - Multiple passes
-# - Comprehensive output
-```
-
-### SLASH-006: /kln:agent
+### SLASH-005: /kln:agent
 ```
 # In Claude Code session
 /kln:agent --role security-auditor
@@ -750,7 +739,7 @@ k-lean unknown-command; echo "Exit: $?"
 # - Results displayed
 ```
 
-### SLASH-007: /kln:rethink
+### SLASH-006: /kln:rethink
 ```
 # In Claude Code session
 /kln:rethink "stuck on bug"
@@ -760,7 +749,7 @@ k-lean unknown-command; echo "Exit: $?"
 # - Alternative approaches suggested
 ```
 
-### SLASH-008: /kln:remember
+### SLASH-007: /kln:remember
 ```
 # In Claude Code session (end of session)
 /kln:remember
@@ -770,7 +759,7 @@ k-lean unknown-command; echo "Exit: $?"
 # - Saved to knowledge DB
 ```
 
-### SLASH-009: /kln:doc
+### SLASH-008: /kln:doc
 ```
 # In Claude Code session
 /kln:doc "Sprint Review"
