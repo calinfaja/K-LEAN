@@ -94,11 +94,10 @@ model_list:
       api_key: os.environ/NANOGPT_API_KEY
 
   # ===================
-  # GOOGLE
+  # GOOGLE (via OpenRouter)
   # ===================
 
   - model_name: gemini-2.5-flash
     litellm_params:
-      model: openai/gemini-2.5-flash
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
+      model: openrouter/google/gemini-2.5-flash
+      api_key: os.environ/OPENROUTER_API_KEY

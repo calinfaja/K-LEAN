@@ -26,6 +26,21 @@ from .tools import (
 )
 
 
+def add_step_awareness(memory_step, agent) -> None:
+    """Inject step awareness into observations on late steps.
+
+    This callback warns the agent when running low on steps,
+    prompting it to call final_answer() before hitting the limit.
+    """
+    remaining = agent.max_steps - memory_step.step_number
+    if remaining <= 2:
+        warning = f"\n[Step {memory_step.step_number}/{agent.max_steps}] Only {remaining} step(s) left - call final_answer() now!"
+        memory_step.observations = (
+            warning if memory_step.observations is None
+            else memory_step.observations + warning
+        )
+
+
 class SmolKLNExecutor:
     """Execute K-LEAN agents using Smolagents.
 
@@ -170,7 +185,7 @@ class SmolKLNExecutor:
                 - memory_history: List[Dict] (session memory entries)
         """
         try:
-            from smolagents import CodeAgent
+            from smolagents import CodeAgent, ActionStep, TaskStep
         except ImportError:
             return {
                 "output": "Error: smolagents not installed. Install with: pip install smolagents[litellm]",
@@ -253,6 +268,7 @@ class SmolKLNExecutor:
             max_steps=max_steps,
             planning_interval=3,  # Plan every 3 steps to stay on track
             additional_authorized_imports=safe_imports,
+            step_callbacks=[add_step_awareness],  # Warn on low steps
             final_answer_checks=[validate_citations],  # Verify file:line citations
         )
 

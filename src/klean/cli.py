@@ -2096,7 +2096,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         now = time.time()
         if phoenix_cache["data"] and (now - phoenix_cache["time"]) < 5:
             return phoenix_cache["data"]
-        data = query_phoenix_traces(limit=30)
+        data = query_phoenix_traces()
         if data:
             phoenix_cache["data"] = data
             phoenix_cache["time"] = now
