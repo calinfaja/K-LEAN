@@ -2137,7 +2137,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
             if errors > 0:
                 lines_out.append(f"[bold]Errors:[/bold] [red]{errors}[/red]")
             else:
-                lines_out.append(f"[bold]Errors:[/bold] [green]0[/green]")
+                lines_out.append("[bold]Errors:[/bold] [green]0[/green]")
 
             # Traces by project
             lines_out.append("")
