@@ -43,8 +43,7 @@ k-lean doctor                 # Verify everything works
 ```bash
 /kln:quick security           # Fast review (~30s)
 /kln:multi "error handling"   # 3-5 model consensus (~60s)
-/kln:deep "security audit"    # Deep analysis with tools (~3min)
-/kln:agent security-auditor   # Specialist agent review
+/kln:agent security-auditor   # Specialist agent review (~2min)
 ```
 
 ---
@@ -129,8 +128,7 @@ Uses 4 contrarian techniques:
 |---------|-------------|------|
 | `/kln:quick <focus>` | Single model review | ~30s |
 | `/kln:multi <focus>` | 3-5 model consensus | ~60s |
-| `/kln:deep <focus>` | Deep review with tool access | ~3min |
-| `/kln:agent <role>` | Specialist agent | ~30s |
+| `/kln:agent <role>` | Specialist agent with tools | ~2min |
 | `/kln:rethink` | Contrarian debugging | ~20s |
 | `/kln:doc <title>` | Generate session docs | ~30s |
 | `/kln:remember` | End-of-session knowledge capture | ~20s |
@@ -179,7 +177,6 @@ Type these directly in Claude Code:
 | `FindKnowledge <query>` | Semantic search knowledge DB |
 | `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `asyncReview <focus>` | Background quick review |
-| `asyncDeepReview <focus>` | Background deep review |
 | `asyncConsensus <focus>` | Background multi-model review |
 
 **Note:** For context-aware knowledge capture, use `/kln:learn` (slash command).

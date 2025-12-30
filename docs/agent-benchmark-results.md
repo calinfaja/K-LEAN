@@ -4,6 +4,10 @@
 **Test Subject**: MicroPython Zephyr Cryptographic Module (last 3 commits)
 **Telemetry**: Phoenix at http://localhost:6006
 
+> **Note**: T5 (deep-review.sh using Claude headless) has been deprecated.
+> SmolKLN agents (T2) are now the recommended approach for tool-equipped analysis.
+> This document is preserved for historical benchmark reference.
+
 ---
 
 ## Executive Summary

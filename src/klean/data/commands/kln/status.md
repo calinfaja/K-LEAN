@@ -17,7 +17,7 @@ Check the health and status of K-LEAN components and services.
 - Get quick command reference (help subcommand)
 
 **NOT for:**
-- Actual code review → use `/kln:quick`, `/kln:multi`, or `/kln:deep`
+- Actual code review → use `/kln:quick`, `/kln:multi`, or `/kln:agent`
 - CLI troubleshooting → use `k-lean doctor -f`
 
 ## Subcommands
@@ -78,10 +78,6 @@ When invoked:
    /kln:multi <focus>
      Multi-model consensus review (~60s)
      Uses: qwen, deepseek, glm
-
-   /kln:deep <model> <focus>
-     Thorough review with tools (~3min)
-     Full context + agentic exploration
 
    /kln:agent --role <role> <task>
      SmolKLN specialist agent execution

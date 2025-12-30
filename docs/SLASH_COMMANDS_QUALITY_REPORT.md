@@ -277,8 +277,7 @@ tests/unit/test_tools_citations.py ........ 18 passed
 | `/kln:help` | YES | YES | A | Complete reference |
 | `/kln:quick` | YES | YES | A | Review script works |
 | `/kln:multi` | YES | YES | A | Consensus working |
-| `/kln:deep` | YES | YES | A- | Longer timeout needed |
-| `/kln:agent` | YES | NO | F | **BROKEN - missing templates** |
+| `/kln:agent` | YES | YES | A- | SmolKLN agents working |
 | `/kln:rethink` | YES | YES | A- | LLM routing works |
 | `/kln:doc` | YES | YES | B+ | Generates docs |
 | `/kln:remember` | YES | YES | B+ | Knowledge capture |

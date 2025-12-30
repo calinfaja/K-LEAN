@@ -15,7 +15,6 @@ Knowledge-driven Lightweight Execution & Analysis Network
 |---------|------|----------|-------------|
 | `/kln:quick <focus>` | API | ~30s | Fast single-model review for quick insights |
 | `/kln:multi <focus>` | API | ~60s | Multi-model consensus (parallel execution) |
-| `/kln:deep <focus>` | SDK | ~3min | Thorough review with tool access and deep analysis |
 | `/kln:agent <task>` | SDK | ~2min | SmolKLN specialist agent for domain-specific tasks |
 | `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
 | `/kln:learn [topic]` | Local | ~30s | Extract learnings from context (mid-session) |
@@ -82,18 +81,6 @@ Use `/kln:status` or `k-lean models` to see current model availability.
 
 # JSON output for parsing
 /kln:multi "Test coverage gaps" -o json
-```
-
-### Deep Review
-```bash
-# Full analysis with tool access
-/kln:deep "Refactor authentication system"
-
-# Fastest available model
-/kln:deep "Debug memory leak" --fastest
-
-# Background deep dive
-/kln:deep "Optimize database queries" -a
 ```
 
 ### SmolKLN Agents
@@ -169,14 +156,14 @@ k-lean models --test  # Test all models with latency
 1. **Check system health**: `/kln:status`
 2. **Start simple**: Try `/kln:quick "Review my latest changes"`
 3. **Use consensus**: For important decisions, use `/kln:multi`
-4. **Go deep**: When you need thorough analysis, use `/kln:deep`
+4. **Use agents**: For specialist analysis, use `/kln:agent`
 5. **Capture knowledge**: End sessions with `/kln:remember`
 
 ## Architecture
 
-- **API Mode**: Direct LiteLLM calls, fast responses, no tool access
-- **SDK Mode**: Full Claude SDK agent with tool use capabilities
-- **Local Mode**: Direct execution on system, no external calls
+- **API Mode**: Direct LiteLLM calls, fast responses (`/kln:quick`, `/kln:multi`)
+- **SDK Mode**: SmolKLN agents with tool use capabilities (`/kln:agent`)
+- **Local Mode**: Direct execution on system, no external calls (`/kln:doc`, `/kln:remember`)
 
 ## Need Help?
 

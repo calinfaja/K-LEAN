@@ -19,7 +19,7 @@ Comprehensive extraction and saving of session learnings before clearing context
 **NOT for:**
 - Mid-session (wait until ready to clear context)
 - Quick notes → use `SaveThis` keyword instead
-- Code review → use `/kln:quick`, `/kln:multi`, or `/kln:deep`
+- Code review → use `/kln:quick`, `/kln:multi`, or `/kln:agent`
 
 **Use this command at the END of a productive session, before running `/clear` or `/compact`.**
 

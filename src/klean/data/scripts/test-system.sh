@@ -52,7 +52,7 @@ echo ""
 # 2. Check scripts exist
 echo "2. Scripts"
 echo "─────────────────────────────────────────────────────────────────"
-for script in quick-review.sh second-opinion.sh consensus-review.sh parallel-deep-review.sh deep-review.sh async-dispatch.sh health-check.sh session-helper.sh start-litellm.sh; do
+for script in quick-review.sh second-opinion.sh consensus-review.sh async-dispatch.sh health-check.sh session-helper.sh start-litellm.sh; do
     if [ -x ~/.claude/scripts/$script ]; then
         test_pass "$script exists and executable"
     else

@@ -19,7 +19,7 @@ gets fresh perspectives from external models using contrarian thinking technique
 
 **NOT for:**
 - Initial debugging (try standard approaches first)
-- Code review → use `/kln:quick` or `/kln:deep`
+- Code review → use `/kln:quick` or `/kln:agent`
 - When you haven't tried anything yet
 
 ## How It Works
