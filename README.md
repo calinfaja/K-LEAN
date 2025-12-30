@@ -102,6 +102,8 @@ Domain experts powered by [smolagents](https://github.com/huggingface/smolagents
 | `arm-cortex-expert` | Embedded ARM, real-time constraints |
 | `orchestrator` | Multi-agent coordination |
 
+**Agent Tools:** `read_file`, `search_files`, `grep`, `knowledge_search`, `get_complexity` (Python + C/C++ via lizard)
+
 ```bash
 /kln:agent security-auditor "audit the payment module"
 ```
