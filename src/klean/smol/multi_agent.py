@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from .context import format_context_for_prompt, gather_project_context
+from .executor import add_step_awareness
 from .models import create_model
 from .multi_config import get_3_agent_config, get_4_agent_config
 from .tools import get_citation_stats, get_tools_for_agent, validate_citations
@@ -194,6 +195,7 @@ class MultiAgentExecutor:
                     max_steps=agent_config.max_steps,
                     planning_interval=agent_config.planning_interval,
                     additional_authorized_imports=safe_imports,
+                    step_callbacks=[add_step_awareness],  # Warn on low steps
                 )
 
                 # REPLACE default system prompt (removes John Doe/Ulam examples)
@@ -237,6 +239,7 @@ class MultiAgentExecutor:
                 max_steps=manager_config.max_steps,
                 planning_interval=manager_config.planning_interval,
                 additional_authorized_imports=safe_imports,
+                step_callbacks=[add_step_awareness],  # Warn on low steps
                 final_answer_checks=[validate_citations],  # Verify file:line citations
             )
 

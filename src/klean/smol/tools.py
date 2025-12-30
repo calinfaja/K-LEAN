@@ -641,7 +641,7 @@ def grep(pattern: str, path: str = ".", file_pattern: str = "*") -> str:
 
 
 @tool
-def git_diff(commits: int = 3, path: str = ".", **kwargs) -> str:
+def git_diff(commits: int = 3, path: str = ".") -> str:
     """
     Get git diff for recent commits showing what changed.
 
@@ -652,10 +652,6 @@ def git_diff(commits: int = 3, path: str = ".", **kwargs) -> str:
     Returns:
         Git diff output showing file changes in recent commits.
     """
-    # Catch common param mistakes
-    if kwargs:
-        return f"Invalid params: {list(kwargs.keys())}. Use: git_diff(commits=N, path='.')"
-
     import subprocess
     from pathlib import Path
 
@@ -774,7 +770,7 @@ def git_status(path: str = ".") -> str:
 
 
 @tool
-def git_log(commits: int = 10, path: str = ".", **kwargs) -> str:
+def git_log(commits: int = 10, path: str = ".") -> str:
     """
     Get git commit history with details.
 
@@ -785,10 +781,6 @@ def git_log(commits: int = 10, path: str = ".", **kwargs) -> str:
     Returns:
         Git log showing commit history with authors, dates, and messages.
     """
-    # Catch common param mistakes
-    if kwargs:
-        return f"Invalid params: {list(kwargs.keys())}. Use: git_log(commits=N, path='.')"
-
     import subprocess
     from pathlib import Path
 
@@ -826,22 +818,17 @@ def git_log(commits: int = 10, path: str = ".", **kwargs) -> str:
 
 
 @tool
-def git_show(commit: str = "HEAD", path: str = ".", **kwargs) -> str:
+def git_show(commit: str = "HEAD", path: str = ".") -> str:
     """
     Show the diff for a specific commit.
 
     Args:
-        commit: Commit hash (e.g., "abc123", "HEAD", "HEAD~1"). NOT 'hash'.
+        commit: Commit hash (e.g., "abc123", "HEAD", "HEAD~1"). Use 'commit' NOT 'hash'.
         path: Directory path of the git repository (default: current directory)
 
     Returns:
         Commit message and diff showing what changed in that commit.
     """
-    # Catch common param mistakes (agents often use 'hash' instead of 'commit')
-    if kwargs:
-        hint = "Use 'commit' not 'hash'" if 'hash' in kwargs else ""
-        return f"Invalid params: {list(kwargs.keys())}. {hint} Use: git_show(commit='HEAD')"
-
     import subprocess
     from pathlib import Path
 
