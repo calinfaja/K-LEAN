@@ -812,6 +812,272 @@ def git_log(commits: int = 10, path: str = ".") -> str:
 
 
 @tool
+def git_show(commit: str, path: str = ".") -> str:
+    """
+    Show the diff for a specific commit.
+
+    Args:
+        commit: Commit hash (e.g., "abc123" or "HEAD~1")
+        path: Directory path of the git repository (default: current directory)
+
+    Returns:
+        Commit message and diff showing what changed in that commit.
+    """
+    import subprocess
+    from pathlib import Path
+
+    repo_path = Path(path)
+    if not repo_path.exists():
+        return f"Path not found: {path}"
+
+    try:
+        # Get commit info and diff
+        result = subprocess.run(
+            ["git", "show", commit, "--stat", "--patch"],
+            cwd=str(repo_path),
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        if result.returncode != 0:
+            return f"Git error: {result.stderr}. Try: git_log() first to see valid commit hashes."
+
+        output = result.stdout
+        # Truncate if too long
+        if len(output) > 30000:
+            output = output[:30000] + "\n\n... [truncated - diff too large]"
+
+        return f"## Commit: {commit}\n\n```diff\n{output}\n```"
+
+    except subprocess.TimeoutExpired:
+        return "Git command timed out"
+    except Exception as e:
+        return f"Git error: {e}"
+
+
+@tool
+def scan_secrets(path: str = ".", file_pattern: str = "*") -> str:
+    """
+    Scan files for potential hardcoded secrets (API keys, passwords, tokens).
+
+    Args:
+        path: Directory to scan (default: current directory)
+        file_pattern: Glob pattern for files to scan (e.g., "*.py", "*.js")
+
+    Returns:
+        List of potential secrets found with file:line references.
+    """
+    import re
+    from pathlib import Path
+
+    base = Path(path)
+    if not base.exists():
+        return f"Path not found: {path}"
+
+    # Common secret patterns
+    patterns = {
+        "API Key": r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?',
+        "AWS Key": r'(?i)(AKIA[0-9A-Z]{16})',
+        "AWS Secret": r'(?i)aws[_-]?secret[_-]?access[_-]?key\s*[=:]\s*["\']?([a-zA-Z0-9/+=]{40})["\']?',
+        "Password": r'(?i)(password|passwd|pwd)\s*[=:]\s*["\']([^"\']{8,})["\']',
+        "Token": r'(?i)(token|auth[_-]?token|access[_-]?token)\s*[=:]\s*["\']?([a-zA-Z0-9_\-\.]{20,})["\']?',
+        "Private Key": r'-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----',
+        "GitHub Token": r'gh[pousr]_[a-zA-Z0-9]{36,}',
+        "Generic Secret": r'(?i)secret\s*[=:]\s*["\']([^"\']{8,})["\']',
+        "Bearer Token": r'(?i)bearer\s+[a-zA-Z0-9_\-\.]{20,}',
+        "Basic Auth": r'(?i)basic\s+[a-zA-Z0-9+/=]{20,}',
+    }
+
+    findings = []
+    files_scanned = 0
+
+    # Skip common non-code directories
+    skip_dirs = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', '.knowledge-db'}
+
+    for file_path in base.glob(f"**/{file_pattern}"):
+        if any(skip in file_path.parts for skip in skip_dirs):
+            continue
+        if not file_path.is_file():
+            continue
+        # Skip binary files
+        if file_path.suffix in ['.pyc', '.so', '.dll', '.exe', '.bin', '.png', '.jpg', '.gif']:
+            continue
+
+        files_scanned += 1
+        try:
+            content = file_path.read_text(errors='ignore')
+            lines = content.splitlines()
+
+            for i, line in enumerate(lines, 1):
+                # Skip comments and obvious test data
+                if 'example' in line.lower() or 'test' in line.lower() or 'xxx' in line.lower():
+                    continue
+
+                for secret_type, pattern in patterns.items():
+                    if re.search(pattern, line):
+                        # Mask the actual secret value
+                        masked_line = line.strip()[:80] + "..." if len(line.strip()) > 80 else line.strip()
+                        findings.append(f"**{secret_type}** at `{file_path}:{i}`\n  `{masked_line}`")
+                        break  # One finding per line
+
+        except Exception:
+            continue
+
+        if len(findings) >= 50:
+            break
+
+    if not findings:
+        return f"No potential secrets found in {path} ({files_scanned} files scanned). Note: This is a basic scan - use dedicated tools like 'detect-secrets' or 'gitleaks' for thorough scanning."
+
+    output = f"## Potential Secrets Found\n\n"
+    output += f"Files scanned: {files_scanned}\n"
+    output += f"Findings: {len(findings)}\n\n"
+    output += "**WARNING**: Review each finding - some may be false positives.\n\n"
+    output += "\n\n".join(findings)
+
+    return output
+
+
+@tool
+def get_complexity(file_path: str) -> str:
+    """
+    Analyze code complexity metrics for a Python file.
+
+    Args:
+        file_path: Path to the Python file to analyze
+
+    Returns:
+        Complexity metrics including function length, nesting depth, and cognitive complexity.
+    """
+    import ast
+    from pathlib import Path
+
+    path = Path(file_path)
+    if not path.exists():
+        return f"File not found: {file_path}"
+    if path.suffix != '.py':
+        return f"Only Python files supported. Got: {path.suffix}"
+
+    try:
+        content = path.read_text()
+        tree = ast.parse(content)
+    except SyntaxError as e:
+        return f"Syntax error in {file_path}: {e}"
+
+    lines = content.splitlines()
+    total_lines = len(lines)
+
+    findings = []
+    functions = []
+
+    class ComplexityVisitor(ast.NodeVisitor):
+        def __init__(self):
+            self.current_function = None
+            self.max_nesting = 0
+            self.current_nesting = 0
+
+        def visit_FunctionDef(self, node):
+            self._analyze_function(node)
+
+        def visit_AsyncFunctionDef(self, node):
+            self._analyze_function(node)
+
+        def _analyze_function(self, node):
+            func_name = node.name
+            start_line = node.lineno
+            end_line = node.end_lineno or start_line
+            func_length = end_line - start_line + 1
+
+            # Count branches (if, for, while, try, with)
+            branches = 0
+            max_nesting = 0
+
+            for child in ast.walk(node):
+                if isinstance(child, (ast.If, ast.For, ast.While, ast.Try, ast.With,
+                                     ast.AsyncFor, ast.AsyncWith, ast.ExceptHandler)):
+                    branches += 1
+
+            # Simple nesting calculation
+            def get_nesting(n, depth=0):
+                max_d = depth
+                for child in ast.iter_child_nodes(n):
+                    if isinstance(child, (ast.If, ast.For, ast.While, ast.Try, ast.With)):
+                        max_d = max(max_d, get_nesting(child, depth + 1))
+                    else:
+                        max_d = max(max_d, get_nesting(child, depth))
+                return max_d
+
+            max_nesting = get_nesting(node)
+
+            # Cognitive complexity approximation
+            cognitive = branches + (max_nesting * 2)
+
+            status = "OK"
+            issues = []
+            if func_length > 50:
+                issues.append(f"too long ({func_length} lines)")
+                status = "WARN"
+            if max_nesting > 4:
+                issues.append(f"deep nesting ({max_nesting})")
+                status = "WARN"
+            if cognitive > 15:
+                issues.append(f"high complexity ({cognitive})")
+                status = "WARN"
+            if func_length > 100 or max_nesting > 6 or cognitive > 25:
+                status = "CRITICAL"
+
+            functions.append({
+                'name': func_name,
+                'line': start_line,
+                'length': func_length,
+                'branches': branches,
+                'nesting': max_nesting,
+                'cognitive': cognitive,
+                'status': status,
+                'issues': issues
+            })
+
+            self.generic_visit(node)
+
+    visitor = ComplexityVisitor()
+    visitor.visit(tree)
+
+    # Build output
+    output = f"## Complexity Analysis: {path.name}\n\n"
+    output += f"Total lines: {total_lines}\n"
+    output += f"Functions analyzed: {len(functions)}\n\n"
+
+    if not functions:
+        return output + "No functions found in file."
+
+    # Summary table
+    output += "| Function | Line | Length | Branches | Nesting | Status |\n"
+    output += "|----------|------|--------|----------|---------|--------|\n"
+
+    critical_count = 0
+    warn_count = 0
+
+    for f in functions:
+        status_icon = "OK" if f['status'] == "OK" else ("WARN" if f['status'] == "WARN" else "CRITICAL")
+        if f['status'] == "CRITICAL":
+            critical_count += 1
+        elif f['status'] == "WARN":
+            warn_count += 1
+        output += f"| {f['name'][:30]} | {f['line']} | {f['length']} | {f['branches']} | {f['nesting']} | {status_icon} |\n"
+
+    output += f"\n**Summary**: {critical_count} critical, {warn_count} warnings, {len(functions) - critical_count - warn_count} OK\n"
+
+    # Details for problematic functions
+    problem_funcs = [f for f in functions if f['issues']]
+    if problem_funcs:
+        output += "\n### Issues Found\n\n"
+        for f in problem_funcs:
+            output += f"- `{path.name}:{f['line']}` **{f['name']}**: {', '.join(f['issues'])}\n"
+
+    return output
+
+
+@tool
 def list_directory(path: str = ".", recursive: bool = False, max_depth: int = 2) -> str:
     """
     List contents of a directory.
@@ -1179,6 +1445,14 @@ def get_tools_for_agent(
         tools.append(git_status)
     if "git_log" in tool_names:
         tools.append(git_log)
+    if "git_show" in tool_names:
+        tools.append(git_show)
+
+    # Add security and analysis tools
+    if "scan_secrets" in tool_names:
+        tools.append(scan_secrets)
+    if "get_complexity" in tool_names:
+        tools.append(get_complexity)
 
     # Add file info tools
     if "list_directory" in tool_names:

@@ -49,8 +49,7 @@ Execute the command above and display the aggregated results showing:
 
 ## Model Discovery
 
-Models are **dynamically discovered** from LiteLLM proxy - no hardcoded names.
-Run `k-lean models` to see currently available models.
+Models are **dynamically discovered** from LiteLLM proxy. If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
 
 The system automatically:
 1. Queries LiteLLM for available models at runtime

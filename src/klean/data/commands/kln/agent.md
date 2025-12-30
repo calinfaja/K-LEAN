@@ -33,6 +33,10 @@ $ARGUMENTS
 - `--parallel, -p` - Run 3 agents in parallel
 - `--async, -a` - Run in background
 
+**Model names:** If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
+
+**Role names:** If user gives partial role (e.g. "security"), match to full name from: `ls ~/.klean/agents/*.md | xargs -I{} basename {} .md`
+
 ## Available Roles
 
 | Role | Focus | Agent File |
