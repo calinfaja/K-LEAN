@@ -790,7 +790,7 @@ def discover_models() -> List[str]:
     return []
 
 
-def query_phoenix_traces(limit: int = 20) -> Optional[Dict]:
+def query_phoenix_traces(limit: int = 500) -> Optional[Dict]:
     """Query Phoenix telemetry for recent LLM traces.
 
     Returns aggregated stats and recent spans from all projects.
