@@ -45,7 +45,13 @@ Examples:
             from openinference.instrumentation.smolagents import SmolagentsInstrumentor
             from phoenix.otel import register
 
-            register(project_name="smolkln")
+            # Production-ready: batch=True uses BatchSpanProcessor (async, non-blocking)
+            # vs default SimpleSpanProcessor (sync, blocking)
+            register(
+                project_name="smolkln",
+                batch=True,
+                verbose=False,  # Suppress detailed config output
+            )
             SmolagentsInstrumentor().instrument()
             print("Telemetry enabled - view at http://localhost:6006")
         except ImportError:
