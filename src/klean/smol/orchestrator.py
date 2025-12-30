@@ -309,7 +309,7 @@ class SmolKLNOrchestrator:
         for tid, r in results.items():
             agent = r.get("agent", "unknown")
             output = r.get("output", "No output")
-            success = "✅" if r.get("success") else "❌"
+            success = "[OK]" if r.get("success") else "[ERROR]"
             parts.append(f"## Task {tid} ({agent}) {success}\n{output}")
 
         return "\n\n".join(parts)

@@ -39,7 +39,7 @@ fi
 
 MODEL_COUNT=$(echo "$HEALTHY_MODELS" | wc -l)
 echo "Found $MODEL_COUNT healthy models:"
-echo "$HEALTHY_MODELS" | while read model; do echo "  ✓ $model"; done
+echo "$HEALTHY_MODELS" | while read model; do echo "  [OK] $model"; done
 
 echo ""
 echo "Focus: $FOCUS"

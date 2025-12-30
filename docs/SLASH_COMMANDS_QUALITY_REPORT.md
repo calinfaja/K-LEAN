@@ -97,17 +97,17 @@ Status: SUCCESS
 
 **Doctor Output:**
 ```
-✓ LiteLLM .env: NANOGPT_API_KEY configured
-✓ NanoGPT Subscription: ACTIVE (1572 daily remaining)
-✓ Thinking models: Callback installed
-✓ SessionStart hooks: Configured
-✓ UserPromptSubmit hooks: Configured
-✓ PostToolUse hooks: Configured
-✓ LiteLLM Proxy: RUNNING (18 models)
-✓ Knowledge Server: RUNNING
-✓ SmolKLN Agents: 8 installed
-✓ smolagents: Installed
-✓ k-lean.md: Installed
+[OK] LiteLLM .env: NANOGPT_API_KEY configured
+[OK] NanoGPT Subscription: ACTIVE (1572 daily remaining)
+[OK] Thinking models: Callback installed
+[OK] SessionStart hooks: Configured
+[OK] UserPromptSubmit hooks: Configured
+[OK] PostToolUse hooks: Configured
+[OK] LiteLLM Proxy: RUNNING (18 models)
+[OK] Knowledge Server: RUNNING
+[OK] SmolKLN Agents: 8 installed
+[OK] smolagents: Installed
+[OK] k-lean.md: Installed
 
 No issues found!
 ```
@@ -231,11 +231,11 @@ Error: sqlite3.OperationalError: database is locked
 **Consensus Review Test:**
 ```
 Found 5 healthy models:
-  ✓ deepseek-r1
-  ✓ devstral-2512
-  ✓ gemini-2.5-flash
-  ✓ gpt-oss-120b
-  ✓ grok-4.1-fast
+  [OK] deepseek-r1
+  [OK] devstral-2512
+  [OK] gemini-2.5-flash
+  [OK] gpt-oss-120b
+  [OK] grok-4.1-fast
 
 Started parallel reviews...
   Launched: deepseek-r1

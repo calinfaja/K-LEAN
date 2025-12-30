@@ -48,13 +48,13 @@ fi
 
 # Check model health with fallback
 if ! "$SCRIPTS_DIR/health-check-model.sh" "$MODEL" 2>/dev/null; then
-    echo "⚠️  Model $MODEL unhealthy, trying fallback..." >&2
+    echo "[WARN]  Model $MODEL unhealthy, trying fallback..." >&2
     LITELLM_MODEL=$("$SCRIPTS_DIR/get-healthy-models.sh" 1 2>/dev/null | head -1)
     if [ -z "$LITELLM_MODEL" ]; then
         echo "ERROR: No healthy models available" >&2
         exit 1
     fi
-    echo "✓ Using $LITELLM_MODEL" >&2
+    echo "[OK] Using $LITELLM_MODEL" >&2
 else
     LITELLM_MODEL="$MODEL"
 fi

@@ -106,17 +106,17 @@ K-LEAN Status Dashboard
 =======================
 
 Core Components:
-  [✓] LiteLLM Proxy (6 models)
-  [✓] Knowledge DB (1,234 entries)
-  [✓] Serena MCP (2 memory stores)
+  [[OK]] LiteLLM Proxy (6 models)
+  [[OK]] Knowledge DB (1,234 entries)
+  [[OK]] Serena MCP (2 memory stores)
 
 Models Available:
-  qwen/qwen2.5-72b-instruct         [✓] 2.3s
-  deepseek/deepseek-chat            [✓] 1.8s
-  glm/glm-4-flash                   [✓] 1.2s
-  minimax/Minimax-Text-01           [✓] 2.1s
-  kimi/moonshot-v1-128k             [✓] 1.9s
-  hermes/hermes-3-llama-3.1-405b    [✓] 3.4s
+  qwen/qwen2.5-72b-instruct         [[OK]] 2.3s
+  deepseek/deepseek-chat            [[OK]] 1.8s
+  glm/glm-4-flash                   [[OK]] 1.2s
+  minimax/Minimax-Text-01           [[OK]] 2.1s
+  kimi/moonshot-v1-128k             [[OK]] 1.9s
+  hermes/hermes-3-llama-3.1-405b    [[OK]] 3.4s
 ```
 
 ### Health Check
@@ -124,16 +124,16 @@ Models Available:
 Service Health Check
 ====================
 
-[✓] LiteLLM Proxy
+[[OK]] LiteLLM Proxy
     Status: OK
     Endpoint: localhost:4000
 
-[✓] Knowledge Database
+[[OK]] Knowledge Database
     Status: Active
     Server: Running
     Response: 23ms
 
-[✓] Serena MCP
+[[OK]] Serena MCP
     Status: Connected
     Tools: 2 available
     - lessons-learned

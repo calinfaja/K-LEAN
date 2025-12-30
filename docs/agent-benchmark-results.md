@@ -87,7 +87,7 @@ Review the latest 3 commits in modcrypto.c and modcrypto_ext.c for:
 
 ### T1: LiteLLM Direct with Qwen3-Coder
 
-**Status**: ✅ Completed
+**Status**: [OK] Completed
 
 ```
 Command: curl http://localhost:4000/v1/chat/completions (qwen3-coder)
@@ -113,7 +113,7 @@ Time: 13.6s
 
 ### T2: SmolKLN Code-Reviewer Agent
 
-**Status**: ✅ Completed
+**Status**: [OK] Completed
 
 ```
 Command: smol-kln code-reviewer "<prompt>" --telemetry
@@ -140,7 +140,7 @@ Agent Steps: 28
 
 ### T3: Multi 3-Agent Review
 
-**Status**: ✅ Completed
+**Status**: [OK] Completed
 
 ```
 Command: k-lean multi "<prompt>" --telemetry
@@ -167,7 +167,7 @@ Agents: manager (GLM-4.6-thinking) → file_scout (qwen3-coder) → analyzer (de
 
 ### T4: Multi 4-Agent Thorough Review
 
-**Status**: ✅ Completed
+**Status**: [OK] Completed
 
 ```
 Command: k-lean multi --thorough "<prompt>" --telemetry
@@ -202,7 +202,7 @@ Agents: manager (GLM-4.6) → file_scout (qwen3) + code_analyzer (deepseek) + se
 
 ### T5: Deep Review (Claude Headless + qwen3-coder via LiteLLM)
 
-**Status**: ✅ Completed
+**Status**: [OK] Completed
 
 ```
 Command: ~/.claude/scripts/deep-review.sh qwen3-coder "<prompt>"
@@ -237,7 +237,7 @@ This suggests tool access may lead to more context but less critical analysis.
 
 ### T6: Claude Opus with Full Tools
 
-**Status**: ✅ Completed
+**Status**: [OK] Completed
 
 ```
 Command: Task agent (subagent_type=general-purpose)
@@ -296,7 +296,7 @@ Model: Claude Opus 4.5
 |--------|----|----|----|----|----|----|
 | Execution Time | 13.6s | 181.9s | 1140.4s | 1545.4s | 455.9s | ~180s |
 | Relative Speed | 1x | 13x | 84x | 114x | 34x | 13x |
-| Has Tools | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Has Tools | [X] | [OK] | [OK] | [OK] | [OK] | [OK] |
 | Model | qwen3 | qwen3 | multi | multi | qwen3 | Opus |
 | Grade Given | - | - | - | - | A- | B+ |
 
@@ -315,15 +315,15 @@ Issues found by only one variant:
 
 | Issue Type | T1 | T2 | T3 | T4 | T5 | T6 |
 |------------|:--:|:--:|:--:|:--:|:--:|:--:|
-| SHA-1 Deprecation | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| ECB Mode Insecurity | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Buffer Overflow | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Integer Overflow | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Side-channel | ❌ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Thread Safety | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Nonce Security | ❌ | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Error Handling | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| Memory Leaks | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| SHA-1 Deprecation | [OK] | [X] | [X] | [OK] | [OK] | [OK] |
+| ECB Mode Insecurity | [X] | [X] | [X] | [OK] | [X] | [X] |
+| Buffer Overflow | [OK] | [OK] | [OK] | [OK] | [X] | [OK] |
+| Integer Overflow | [X] | [OK] | [OK] | [OK] | [X] | [OK] |
+| Side-channel | [X] | [OK] | [OK] | [OK] | [X] | [OK] |
+| Thread Safety | [OK] | [OK] | [OK] | [OK] | [X] | [OK] |
+| Nonce Security | [X] | [OK] | [OK] | [X] | [X] | [OK] |
+| Error Handling | [OK] | [OK] | [OK] | [OK] | [X] | [OK] |
+| Memory Leaks | [X] | [X] | [X] | [X] | [X] | [OK] |
 
 ---
 
@@ -394,8 +394,8 @@ Phoenix Traces: http://localhost:6006 (project: klean-multi)
 
 | qwen3-coder | Tools | Issues | Verdict |
 |-------------|-------|--------|---------|
-| T1 (direct API) | ❌ | 9 | REQUEST_CHANGES |
-| T5 (deep-review.sh) | ✅ | 3 | APPROVE (A-) |
+| T1 (direct API) | [X] | 9 | REQUEST_CHANGES |
+| T5 (deep-review.sh) | [OK] | 3 | APPROVE (A-) |
 
 Having tool access made qwen3-coder **less critical**, possibly because:
 - Seeing well-structured code created positive bias

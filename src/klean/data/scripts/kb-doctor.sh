@@ -117,12 +117,12 @@ if [ -z "$PROJECT" ]; then
 
     if [ "$FIX_MODE" = true ]; then
         mkdir -p "$PWD/.knowledge-db"
-        echo -e "  ${GREEN}✓ Created .knowledge-db in $PWD${NC}"
+        echo -e "  ${GREEN}[OK] Created .knowledge-db in $PWD${NC}"
         PROJECT="$PWD"
         FIXED=$((FIXED + 1))
     fi
 else
-    echo -e "  ${GREEN}✓ Found: $PROJECT/.knowledge-db${NC}"
+    echo -e "  ${GREEN}[OK] Found: $PROJECT/.knowledge-db${NC}"
 fi
 
 if [ -z "$PROJECT" ]; then
@@ -210,13 +210,13 @@ with open('$ENTRIES_FILE', 'w') as f:
 print(f'Recovered {len(entries)} entries, skipped {errors} corrupted sections')
 "
                 FIXED=$((FIXED + 1))
-                echo -e "  ${GREEN}✓ Repaired entries.jsonl (backup: entries.jsonl.bak)${NC}"
+                echo -e "  ${GREEN}[OK] Repaired entries.jsonl (backup: entries.jsonl.bak)${NC}"
             else
                 echo -e "  ${RED}✗ Cannot repair: Python venv not found${NC}"
             fi
         fi
     else
-        echo -e "  ${GREEN}✓ Valid JSONL format ($VALID_LINES entries)${NC}"
+        echo -e "  ${GREEN}[OK] Valid JSONL format ($VALID_LINES entries)${NC}"
     fi
 fi
 
@@ -239,7 +239,7 @@ if [ ! -d "$INDEX_DIR" ]; then
         if [ -x "$PYTHON" ] && [ -f "$KB_SCRIPT" ]; then
             cd "$PROJECT"
             if $PYTHON "$KB_SCRIPT" rebuild 2>&1; then
-                echo -e "  ${GREEN}✓ Index rebuilt${NC}"
+                echo -e "  ${GREEN}[OK] Index rebuilt${NC}"
                 FIXED=$((FIXED + 1))
             else
                 echo -e "  ${RED}✗ Index rebuild failed${NC}"
@@ -257,7 +257,7 @@ else
         echo -e "  ${RED}✗ Index directory is empty${NC}"
         ISSUES=$((ISSUES + 1))
     else
-        echo -e "  ${GREEN}✓ Index exists ($INDEX_FILES files)${NC}"
+        echo -e "  ${GREEN}[OK] Index exists ($INDEX_FILES files)${NC}"
     fi
 fi
 
@@ -286,7 +286,7 @@ if [ ! -S "$SOCKET" ]; then
             sleep 3
 
             if [ -S "$SOCKET" ]; then
-                echo -e "  ${GREEN}✓ Server started${NC}"
+                echo -e "  ${GREEN}[OK] Server started${NC}"
                 FIXED=$((FIXED + 1))
             else
                 echo -e "  ${RED}✗ Server failed to start (check /tmp/kb-startup-${HASH}.log)${NC}"
@@ -297,7 +297,7 @@ else
     # Test server connectivity
     PING_RESPONSE=$(send_to_socket '{"cmd":"ping"}' "$SOCKET" || echo "")
     if [ -n "$PING_RESPONSE" ] && echo "$PING_RESPONSE" | jq -e '.pong == true' > /dev/null 2>&1; then
-        echo -e "  ${GREEN}✓ Server running and responsive${NC}"
+        echo -e "  ${GREEN}[OK] Server running and responsive${NC}"
     else
         echo -e "  ${YELLOW}○ Server socket exists but not responding${NC}"
         ISSUES=$((ISSUES + 1))
@@ -313,7 +313,7 @@ else
             sleep 3
 
             if [ -S "$SOCKET" ]; then
-                echo -e "  ${GREEN}✓ Server restarted${NC}"
+                echo -e "  ${GREEN}[OK] Server restarted${NC}"
                 FIXED=$((FIXED + 1))
             fi
         fi
@@ -347,12 +347,12 @@ if [ -f "$ENTRIES_FILE" ] && [ -d "$INDEX_DIR" ]; then
             KB_SCRIPT="${KB_SCRIPTS_DIR:-$HOME/.claude/scripts}/knowledge_db.py"
             cd "$PROJECT"
             if $PYTHON "$KB_SCRIPT" rebuild 2>&1; then
-                echo -e "  ${GREEN}✓ Index rebuilt${NC}"
+                echo -e "  ${GREEN}[OK] Index rebuilt${NC}"
                 FIXED=$((FIXED + 1))
             fi
         fi
     else
-        echo -e "  ${GREEN}✓ Entries: $JSONL_COUNT in JSONL${NC}"
+        echo -e "  ${GREEN}[OK] Entries: $JSONL_COUNT in JSONL${NC}"
     fi
 else
     echo -e "  ${YELLOW}○ Cannot check consistency (missing entries or index)${NC}"
@@ -364,7 +364,7 @@ fi
 echo ""
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
 if [ $ISSUES -eq 0 ]; then
-    echo -e "${GREEN}✓ All checks passed! Knowledge DB is healthy.${NC}"
+    echo -e "${GREEN}[OK] All checks passed! Knowledge DB is healthy.${NC}"
 else
     if [ "$FIX_MODE" = true ]; then
         echo -e "Found ${YELLOW}$ISSUES${NC} issues, fixed ${GREEN}$FIXED${NC}"

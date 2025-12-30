@@ -51,7 +51,7 @@ SESSION_ID=$(date +%Y%m%d-%H%M%S)
 # INITKB - Initialize Knowledge DB for project
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^InitKB$\|^InitKB "; then
-    echo "🚀 Initializing Knowledge DB..." >&2
+    echo " Initializing Knowledge DB..." >&2
 
     KB_INIT_SCRIPT="$SCRIPTS_DIR/kb-init.sh"
 
@@ -64,10 +64,10 @@ if echo "$USER_PROMPT" | grep -qi "^InitKB$\|^InitKB "; then
         if [ $EXIT_CODE -eq 0 ]; then
             echo "{\"systemMessage\": $RESULT_ESCAPED}"
         else
-            echo "{\"systemMessage\": \"❌ InitKB failed:\\n\"$RESULT_ESCAPED}"
+            echo "{\"systemMessage\": \"[ERROR] InitKB failed:\\n\"$RESULT_ESCAPED}"
         fi
     else
-        echo "{\"systemMessage\": \"⚠️ kb-init.sh not found at $KB_INIT_SCRIPT\"}"
+        echo "{\"systemMessage\": \"[WARN] kb-init.sh not found at $KB_INIT_SCRIPT\"}"
     fi
     exit 0
 fi
@@ -80,11 +80,11 @@ if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
     CONTENT=$(echo "$USER_PROMPT" | sed -E 's/^SaveInfo[[:space:]]+//i')
 
     if [ -z "$CONTENT" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: SaveInfo <url> [--search-context \\\"context\\\"]\\n\\nEvaluates URL content with LiteLLM and saves if relevant.\"}"
+        echo "{\"systemMessage\": \"[WARN] Usage: SaveInfo <url> [--search-context \\\"context\\\"]\\n\\nEvaluates URL content with LiteLLM and saves if relevant.\"}"
         exit 0
     fi
 
-    echo "🤖 Evaluating content with LLM..." >&2
+    echo " Evaluating content with LLM..." >&2
 
     SMART_CAPTURE="$SCRIPTS_DIR/smart-capture.py"
 
@@ -99,18 +99,18 @@ if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
             if echo "$RESULT" | jq -e '.saved == true' >/dev/null 2>&1; then
                 TITLE=$(echo "$RESULT" | jq -r '.title')
                 INSIGHT=$(echo "$RESULT" | jq -r '.atomic_insight // ""')
-                echo "{\"systemMessage\": \"✅ Saved: $TITLE\\n💡 $INSIGHT\"}"
+                echo "{\"systemMessage\": \"[OK] Saved: $TITLE\\n $INSIGHT\"}"
             elif echo "$RESULT" | jq -e '.saved == false' >/dev/null 2>&1; then
                 REASON=$(echo "$RESULT" | jq -r '.reason')
-                echo "{\"systemMessage\": \"ℹ️ Not saved: $REASON\"}"
+                echo "{\"systemMessage\": \"[INFO] Not saved: $REASON\"}"
             else
-                echo "{\"systemMessage\": \"⚠️ Evaluation result: $RESULT\"}"
+                echo "{\"systemMessage\": \"[WARN] Evaluation result: $RESULT\"}"
             fi
         else
-            echo "{\"systemMessage\": \"⚠️ SaveInfo expects a URL. For context-aware saves, use /kln:learn instead.\"}"
+            echo "{\"systemMessage\": \"[WARN] SaveInfo expects a URL. For context-aware saves, use /kln:learn instead.\"}"
         fi
     else
-        echo "{\"systemMessage\": \"⚠️ smart-capture.py not found or Python not available\"}"
+        echo "{\"systemMessage\": \"[WARN] smart-capture.py not found or Python not available\"}"
     fi
     exit 0
 fi
@@ -123,11 +123,11 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
     QUERY=$(echo "$USER_PROMPT" | sed -E 's/^FindKnowledge[[:space:]]+//i')
 
     if [ -z "$QUERY" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: FindKnowledge <query>\"}"
+        echo "{\"systemMessage\": \"[WARN] Usage: FindKnowledge <query>\"}"
         exit 0
     fi
 
-    echo "🔍 Searching knowledge DB with hybrid search: $QUERY" >&2
+    echo " Searching knowledge DB with hybrid search: $QUERY" >&2
 
     # PHASE 2: Use hybrid search (semantic + keyword + tag)
     if [ -f "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
@@ -175,7 +175,7 @@ if echo "$USER_PROMPT" | grep -qi "^asyncConsensus\|^async.*consensus"; then
         FOCUS="General code review"
     fi
 
-    echo "🚀 Starting async consensus review: $FOCUS" >&2
+    echo " Starting async consensus review: $FOCUS" >&2
 
     if [ -x "$SCRIPTS_DIR/consensus-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/consensus-$SESSION_ID.log"
@@ -183,12 +183,12 @@ if echo "$USER_PROMPT" | grep -qi "^asyncConsensus\|^async.*consensus"; then
         PID=$!
         sleep 0.1
         if kill -0 $PID 2>/dev/null; then
-            echo "{\"systemMessage\": \"🚀 Consensus review started (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+            echo "{\"systemMessage\": \" Consensus review started (PID: $PID)\\n Focus: $FOCUS\\n Log: $LOG_FILE\"}"
         else
-            echo "{\"systemMessage\": \"❌ Consensus review failed to start. Check: $LOG_FILE\"}"
+            echo "{\"systemMessage\": \"[ERROR] Consensus review failed to start. Check: $LOG_FILE\"}"
         fi
     else
-        echo "{\"systemMessage\": \"⚠️ consensus-review.sh not found\"}"
+        echo "{\"systemMessage\": \"[WARN] consensus-review.sh not found\"}"
     fi
     exit 0
 fi
@@ -202,7 +202,7 @@ if echo "$USER_PROMPT" | grep -qi "^asyncReview "; then
     FOCUS=$(echo "$USER_PROMPT" | sed -E 's/^asyncReview[[:space:]]+[^[:space:]]+[[:space:]]*(.*)/\1/i')
 
     if [ -z "$MODEL" ]; then
-        echo "{\"systemMessage\": \"⚠️ Usage: asyncReview <model> <focus>\\nRun 'k-lean models' to see available models\"}"
+        echo "{\"systemMessage\": \"[WARN] Usage: asyncReview <model> <focus>\\nRun 'k-lean models' to see available models\"}"
         exit 0
     fi
 
@@ -210,7 +210,7 @@ if echo "$USER_PROMPT" | grep -qi "^asyncReview "; then
         FOCUS="General code review"
     fi
 
-    echo "🚀 Starting async review with $MODEL: $FOCUS" >&2
+    echo " Starting async review with $MODEL: $FOCUS" >&2
 
     if [ -x "$SCRIPTS_DIR/quick-review.sh" ]; then
         LOG_FILE="$REVIEWS_DIR/review-$MODEL-$SESSION_ID.log"
@@ -218,12 +218,12 @@ if echo "$USER_PROMPT" | grep -qi "^asyncReview "; then
         PID=$!
         sleep 0.1
         if kill -0 $PID 2>/dev/null; then
-            echo "{\"systemMessage\": \"🚀 Review started with $MODEL (PID: $PID)\\n📁 Focus: $FOCUS\\n📋 Log: $LOG_FILE\"}"
+            echo "{\"systemMessage\": \" Review started with $MODEL (PID: $PID)\\n Focus: $FOCUS\\n Log: $LOG_FILE\"}"
         else
-            echo "{\"systemMessage\": \"❌ Review with $MODEL failed to start. Check: $LOG_FILE\"}"
+            echo "{\"systemMessage\": \"[ERROR] Review with $MODEL failed to start. Check: $LOG_FILE\"}"
         fi
     else
-        echo "{\"systemMessage\": \"⚠️ quick-review.sh not found\"}"
+        echo "{\"systemMessage\": \"[WARN] quick-review.sh not found\"}"
     fi
     exit 0
 fi

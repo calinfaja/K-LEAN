@@ -55,14 +55,14 @@ fi
 # Find project
 PROJECT_ROOT=$(find_kb_project_root)
 if [ -z "$PROJECT_ROOT" ]; then
-    echo "❌ No project root found"
+    echo "[ERROR] No project root found"
     echo "   Run from a project directory with .knowledge-db, .claude, .serena, or .git"
     exit 1
 fi
 
 # Check if knowledge DB is initialized
 if [ ! -d "$PROJECT_ROOT/.knowledge-db" ]; then
-    echo "❌ Knowledge DB not initialized for $(basename "$PROJECT_ROOT")"
+    echo "[ERROR] Knowledge DB not initialized for $(basename "$PROJECT_ROOT")"
     echo "   Run: InitKB"
     exit 1
 fi
@@ -80,14 +80,14 @@ if [ ! -S "$SOCKET" ]; then
     # Wait for socket (up to 60s for index loading)
     for i in {1..60}; do
         if [ -S "$SOCKET" ]; then
-            echo "✓ Server ready (${i}s)"
+            echo "[OK] Server ready (${i}s)"
             break
         fi
         sleep 1
     done
 
     if [ ! -S "$SOCKET" ]; then
-        echo "❌ Server failed to start. Check /tmp/kb-startup.log"
+        echo "[ERROR] Server failed to start. Check /tmp/kb-startup.log"
         exit 1
     fi
 fi
@@ -112,16 +112,16 @@ s.close()
 fi
 
 if [ -z "$RESPONSE" ]; then
-    echo "❌ No response from server"
+    echo "[ERROR] No response from server"
     exit 1
 fi
 
 # Parse and display results
 echo "$RESPONSE" | jq -r '
 if .error then
-    "❌ Error: \(.error)"
+    "[ERROR] Error: \(.error)"
 else
-    "⚡ Search time: \(.search_time_ms)ms",
+    " Search time: \(.search_time_ms)ms",
     "",
     (.results[] | "[\(.score | . * 100 | floor / 100)] \(.title // .text // .id)")
 end

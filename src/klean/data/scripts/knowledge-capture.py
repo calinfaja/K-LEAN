@@ -293,7 +293,7 @@ Examples:
                 if args.json:
                     print(json.dumps({"error": f"Invalid JSON: {e}"}))
                 else:
-                    print(f"❌ Invalid JSON input: {e}", file=sys.stderr)
+                    print(f"[ERROR] Invalid JSON input: {e}", file=sys.stderr)
                 return 1
 
             entry = create_entry_from_json(data)
@@ -327,12 +327,12 @@ Examples:
                 "path": str(knowledge_dir / "entries.jsonl")
             }))
         else:
-            print(f"✅ Captured {entry_type}: {content_display}{'...' if len(content_display) >= 60 else ''}")
-            print(f"📁 Saved to: {knowledge_dir}/entries.jsonl")
+            print(f"[OK] Captured {entry_type}: {content_display}{'...' if len(content_display) >= 60 else ''}")
+            print(f" Saved to: {knowledge_dir}/entries.jsonl")
             if entry.get("tags"):
-                print(f"🏷️  Tags: {', '.join(entry['tags'])}")
+                print(f"  Tags: {', '.join(entry['tags'])}")
             if entry.get("atomic_insight"):
-                print(f"💡 Insight: {entry['atomic_insight'][:80]}")
+                print(f" Insight: {entry['atomic_insight'][:80]}")
 
         return 0
 
@@ -340,7 +340,7 @@ Examples:
         if args.json:
             print(json.dumps({"error": str(e)}))
         else:
-            print(f"❌ Error capturing knowledge: {e}", file=sys.stderr)
+            print(f"[ERROR] Error capturing knowledge: {e}", file=sys.stderr)
         return 1
 
 if __name__ == '__main__':

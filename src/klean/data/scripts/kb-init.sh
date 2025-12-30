@@ -26,9 +26,9 @@ CYAN='\033[36m'
 DIM='\033[2m'
 RESET='\033[0m'
 
-log_info() { echo -e "${CYAN}ℹ${RESET} $1"; }
-log_success() { echo -e "${GREEN}✓${RESET} $1"; }
-log_warn() { echo -e "${YELLOW}⚠${RESET} $1"; }
+log_info() { echo -e "${CYAN}[INFO]${RESET} $1"; }
+log_success() { echo -e "${GREEN}[OK]${RESET} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${RESET} $1"; }
 log_error() { echo -e "${RED}✗${RESET} $1"; }
 
 # Get project root (from argument or auto-detect)
