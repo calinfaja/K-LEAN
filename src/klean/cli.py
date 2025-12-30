@@ -2189,7 +2189,11 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
         # Show Phoenix LLM calls with rich metrics
         lines_out = []
-        for call in phoenix["llm_calls"][:10]:
+        # Header row
+        lines_out.append("[bold dim]Time    Model          Latency  Tokens[/bold dim]")
+        lines_out.append("[dim]─────────────────────────────────────────[/dim]")
+
+        for call in phoenix["llm_calls"][:8]:
             # Parse time
             time_str = call.get("time", "")
             if time_str:
@@ -2238,82 +2242,85 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
         if not phoenix or not phoenix.get("llm_calls"):
             return Panel(
-                "[dim]No history yet[/dim]\n\n"
-                "[dim]Traces appear after[/dim]\n"
+                "[dim]No data yet[/dim]\n\n"
+                "[dim]Stats appear after[/dim]\n"
                 "[dim]LLM calls with Phoenix[/dim]",
-                title="[bold]Run History[/bold]", border_style="yellow"
+                title="[bold]Daily Summary[/bold]", border_style="yellow"
             )
 
-        # Group by date
+        # Group by date and aggregate stats
         from datetime import datetime as dt
         today = dt.now().date()
         yesterday = today - timedelta(days=1)
 
-        groups = {"Today": [], "Yesterday": [], "Earlier": []}
+        # Aggregate stats per day
+        groups = {
+            "Today": {"calls": 0, "tokens": 0, "latency": 0, "errors": 0},
+            "Yesterday": {"calls": 0, "tokens": 0, "latency": 0, "errors": 0},
+            "Earlier": {"calls": 0, "tokens": 0, "latency": 0, "errors": 0},
+        }
 
         for call in phoenix["llm_calls"]:
             ts = call.get("time", "")
             if not ts:
                 continue
             try:
-                # Parse ISO timestamp
                 entry_date = dt.fromisoformat(ts[:10]).date()
                 if entry_date == today:
-                    groups["Today"].append(call)
+                    group = "Today"
                 elif entry_date == yesterday:
-                    groups["Yesterday"].append(call)
+                    group = "Yesterday"
                 else:
-                    groups["Earlier"].append(call)
+                    group = "Earlier"
+
+                groups[group]["calls"] += 1
+                groups[group]["tokens"] += call.get("tokens_in", 0) + call.get("tokens_out", 0)
+                groups[group]["latency"] += call.get("latency_ms", 0)
+                if call.get("status") != "OK":
+                    groups[group]["errors"] += 1
             except (ValueError, TypeError):
-                groups["Earlier"].append(call)
+                pass
 
+        # Build output with header
         lines = []
-        total_shown = 0
-        max_per_group = 4
+        lines.append("[bold dim]Period    Calls Tokens  Time[/bold dim]")
+        lines.append("[dim]────────────────────────────[/dim]")
 
-        for group_name, group_entries in groups.items():
-            if not group_entries or total_shown >= 10:
+        for group_name in ["Today", "Yesterday", "Earlier"]:
+            stats = groups[group_name]
+            if stats["calls"] == 0:
                 continue
 
-            lines.append(f"[bold]{group_name}[/bold]")
+            calls = stats["calls"]
+            tokens = stats["tokens"]
+            latency = stats["latency"]
+            errors = stats["errors"]
 
-            for call in group_entries[:max_per_group]:
-                if total_shown >= 10:
-                    break
+            # Format tokens
+            if tokens >= 1000000:
+                tok_str = f"{tokens/1000000:.1f}M"
+            elif tokens >= 1000:
+                tok_str = f"{tokens/1000:.0f}K"
+            else:
+                tok_str = str(tokens)
 
-                ts = call.get("time", "")[11:16]  # HH:MM
-                model = call.get("model", "?")[:10]
-                latency = call.get("latency_ms", 0)
-                status = call.get("status", "OK")
-                tokens_out = call.get("tokens_out", 0)
+            # Format total time
+            if latency >= 60000:
+                time_str = f"{latency // 60000}m{(latency % 60000) // 1000}s"
+            elif latency >= 1000:
+                time_str = f"{latency // 1000}s"
+            else:
+                time_str = f"{latency}ms"
 
-                # Status icon
-                icon = "[green]✓[/green]" if status == "OK" else "[red]✗[/red]"
+            # Error indicator
+            err_icon = "[red]![/red]" if errors > 0 else ""
 
-                # Duration
-                if latency >= 60000:
-                    dur = f"{latency // 60000}m"
-                elif latency >= 1000:
-                    dur = f"{latency // 1000}s"
-                else:
-                    dur = f"{latency}ms"
+            lines.append(f"[bold]{group_name:<9}[/bold] {calls:>3} {tok_str:>5} {time_str:>5}{err_icon}")
 
-                # Tokens
-                tok = f"{tokens_out}" if tokens_out < 1000 else f"{tokens_out/1000:.1f}K"
+        if len(lines) == 2:  # Only header
+            lines.append("[dim]No activity yet[/dim]")
 
-                lines.append(f"  [dim]{ts}[/dim] {icon} [cyan]{model}[/cyan] [dim]{dur} {tok}[/dim]")
-                total_shown += 1
-
-            lines.append("")  # Spacing between groups
-
-        # Remove trailing empty line
-        while lines and lines[-1] == "":
-            lines.pop()
-
-        if not lines:
-            lines.append("[dim]No traces yet[/dim]")
-
-        return Panel("\n".join(lines), title="[bold]Run History[/bold]", border_style="yellow")
+        return Panel("\n".join(lines), title="[bold]Daily Summary[/bold]", border_style="yellow")
 
     def render_full_dashboard():
         """Render the complete dashboard layout."""
