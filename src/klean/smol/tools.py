@@ -263,7 +263,7 @@ class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
                 break
 
         if not results:
-            return f"No matches for '{pattern}' in {search_path} ({files_searched} files searched)"
+            return f"No matches for '{pattern}' in {search_path} ({files_searched} files searched). Try: broader pattern, different keywords, or list_directory first to see what files exist."
 
         header = f"## Search Results for '{pattern}'\n"
         header += f"Files searched: {files_searched} | Matches: {len(results)}\n"
@@ -475,7 +475,7 @@ class KnowledgeRetrieverTool(Tool if SMOLAGENTS_AVAILABLE else object):
             return f"Knowledge DB error: {e}"
 
         if not results:
-            return "No relevant prior knowledge found for this query."
+            return "No relevant prior knowledge found. Try: different keywords, or proceed with file-based search using search_files and grep."
 
         output = "RELEVANT PRIOR KNOWLEDGE:\n\n"
         for r in results:
@@ -582,7 +582,7 @@ def search_files(pattern: str, path: str = ".", recursive: bool = True) -> str:
         matches = list(base.glob(pattern))
 
     if not matches:
-        return f"No files matching '{pattern}' in {path}"
+        return f"No files matching '{pattern}' in {path}. Try: broader glob (e.g., '*.py' instead of 'auth*.py'), or use list_directory to explore the structure first."
 
     # Sort by path for consistent output
     matches = sorted(matches, key=lambda p: str(p))
@@ -629,7 +629,7 @@ def grep(pattern: str, path: str = ".", file_pattern: str = "*") -> str:
             break
 
     if not results:
-        return f"No matches for '{pattern}' in {path}"
+        return f"No matches for '{pattern}' in {path}. Try: different search terms, broader file_pattern (e.g., '*' instead of '*.py'), or check spelling."
 
     return "\n".join(results)
 
@@ -1092,7 +1092,7 @@ def get_tools_for_agent(
                 matches = list(base.glob(pattern))
 
             if not matches:
-                return f"No files matching '{pattern}' in {path}"
+                return f"No files matching '{pattern}' in {path}. Try: broader glob (e.g., '*.py'), or use list_directory to see what exists."
 
             matches = sorted(matches, key=lambda p: str(p))
             return "\n".join(str(m) for m in matches[:50])
@@ -1139,7 +1139,7 @@ def get_tools_for_agent(
                     break
 
             if not results:
-                return f"No matches for '{pattern}' in {path}"
+                return f"No matches for '{pattern}' in {path}. Try: different keywords, broader file_pattern, or search_files first to find relevant files."
 
             return "\n".join(results)
         return project_grep
