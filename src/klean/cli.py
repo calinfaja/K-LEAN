@@ -19,7 +19,7 @@ import signal
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -784,6 +784,122 @@ def discover_models() -> List[str]:
     except Exception:
         pass
     return []
+
+
+def query_phoenix_traces(limit: int = 20) -> Optional[Dict]:
+    """Query Phoenix telemetry for recent LLM traces.
+
+    Returns aggregated stats and recent spans from all projects.
+    """
+    if not check_phoenix():
+        return None
+
+    query = '''{
+        projects {
+            edges {
+                node {
+                    name
+                    traceCount
+                    spans(first: %d) {
+                        edges {
+                            node {
+                                name
+                                latencyMs
+                                startTime
+                                statusCode
+                                attributes
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }''' % limit
+
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "http://localhost:6006/graphql",
+            data=json.dumps({"query": query}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+
+        # Parse and aggregate results
+        result = {
+            "total_traces": 0,
+            "total_tokens": 0,
+            "total_cost": 0.0,
+            "avg_latency_ms": 0,
+            "error_count": 0,
+            "llm_calls": [],
+            "projects": {}
+        }
+
+        all_latencies = []
+
+        for edge in data.get("data", {}).get("projects", {}).get("edges", []):
+            node = edge.get("node", {})
+            project_name = node.get("name", "unknown")
+            trace_count = node.get("traceCount", 0)
+
+            result["total_traces"] += trace_count
+            result["projects"][project_name] = trace_count
+
+            # Process spans
+            for span_edge in node.get("spans", {}).get("edges", []):
+                span = span_edge.get("node", {})
+                name = span.get("name", "")
+                latency = span.get("latencyMs", 0)
+                status = span.get("statusCode", "OK")
+                start_time = span.get("startTime", "")
+                attrs_str = span.get("attributes", "{}")
+
+                # Only process LLM spans
+                if "LLM" in name or "generate" in name.lower():
+                    try:
+                        attrs = json.loads(attrs_str) if isinstance(attrs_str, str) else attrs_str
+                    except (json.JSONDecodeError, TypeError):
+                        attrs = {}
+
+                    # Extract token counts
+                    llm_attrs = attrs.get("llm", {})
+                    token_count = llm_attrs.get("token_count", {})
+                    prompt_tokens = token_count.get("prompt", 0)
+                    completion_tokens = token_count.get("completion", 0)
+                    total_tokens = token_count.get("total", prompt_tokens + completion_tokens)
+                    model_name = llm_attrs.get("model_name", "unknown")
+
+                    result["total_tokens"] += total_tokens
+                    all_latencies.append(latency)
+
+                    if status == "ERROR":
+                        result["error_count"] += 1
+
+                    # Add to LLM calls list
+                    result["llm_calls"].append({
+                        "time": start_time,
+                        "model": model_name.split("/")[-1] if "/" in model_name else model_name,
+                        "latency_ms": int(latency),
+                        "tokens_in": prompt_tokens,
+                        "tokens_out": completion_tokens,
+                        "status": status,
+                        "project": project_name
+                    })
+
+        # Calculate averages
+        if all_latencies:
+            result["avg_latency_ms"] = int(sum(all_latencies) / len(all_latencies))
+
+        # Sort LLM calls by time (most recent first)
+        result["llm_calls"].sort(key=lambda x: x.get("time", ""), reverse=True)
+
+        return result
+
+    except Exception:
+        return None
 
 
 def get_model_health() -> Dict[str, str]:
@@ -1948,254 +2064,312 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
         return Panel("\n".join(lines), title="[bold]Services[/bold]", border_style="blue")
 
-    # Cache for model latencies (to avoid slow API calls every refresh)
-    model_latency_cache = {}
-
     def render_models_panel() -> Panel:
-        """Render models status panel - NO token consumption (uses /models endpoint only)."""
+        """Render models status panel - shows 10+ models with clean layout."""
         models = discover_models()
         if not models:
-            return Panel("[dim]No models available - is LiteLLM running?[/dim]",
+            return Panel("[dim]No models available\nIs LiteLLM running?[/dim]",
                         title="[bold]Models[/bold]", border_style="yellow")
 
-        table = Table(box=None, show_header=True, padding=(0, 1))
-        table.add_column("Model", style="cyan", width=22)
-        table.add_column("", width=2)
+        # Show up to 12 models for better visibility
+        max_display = 12
+        model_lines = []
 
-        # Show cached latency if available (from previous k-lean models --test)
-        # Otherwise just show as available (no token cost)
-        for model in models[:8]:
-            short_name = model[:20] if len(model) > 20 else model
-            cached_latency = model_latency_cache.get(model)
+        for i, model in enumerate(models[:max_display]):
+            # Clean model name: remove provider prefix, truncate
+            clean_name = model.split("/")[-1] if "/" in model else model
+            clean_name = clean_name[:18] if len(clean_name) > 18 else clean_name
 
-            if cached_latency is not None:
-                table.add_row(short_name, f"[green]●[/green] {cached_latency}ms")
+            # Alternate subtle styling for readability
+            if i % 2 == 0:
+                model_lines.append(f"[green]●[/green] [cyan]{clean_name}[/cyan]")
             else:
-                table.add_row(short_name, "[green]●[/green]")
+                model_lines.append(f"[green]●[/green] [dim cyan]{clean_name}[/dim cyan]")
 
-        return Panel(table, title=f"[bold]Models ({len(models)})[/bold]", border_style="green")
+        # Show count if more models exist
+        if len(models) > max_display:
+            remaining = len(models) - max_display
+            model_lines.append(f"[dim]  +{remaining} more...[/dim]")
+
+        content = "\n".join(model_lines)
+        return Panel(content, title=f"[bold]Models ({len(models)})[/bold]", border_style="green")
+
+    # Cache Phoenix data to avoid repeated queries
+    phoenix_cache = {"data": None, "time": 0}
+
+    def get_phoenix_data() -> Optional[Dict]:
+        """Get Phoenix data with caching (5 second TTL)."""
+        now = time.time()
+        if phoenix_cache["data"] and (now - phoenix_cache["time"]) < 5:
+            return phoenix_cache["data"]
+        data = query_phoenix_traces(limit=30)
+        if data:
+            phoenix_cache["data"] = data
+            phoenix_cache["time"] = now
+        return data
 
     def render_stats_panel() -> Panel:
-        """Render session statistics panel."""
-        stats = get_session_stats()
-
+        """Render session statistics panel with Phoenix data."""
+        phoenix = get_phoenix_data()
         lines_out = []
 
-        # Session info with duration
-        if stats["session_start"]:
-            start_time = stats["session_start"][:19].replace("T", " ")
-            try:
-                from datetime import datetime
-                start_dt = datetime.fromisoformat(stats["session_start"][:19])
-                duration = datetime.now() - start_dt
-                mins = int(duration.total_seconds() // 60)
-                lines_out.append(f"[bold]Session:[/bold] {mins}m ago")
-            except (ValueError, TypeError, KeyError):
-                lines_out.append(f"[bold]Session:[/bold] {start_time}")
+        if phoenix:
+            # LLM Calls
+            llm_count = len(phoenix.get("llm_calls", []))
+            lines_out.append(f"[bold]LLM Calls:[/bold] [cyan]{llm_count}[/cyan]")
+
+            # Total tokens with K formatting
+            total_tokens = phoenix.get("total_tokens", 0)
+            if total_tokens >= 1000:
+                lines_out.append(f"[bold]Tokens:[/bold] [yellow]{total_tokens/1000:.1f}K[/yellow]")
+            else:
+                lines_out.append(f"[bold]Tokens:[/bold] [yellow]{total_tokens}[/yellow]")
+
+            # Average latency
+            avg_latency = phoenix.get("avg_latency_ms", 0)
+            if avg_latency >= 1000:
+                lines_out.append(f"[bold]Avg Latency:[/bold] [cyan]{avg_latency/1000:.1f}s[/cyan]")
+            else:
+                lines_out.append(f"[bold]Avg Latency:[/bold] [cyan]{avg_latency}ms[/cyan]")
+
+            # Errors
+            errors = phoenix.get("error_count", 0)
+            if errors > 0:
+                lines_out.append(f"[bold]Errors:[/bold] [red]{errors}[/red]")
+            else:
+                lines_out.append(f"[bold]Errors:[/bold] [green]0[/green]")
+
+            # Traces by project
+            lines_out.append("")
+            lines_out.append("[bold]Traces:[/bold]")
+            for proj, count in list(phoenix.get("projects", {}).items())[:3]:
+                if count > 0:
+                    lines_out.append(f"  [dim]{proj}:[/dim] {count}")
+
         else:
-            lines_out.append("[bold]Session:[/bold] No activity")
+            # Fallback to debug.log stats
+            stats = get_session_stats()
+            lines_out.append("[dim]Phoenix not running[/dim]")
+            lines_out.append("")
+            lines_out.append(f"[bold]Requests:[/bold] {stats['total_requests']}")
+            lines_out.append(f"[bold]Agents:[/bold] {stats['agents_executed']}")
+            lines_out.append(f"[bold]KB Queries:[/bold] {stats['knowledge_queries']}")
 
-        lines_out.append("")
+        return Panel("\n".join(lines_out), title="[bold]Session Stats[/bold]", border_style="magenta")
 
-        # Request stats
-        total = stats["total_requests"]
-        success = stats["successful_requests"]
-        avg_latency = stats["total_latency_ms"] // max(total, 1)
+    def render_llm_calls_panel() -> Panel:
+        """Render recent LLM calls from Phoenix telemetry."""
+        phoenix = get_phoenix_data()
 
-        lines_out.append(f"[bold]Requests:[/bold] {total}")
-        if total > 0:
-            success_rate = int((success / total) * 100)
-            color = "green" if success_rate >= 90 else "yellow" if success_rate >= 70 else "red"
-            lines_out.append(f"  [{color}]{create_progress_bar(success_rate, 100, 15)} {success_rate}%[/{color}]")
-            # Format latency nicely
-            if avg_latency > 1000:
-                lines_out.append(f"  Avg: [cyan]{avg_latency/1000:.1f}s[/cyan]")
+        if not phoenix or not phoenix.get("llm_calls"):
+            # Fallback to debug.log if Phoenix not available
+            entries = read_debug_log(lines=10, component="cli")
+            if not entries:
+                return Panel(
+                    "[dim]No LLM calls yet[/dim]\n\n"
+                    "[dim]Run a review with --telemetry[/dim]\n"
+                    "[dim]or use k-lean multi[/dim]",
+                    title="[bold]Recent LLM Calls[/bold]", border_style="cyan"
+                )
+            # Show basic debug.log data
+            lines_out = []
+            for entry in entries[-8:]:
+                if entry.get("event") == "test_model":
+                    ts = entry.get("ts", "")[11:16]
+                    model = entry.get("model", "?")[:12]
+                    latency = entry.get("latency_ms", 0)
+                    if latency >= 1000:
+                        lat_str = f"{latency/1000:.1f}s"
+                    else:
+                        lat_str = f"{latency}ms"
+                    lines_out.append(f"[dim]{ts}[/dim] [cyan]{model}[/cyan] {lat_str}")
+            if lines_out:
+                return Panel("\n".join(lines_out), title="[bold]Recent LLM Calls[/bold]", border_style="cyan")
+            return Panel("[dim]No LLM calls recorded[/dim]", title="[bold]Recent LLM Calls[/bold]", border_style="cyan")
+
+        # Show Phoenix LLM calls with rich metrics
+        lines_out = []
+        for call in phoenix["llm_calls"][:10]:
+            # Parse time
+            time_str = call.get("time", "")
+            if time_str:
+                # Format: extract HH:MM from ISO timestamp
+                time_str = time_str[11:16] if len(time_str) > 16 else time_str[:5]
             else:
-                lines_out.append(f"  Avg: [cyan]{avg_latency}ms[/cyan]")
+                time_str = "??:??"
 
-        lines_out.append("")
+            model = call.get("model", "unknown")[:14]
+            latency = call.get("latency_ms", 0)
+            tokens_in = call.get("tokens_in", 0)
+            tokens_out = call.get("tokens_out", 0)
+            status = call.get("status", "OK")
 
-        # Activity counts
-        lines_out.append("[bold]Activity:[/bold]")
-        lines_out.append(f"  [magenta]Agents:[/magenta] {stats['agents_executed']}")
-        lines_out.append(f"  [cyan]KB queries:[/cyan] {stats['knowledge_queries']}")
-        if stats['models_used']:
-            lines_out.append(f"  [dim]Models: {', '.join(m[:8] for m in list(stats['models_used'])[:3])}[/dim]")
-
-        return Panel("\n".join(lines_out), title="[bold]Statistics[/bold]", border_style="magenta")
-
-    def render_activity_panel() -> Panel:
-        """Render recent activity panel."""
-        filter_comp = None if component_filter == "all" else component_filter
-        entries = read_debug_log(lines=lines, component=filter_comp)
-
-        if not entries:
-            return Panel("[dim]No recent activity\nRun k-lean test-model to generate activity[/dim]",
-                        title="[bold]Activity Feed[/bold]", border_style="cyan")
-
-        activity_lines = []
-        for entry in entries[-10:]:
-            ts = entry.get("ts", "")[11:19]  # Just time
-            comp = entry.get("component", "???")
-            event = entry.get("event", "")
-
-            # Color by component
-            comp_colors = {"cli": "yellow", "litellm": "green", "droid": "magenta", "knowledge": "cyan"}
-            color = comp_colors.get(comp, "white")
-
-            # Format event details
-            if comp == "cli" and event == "test_model":
-                model = entry.get("model", "")
-                latency = entry.get("latency_ms", 0)
-                detail = f"[{color}]{comp}[/{color}] test {model} ({latency}ms)"
-            elif comp == "cli" and event == "service_start":
-                service = entry.get("service", "")
-                detail = f"[{color}]{comp}[/{color}] started {service}"
-            elif comp == "cli" and event == "service_stop":
-                service = entry.get("service", "")
-                detail = f"[{color}]{comp}[/{color}] stopped {service}"
-            elif comp == "droid":
-                droid = entry.get("droid", event)
-                detail = f"[{color}]{comp}[/{color}] {droid}"
-            elif comp == "knowledge":
-                query = entry.get("query", event)[:30]
-                detail = f"[{color}]{comp}[/{color}] query: {query}"
+            # Format latency
+            if latency >= 1000:
+                lat_str = f"{latency/1000:.1f}s"
             else:
-                detail = f"[{color}]{comp}[/{color}] {event}"
+                lat_str = f"{latency}ms"
 
-            activity_lines.append(f"[dim]{ts}[/dim] {detail}")
+            # Format tokens
+            if tokens_in >= 1000:
+                tok_in = f"{tokens_in/1000:.1f}K"
+            else:
+                tok_in = str(tokens_in)
+            if tokens_out >= 1000:
+                tok_out = f"{tokens_out/1000:.1f}K"
+            else:
+                tok_out = str(tokens_out)
 
-        return Panel("\n".join(activity_lines), title="[bold]Activity Feed[/bold]", border_style="cyan")
+            # Status color
+            status_icon = "[green]●[/green]" if status == "OK" else "[red]●[/red]"
 
-    def render_reviews_panel() -> Panel:
-        """Render active and recent reviews panel."""
+            # Compact format: time model latency tokens
+            line = f"[dim]{time_str}[/dim] {status_icon} [cyan]{model:<14}[/cyan] [yellow]{lat_str:>5}[/yellow] [dim]{tok_in}→{tok_out}[/dim]"
+            lines_out.append(line)
+
+        if not lines_out:
+            lines_out.append("[dim]No LLM calls recorded[/dim]")
+
+        return Panel("\n".join(lines_out), title="[bold]Recent LLM Calls[/bold]", border_style="cyan")
+
+    def render_history_panel() -> Panel:
+        """Render run history grouped by day."""
         reviews_log = LOGS_DIR / "reviews.log"
 
         if not reviews_log.exists():
-            return Panel("[dim]No reviews yet\nRun a review command to see activity[/dim]",
-                        title="[bold]Reviews[/bold]", border_style="yellow")
+            return Panel(
+                "[dim]No history yet[/dim]\n\n"
+                "[dim]Run reviews to build history:[/dim]\n"
+                "[dim]  k-lean multi \"task\"[/dim]\n"
+                "[dim]  /kln:quick[/dim]",
+                title="[bold]Run History[/bold]", border_style="yellow"
+            )
 
-        # Read last 20 entries
+        # Read entries
         try:
             with open(reviews_log) as f:
-                entries = [json.loads(line) for line in f.readlines()[-20:] if line.strip()]
+                entries = [json.loads(line) for line in f.readlines()[-50:] if line.strip()]
         except Exception:
             entries = []
 
         if not entries:
-            return Panel("[dim]No review activity[/dim]",
-                        title="[bold]Reviews[/bold]", border_style="yellow")
+            return Panel("[dim]No history[/dim]", title="[bold]Run History[/bold]", border_style="yellow")
 
-        # Track active reviews (started but not ended)
-        active = {}
-        completed = []
+        # Filter to completed entries only
+        completed = [e for e in entries if e.get("event") in ("end", "error")]
 
-        for entry in entries:
-            event = entry.get("event", "")
-            cmd = entry.get("cmd", "?")
-            model = entry.get("model", "?")
-            key = f"{cmd}:{model}"
+        # Group by date
+        from datetime import datetime as dt
+        today = dt.now().date()
+        yesterday = today - timedelta(days=1)
 
-            if event == "start":
-                active[key] = entry
-            elif event == "end":
-                if key in active:
-                    del active[key]
-                completed.append(entry)
-            elif event == "error":
-                if key in active:
-                    del active[key]
-                completed.append(entry)
+        groups = {"Today": [], "Yesterday": [], "Earlier": []}
+
+        for entry in reversed(completed):  # Most recent first
+            ts = entry.get("ts", "")
+            try:
+                entry_date = dt.fromisoformat(ts[:10]).date()
+                if entry_date == today:
+                    groups["Today"].append(entry)
+                elif entry_date == yesterday:
+                    groups["Yesterday"].append(entry)
+                else:
+                    groups["Earlier"].append(entry)
+            except (ValueError, TypeError):
+                groups["Earlier"].append(entry)
 
         lines = []
+        total_shown = 0
+        max_per_group = 4
 
-        # Show active reviews first
-        if active:
-            lines.append("[bold green]● Active:[/bold green]")
-            for key, entry in list(active.items())[-3:]:
-                cmd = entry.get("cmd", "?")[:12]
-                model = entry.get("model", "?")[:10]
-                ts = entry.get("ts", "")[-8:]
-                output = entry.get("output", "")
-                if output:
-                    output = Path(output).name[:20]
-                lines.append(f"  [cyan]{cmd}[/cyan] {model} → {output}")
+        for group_name, group_entries in groups.items():
+            if not group_entries or total_shown >= 10:
+                continue
 
-        # Show recent completed
-        if completed:
-            lines.append("[bold]Recent:[/bold]")
-            for entry in completed[-5:]:
-                ts = entry.get("ts", "")[11:19]
-                cmd = entry.get("cmd", "?")[:10]
-                model = entry.get("model", "?")[:8]
-                status = entry.get("status", "?")
+            lines.append(f"[bold]{group_name}[/bold]")
+
+            for entry in group_entries[:max_per_group]:
+                if total_shown >= 10:
+                    break
+
+                ts = entry.get("ts", "")[11:16]  # HH:MM
+                cmd = entry.get("cmd", "?")
+                status = entry.get("status", "")
+                event = entry.get("event", "")
                 duration = entry.get("duration_ms", 0)
-                output = entry.get("output", "")
 
-                if output:
-                    output = Path(output).name[:15]
+                # Command display - clean up
+                if cmd.startswith("/kln:"):
+                    cmd_short = cmd[5:][:8]
+                else:
+                    cmd_short = cmd[:10]
 
-                # Status color
+                # Status icon
                 if status == "success":
-                    status_str = "[green]✓[/green]"
-                elif entry.get("event") == "error":
-                    status_str = "[red]✗[/red]"
+                    icon = "[green]✓[/green]"
+                elif event == "error":
+                    icon = "[red]✗[/red]"
                 else:
-                    status_str = "[yellow]?[/yellow]"
+                    icon = "[yellow]○[/yellow]"
 
-                # Duration format
-                if duration > 60000:
-                    dur_str = f"{duration//60000}m"
-                elif duration > 0:
-                    dur_str = f"{duration//1000}s"
+                # Duration
+                if duration >= 60000:
+                    dur = f"{duration // 60000}m"
+                elif duration >= 1000:
+                    dur = f"{duration // 1000}s"
                 else:
-                    dur_str = ""
+                    dur = ""
 
-                lines.append(f"  {ts} {status_str} [dim]{cmd}[/dim] {dur_str}")
+                lines.append(f"  [dim]{ts}[/dim] {icon} [cyan]{cmd_short}[/cyan] [dim]{dur}[/dim]")
+                total_shown += 1
+
+            lines.append("")  # Spacing between groups
+
+        # Remove trailing empty line
+        while lines and lines[-1] == "":
+            lines.pop()
 
         if not lines:
-            lines.append("[dim]No recent reviews[/dim]")
+            lines.append("[dim]No completed runs[/dim]")
 
-        return Panel("\n".join(lines), title="[bold]Reviews[/bold]", border_style="yellow")
+        return Panel("\n".join(lines), title="[bold]Run History[/bold]", border_style="yellow")
 
     def render_full_dashboard():
         """Render the complete dashboard layout."""
         # Create layout
         layout = Layout()
 
-        # Header with live clock
+        # Header with live clock and shortcuts
         header = Text()
         header.append("K-LEAN ", style="bold cyan")
-        header.append("Live Dashboard", style="bold")
+        header.append("Dashboard", style="bold")
         header.append(f"  {datetime.now().strftime('%H:%M:%S')}", style="green")
-        header.append("  [Ctrl+C to exit]", style="dim")
+        header.append("  ", style="dim")
+        header.append("[Ctrl+C]", style="dim cyan")
+        header.append(" exit  ", style="dim")
+        if check_phoenix():
+            header.append("[Phoenix :6006]", style="dim green")
 
-        # Top section: Services + Models
+        # Top section: Services + Stats + Models (3 columns)
         top_layout = Layout()
         top_layout.split_row(
             Layout(render_services_panel(), name="services", ratio=1),
-            Layout(render_models_panel(), name="models", ratio=2),
-        )
-
-        # Middle section: Stats + Reviews
-        mid_layout = Layout()
-        mid_layout.split_row(
             Layout(render_stats_panel(), name="stats", ratio=1),
-            Layout(render_reviews_panel(), name="reviews", ratio=2),
+            Layout(render_models_panel(), name="models", ratio=1),
         )
 
-        # Bottom section: Activity
+        # Bottom section: LLM Calls + History (2 columns)
         bottom_layout = Layout()
         bottom_layout.split_row(
-            Layout(render_activity_panel(), name="activity", ratio=1),
+            Layout(render_llm_calls_panel(), name="llm_calls", ratio=3),
+            Layout(render_history_panel(), name="history", ratio=2),
         )
 
-        # Combine
+        # Combine: Header + Top row (Services/Stats/Models) + Bottom row (LLM Calls/History)
         layout.split_column(
             Layout(Panel(header, border_style="cyan"), size=3),
             Layout(top_layout, name="top", ratio=2),
-            Layout(mid_layout, name="middle", ratio=2),
-            Layout(bottom_layout, name="bottom", ratio=2),
+            Layout(bottom_layout, name="bottom", ratio=3),
         )
 
         return layout
