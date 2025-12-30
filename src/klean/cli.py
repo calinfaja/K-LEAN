@@ -2233,30 +2233,16 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
         return Panel("\n".join(lines_out), title="[bold]Recent LLM Calls[/bold]", border_style="cyan")
 
     def render_history_panel() -> Panel:
-        """Render run history grouped by day."""
-        reviews_log = LOGS_DIR / "reviews.log"
+        """Render run history from Phoenix traces grouped by day."""
+        phoenix = get_phoenix_data()
 
-        if not reviews_log.exists():
+        if not phoenix or not phoenix.get("llm_calls"):
             return Panel(
                 "[dim]No history yet[/dim]\n\n"
-                "[dim]Run reviews to build history:[/dim]\n"
-                "[dim]  k-lean multi \"task\"[/dim]\n"
-                "[dim]  /kln:quick[/dim]",
+                "[dim]Traces appear after[/dim]\n"
+                "[dim]LLM calls with Phoenix[/dim]",
                 title="[bold]Run History[/bold]", border_style="yellow"
             )
-
-        # Read entries
-        try:
-            with open(reviews_log) as f:
-                entries = [json.loads(line) for line in f.readlines()[-50:] if line.strip()]
-        except Exception:
-            entries = []
-
-        if not entries:
-            return Panel("[dim]No history[/dim]", title="[bold]Run History[/bold]", border_style="yellow")
-
-        # Filter to completed entries only
-        completed = [e for e in entries if e.get("event") in ("end", "error")]
 
         # Group by date
         from datetime import datetime as dt
@@ -2265,18 +2251,21 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
         groups = {"Today": [], "Yesterday": [], "Earlier": []}
 
-        for entry in reversed(completed):  # Most recent first
-            ts = entry.get("ts", "")
+        for call in phoenix["llm_calls"]:
+            ts = call.get("time", "")
+            if not ts:
+                continue
             try:
+                # Parse ISO timestamp
                 entry_date = dt.fromisoformat(ts[:10]).date()
                 if entry_date == today:
-                    groups["Today"].append(entry)
+                    groups["Today"].append(call)
                 elif entry_date == yesterday:
-                    groups["Yesterday"].append(entry)
+                    groups["Yesterday"].append(call)
                 else:
-                    groups["Earlier"].append(entry)
+                    groups["Earlier"].append(call)
             except (ValueError, TypeError):
-                groups["Earlier"].append(entry)
+                groups["Earlier"].append(call)
 
         lines = []
         total_shown = 0
@@ -2288,39 +2277,31 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
 
             lines.append(f"[bold]{group_name}[/bold]")
 
-            for entry in group_entries[:max_per_group]:
+            for call in group_entries[:max_per_group]:
                 if total_shown >= 10:
                     break
 
-                ts = entry.get("ts", "")[11:16]  # HH:MM
-                cmd = entry.get("cmd", "?")
-                status = entry.get("status", "")
-                event = entry.get("event", "")
-                duration = entry.get("duration_ms", 0)
-
-                # Command display - clean up
-                if cmd.startswith("/kln:"):
-                    cmd_short = cmd[5:][:8]
-                else:
-                    cmd_short = cmd[:10]
+                ts = call.get("time", "")[11:16]  # HH:MM
+                model = call.get("model", "?")[:10]
+                latency = call.get("latency_ms", 0)
+                status = call.get("status", "OK")
+                tokens_out = call.get("tokens_out", 0)
 
                 # Status icon
-                if status == "success":
-                    icon = "[green]✓[/green]"
-                elif event == "error":
-                    icon = "[red]✗[/red]"
-                else:
-                    icon = "[yellow]○[/yellow]"
+                icon = "[green]✓[/green]" if status == "OK" else "[red]✗[/red]"
 
                 # Duration
-                if duration >= 60000:
-                    dur = f"{duration // 60000}m"
-                elif duration >= 1000:
-                    dur = f"{duration // 1000}s"
+                if latency >= 60000:
+                    dur = f"{latency // 60000}m"
+                elif latency >= 1000:
+                    dur = f"{latency // 1000}s"
                 else:
-                    dur = ""
+                    dur = f"{latency}ms"
 
-                lines.append(f"  [dim]{ts}[/dim] {icon} [cyan]{cmd_short}[/cyan] [dim]{dur}[/dim]")
+                # Tokens
+                tok = f"{tokens_out}" if tokens_out < 1000 else f"{tokens_out/1000:.1f}K"
+
+                lines.append(f"  [dim]{ts}[/dim] {icon} [cyan]{model}[/cyan] [dim]{dur} {tok}[/dim]")
                 total_shown += 1
 
             lines.append("")  # Spacing between groups
@@ -2330,7 +2311,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
             lines.pop()
 
         if not lines:
-            lines.append("[dim]No completed runs[/dim]")
+            lines.append("[dim]No traces yet[/dim]")
 
         return Panel("\n".join(lines), title="[bold]Run History[/bold]", border_style="yellow")
 
