@@ -70,6 +70,9 @@ smol-kln <agent> "<task>" [--model MODEL] [--telemetry]
 - `search_files` - Glob pattern search (recursive by default)
 - `grep` - Pattern search in files
 - `knowledge_search` - Query project's Knowledge DB
+- `get_complexity` - Analyze code complexity (Python + C/C++ via lizard)
+- `scan_secrets` - Detect hardcoded secrets/credentials
+- `git_show`, `git_diff`, `git_log`, `git_status` - Git operations
 
 ### MCP Integration (if available)
 

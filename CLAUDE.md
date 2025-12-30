@@ -98,6 +98,8 @@ smol-kln --list   # List available agents
 
 **Output**: `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
 
+**Agent Tools**: `read_file`, `search_files`, `grep`, `knowledge_search`, `get_complexity` (Python + C/C++)
+
 ## Available Models
 
 **Dynamic discovery** from LiteLLM proxy. Models depend on your configuration.
