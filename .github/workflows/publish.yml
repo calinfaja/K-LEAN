@@ -1,0 +1,102 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (must match pyproject.toml)'
+        required: true
+        type: string
+      skip_tests:
+        description: 'Skip tests (use only if CI already passed)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify version matches pyproject.toml
+        run: |
+          TOML_VERSION=$(grep '^version' pyproject.toml | head -1 | cut -d'"' -f2)
+          echo "Input version: ${{ inputs.version }}"
+          echo "pyproject.toml version: $TOML_VERSION"
+          if [ "${{ inputs.version }}" != "$TOML_VERSION" ]; then
+            echo "ERROR: Version mismatch!"
+            echo "Update pyproject.toml and src/klean/__init__.py first"
+            exit 1
+          fi
+
+      - name: Verify version matches __init__.py
+        run: |
+          INIT_VERSION=$(grep '__version__' src/klean/__init__.py | cut -d'"' -f2)
+          echo "__init__.py version: $INIT_VERSION"
+          if [ "${{ inputs.version }}" != "$INIT_VERSION" ]; then
+            echo "ERROR: Version mismatch with __init__.py!"
+            exit 1
+          fi
+
+  test:
+    needs: verify
+    if: ${{ !inputs.skip_tests }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check src/ --select=F,E722
+
+      - name: Install package
+        run: pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: pytest tests/ -v --tb=short
+
+      - name: Sync check
+        run: kln sync --check
+
+  publish:
+    needs: [verify, test]
+    if: always() && needs.verify.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: pypi  # Optional: adds manual approval step
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Check package
+        run: twine check dist/*
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
+
+      - name: Create summary
+        run: |
+          echo "## Published to PyPI" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Package:** kln-ai" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Install with: \`pipx install kln-ai\`" >> $GITHUB_STEP_SUMMARY
