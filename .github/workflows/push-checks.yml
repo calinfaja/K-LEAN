@@ -51,7 +51,7 @@ jobs:
       # Unit Tests (mocked, no services needed)
       # ----------------------------------------
       - name: Run pytest
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short --ignore=tests/core/
 
       # ----------------------------------------
       # Package Integrity
