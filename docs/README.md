@@ -1,46 +1,88 @@
-# K-LEAN
+# K-LEAN Documentation
 
-Multi-model code review and knowledge capture for Claude Code.
+Welcome to the K-LEAN documentation. This guide covers installation, usage, and configuration.
 
-## What It Does
+---
 
-- **Reviews**: Multiple LLM models review your code with consensus scoring
-- **Knowledge**: Captures lessons learned with semantic search
-- **SmolKLN Agents**: 8 specialist AI agents for domain-specific analysis
+## Getting Started
 
-## Quick Start
+New to K-LEAN? Start here:
+
+1. **[Installation](installation.md)** - Install and configure K-LEAN
+2. **[Usage](usage.md)** - Learn the commands and workflows
+3. **[Reference](reference.md)** - Complete configuration reference
+
+---
+
+## Documentation Index
+
+### User Guides
+
+| Document | Description |
+|----------|-------------|
+| [Installation](installation.md) | Prerequisites, install steps, provider setup |
+| [Usage](usage.md) | Slash commands, agents, workflows, output locations |
+| [Reference](reference.md) | CLI flags, config files, KB schema, review areas |
+
+### Architecture
+
+| Document | Description |
+|----------|-------------|
+| [Overview](architecture/OVERVIEW.md) | System architecture, component summary |
+| [Components](architecture/COMPONENTS.md) | CLI, hooks, Knowledge DB, LiteLLM, agents |
+| [Development](architecture/DEVELOPMENT.md) | Dev setup, conventions, testing, releases |
+
+### Internals
+
+| Document | Description |
+|----------|-------------|
+| [Project Index](INDEX.md) | Complete codebase reference with cross-links |
+
+---
+
+## Quick Reference
+
+### Commands
 
 ```bash
-pipx install kln-ai
-kln install
-kln doctor
+/kln:quick <focus>     # Single model review (~30s)
+/kln:multi <focus>     # 3-5 model consensus (~60s)
+/kln:agent <role>      # Specialist agent (~2min)
+/kln:rethink           # Contrarian debugging
+/kln:learn             # Capture insights from context
+/kln:status            # System health
 ```
 
-## Documentation
-
-| Doc | Purpose |
-|-----|---------|
-| [Project Index](INDEX.md) | Complete codebase reference |
-| [Installation](installation.md) | Setup guide |
-| [Usage](usage.md) | Commands and workflows |
-| [Reference](reference.md) | All options and configuration |
-
-## Quick Commands
+### CLI
 
 ```bash
-# In Claude Code
-/kln:quick security          # Fast review (~30s)
-/kln:multi architecture      # 3-5 model consensus (~60s)
-/kln:agent security-auditor  # Specialist agent (~2min)
-/kln:learn "topic"           # Extract learnings from context
-
-# Keywords (type directly)
-FindKnowledge "topic"         # Search knowledge
+kln install            # Install components
+kln setup              # Configure API provider
+kln doctor -f          # Diagnose and auto-fix
+kln start              # Start services
+kln models             # List available models
 ```
+
+### Keywords
+
+```bash
+FindKnowledge <query>  # Search knowledge DB
+SaveInfo <url>         # Evaluate and save URL
+```
+
+---
 
 ## Requirements
 
-- Python 3.9+
-- Claude Code 2.0+
-- LiteLLM proxy (included)
-- NanoGPT or OpenRouter API key
+| Requirement | Version |
+|-------------|---------|
+| Python | 3.9+ |
+| Claude Code | 2.0+ |
+| API Key | NanoGPT or OpenRouter |
+
+---
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/calinfaja/K-LEAN/issues)
+- **Main README**: [K-LEAN](https://github.com/calinfaja/K-LEAN#readme)
