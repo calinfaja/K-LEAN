@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/calinfaja/k-lean/actions"><img src="https://github.com/calinfaja/k-lean/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/calinfaja/K-LEAN/actions"><img src="https://github.com/calinfaja/K-LEAN/actions/workflows/push-checks.yml/badge.svg" alt="CI"></a>
   <a href="https://pypi.org/project/kln-ai/"><img src="https://img.shields.io/pypi/v/kln-ai.svg" alt="PyPI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9+-yellow.svg" alt="Python"></a>
@@ -248,7 +248,7 @@ For a complete coding experience:
 ## Contributing
 
 ```bash
-git clone https://github.com/calinfaja/k-lean.git
+git clone https://github.com/calinfaja/K-LEAN.git
 cd k-lean
 pipx install -e .
 kln install --dev
