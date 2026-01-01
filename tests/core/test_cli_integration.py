@@ -10,9 +10,9 @@ import subprocess
 import unittest
 from pathlib import Path
 
-# K-LEAN paths
-KLEAN_CORE = Path.home() / ".claude" / "k-lean" / "klean_core.py"
-PYTHON = Path.home() / ".local" / "share" / "pipx" / "venvs" / "k-lean" / "bin" / "python"
+# K-LEAN paths - use source location for tests
+KLEAN_CORE = Path(__file__).parent.parent.parent / "src" / "klean" / "data" / "core" / "klean_core.py"
+PYTHON = Path.home() / ".local" / "share" / "pipx" / "venvs" / "kln-ai" / "bin" / "python"
 
 
 def run_klean_command(args: list, timeout: int = 30) -> tuple:
