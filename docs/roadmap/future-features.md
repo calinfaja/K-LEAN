@@ -12,7 +12,7 @@
 | **Health Fallback** | `get-healthy-models.sh` | Auto-switch to working model if one fails |
 | **Thinking Models** | All review scripts | Check `reasoning_content` for DeepSeek/GLM |
 | **Knowledge Inject** | Review scripts | Query KB, add to prompt if relevant |
-| **SmolKLN Agents** | `smol-kln` | Tool-equipped specialist agents |
+| **SmolKLN Agents** | `kln-smol` | Tool-equipped specialist agents |
 
 These are solid. Don't change.
 
@@ -67,7 +67,7 @@ fi
 
 ---
 
-## Competitive Analysis (Dec 2025)
+## Competitive Analysis (Jan 2026)
 
 ### K-LEAN vs Other Frameworks
 
@@ -75,7 +75,7 @@ fi
 |-----------|-------|-------|----------|
 | **SuperClaude** | Full dev lifecycle | 19.3k | 30 |
 | **Superpowers** | Planning workflow | ~500 | 3 |
-| **K-LEAN** | Multi-model reviews | New | 10 |
+| **K-LEAN** | Multi-model reviews | New | 9 |
 
 ### K-LEAN Unique Strengths (Keep These)
 

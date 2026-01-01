@@ -72,7 +72,7 @@ Claude Code uses a single AI model. K-LEAN adds:
 | Component | Count | Description |
 |-----------|-------|-------------|
 | Models | Dynamic | Via LiteLLM (auto-discovered) |
-| Slash Commands | 10 | /kln:quick, multi, deep, agent, rethink, doc, learn, remember, status, help |
+| Slash Commands | 9 | /kln:quick, multi, agent, rethink, doc, learn, remember, status, help |
 | SmolKLN Agents | 8 | code-reviewer, security-auditor, debugger, performance-engineer, rust-expert, c-pro, arm-cortex-expert, orchestrator |
 | Hooks | 5 | FindKnowledge, SaveInfo, async reviews, session-start, post-tool |
 | Rules | 1 | ~/.claude/rules/k-lean.md |

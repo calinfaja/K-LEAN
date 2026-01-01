@@ -74,7 +74,7 @@ This installs:
 **Usage:**
 ```bash
 kln start --telemetry                 # Start Phoenix on :6006
-smol-kln security-auditor "audit" -t     # Run agent with tracing
+kln-smol security-auditor "audit" -t     # Run agent with tracing
 ```
 
 View traces at `http://localhost:6006`
@@ -100,5 +100,3 @@ pipx uninstall kln-ai
 | LiteLLM not starting | `lsof -i :4000` (check port) |
 | Models unhealthy | Check API key in `~/.config/litellm/.env` |
 | Config errors | `kln doctor -f` (auto-fix) |
-
-See [.agents/troubleshooting.md](../.agents/troubleshooting.md) for detailed diagnostics.
