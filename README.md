@@ -219,7 +219,9 @@ kln version          # Show version
 
 ---
 
-## Works With
+## Recommended Add-ons
+
+For a complete coding experience:
 
 | Tool | Integration |
 |------|-------------|
