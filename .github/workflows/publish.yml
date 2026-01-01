@@ -56,6 +56,15 @@ jobs:
       - name: Lint
         run: ruff check src/ --select=F,E722
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
       - name: Install package
         run: pip install -e ".[dev]"
 
