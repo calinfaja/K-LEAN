@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-readme.png" alt="K-LEAN" width="200">
+  <img src="assets/logo-icon.png" alt="K-LEAN" width="120">
 </p>
 
 <h1 align="center">K-LEAN</h1>
