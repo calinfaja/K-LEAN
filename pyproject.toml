@@ -29,38 +29,40 @@ classifiers = [
     "Topic :: Software Development :: Testing",
 ]
 dependencies = [
+    # Core CLI
     "click>=8.0.0",
     "rich>=13.0.0",
     "pyyaml>=6.0.0",
     "httpx>=0.27.0",
+    # Knowledge DB (required for most features)
+    "txtai>=7.0.0",
+    "sentence-transformers>=2.0.0",
+    # SmolKLN Agents (required for agents and kln multi)
+    "smolagents[litellm]>=1.17.0",
+    "ddgs>=6.0.0",
+    "markdownify>=0.11.0",
+    "lizard>=1.17.0",
 ]
 
 [project.optional-dependencies]
-knowledge = [
-    "txtai>=7.0.0",
-    "sentence-transformers>=2.0.0",
-]
+# Optional: Claude Agent SDK for building custom agents
 agent-sdk = [
     "anthropic>=0.34.0,<1.0.0",
 ]
-smolagents = [
-    "smolagents[litellm]>=1.17.0",
-    "txtai>=7.0.0",  # Required for KnowledgeSearchTool
-    "ddgs>=6.0.0",  # Required for DuckDuckGoSearchTool
-    "markdownify>=0.11.0",  # Required for VisitWebpageTool
-    "lizard>=1.17.0",  # Required for get_complexity (C/C++ support)
-]
+# Optional: Phoenix telemetry for agent tracing
 telemetry = [
     "arize-phoenix>=4.0",
     "opentelemetry-sdk",
     "opentelemetry-exporter-otlp",
     "openinference-instrumentation-smolagents",
 ]
+# Optional: Toon integration
 toon = [
     "python-toon>=0.1.0",
 ]
+# All optional extras
 all = [
-    "k-lean[knowledge,agent-sdk,smolagents,telemetry,toon]",
+    "kln-ai[agent-sdk,telemetry,toon]",
 ]
 dev = [
     "pytest>=7.0.0",
