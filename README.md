@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="assets/logo-icon.png" alt="K-LEAN" width="120">
+  <img src="assets/logo-banner.png" alt="K-LEAN" width="500">
 </p>
-
-<h1 align="center">K-LEAN</h1>
 
 <p align="center">
   <strong>Multi-Model Code Reviews & Persistent Knowledge for Claude Code</strong>

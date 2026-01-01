@@ -14,8 +14,8 @@ K-LEAN (Knowledge-Lean) is an addon for Claude Code that provides:
 - **Consensus reviews** from 3-5 models in parallel
 - **Persistent Knowledge DB** with semantic search (210+ entries)
 - **8 SmolKLN agents** for domain-specific analysis
-- **10 slash commands** for reviews, debugging, and documentation
-- **5 hooks** for automatic knowledge capture
+- **9 slash commands** for reviews, debugging, and documentation
+- **4 hooks** for automatic knowledge capture
 
 ### The Problem
 
@@ -189,8 +189,8 @@ k-lean/
 │   ├── smol/               # SmolKLN agent system
 │   └── data/               # Installable assets
 │       ├── scripts/        # 36+ shell & Python scripts
-│       ├── commands/kln/   # 10 slash commands
-│       ├── hooks/          # 5 Claude Code hooks
+│       ├── commands/kln/   # 9 slash commands
+│       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── core/           # Review engine & prompts
 ├── docs/                   # User documentation
