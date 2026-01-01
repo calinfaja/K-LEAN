@@ -110,10 +110,9 @@
   },
   "config_files": {
     "pyproject": "pyproject.toml",
-    "klean_config": "config/klean-config.yaml",
-    "litellm_config": "config/litellm/config.yaml",
-    "nanogpt_template": "config/nanogpt.yaml",
-    "openrouter_template": "config/litellm/openrouter.yaml",
+    "litellm_nanogpt": "config/litellm/config.yaml",
+    "litellm_openrouter": "config/litellm/openrouter.yaml",
+    "claude_reference": "config/CLAUDE.md",
     "serena": ".serena/project.yml"
   },
   "dependencies": {
@@ -129,15 +128,15 @@
   "tests": {
     "framework": "pytest",
     "path": "tests/",
-    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py"],
+    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py"],
     "core_tests": "src/klean/data/core/tests/"
   },
   "file_counts": {
-    "python": {"count": 53, "lines": 7800},
-    "shell": {"count": 29, "lines": 3000},
-    "markdown": {"count": 100},
-    "yaml_toml": {"count": 14},
-    "tests": {"count": 9, "lines": 2500}
+    "python": 37,
+    "shell": 29,
+    "markdown": 50,
+    "yaml_toml": 14,
+    "tests": 10
   },
   "directories": {
     "installed": {

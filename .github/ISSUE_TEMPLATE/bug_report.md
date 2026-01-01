@@ -18,6 +18,6 @@ about: Report a bug in K-LEAN
 [What actually happens]
 
 ## Environment
-- K-LEAN version: `k-lean --version`
+- K-LEAN version: `kln --version`
 - OS:
 - Python version:
