@@ -70,7 +70,7 @@ jobs:
     if: always() && needs.verify.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for creating tags and releases
+      contents: write  # Required for creating tags
     steps:
       - uses: actions/checkout@v4
 
@@ -141,25 +141,6 @@ jobs:
           fi
 
       # ----------------------------------------
-      # GitHub Release
-      # ----------------------------------------
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="v${{ inputs.version }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists, skipping..."
-          else
-            gh release create "$TAG" \
-              --repo="$GITHUB_REPOSITORY" \
-              --title="$TAG" \
-              --generate-notes \
-              dist/*
-            echo "Created GitHub Release: $TAG"
-          fi
-
-      # ----------------------------------------
       # Summary
       # ----------------------------------------
       - name: Create summary
@@ -168,14 +149,15 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Package:** kln-ai" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Verification" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Published to PyPI" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Verified on PyPI API" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Test install successful" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Git tag created" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] GitHub Release created" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Git tag v${{ inputs.version }} created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Step (manual)" >> $GITHUB_STEP_SUMMARY
+          echo "Create GitHub Release: https://github.com/calinfaja/K-LEAN/releases/new?tag=v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Install" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY

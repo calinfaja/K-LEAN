@@ -61,31 +61,18 @@ cd k-lean
 pipx install -e .
 
 # Verify installation
-k-lean --version    # Should show 1.0.0-beta
-kln doctor       # Check configuration
-kln test         # Run test suite (27 tests)
+kln --version       # Should show 1.0.0b1
+kln doctor          # Check configuration
+kln test            # Run test suite
 ```
 
-### Optional Dependencies
+### Development Install
 
 ```bash
-# Knowledge base features (txtai, sentence-transformers)
-pipx inject k-lean txtai sentence-transformers
+# Install with dev tools
+pip install -e ".[dev]"
 
-# SmolKLN agents (smolagents framework)
-pipx inject k-lean "smolagents[litellm]>=1.17.0"
-
-# Telemetry (Phoenix tracing)
-pipx inject k-lean arize-phoenix opentelemetry-sdk
-
-# Development tools
-pipx inject k-lean pytest black ruff
-```
-
-### Full Development Install
-
-```bash
-# Install with all optional dependencies
+# Or with all optional extras (telemetry, agent-sdk)
 pip install -e ".[all,dev]"
 ```
 
@@ -96,24 +83,20 @@ pip install -e ".[all,dev]"
 ```
 k-lean/
 ├── src/klean/              # Main package
-│   ├── __init__.py         # Version: 1.0.0-beta
-│   ├── cli.py              # CLI entry point (k-lean command)
+│   ├── __init__.py         # Version
+│   ├── cli.py              # CLI entry point (kln command)
 │   ├── smol/               # SmolKLN agent framework
-│   │   └── cli.py          # smol-kln command
 │   └── data/               # Installable assets
-│       ├── scripts/        # Executable scripts (.sh)
+│       ├── scripts/        # Shell & Python scripts
 │       ├── commands/kln/   # Slash commands (.md)
-│       ├── hooks/          # Claude Code hooks (.sh)
-│       ├── agents/         # SmolKLN agent definitions (.md)
-│       ├── lib/            # Shared utilities
-│       ├── core/           # Review engine
+│       ├── hooks/          # Claude Code hooks
+│       ├── agents/         # SmolKLN agent definitions
+│       ├── core/           # Review engine & prompts
 │       └── config/         # Config templates
-├── config/                 # Development config templates
 ├── docs/                   # Documentation
+│   └── architecture/       # Technical docs (this folder)
 ├── tests/                  # Test suite
-├── .agents/                # AI agent context (this folder)
-├── AGENTS.md               # Universal AI instructions
-├── CLAUDE.md               # Claude Code specific
+├── CLAUDE.md               # Claude Code instructions
 └── pyproject.toml          # Package metadata
 ```
 
@@ -654,14 +637,21 @@ rm -rf .knowledge-db/
 
 # Complete reinstall
 kln uninstall
-pipx uninstall k-lean
-pipx install k-lean
+pipx uninstall kln-ai
+pipx install kln-ai
 kln install
 ```
 
 ---
 
 ## Release Checklist
+
+### Package Info
+
+- **Name**: `kln-ai` (k-lean and kln were taken on PyPI)
+- **Install**: `pipx install kln-ai`
+- **URL**: https://pypi.org/project/kln-ai/
+- **Workflow**: `.github/workflows/publish.yml`
 
 ### Pre-Release
 
@@ -679,69 +669,92 @@ ruff check src/
 kln sync --check
 ```
 
-### Version Update
+### Release Process
 
-Update version in these files:
+#### Step 1: Update Version (manual)
 
-1. `src/klean/__init__.py`
-2. `pyproject.toml`
-3. `src/klean/data/core/config.yaml`
+Update version in TWO files (keep in sync):
 
-### Release
+1. `pyproject.toml` -> `version = "1.0.0b2"`
+2. `src/klean/__init__.py` -> `__version__ = "1.0.0b2"`
+
+**Version Format** (PEP 440):
+```
+1.0.0b0  <- beta 0
+1.0.0b1  <- beta 1
+1.0.0    <- stable release
+1.0.1    <- patch
+1.1.0    <- minor
+2.0.0b0  <- next major beta
+```
 
 ```bash
-# Commit and tag
+# Sync if scripts/commands changed
+kln sync
+
+# Commit version bump
 git add -A
-git commit -m "Release vX.Y.Z"
-git tag vX.Y.Z
-git push && git push --tags
+git commit -m "Bump to 1.0.0b2"
+git push
 ```
+
+#### Step 2: Run Publish Workflow (GitHub Actions)
+
+1. Go to: **Actions > Publish to PyPI > Run workflow**
+2. Enter version (e.g., `1.0.0b2`)
+3. Click **Run workflow**
+
+#### Step 3: Workflow Runs (automatic)
+
+The workflow performs these steps:
+
+```
+verify   -> Check version matches pyproject.toml and __init__.py
+test     -> Lint (ruff), pytest, sync check
+publish  -> Build package, twine check, upload to PyPI
+verify   -> Wait 30s, check PyPI API, test install in fresh venv
+tag      -> Create and push git tag (v1.0.0b2)
+summary  -> Show results + link to create GitHub release
+```
+
+#### Step 4: Create GitHub Release (manual)
+
+1. Click the link in workflow summary, or go to Releases
+2. Select the tag created by workflow
+3. Click "Generate release notes"
+4. Publish release
+
+### Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Version mismatch | Workflow fails if input doesn't match files |
+| Auth failed | Check `PYPI_TOKEN` in GitHub Secrets |
+| Version exists | PyPI rejects duplicates - bump version |
+| Test install fails | Check dependencies in pyproject.toml |
 
 ---
 
 ## Dependencies Reference
 
-### Core Dependencies
+### Core (included in base install)
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| click | >=8.0.0 | CLI framework |
-| rich | >=13.0.0 | Terminal formatting |
-| pyyaml | >=6.0.0 | Config parsing |
-| httpx | >=0.27.0 | HTTP client |
+| Package | Purpose |
+|---------|---------|
+| click, rich | CLI framework |
+| pyyaml, httpx | Config & HTTP |
+| txtai, sentence-transformers | Knowledge DB |
+| smolagents[litellm] | SmolKLN agents |
+| ddgs, markdownify, lizard | Agent tools |
 
-### Optional: Knowledge Base
+### Optional Extras
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| txtai | >=7.0.0 | Vector search |
-| sentence-transformers | >=2.0.0 | Embeddings |
-
-### Optional: SmolKLN Agents
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| smolagents | >=1.17.0 | Agent framework |
-| ddgs | >=6.0.0 | Web search |
-| markdownify | >=0.11.0 | HTML to Markdown |
-
-### Optional: Telemetry
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| arize-phoenix | >=4.0 | Tracing UI |
-| opentelemetry-sdk | Latest | Telemetry |
-| openinference-instrumentation-smolagents | Latest | Agent tracing |
-
-### Development
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| pytest | >=7.0.0 | Testing |
-| pytest-cov | >=4.0.0 | Coverage |
-| black | >=23.0.0 | Formatting |
-| ruff | >=0.1.0 | Linting |
+| Extra | Packages | Purpose |
+|-------|----------|---------|
+| `[telemetry]` | arize-phoenix, opentelemetry | Agent tracing |
+| `[agent-sdk]` | anthropic | Claude Agent SDK |
+| `[dev]` | pytest, black, ruff | Development |
 
 ---
 
-*Last updated: 2024-12*
+*Last updated: 2026-01*
