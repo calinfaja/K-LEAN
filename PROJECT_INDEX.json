@@ -6,16 +6,17 @@
     "description": "Multi-model code review and knowledge capture system for Claude Code",
     "generated": "2026-01-01",
     "python_version": ">=3.9",
-    "license": "Apache-2.0"
+    "license": "Apache-2.0",
+    "lines_of_code": 5208
   },
   "entry_points": {
     "kln": "src/klean/cli.py:main",
-    "smol-kln": "src/klean/smol/cli.py:main"
+    "kln-smol": "src/klean/smol/cli.py:main"
   },
   "core_modules": {
     "cli": {
       "path": "src/klean/cli.py",
-      "exports": ["main", "install", "uninstall", "status", "doctor", "start", "stop", "models", "multi", "setup", "debug", "sync", "version"],
+      "exports": ["main", "install", "uninstall", "status", "doctor", "start", "stop", "models", "multi", "setup"],
       "purpose": "Primary CLI with Click commands"
     },
     "discovery": {
@@ -103,7 +104,7 @@
     }
   },
   "scripts": {
-    "count": 39,
+    "count": 35,
     "review": ["quick-review.sh", "consensus-review.sh", "second-opinion.sh"],
     "service": ["setup-litellm.sh", "start-litellm.sh", "health-check.sh", "session-helper.sh"],
     "utility": ["timeline-query.sh", "smart-capture.sh", "fact-extract.sh", "async-dispatch.sh"]
@@ -112,7 +113,6 @@
     "pyproject": "pyproject.toml",
     "litellm_nanogpt": "config/litellm/config.yaml",
     "litellm_openrouter": "config/litellm/openrouter.yaml",
-    "claude_reference": "config/CLAUDE.md",
     "serena": ".serena/project.yml"
   },
   "dependencies": {
@@ -128,15 +128,15 @@
   "tests": {
     "framework": "pytest",
     "path": "tests/",
-    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py"],
-    "core_tests": "src/klean/data/core/tests/"
+    "count": 9,
+    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py"]
   },
   "file_counts": {
-    "python": 37,
-    "shell": 29,
+    "python": 50,
+    "shell": 35,
     "markdown": 50,
-    "yaml_toml": 14,
-    "tests": 10
+    "yaml_toml": 12,
+    "tests": 9
   },
   "directories": {
     "installed": {

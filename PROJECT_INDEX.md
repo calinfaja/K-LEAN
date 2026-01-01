@@ -16,11 +16,11 @@ Multi-model code review and persistent knowledge system for Claude Code. Get con
 
 ```
 k-lean/
-├── src/klean/              # Main package (7.8K lines Python)
+├── src/klean/              # Main package (~5.2K lines Python)
 │   ├── cli.py              # CLI entry point (kln command)
 │   ├── discovery.py        # Model discovery from LiteLLM
 │   ├── smol/               # SmolKLN agent system (16 modules)
-│   │   ├── cli.py          # smol-kln command
+│   │   ├── cli.py          # kln-smol command
 │   │   ├── executor.py     # Single agent execution
 │   │   ├── multi_agent.py  # Multi-agent orchestration
 │   │   ├── tools.py        # Agent tools (read, grep, git)
@@ -28,15 +28,15 @@ k-lean/
 │   │   └── loader.py       # Agent .md file parser
 │   ├── tools/              # Agent tools (grep, read, search)
 │   └── data/               # Installable assets
-│       ├── scripts/        # 39 shell & Python scripts
+│       ├── scripts/        # 35 shell & Python scripts
 │       ├── commands/kln/   # 9 slash commands
 │       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # LiteLLM & provider templates
-├── tests/                  # 10 test files
+├── tests/                  # 9 test files
 ├── docs/                   # User & architecture docs
-├── CLAUDE.md               # Claude Code instructions
-└── AGENTS.md               # Universal AI instructions
+├── config/litellm/         # LiteLLM proxy configuration
+└── pyproject.toml          # Package configuration
 ```
 
 ---
@@ -46,7 +46,7 @@ k-lean/
 | Command | Source | Description |
 |---------|--------|-------------|
 | `kln` | `src/klean/cli.py:main` | Main CLI (install, status, doctor, multi, etc.) |
-| `smol-kln` | `src/klean/smol/cli.py:main` | SmolAgents executor |
+| `kln-smol` | `src/klean/smol/cli.py:main` | SmolAgents executor |
 
 ---
 
@@ -60,9 +60,6 @@ Primary CLI with Click commands:
 - `models` / `test-model` - Model discovery and testing
 - `multi` - Multi-agent orchestrated review
 - `setup` - Provider configuration (NanoGPT, OpenRouter)
-- `debug` - Real-time monitoring dashboard
-- `sync` - Sync package data for PyPI
-- `version` - Show version information
 
 ### `src/klean/discovery.py`
 Dynamic model discovery from LiteLLM proxy:
@@ -76,6 +73,7 @@ SmolAgents-based agent system:
 |--------|---------|
 | `cli.py` | SmolKLN CLI entry point |
 | `executor.py` | Single agent execution with tool use |
+| `async_executor.py` | Async agent execution |
 | `multi_agent.py` | Multi-agent orchestration and consensus |
 | `tools.py` | Agent tools: read_file, search_files, grep |
 | `models.py` | LiteLLM model wrapper, thinking model support |
@@ -84,7 +82,6 @@ SmolAgents-based agent system:
 | `context.py` | Git context extraction (status, diff, log) |
 | `prompts.py` | System prompts and templates |
 | `loader.py` | Agent definition loading from markdown |
-| `async_executor.py` | Async agent execution |
 | `multi_config.py` | Multi-agent configuration |
 | `task_queue.py` | Task queue for parallel execution |
 | `reflection.py` | Agent self-reflection |
@@ -96,6 +93,7 @@ SmolAgents-based agent system:
 | `read_tool.py` | File reading with line limits |
 | `grep_tool.py` | Pattern search in files |
 | `search_knowledge_tool.py` | Knowledge DB semantic search |
+| `testing_tool.py` | Test execution tool |
 
 ---
 
@@ -159,7 +157,7 @@ SmolAgents-based agent system:
 
 ---
 
-## Key Scripts (39 total)
+## Key Scripts (35 total)
 
 ### Review Scripts
 - `quick-review.sh` - Single model quick review
@@ -187,7 +185,6 @@ SmolAgents-based agent system:
 | `pyproject.toml` | Package metadata, dependencies |
 | `config/litellm/config.yaml` | LiteLLM model routing (NanoGPT) |
 | `config/litellm/openrouter.yaml` | LiteLLM model routing (OpenRouter) |
-| `config/CLAUDE.md` | K-LEAN command reference |
 | `.serena/project.yml` | Serena MCP project config |
 
 ---
@@ -203,6 +200,8 @@ SmolAgents-based agent system:
 - sentence-transformers>=2.0.0 - Embedding models
 - smolagents[litellm]>=1.17.0 - Agent framework
 - lizard>=1.17.0 - Code complexity analysis
+- ddgs>=6.0.0 - Web search
+- markdownify>=0.11.0 - HTML to markdown
 
 **Optional extras**:
 - `[agent-sdk]` - anthropic (Claude Agent SDK)
@@ -225,8 +224,9 @@ SmolAgents-based agent system:
 | test_memory.py | Session memory |
 | test_tools_citations.py | Citation validation |
 | test_doctor_hooks.py | Hook installation |
-
-**Core tests**: `src/klean/data/core/tests/` (run_all_tests.py)
+| test_async_completion.py | Async model calls |
+| test_llm_client.py | LLM client integration |
+| test_cli_integration.py | CLI end-to-end |
 
 ---
 
@@ -234,7 +234,7 @@ SmolAgents-based agent system:
 
 ```bash
 # Install
-pipx install .
+pipx install kln-ai
 
 # Configure provider
 kln install
@@ -269,11 +269,11 @@ kln doctor -f  # Auto-fix issues
 
 | Type | Count |
 |------|-------|
-| Python | 37 |
-| Shell | 29 |
+| Python | ~50 |
+| Shell | 35 |
 | Markdown (agents, commands, docs) | 50+ |
-| YAML/TOML | 14 |
-| Tests | 10 |
+| YAML/TOML | 12 |
+| Tests | 9 |
 
 ---
 
@@ -285,8 +285,6 @@ kln doctor -f  # Auto-fix issues
 | Usage | `docs/usage.md` |
 | Reference | `docs/reference.md` |
 | Architecture | `docs/architecture/OVERVIEW.md` |
-| Components | `docs/architecture/COMPONENTS.md` |
-| Development | `docs/architecture/DEVELOPMENT.md` |
 
 ---
 

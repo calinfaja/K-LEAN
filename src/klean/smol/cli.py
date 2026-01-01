@@ -1,15 +1,15 @@
 """SmolKLN CLI - Run SmolKLN agents from command line.
 
 Usage:
-    smol-kln <agent> <task> [--model MODEL] [--telemetry]
-    smol-kln --list
-    smol-kln --help
+    kln-smol <agent> <task> [--model MODEL] [--telemetry]
+    kln-smol --list
+    kln-smol --help
 
 Examples:
-    smol-kln security-auditor "audit authentication module"
-    smol-kln code-reviewer "review main.py" --model qwen3-coder
-    smol-kln security-auditor "audit auth" --telemetry  # With tracing
-    smol-kln --list
+    kln-smol security-auditor "audit authentication module"
+    kln-smol code-reviewer "review main.py" --model qwen3-coder
+    kln-smol security-auditor "audit auth" --telemetry  # With tracing
+    kln-smol --list
 """
 
 import argparse

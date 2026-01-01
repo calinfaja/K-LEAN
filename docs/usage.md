@@ -96,8 +96,8 @@ Most commands support these flags:
 /kln:agent rust-expert "review unsafe blocks"
 
 # Direct CLI
-smol-kln security-auditor "audit auth" --model qwen3-coder
-smol-kln --list  # List available agents
+kln-smol security-auditor "audit auth" --model qwen3-coder
+kln-smol --list  # List available agents
 ```
 
 ### Agent Features
@@ -107,7 +107,7 @@ smol-kln --list  # List available agents
 - **Telemetry**: Enable tracing with `--telemetry` flag
 
 ```bash
-smol-kln security-auditor "audit" --telemetry
+kln-smol security-auditor "audit" --telemetry
 # View traces at http://localhost:6006
 ```
 

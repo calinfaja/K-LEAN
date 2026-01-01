@@ -231,17 +231,17 @@ fi
 section "10. SMOLKLN AGENTS"
 # ─────────────────────────────────────────────────────────────────────
 
-if command -v smol-kln &>/dev/null; then
-    pass "smol-kln command available"
+if command -v kln-smol &>/dev/null; then
+    pass "kln-smol command available"
 
-    agent_count=$(smol-kln --list 2>&1 | grep -c "  - ")
+    agent_count=$(kln-smol --list 2>&1 | grep -c "  - ")
     if [ "$agent_count" -ge 8 ]; then
         pass "$agent_count agents available"
     else
         warn "Expected 8+ agents, found $agent_count"
     fi
 else
-    fail "smol-kln command not found"
+    fail "kln-smol command not found"
 fi
 
 # ─────────────────────────────────────────────────────────────────────
