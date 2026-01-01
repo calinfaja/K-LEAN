@@ -230,6 +230,8 @@ For a complete coding experience:
 | Context7 MCP | Documentation lookup |
 | Tavily MCP | Web search for research |
 
+**Telemetry:** Install [Phoenix](https://github.com/Arize-ai/phoenix) to watch agent steps and reviews at `localhost:6006`.
+
 ---
 
 ## Documentation
