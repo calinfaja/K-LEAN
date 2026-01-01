@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Multi-Model Code Reviews & Persistent Knowledge for Claude Code</strong>
+  <strong>Second opinions from multiple LLMs—right inside Claude Code</strong>
 </p>
 
 <p align="center">
