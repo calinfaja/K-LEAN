@@ -1,7 +1,7 @@
 # Project Index: K-LEAN
 
 **Generated**: 2026-01-01
-**Version**: 1.0.0-beta
+**Version**: 1.0.0b1
 **License**: Apache-2.0
 
 ---
@@ -16,23 +16,25 @@ Multi-model code review and persistent knowledge system for Claude Code. Get con
 
 ```
 k-lean/
-├── src/klean/              # Main package (16K lines Python)
-│   ├── cli.py              # CLI entry point (k-lean command)
+├── src/klean/              # Main package (7.8K lines Python)
+│   ├── cli.py              # CLI entry point (kln command)
 │   ├── discovery.py        # Model discovery from LiteLLM
-│   ├── smol/               # SmolKLN agent system
+│   ├── smol/               # SmolKLN agent system (16 modules)
 │   │   ├── cli.py          # smol-kln command
 │   │   ├── executor.py     # Single agent execution
 │   │   ├── multi_agent.py  # Multi-agent orchestration
 │   │   ├── tools.py        # Agent tools (read, grep, git)
+│   │   ├── models.py       # LiteLLM model wrapper
 │   │   └── loader.py       # Agent .md file parser
 │   ├── knowledge/          # Knowledge DB integration
+│   ├── tools/              # Agent tools (grep, read, search)
 │   └── data/               # Installable assets
-│       ├── scripts/        # 35 shell & Python scripts (5K lines)
+│       ├── scripts/        # 39 shell & Python scripts
 │       ├── commands/kln/   # 9 slash commands
 │       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # LiteLLM & provider templates
-├── tests/                  # 6 unit tests + fixtures
+├── tests/                  # 9 test files (2.5K lines)
 ├── docs/                   # User & architecture docs
 ├── CLAUDE.md               # Claude Code instructions
 └── AGENTS.md               # Universal AI instructions
@@ -51,7 +53,7 @@ k-lean/
 
 ## Core Modules
 
-### `src/klean/cli.py` (2800+ lines)
+### `src/klean/cli.py`
 Primary CLI with Click commands:
 - `install` / `uninstall` - Component installation
 - `status` / `doctor` - Health checks and auto-fix
@@ -60,6 +62,8 @@ Primary CLI with Click commands:
 - `multi` - Multi-agent orchestrated review
 - `setup` - Provider configuration (NanoGPT, OpenRouter)
 - `debug` - Real-time monitoring dashboard
+- `sync` - Sync package data for PyPI
+- `version` - Show version information
 
 ### `src/klean/discovery.py`
 Dynamic model discovery from LiteLLM proxy:
@@ -67,22 +71,32 @@ Dynamic model discovery from LiteLLM proxy:
 - `get_model()` - Get first available model
 - `is_available()` - Check LiteLLM status
 
-### `src/klean/data/core/klean_core.py` (1300+ lines)
-Review engine for quick/multi commands:
-- `LLMClient` - HTTP client for LiteLLM
-- `ModelResolver` - Model name resolution
-- `ReviewEngine` - Single and multi-model reviews
-- `cli_quick()`, `cli_multi()`, `cli_rethink()` - CLI handlers
+### `src/klean/smol/` (16 modules)
+SmolAgents-based agent system:
+| Module | Purpose |
+|--------|---------|
+| `cli.py` | SmolKLN CLI entry point |
+| `executor.py` | Single agent execution with tool use |
+| `multi_agent.py` | Multi-agent orchestration and consensus |
+| `tools.py` | Agent tools: read_file, search_files, grep |
+| `models.py` | LiteLLM model wrapper, thinking model support |
+| `orchestrator.py` | Agent coordination and task delegation |
+| `memory.py` | Agent memory and context management |
+| `context.py` | Git context extraction (status, diff, log) |
+| `prompts.py` | System prompts and templates |
+| `loader.py` | Agent definition loading from markdown |
+| `async_executor.py` | Async agent execution |
+| `multi_config.py` | Multi-agent configuration |
+| `task_queue.py` | Task queue for parallel execution |
+| `reflection.py` | Agent self-reflection |
+| `mcp_tools.py` | MCP tool integration |
 
-### `src/klean/smol/executor.py`
-SmolAgents-based agent execution:
-- `SmolKLNExecutor` - Single agent runner
-- Supports tools: read_file, grep, git_diff, knowledge_search
-
-### `src/klean/smol/multi_agent.py`
-Multi-agent orchestration (3 or 4 agent configurations):
-- Manager orchestrates file_scout + analyzer (3-agent)
-- Or file_scout + code_analyzer + security_auditor + synthesizer (4-agent)
+### `src/klean/tools/` (Agent Tools)
+| Module | Purpose |
+|--------|---------|
+| `read_tool.py` | File reading with line limits |
+| `grep_tool.py` | Pattern search in files |
+| `search_knowledge_tool.py` | Knowledge DB semantic search |
 
 ---
 
@@ -90,10 +104,10 @@ Multi-agent orchestration (3 or 4 agent configurations):
 
 | Command | File | Purpose |
 |---------|------|---------|
-| `/kln:quick` | commands/kln/quick.md | Fast single-model review |
-| `/kln:multi` | commands/kln/multi.md | Multi-model consensus |
-| `/kln:agent` | commands/kln/agent.md | SmolKLN specialist agents |
-| `/kln:rethink` | commands/kln/rethink.md | Fresh perspective debugging |
+| `/kln:quick` | commands/kln/quick.md | Fast single-model review (~30s) |
+| `/kln:multi` | commands/kln/multi.md | Multi-model consensus (~60s) |
+| `/kln:agent` | commands/kln/agent.md | SmolKLN specialist agents (~2min) |
+| `/kln:rethink` | commands/kln/rethink.md | Contrarian debugging |
 | `/kln:learn` | commands/kln/learn.md | Context-aware learning extraction |
 | `/kln:remember` | commands/kln/remember.md | End-of-session capture |
 | `/kln:doc` | commands/kln/doc.md | Documentation generation |
@@ -106,10 +120,10 @@ Multi-agent orchestration (3 or 4 agent configurations):
 
 | Hook | File | Trigger |
 |------|------|---------|
-| UserPromptSubmit | hooks/user-prompt-handler.sh | SaveThis, FindKnowledge, async* |
+| SessionStart | hooks/session-start.sh | Auto-start LiteLLM + Knowledge Server |
+| UserPromptSubmit | hooks/user-prompt-handler.sh | FindKnowledge, SaveInfo, async reviews |
 | PostToolUse (Bash) | hooks/post-bash-handler.sh | Post-commit docs, timeline |
 | PostToolUse (Web*) | hooks/post-web-handler.sh | Auto-capture URLs |
-| SessionStart | hooks/session-start.sh | Session initialization |
 
 ---
 
@@ -142,6 +156,28 @@ Multi-agent orchestration (3 or 4 agent configurations):
 | knowledge-hybrid-search.py | BM25 + semantic hybrid |
 | knowledge-capture.py | Entry creation |
 | knowledge-query.sh | CLI query interface |
+| kb-init.sh | Initialize project KB |
+
+---
+
+## Key Scripts (39 total)
+
+### Review Scripts
+- `quick-review.sh` - Single model quick review
+- `consensus-review.sh` - Multi-model consensus
+- `second-opinion.sh` - Alternative perspective
+
+### Service Scripts
+- `setup-litellm.sh` - LiteLLM proxy setup
+- `start-litellm.sh` - Start proxy
+- `health-check.sh` - Service health
+- `session-helper.sh` - Session management
+
+### Utility Scripts
+- `timeline-query.sh` - Query timeline log
+- `smart-capture.sh` - Smart URL capture
+- `fact-extract.sh` - Extract facts from text
+- `async-dispatch.sh` - Async task dispatch
 
 ---
 
@@ -150,10 +186,10 @@ Multi-agent orchestration (3 or 4 agent configurations):
 | File | Purpose |
 |------|---------|
 | `pyproject.toml` | Package metadata, dependencies |
-| `data/config/klean-config.yaml` | K-LEAN defaults |
-| `data/config/litellm/config.yaml` | LiteLLM model routing |
-| `data/config/nanogpt.yaml` | NanoGPT template |
-| `data/config/litellm/openrouter.yaml` | OpenRouter template |
+| `config/klean-config.yaml` | K-LEAN defaults |
+| `config/litellm/config.yaml` | LiteLLM model routing |
+| `config/nanogpt.yaml` | NanoGPT template |
+| `config/litellm/openrouter.yaml` | OpenRouter template |
 | `.serena/project.yml` | Serena MCP project config |
 
 ---
@@ -165,11 +201,15 @@ Multi-agent orchestration (3 or 4 agent configurations):
 - rich>=13.0.0 - Terminal formatting
 - pyyaml>=6.0.0 - YAML parsing
 - httpx>=0.27.0 - HTTP client
+- txtai>=7.0.0 - Semantic embeddings
+- sentence-transformers>=2.0.0 - Embedding models
+- smolagents[litellm]>=1.17.0 - Agent framework
+- lizard>=1.17.0 - Code complexity analysis
 
 **Optional extras**:
-- `[knowledge]` - txtai, sentence-transformers
-- `[smolagents]` - smolagents, ddgs, markdownify
+- `[agent-sdk]` - anthropic (Claude Agent SDK)
 - `[telemetry]` - arize-phoenix, opentelemetry
+- `[toon]` - python-toon
 - `[all]` - Everything
 
 ---
@@ -188,7 +228,7 @@ Multi-agent orchestration (3 or 4 agent configurations):
 | test_tools_citations.py | Citation validation |
 | test_doctor_hooks.py | Hook installation |
 
-**Core tests**: `src/klean/data/core/tests/` (27 tests)
+**Core tests**: `src/klean/data/core/tests/` (run_all_tests.py)
 
 ---
 
@@ -196,9 +236,10 @@ Multi-agent orchestration (3 or 4 agent configurations):
 
 ```bash
 # Install
-pipx install k-lean
+pipx install .
 
 # Configure provider
+kln install
 kln setup
 
 # Start services
@@ -208,9 +249,10 @@ kln start
 kln status
 kln doctor -f  # Auto-fix issues
 
-# Run reviews
-kln multi "security review"
-smol-kln security-auditor "audit auth"
+# Run reviews (in Claude Code)
+/kln:quick security
+/kln:multi "security review"
+/kln:agent security-auditor "audit auth"
 ```
 
 ---
@@ -229,11 +271,11 @@ smol-kln security-auditor "audit auth"
 
 | Type | Count | Lines |
 |------|-------|-------|
-| Python | 53 | 16,438 |
-| Shell | 35 | 5,421 |
+| Python | 53 | ~7,800 |
+| Shell | 29 | ~3,000 |
 | Markdown | 100+ | - |
-| YAML/TOML | 12 | - |
-| Tests | 6 | - |
+| YAML/TOML | 14 | - |
+| Tests | 9 | ~2,500 |
 
 ---
 

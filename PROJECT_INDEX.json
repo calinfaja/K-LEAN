@@ -1,20 +1,21 @@
 {
   "project": {
     "name": "k-lean",
-    "version": "1.0.0-beta",
+    "package_name": "kln-ai",
+    "version": "1.0.0b1",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
     "generated": "2026-01-01",
     "python_version": ">=3.9",
     "license": "Apache-2.0"
   },
   "entry_points": {
-    "k-lean": "src/klean/cli.py:main",
+    "kln": "src/klean/cli.py:main",
     "smol-kln": "src/klean/smol/cli.py:main"
   },
   "core_modules": {
     "cli": {
       "path": "src/klean/cli.py",
-      "exports": ["main", "install", "status", "doctor", "start", "stop", "models", "multi", "setup"],
+      "exports": ["main", "install", "uninstall", "status", "doctor", "start", "stop", "models", "multi", "setup", "debug", "sync", "version"],
       "purpose": "Primary CLI with Click commands"
     },
     "discovery": {
@@ -22,20 +23,20 @@
       "exports": ["list_models", "get_model", "is_available", "clear_cache"],
       "purpose": "Dynamic model discovery from LiteLLM proxy"
     },
-    "klean_core": {
-      "path": "src/klean/data/core/klean_core.py",
-      "exports": ["LLMClient", "ModelResolver", "ReviewEngine", "cli_quick", "cli_multi", "cli_rethink"],
-      "purpose": "Review engine for quick/multi commands"
+    "smol": {
+      "path": "src/klean/smol/",
+      "modules": 16,
+      "purpose": "SmolAgents-based agent system"
     },
     "executor": {
       "path": "src/klean/smol/executor.py",
       "exports": ["SmolKLNExecutor"],
-      "purpose": "SmolAgents-based agent execution"
+      "purpose": "Single agent execution with tool use"
     },
     "multi_agent": {
       "path": "src/klean/smol/multi_agent.py",
       "exports": ["MultiAgentExecutor"],
-      "purpose": "Multi-agent orchestration"
+      "purpose": "Multi-agent orchestration and consensus"
     },
     "multi_config": {
       "path": "src/klean/smol/multi_config.py",
@@ -45,30 +46,38 @@
     "loader": {
       "path": "src/klean/smol/loader.py",
       "exports": ["parse_agent_file", "load_agent", "list_available_agents", "AgentConfig", "Agent"],
-      "purpose": "Agent .md file parser"
+      "purpose": "Agent definition loading from markdown"
     },
     "tools": {
       "path": "src/klean/smol/tools.py",
       "exports": ["read_file", "grep", "search_files", "git_diff", "git_status", "git_log", "list_directory", "get_file_info", "get_default_tools"],
       "purpose": "Agent tools for code analysis"
+    },
+    "models": {
+      "path": "src/klean/smol/models.py",
+      "purpose": "LiteLLM model wrapper, thinking model support"
+    },
+    "context": {
+      "path": "src/klean/smol/context.py",
+      "purpose": "Git context extraction (status, diff, log)"
     }
   },
   "slash_commands": {
-    "kln:quick": {"file": "data/commands/kln/quick.md", "purpose": "Fast single-model review"},
-    "kln:multi": {"file": "data/commands/kln/multi.md", "purpose": "Multi-model consensus"},
-    "kln:deep": {"file": "data/commands/kln/deep.md", "purpose": "Deep codebase analysis"},
-    "kln:agent": {"file": "data/commands/kln/agent.md", "purpose": "SmolKLN specialist agents"},
-    "kln:rethink": {"file": "data/commands/kln/rethink.md", "purpose": "Fresh perspective debugging"},
+    "kln:quick": {"file": "data/commands/kln/quick.md", "purpose": "Fast single-model review (~30s)"},
+    "kln:multi": {"file": "data/commands/kln/multi.md", "purpose": "Multi-model consensus (~60s)"},
+    "kln:agent": {"file": "data/commands/kln/agent.md", "purpose": "SmolKLN specialist agents (~2min)"},
+    "kln:rethink": {"file": "data/commands/kln/rethink.md", "purpose": "Contrarian debugging"},
+    "kln:learn": {"file": "data/commands/kln/learn.md", "purpose": "Context-aware learning extraction"},
     "kln:remember": {"file": "data/commands/kln/remember.md", "purpose": "End-of-session capture"},
     "kln:doc": {"file": "data/commands/kln/doc.md", "purpose": "Documentation generation"},
     "kln:status": {"file": "data/commands/kln/status.md", "purpose": "System status"},
     "kln:help": {"file": "data/commands/kln/help.md", "purpose": "Command reference"}
   },
   "hooks": {
-    "user-prompt-handler": {"file": "data/hooks/user-prompt-handler.sh", "trigger": "UserPromptSubmit", "keywords": ["SaveThis", "FindKnowledge", "asyncReview", "asyncConsensus", "asyncDeepReview"]},
-    "post-bash-handler": {"file": "data/hooks/post-bash-handler.sh", "trigger": "PostToolUse:Bash"},
-    "post-web-handler": {"file": "data/hooks/post-web-handler.sh", "trigger": "PostToolUse:Web*"},
-    "session-start": {"file": "data/hooks/session-start.sh", "trigger": "SessionStart"}
+    "session-start": {"file": "data/hooks/session-start.sh", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + Knowledge Server"},
+    "user-prompt-handler": {"file": "data/hooks/user-prompt-handler.sh", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "SaveInfo", "asyncReview", "asyncConsensus"]},
+    "post-bash-handler": {"file": "data/hooks/post-bash-handler.sh", "trigger": "PostToolUse:Bash", "purpose": "Post-commit docs, timeline"},
+    "post-web-handler": {"file": "data/hooks/post-web-handler.sh", "trigger": "PostToolUse:Web*", "purpose": "Auto-capture URLs"}
   },
   "agents": {
     "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "OWASP, SOLID, code quality"},
@@ -81,49 +90,71 @@
     "orchestrator": {"file": "data/agents/orchestrator.md", "specialty": "Multi-agent coordination"}
   },
   "agent_tools": ["read_file", "search_files", "grep", "knowledge_search", "get_complexity"],
-  "multi_agents": {
-    "3_agent": ["manager", "file_scout", "analyzer"],
-    "4_agent": ["manager", "file_scout", "code_analyzer", "security_auditor", "synthesizer"]
-  },
   "knowledge_db": {
     "storage": ".knowledge-db/",
-    "server_script": "data/scripts/knowledge-server.py",
-    "search_script": "data/scripts/knowledge-search.py",
-    "hybrid_search": "data/scripts/knowledge-hybrid-search.py",
-    "capture_script": "data/scripts/knowledge-capture.py",
-    "query_cli": "data/scripts/knowledge-query.sh"
+    "server_type": "unix_socket",
+    "scripts": {
+      "server": "data/scripts/knowledge-server.py",
+      "search": "data/scripts/knowledge-search.py",
+      "hybrid_search": "data/scripts/knowledge-hybrid-search.py",
+      "capture": "data/scripts/knowledge-capture.py",
+      "query_cli": "data/scripts/knowledge-query.sh",
+      "init": "data/scripts/kb-init.sh"
+    }
+  },
+  "scripts": {
+    "count": 39,
+    "review": ["quick-review.sh", "consensus-review.sh", "second-opinion.sh"],
+    "service": ["setup-litellm.sh", "start-litellm.sh", "health-check.sh", "session-helper.sh"],
+    "utility": ["timeline-query.sh", "smart-capture.sh", "fact-extract.sh", "async-dispatch.sh"]
   },
   "config_files": {
     "pyproject": "pyproject.toml",
-    "klean_config": "data/config/klean-config.yaml",
-    "litellm_config": "data/config/litellm/config.yaml",
-    "nanogpt_template": "data/config/nanogpt.yaml",
-    "openrouter_template": "data/config/litellm/openrouter.yaml"
+    "klean_config": "config/klean-config.yaml",
+    "litellm_config": "config/litellm/config.yaml",
+    "nanogpt_template": "config/nanogpt.yaml",
+    "openrouter_template": "config/litellm/openrouter.yaml",
+    "serena": ".serena/project.yml"
   },
   "dependencies": {
     "core": ["click>=8.0.0", "rich>=13.0.0", "pyyaml>=6.0.0", "httpx>=0.27.0"],
     "knowledge": ["txtai>=7.0.0", "sentence-transformers>=2.0.0"],
-    "smolagents": ["smolagents[litellm]>=1.17.0", "ddgs>=6.0.0", "markdownify>=0.11.0"],
-    "telemetry": ["arize-phoenix>=4.0", "opentelemetry-sdk"]
+    "agents": ["smolagents[litellm]>=1.17.0", "ddgs>=6.0.0", "markdownify>=0.11.0", "lizard>=1.17.0"],
+    "optional": {
+      "agent-sdk": ["anthropic>=0.34.0,<1.0.0"],
+      "telemetry": ["arize-phoenix>=4.0", "opentelemetry-sdk", "opentelemetry-exporter-otlp"],
+      "toon": ["python-toon>=0.1.0"]
+    }
   },
   "tests": {
     "framework": "pytest",
     "path": "tests/",
-    "unit_tests": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py"],
-    "integration_tests": ["test_doctor_hooks.py"],
+    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py"],
     "core_tests": "src/klean/data/core/tests/"
   },
   "file_counts": {
-    "python": {"count": 53, "lines": 16438},
-    "shell": {"count": 35, "lines": 5421},
+    "python": {"count": 53, "lines": 7800},
+    "shell": {"count": 29, "lines": 3000},
     "markdown": {"count": 100},
-    "yaml_toml": {"count": 12},
-    "tests": {"count": 6}
+    "yaml_toml": {"count": 14},
+    "tests": {"count": 9, "lines": 2500}
+  },
+  "directories": {
+    "installed": {
+      "scripts": "~/.claude/scripts/",
+      "commands": "~/.claude/commands/kln/",
+      "hooks": "~/.claude/hooks/",
+      "config": "~/.config/litellm/",
+      "runtime": "~/.klean/"
+    },
+    "per_project": {
+      "knowledge_db": ".knowledge-db/"
+    }
   },
   "key_patterns": [
     "Dynamic model discovery from LiteLLM",
-    "First-available model (user controls priority)",
-    "Agent definitions: YAML frontmatter + markdown",
+    "First-available model (user controls priority via config order)",
+    "Agent definitions: YAML frontmatter + markdown system prompt",
     "Per-project knowledge DB in .knowledge-db/",
     "Hook system for Claude Code integration"
   ]
