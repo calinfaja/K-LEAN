@@ -4,14 +4,14 @@ Multi-model code review and knowledge capture for Claude Code.
 
 ## What It Does
 
-- **Reviews**: 12 LLM models review your code with consensus scoring
+- **Reviews**: Multiple LLM models review your code with consensus scoring
 - **Knowledge**: Captures lessons learned with semantic search
 - **SmolKLN Agents**: 8 specialist AI agents for domain-specific analysis
 
 ## Quick Start
 
 ```bash
-pipx install k-lean
+pipx install kln-ai
 kln install
 kln doctor
 ```

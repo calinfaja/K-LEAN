@@ -26,7 +26,6 @@ k-lean/
 │   │   ├── tools.py        # Agent tools (read, grep, git)
 │   │   ├── models.py       # LiteLLM model wrapper
 │   │   └── loader.py       # Agent .md file parser
-│   ├── knowledge/          # Knowledge DB integration
 │   ├── tools/              # Agent tools (grep, read, search)
 │   └── data/               # Installable assets
 │       ├── scripts/        # 39 shell & Python scripts
@@ -34,7 +33,7 @@ k-lean/
 │       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # LiteLLM & provider templates
-├── tests/                  # 9 test files (2.5K lines)
+├── tests/                  # 10 test files
 ├── docs/                   # User & architecture docs
 ├── CLAUDE.md               # Claude Code instructions
 └── AGENTS.md               # Universal AI instructions
@@ -186,10 +185,9 @@ SmolAgents-based agent system:
 | File | Purpose |
 |------|---------|
 | `pyproject.toml` | Package metadata, dependencies |
-| `config/klean-config.yaml` | K-LEAN defaults |
-| `config/litellm/config.yaml` | LiteLLM model routing |
-| `config/nanogpt.yaml` | NanoGPT template |
-| `config/litellm/openrouter.yaml` | OpenRouter template |
+| `config/litellm/config.yaml` | LiteLLM model routing (NanoGPT) |
+| `config/litellm/openrouter.yaml` | LiteLLM model routing (OpenRouter) |
+| `config/CLAUDE.md` | K-LEAN command reference |
 | `.serena/project.yml` | Serena MCP project config |
 
 ---
@@ -269,13 +267,13 @@ kln doctor -f  # Auto-fix issues
 
 ## File Count Summary
 
-| Type | Count | Lines |
-|------|-------|-------|
-| Python | 53 | ~7,800 |
-| Shell | 29 | ~3,000 |
-| Markdown | 100+ | - |
-| YAML/TOML | 14 | - |
-| Tests | 9 | ~2,500 |
+| Type | Count |
+|------|-------|
+| Python | 37 |
+| Shell | 29 |
+| Markdown (agents, commands, docs) | 50+ |
+| YAML/TOML | 14 |
+| Tests | 10 |
 
 ---
 

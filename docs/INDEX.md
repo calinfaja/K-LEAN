@@ -10,7 +10,7 @@
 
 | Component | Purpose | Entry Point |
 |-----------|---------|-------------|
-| **k-lean** | Main CLI for installation and management | `klean.cli:main` |
+| **kln** | Main CLI for installation and management | `klean.cli:main` |
 | **smol-kln** | SmolKLN agent CLI | `klean.smol.cli:main` |
 
 ---
@@ -20,10 +20,9 @@
 ```
 src/klean/
 ├── __init__.py          # Package metadata, path constants
-├── cli.py               # Main CLI (k-lean command) - 1000+ lines
+├── cli.py               # Main CLI (kln command)
 ├── discovery.py         # Model discovery from LiteLLM proxy
 ├── smol/                # SmolKLN agent system
-├── knowledge/           # Knowledge DB integration
 ├── tools/               # Agent tools
 ├── utils/               # Shared utilities
 └── data/                # Installable assets (scripts, hooks, commands)
@@ -212,7 +211,7 @@ Located in `src/klean/data/hooks/`. 4 handlers.
 
 ## Scripts
 
-Located in `src/klean/data/scripts/`. 42 scripts total.
+Located in `src/klean/data/scripts/`. 39 scripts total.
 
 ### Review Scripts
 | Script | Purpose |

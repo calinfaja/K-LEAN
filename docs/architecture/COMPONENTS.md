@@ -651,10 +651,10 @@ K-LEAN uses **LiteLLM proxy** to route requests to multiple LLM providers.
 ```
 +-------------+    +------------------+    +-----------------+
 |   Claude    |    |     LiteLLM      |    |    NanoGPT      |
-|   Code      |<-->|  localhost:4000  |<-->|   12 models     |
+|   Code      |<-->|  localhost:4000  |<-->|   (dynamic)     |
 |  (scripts)  |    |                  |    +-----------------+
 +-------------+    |  /chat/completions|    |   OpenRouter    |
-                   |  /v1/models       |    |   6 models      |
+                   |  /v1/models       |    |   (dynamic)     |
                    +------------------+    +-----------------+
 ```
 
@@ -664,8 +664,8 @@ K-LEAN uses **LiteLLM proxy** to route requests to multiple LLM providers.
 
 | Provider | Models | Config File |
 |----------|--------|-------------|
-| NanoGPT | 12 | `~/.config/litellm/config.yaml` |
-| OpenRouter | 6 | `~/.config/litellm/openrouter.yaml` |
+| NanoGPT | Dynamic | `~/.config/litellm/config.yaml` |
+| OpenRouter | Dynamic | `~/.config/litellm/openrouter.yaml` |
 
 ---
 
