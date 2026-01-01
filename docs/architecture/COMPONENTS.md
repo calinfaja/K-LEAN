@@ -1158,14 +1158,14 @@ src/klean/smol/
 
 | Agent | Purpose |
 |-------|---------|
-| `security-auditor` | Security vulnerability analysis |
-| `code-reviewer` | General code quality review |
-| `performance-reviewer` | Performance optimization |
-| `architecture-reviewer` | System design analysis |
-| `test-reviewer` | Test coverage and quality |
-| `documentation-reviewer` | Documentation completeness |
-| `refactoring-advisor` | Code improvement suggestions |
-| `debugging-assistant` | Bug investigation support |
+| `code-reviewer` | OWASP, SOLID, code quality |
+| `security-auditor` | Vulnerabilities, auth, crypto |
+| `debugger` | Root cause analysis |
+| `performance-engineer` | Profiling, optimization |
+| `rust-expert` | Ownership, lifetimes, unsafe |
+| `c-pro` | C99/C11, POSIX, embedded |
+| `arm-cortex-expert` | ARM MCU, real-time |
+| `orchestrator` | Multi-agent coordination |
 
 ---
 
@@ -1545,9 +1545,9 @@ result = executor.wait_for(task_id)
 ### 6.14 CLI Usage
 
 ```bash
-smol-kln <agent> <task> [--model MODEL] [--telemetry]
-smol-kln security-auditor "audit auth module"
-smol-kln --list   # List available agents
+kln-smol <agent> <task> [--model MODEL] [--telemetry]
+kln-smol security-auditor "audit auth module"
+kln-smol --list   # List available agents
 ```
 
 **Output:** `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
@@ -1625,9 +1625,9 @@ kln test       # Run test suite
 ### 7.5 SmolKLN CLI Quick Reference
 
 ```bash
-smol-kln <agent> <task> [--model MODEL] [--telemetry]
-smol-kln security-auditor "audit auth module"
-smol-kln --list   # List available agents
+kln-smol <agent> <task> [--model MODEL] [--telemetry]
+kln-smol security-auditor "audit auth module"
+kln-smol --list   # List available agents
 ```
 
 **Output:** `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`

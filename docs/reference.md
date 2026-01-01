@@ -77,15 +77,15 @@ User controls model priority via order in `~/.config/litellm/config.yaml`.
 Run SmolKLN agents from command line:
 
 ```bash
-smol-kln <agent> <task> [--model MODEL] [--telemetry]
-smol-kln --list
+kln-smol <agent> <task> [--model MODEL] [--telemetry]
+kln-smol --list
 ```
 
 **Examples:**
 ```bash
-smol-kln security-auditor "audit authentication module"
-smol-kln code-reviewer "review main.py" --model qwen3-coder
-smol-kln --list  # List available agents
+kln-smol security-auditor "audit authentication module"
+kln-smol code-reviewer "review main.py" --model qwen3-coder
+kln-smol --list  # List available agents
 ```
 
 **Output:** Results saved to `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
@@ -125,8 +125,6 @@ User controls priority via model order in `~/.config/litellm/config.yaml`.
 
 **Output:** `.claude/kln/multiAgent/<timestamp>_multi-[3|4]-agent_<task>.md`
 
-See [multi-agent-implementation-plan.md](multi-agent-implementation-plan.md) for architecture details.
-
 ## Telemetry
 
 SmolKLN agents can be traced with Phoenix for debugging and performance analysis.
@@ -136,7 +134,7 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 | Flag | Command | Effect |
 |------|---------|--------|
 | `--telemetry` | `kln start` | Start Phoenix on :6006 |
-| `-t` / `--telemetry` | `smol-kln` | Enable agent tracing |
+| `-t` / `--telemetry` | `kln-smol` | Enable agent tracing |
 
 **Traced:** LLM calls (prompt, response, tokens), tool invocations, agent reasoning steps.
 
