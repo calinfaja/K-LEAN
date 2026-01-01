@@ -4,21 +4,21 @@
 
 | Command | Description |
 |---------|-------------|
-| `k-lean install` | Install components to ~/.claude/ |
-| `k-lean setup` | Configure API provider (interactive) |
-| `k-lean uninstall` | Remove components |
-| `k-lean status` | Show component status |
-| `k-lean doctor` | Validate configuration |
-| `k-lean doctor -f` | Auto-fix common issues |
-| `k-lean start` | Start LiteLLM proxy |
-| `k-lean start -s all` | Start LiteLLM + KB server |
-| `k-lean stop` | Stop services |
-| `k-lean models` | List available models |
-| `k-lean models --health` | Check model health |
-| `k-lean test` | Run test suite |
-| `k-lean sync` | Sync files to package data for release |
-| `k-lean start --telemetry` | Start Phoenix telemetry server |
-| `k-lean debug` | Live dashboard (shows Phoenix status) |
+| `kln install` | Install components to ~/.claude/ |
+| `kln setup` | Configure API provider (interactive) |
+| `kln uninstall` | Remove components |
+| `kln status` | Show component status |
+| `kln doctor` | Validate configuration |
+| `kln doctor -f` | Auto-fix common issues |
+| `kln start` | Start LiteLLM proxy |
+| `kln start -s all` | Start LiteLLM + KB server |
+| `kln stop` | Stop services |
+| `kln models` | List available models |
+| `kln models --health` | Check model health |
+| `kln test` | Run test suite |
+| `kln sync` | Sync files to package data for release |
+| `kln start --telemetry` | Start Phoenix telemetry server |
+| `kln debug` | Live dashboard (shows Phoenix status) |
 
 ## Models
 
@@ -31,7 +31,7 @@
 | `minimax-m2` | Thinking | Research |
 | `hermes-4-70b` | Standard | Scripting |
 
-*Models are auto-discovered from LiteLLM. Use `k-lean models` for current list.*
+*Models are auto-discovered from LiteLLM. Use `kln models` for current list.*
 
 **Thinking models** return `reasoning_content` instead of `content`.
 
@@ -90,19 +90,19 @@ smol-kln --list  # List available agents
 
 **Output:** Results saved to `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
 
-## Multi-Agent (k-lean multi)
+## Multi-Agent (kln multi)
 
 Orchestrated multi-agent reviews using smolagents `managed_agents`:
 
 ```bash
 # 3-agent (default) - fast
-k-lean multi "Review src/klean/cli.py for bugs"
+kln multi "Review src/klean/cli.py for bugs"
 
 # 4-agent (thorough) - comprehensive
-k-lean multi --thorough "Security audit of auth module"
+kln multi --thorough "Security audit of auth module"
 
 # With telemetry
-k-lean multi "Review changes" --telemetry
+kln multi "Review changes" --telemetry
 ```
 
 ### Agent Configurations
@@ -135,7 +135,7 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 
 | Flag | Command | Effect |
 |------|---------|--------|
-| `--telemetry` | `k-lean start` | Start Phoenix on :6006 |
+| `--telemetry` | `kln start` | Start Phoenix on :6006 |
 | `-t` / `--telemetry` | `smol-kln` | Enable agent tracing |
 
 **Traced:** LLM calls (prompt, response, tokens), tool invocations, agent reasoning steps.

@@ -66,8 +66,8 @@ Industry benchmarks for AI code review agents:
 |---------|------|----------|-------------|
 | T1 | LiteLLM Direct | qwen3-coder | Single model, direct review via curl |
 | T2 | SmolKLN Agent | code-reviewer (qwen3-coder) | Agentic review with tools |
-| T3 | k-lean multi | GLM-4.6-thinking → qwen3-coder → deepseek-v3 | 3-agent orchestrated |
-| T4 | k-lean multi --thorough | 4-agent with security specialist | Most comprehensive |
+| T3 | kln multi | GLM-4.6-thinking → qwen3-coder → deepseek-v3 | 3-agent orchestrated |
+| T4 | kln multi --thorough | 4-agent with security specialist | Most comprehensive |
 | T5 | deep-review.sh | qwen3-coder | Claude headless + LiteLLM with tools |
 | T6 | Task agent | Claude Opus | Claude native with Read/Grep/Glob/Bash |
 
@@ -143,7 +143,7 @@ Agent Steps: 28
 **Status**: [OK] Completed
 
 ```
-Command: k-lean multi "<prompt>" --telemetry
+Command: kln multi "<prompt>" --telemetry
 Time: 1140.4s (19 minutes)
 Agents: manager (GLM-4.6-thinking) → file_scout (qwen3-coder) → analyzer (deepseek-v3)
 ```
@@ -170,7 +170,7 @@ Agents: manager (GLM-4.6-thinking) → file_scout (qwen3-coder) → analyzer (de
 **Status**: [OK] Completed
 
 ```
-Command: k-lean multi --thorough "<prompt>" --telemetry
+Command: kln multi --thorough "<prompt>" --telemetry
 Time: 1545.4s (26 minutes)
 Agents: manager (GLM-4.6) → file_scout (qwen3) + code_analyzer (deepseek) + security_auditor (deepseek) + synthesizer (deepseek)
 ```

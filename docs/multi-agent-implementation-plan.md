@@ -4,7 +4,7 @@
 
 ## Overview
 
-K-LEAN SmolKLN supports multi-agent orchestration via the `k-lean multi` command. A manager agent coordinates specialist agents using smolagents `managed_agents` feature.
+K-LEAN SmolKLN supports multi-agent orchestration via the `kln multi` command. A manager agent coordinates specialist agents using smolagents `managed_agents` feature.
 
 ## Architecture Variants
 
@@ -77,19 +77,19 @@ K-LEAN SmolKLN supports multi-agent orchestration via the `k-lean multi` command
 
 ```bash
 # 3-agent (default) - fast
-k-lean multi "Review src/klean/smol/cli.py for bugs"
+kln multi "Review src/klean/smol/cli.py for bugs"
 
 # 4-agent (thorough) - comprehensive
-k-lean multi --thorough "Security audit of the auth module"
+kln multi --thorough "Security audit of the auth module"
 
 # With telemetry (Phoenix at localhost:6006)
-k-lean multi --thorough "Review recent changes" --telemetry
+kln multi --thorough "Review recent changes" --telemetry
 
 # Override manager model
-k-lean multi --manager-model kimi-k2-thinking "Review cli.py"
+kln multi --manager-model kimi-k2-thinking "Review cli.py"
 
 # JSON output
-k-lean multi --output json "Check for security issues"
+kln multi --output json "Check for security issues"
 ```
 
 ### CLI Options
@@ -163,8 +163,8 @@ Reports are saved to:
 
 With `--telemetry` flag, all agent execution is traced via Phoenix:
 
-1. Start Phoenix: `k-lean start --telemetry` or it auto-starts
-2. Run with tracing: `k-lean multi "task" --telemetry`
+1. Start Phoenix: `kln start --telemetry` or it auto-starts
+2. Run with tracing: `kln multi "task" --telemetry`
 3. View traces at: `http://localhost:6006`
 
 Shows:
@@ -243,7 +243,7 @@ def get_tools_for_agent(tool_names: List[str], project_path: str = None) -> list
 
 ## Comparison: Single vs Multi-Agent
 
-| Aspect | Single Agent (`k-lean agent`) | Multi-Agent (`k-lean multi`) |
+| Aspect | Single Agent (`kln agent`) | Multi-Agent (`kln multi`) |
 |--------|-------------------------------|------------------------------|
 | Speed | Faster (~30s) | Slower (~60-180s) |
 | Depth | Good | Better (specialized focus) |

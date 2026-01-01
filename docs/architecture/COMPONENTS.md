@@ -24,29 +24,29 @@ The K-LEAN CLI provides 14 commands for managing the system.
 
 | Command | Purpose | Speed |
 |---------|---------|-------|
-| `k-lean doctor` | Validate config (.env, subscription, services) | ~3s |
-| `k-lean doctor -f` | Auto-fix issues | ~5s |
-| `k-lean status` | Show installed components and services | ~2s |
-| `k-lean models` | List available models | ~1s |
-| `k-lean models --health` | Check model health | ~60s |
-| `k-lean models --test` | Test each model with latency | Slow |
-| `k-lean start` | Start LiteLLM proxy | ~3s |
-| `k-lean stop` | Stop services | ~1s |
-| `k-lean install` | Install components | Varies |
-| `k-lean setup` | Configure API provider (interactive) | ~30s |
-| `k-lean uninstall` | Remove components | ~5s |
-| `k-lean sync` | Sync package data (dev) | ~2s |
-| `k-lean test` | Run test suite | ~10s |
-| `k-lean test-model` | Test specific model | ~5s |
-| `k-lean version` | Show version info | Instant |
-| `k-lean debug` | Live monitoring dashboard | Continuous |
+| `kln doctor` | Validate config (.env, subscription, services) | ~3s |
+| `kln doctor -f` | Auto-fix issues | ~5s |
+| `kln status` | Show installed components and services | ~2s |
+| `kln models` | List available models | ~1s |
+| `kln models --health` | Check model health | ~60s |
+| `kln models --test` | Test each model with latency | Slow |
+| `kln start` | Start LiteLLM proxy | ~3s |
+| `kln stop` | Stop services | ~1s |
+| `kln install` | Install components | Varies |
+| `kln setup` | Configure API provider (interactive) | ~30s |
+| `kln uninstall` | Remove components | ~5s |
+| `kln sync` | Sync package data (dev) | ~2s |
+| `kln test` | Run test suite | ~10s |
+| `kln test-model` | Test specific model | ~5s |
+| `kln version` | Show version info | Instant |
+| `kln debug` | Live monitoring dashboard | Continuous |
 
 ### User Mental Model
 
 ```
-"Is my SYSTEM configured?" --> k-lean doctor
-"What's RUNNING now?"      --> k-lean status
-"Are my MODELS working?"   --> k-lean models --health
+"Is my SYSTEM configured?" --> kln doctor
+"What's RUNNING now?"      --> kln status
+"Are my MODELS working?"   --> kln models --health
 ```
 
 ---
@@ -56,9 +56,9 @@ The K-LEAN CLI provides 14 commands for managing the system.
 Validates configuration and services.
 
 ```bash
-k-lean doctor             # Check everything
-k-lean doctor --auto-fix  # Fix issues automatically
-k-lean doctor -f          # Short form
+kln doctor             # Check everything
+kln doctor --auto-fix  # Fix issues automatically
+kln doctor -f          # Short form
 ```
 
 **Checks performed:**
@@ -76,7 +76,7 @@ k-lean doctor -f          # Short form
 Shows installed components and running services.
 
 ```bash
-k-lean status
+kln status
 ```
 
 **Output includes:**
@@ -96,9 +96,9 @@ k-lean status
 Lists and tests available LLM models.
 
 ```bash
-k-lean models           # List all models
-k-lean models --health  # Check health (calls each model)
-k-lean models --test    # Full latency test
+kln models           # List all models
+kln models --health  # Check health (calls each model)
+kln models --test    # Full latency test
 ```
 
 **Dynamic Discovery:** Models are discovered from LiteLLM at runtime, not hardcoded.
@@ -110,13 +110,13 @@ k-lean models --test    # Full latency test
 Controls K-LEAN services.
 
 ```bash
-k-lean start                    # Start LiteLLM (default)
-k-lean start -s knowledge       # Start Knowledge server
-k-lean start -s all             # Start both services
-k-lean start -p 4001            # Custom port
-k-lean stop                     # Stop for current project
-k-lean stop --all-projects      # Stop all KB servers
-k-lean stop -s litellm          # Stop specific service
+kln start                    # Start LiteLLM (default)
+kln start -s knowledge       # Start Knowledge server
+kln start -s all             # Start both services
+kln start -p 4001            # Custom port
+kln stop                     # Stop for current project
+kln stop --all-projects      # Stop all KB servers
+kln stop -s litellm          # Stop specific service
 ```
 
 ---
@@ -126,12 +126,12 @@ k-lean stop -s litellm          # Stop specific service
 Manages K-LEAN components.
 
 ```bash
-k-lean install                      # Full installation
-k-lean install --component scripts  # Specific component
-k-lean install --dev                # Dev mode (symlinks)
+kln install                      # Full installation
+kln install --component scripts  # Specific component
+kln install --dev                # Dev mode (symlinks)
 
-k-lean uninstall                    # Remove all
-k-lean uninstall --yes              # Skip confirmation
+kln uninstall                    # Remove all
+kln uninstall --yes              # Skip confirmation
 ```
 
 **Components:** all, scripts, commands, hooks, smolkln, config, core, knowledge
@@ -143,9 +143,9 @@ k-lean uninstall --yes              # Skip confirmation
 Configures LiteLLM API provider (interactive wizard).
 
 ```bash
-k-lean setup                # Interactive menu
-k-lean setup -p nanogpt     # Direct NanoGPT setup
-k-lean setup -p openrouter  # Direct OpenRouter setup
+kln setup                # Interactive menu
+kln setup -p nanogpt     # Direct NanoGPT setup
+kln setup -p openrouter  # Direct OpenRouter setup
 ```
 
 **Features:**
@@ -163,9 +163,9 @@ k-lean setup -p openrouter  # Direct OpenRouter setup
 Syncs data files (development tool).
 
 ```bash
-k-lean sync           # Sync all data
-k-lean sync --check   # Verify sync status (CI mode)
-k-lean sync --clean   # Remove stale files
+kln sync           # Sync all data
+kln sync --check   # Verify sync status (CI mode)
+kln sync --clean   # Remove stale files
 ```
 
 ---
@@ -175,7 +175,7 @@ k-lean sync --clean   # Remove stale files
 Runs comprehensive test suite.
 
 ```bash
-k-lean test
+kln test
 ```
 
 **Tests across 8 categories:**
@@ -197,8 +197,8 @@ k-lean test
 Live monitoring dashboard.
 
 ```bash
-k-lean debug              # Full dashboard
-k-lean debug --compact    # Minimal output (for hooks)
+kln debug              # Full dashboard
+kln debug --compact    # Minimal output (for hooks)
 ```
 
 ---
@@ -402,10 +402,10 @@ fi
 
 ```bash
 # Live monitoring
-k-lean debug
+kln debug
 
 # Compact mode (shows hook output)
-k-lean debug --compact
+kln debug --compact
 
 # Manual test
 ~/.claude/hooks/session-start.sh
@@ -536,7 +536,7 @@ Each knowledge entry contains:
 | `FindKnowledge <query>` | Hook | N/A | Search KB |
 | `SaveInfo <url>` | Hook | Partial | LLM evaluates URL content |
 
-**Note:** Use `kb-init.sh` or `k-lean install` to initialize KB for a project.
+**Note:** Use `kb-init.sh` or `kln install` to initialize KB for a project.
 
 ---
 
@@ -613,7 +613,7 @@ Benefits:
 
 **KB Not Starting:**
 ```bash
-k-lean doctor --auto-fix    # Auto-repair
+kln doctor --auto-fix    # Auto-repair
 ~/.claude/scripts/kb-doctor.sh --fix  # Manual repair
 ```
 
@@ -626,7 +626,7 @@ k-lean doctor --auto-fix    # Auto-repair
 
 **Check Status:**
 ```bash
-k-lean status  # Shows KB status per project
+kln status  # Shows KB status per project
 ```
 
 ---
@@ -750,7 +750,7 @@ api_key: os.environ/NANOGPT_API_KEY
 
 **Initial Setup:**
 ```bash
-k-lean setup
+kln setup
 ```
 
 **Wizard steps:**
@@ -761,15 +761,15 @@ k-lean setup
 
 **Starting LiteLLM:**
 ```bash
-k-lean start              # Start proxy (foreground)
-k-lean start -s all       # Start proxy + KB server
+kln start              # Start proxy (foreground)
+kln start -s all       # Start proxy + KB server
 ```
 
 **Checking Status:**
 ```bash
-k-lean doctor       # Validate config + subscription
-k-lean models       # List available models
-k-lean models --health  # Check model health
+kln doctor       # Validate config + subscription
+kln models       # List available models
+kln models --health  # Check model health
 ```
 
 ---
@@ -778,7 +778,7 @@ k-lean models --health  # Check model health
 
 | Script | Purpose |
 |--------|---------|
-| `k-lean setup` | Interactive setup wizard (CLI) |
+| `kln setup` | Interactive setup wizard (CLI) |
 | `setup-litellm.sh` | Shell script setup (alternative) |
 | `start-litellm.sh` | Start proxy with validation |
 | `health-check.sh` | Full health check |
@@ -807,7 +807,7 @@ healthy=$(~/.claude/scripts/get-healthy-models.sh)
 
 **"Invalid session" Error:**
 ```bash
-k-lean doctor --auto-fix
+kln doctor --auto-fix
 # Auto-detects subscription vs pay-per-use endpoint
 ```
 
@@ -822,7 +822,7 @@ cat ~/.klean/logs/litellm.log
 
 **Models Unhealthy:**
 ```bash
-k-lean models --health
+kln models --health
 # Shows which models are down
 
 # Common causes:
@@ -832,7 +832,7 @@ k-lean models --health
 ```
 
 **Config Validation:**
-`k-lean doctor` checks for:
+`kln doctor` checks for:
 - Missing .env file
 - Quoted `os.environ/` (breaks substitution)
 - Missing NANOGPT_API_BASE
@@ -1611,13 +1611,13 @@ smol-kln --list   # List available agents
 ### 7.4 K-LEAN CLI Quick Reference
 
 ```bash
-k-lean install    # Install components
-k-lean setup      # Configure API provider
-k-lean status     # Component status
-k-lean doctor -f  # Diagnose + auto-fix
-k-lean start      # Start services
-k-lean models     # List with health
-k-lean test       # Run test suite
+kln install    # Install components
+kln setup      # Configure API provider
+kln status     # Component status
+kln doctor -f  # Diagnose + auto-fix
+kln start      # Start services
+kln models     # List with health
+kln test       # Run test suite
 ```
 
 ---
@@ -1636,7 +1636,7 @@ smol-kln --list   # List available agents
 
 ### 7.6 Available Models
 
-Auto-discovered from LiteLLM. Use `k-lean models` to see current list.
+Auto-discovered from LiteLLM. Use `kln models` to see current list.
 
 **Common:** `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
 

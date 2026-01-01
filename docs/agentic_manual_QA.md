@@ -7,7 +7,7 @@ Comprehensive QA checklist for AI agents testing each K-LEAN subsystem independe
 ## Quick Smoke Test
 
 ```bash
-k-lean --version && k-lean status && k-lean doctor && k-lean test
+k-lean --version && kln status && kln doctor && kln test
 ```
 
 ---
@@ -251,17 +251,17 @@ grep -r "/home/" src/klean/ | grep -v ".pyc"
 | Command | Test | Expected |
 |---------|------|----------|
 | [ ] `k-lean --version` | Run | Version number |
-| [ ] `k-lean status` | Run | Component table |
-| [ ] `k-lean doctor` | Run | All checks pass |
-| [ ] `k-lean doctor -f` | Run | Auto-fixes issues |
-| [ ] `k-lean models` | Run | Model list |
-| [ ] `k-lean models --health` | Run | Health status each model |
-| [ ] `k-lean start` | Run | LiteLLM starts |
-| [ ] `k-lean start -s all` | Run | LiteLLM + KB start |
-| [ ] `k-lean stop` | Run | Services stop |
-| [ ] `k-lean install` | Run (dev) | Components installed |
-| [ ] `k-lean uninstall` | Run (dev) | Components removed |
-| [ ] `k-lean test` | Run | 27/27 tests pass |
+| [ ] `kln status` | Run | Component table |
+| [ ] `kln doctor` | Run | All checks pass |
+| [ ] `kln doctor -f` | Run | Auto-fixes issues |
+| [ ] `kln models` | Run | Model list |
+| [ ] `kln models --health` | Run | Health status each model |
+| [ ] `kln start` | Run | LiteLLM starts |
+| [ ] `kln start -s all` | Run | LiteLLM + KB start |
+| [ ] `kln stop` | Run | Services stop |
+| [ ] `kln install` | Run (dev) | Components installed |
+| [ ] `kln uninstall` | Run (dev) | Components removed |
+| [ ] `kln test` | Run | 27/27 tests pass |
 
 ### Status Output Verification
 ```
@@ -341,7 +341,7 @@ cat .knowledge-db/timeline.txt | tail -5
 | [ ] No secrets in src/ | `grep -r "sk-" src/` | No matches |
 | [ ] No hardcoded paths | `grep -r "/home/" src/klean/` | No matches |
 | [ ] .env protected | `stat ~/.config/litellm/.env` | 600 perms |
-| [ ] Doctor detects keys | `k-lean doctor` | Would warn if exposed |
+| [ ] Doctor detects keys | `kln doctor` | Would warn if exposed |
 
 ---
 

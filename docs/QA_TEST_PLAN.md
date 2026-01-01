@@ -63,7 +63,7 @@ pipx runpip k-lean list | grep -E "smolagents|txtai|arize"
 ### INST-003: Component Installation
 ```bash
 # Steps
-k-lean install
+kln install
 
 # Expected
 # - Scripts copied to ~/.claude/scripts/
@@ -97,7 +97,7 @@ cat ~/.config/litellm/config.yaml  # Should still exist
 ### INST-005: Uninstall Clean
 ```bash
 # Steps
-k-lean uninstall
+kln uninstall
 pipx uninstall k-lean
 
 # Expected
@@ -114,7 +114,7 @@ which k-lean  # Should not exist
 ```bash
 # Steps (as non-root user)
 pipx install k-lean
-k-lean install
+kln install
 
 # Expected
 # - All operations succeed without sudo
@@ -141,7 +141,7 @@ pipx install k-lean
 # Prerequisites: pipx not installed
 
 # Steps
-k-lean install  # Will fail
+kln install  # Will fail
 
 # Expected
 # - Error message suggesting: pip install pipx
@@ -152,7 +152,7 @@ k-lean install  # Will fail
 # Prerequisites: K-LEAN already installed
 
 # Steps
-k-lean install
+kln install
 
 # Expected
 # - Existing files updated
@@ -166,7 +166,7 @@ grep -c "UserPromptSubmit" ~/.claude/settings.json  # Should be 1
 ### INST-010: Install with Custom Claude Directory
 ```bash
 # Steps
-CLAUDE_HOME=/custom/path k-lean install
+CLAUDE_HOME=/custom/path kln install
 
 # Expected
 # - Files installed to custom path
@@ -188,7 +188,7 @@ ls -la ~/.claude/hooks/*.sh | grep "^-rwx"
 ### INST-012: Verify Symlinks (Dev Mode)
 ```bash
 # Steps
-k-lean install --dev
+kln install --dev
 
 # Expected
 # - Symlinks instead of copies
@@ -205,7 +205,7 @@ ls -la ~/.claude/scripts/quick-review.sh  # Should show ->
 ### SETUP-001: Interactive Setup (NanoGPT)
 ```bash
 # Steps
-k-lean setup
+kln setup
 # Select: nanogpt
 # Enter API key
 
@@ -220,7 +220,7 @@ cat ~/.config/litellm/config.yaml | grep nanogpt
 ### SETUP-002: Interactive Setup (OpenRouter)
 ```bash
 # Steps
-k-lean setup
+kln setup
 # Select: openrouter
 # Enter API key
 
@@ -235,7 +235,7 @@ cat ~/.config/litellm/config.yaml | grep openrouter
 ### SETUP-003: Setup with Invalid API Key
 ```bash
 # Steps
-k-lean setup
+kln setup
 # Enter: invalid-key-12345
 
 # Expected
@@ -249,7 +249,7 @@ k-lean setup
 # Prerequisites: Existing config with custom settings
 
 # Steps
-k-lean setup --provider nanogpt
+kln setup --provider nanogpt
 
 # Expected
 # - New provider added
@@ -264,7 +264,7 @@ cat ~/.config/litellm/config.yaml | grep -c "model_list"
 # Prerequisites: ~/.config/litellm/ does not exist
 
 # Steps
-k-lean setup
+kln setup
 
 # Expected
 # - Directory created
@@ -280,7 +280,7 @@ ls -la ~/.config/litellm/config.yaml
 # Prerequisites: NanoGPT configured
 
 # Steps
-k-lean setup
+kln setup
 # Select: openrouter
 
 # Expected
@@ -291,7 +291,7 @@ k-lean setup
 ### SETUP-007: Setup with Environment Variable
 ```bash
 # Steps
-NANOGPT_API_KEY=xxx k-lean setup --provider nanogpt
+NANOGPT_API_KEY=xxx kln setup --provider nanogpt
 
 # Expected
 # - API key picked up from env
@@ -301,15 +301,15 @@ NANOGPT_API_KEY=xxx k-lean setup --provider nanogpt
 ### SETUP-008: Validate Config After Setup
 ```bash
 # Steps
-k-lean setup
-k-lean doctor
+kln setup
+kln doctor
 
 # Expected
 # - No config-related issues
 # - LiteLLM config valid
 
 # Verify
-k-lean doctor | grep -i "config"
+kln doctor | grep -i "config"
 ```
 
 ---
@@ -319,7 +319,7 @@ k-lean doctor | grep -i "config"
 ### SVC-001: Start LiteLLM
 ```bash
 # Steps
-k-lean start
+kln start
 
 # Expected
 # - LiteLLM proxy starts on port 4000
@@ -333,7 +333,7 @@ lsof -i :4000
 ### SVC-002: Start with Custom Port
 ```bash
 # Steps
-k-lean start --port 4001
+kln start --port 4001
 
 # Expected
 # - LiteLLM on port 4001
@@ -348,7 +348,7 @@ curl -s http://localhost:4001/health
 # Prerequisites: LiteLLM running
 
 # Steps
-k-lean stop
+kln stop
 
 # Expected
 # - Process terminated
@@ -363,7 +363,7 @@ lsof -i :4000  # Should be empty
 # Prerequisites: In a git project
 
 # Steps
-k-lean start knowledge
+kln start knowledge
 
 # Expected
 # - Socket created at /tmp/kb-*.sock
@@ -376,7 +376,7 @@ ls /tmp/kb-*.sock
 ### SVC-005: Stop Knowledge Server
 ```bash
 # Steps
-k-lean stop knowledge
+kln stop knowledge
 
 # Expected
 # - Socket removed
@@ -389,14 +389,14 @@ ls /tmp/kb-*.sock 2>/dev/null  # Should not exist
 ### SVC-006: Start All Services
 ```bash
 # Steps
-k-lean start --all
+kln start --all
 
 # Expected
 # - LiteLLM running
 # - Knowledge server running (if in project)
 
 # Verify
-k-lean status
+kln status
 ```
 
 ### SVC-007: Restart After Crash
@@ -405,14 +405,14 @@ k-lean status
 kill -9 $(pgrep -f litellm)
 
 # Steps
-k-lean start
+kln start
 
 # Expected
 # - Cleans stale PID
 # - Starts fresh
 
 # Verify
-k-lean status | grep -i litellm
+kln status | grep -i litellm
 ```
 
 ### SVC-008: Start Without Config
@@ -420,20 +420,20 @@ k-lean status | grep -i litellm
 # Prerequisites: No ~/.config/litellm/config.yaml
 
 # Steps
-k-lean start
+kln start
 
 # Expected
 # - Clear error message
-# - Suggests: k-lean setup
+# - Suggests: kln setup
 
 # Verify
-k-lean start 2>&1 | grep -i "setup"
+kln start 2>&1 | grep -i "setup"
 ```
 
 ### SVC-009: Check Service Status
 ```bash
 # Steps
-k-lean status
+kln status
 
 # Expected
 # - LiteLLM status (running/stopped)
@@ -442,7 +442,7 @@ k-lean status
 # - Health indicators
 
 # Verify
-k-lean status | grep -E "LiteLLM|Knowledge|Models"
+kln status | grep -E "LiteLLM|Knowledge|Models"
 ```
 
 ### SVC-010: Start with Telemetry
@@ -450,7 +450,7 @@ k-lean status | grep -E "LiteLLM|Knowledge|Models"
 # Prerequisites: Phoenix installed
 
 # Steps
-k-lean start --telemetry
+kln start --telemetry
 
 # Expected
 # - Phoenix UI on port 6006
@@ -493,7 +493,7 @@ k-lean --help | grep -E "install|setup|status|doctor|start|stop"
 ### CLI-003: Status Command
 ```bash
 # Steps
-k-lean status
+kln status
 
 # Expected
 # - Component statuses
@@ -501,13 +501,13 @@ k-lean status
 # - No crashes
 
 # Verify
-k-lean status; echo "Exit: $?"  # Should be 0
+kln status; echo "Exit: $?"  # Should be 0
 ```
 
 ### CLI-004: Doctor Command
 ```bash
 # Steps
-k-lean doctor
+kln doctor
 
 # Expected
 # - All checks run
@@ -515,7 +515,7 @@ k-lean doctor
 # - Suggestions provided
 
 # Verify
-k-lean doctor | grep -E "\[.*\]"  # Status indicators
+kln doctor | grep -E "\[.*\]"  # Status indicators
 ```
 
 ### CLI-005: Doctor Auto-Fix
@@ -523,14 +523,14 @@ k-lean doctor | grep -E "\[.*\]"  # Status indicators
 # Prerequisites: Fixable issues present
 
 # Steps
-k-lean doctor -f
+kln doctor -f
 
 # Expected
 # - Issues automatically resolved
 # - Summary of fixes
 
 # Verify
-k-lean doctor | grep -i "fixed"
+kln doctor | grep -i "fixed"
 ```
 
 ### CLI-006: Models Command
@@ -538,20 +538,20 @@ k-lean doctor | grep -i "fixed"
 # Prerequisites: LiteLLM running
 
 # Steps
-k-lean models
+kln models
 
 # Expected
 # - List of available models
 # - Health status per model
 
 # Verify
-k-lean models | wc -l  # Should be > 1
+kln models | wc -l  # Should be > 1
 ```
 
 ### CLI-007: Models with Health Check
 ```bash
 # Steps
-k-lean models --health
+kln models --health
 
 # Expected
 # - Each model tested
@@ -559,7 +559,7 @@ k-lean models --health
 # - Status indicators
 
 # Verify
-k-lean models --health | grep -E "ms|OK|FAIL"
+kln models --health | grep -E "ms|OK|FAIL"
 ```
 
 ### CLI-008: Test-Model Command
@@ -567,7 +567,7 @@ k-lean models --health | grep -E "ms|OK|FAIL"
 # Prerequisites: LiteLLM running
 
 # Steps
-k-lean test-model
+kln test-model
 
 # Expected
 # - First model tested
@@ -575,20 +575,20 @@ k-lean test-model
 # - Latency shown
 
 # Verify
-k-lean test-model | grep -i "response"
+kln test-model | grep -i "response"
 ```
 
 ### CLI-009: Test Specific Model
 ```bash
 # Steps
-k-lean test-model --model qwen3-coder
+kln test-model --model qwen3-coder
 
 # Expected
 # - Specified model tested
 # - Clear result
 
 # Verify
-k-lean test-model --model qwen3-coder | grep -i "qwen"
+kln test-model --model qwen3-coder | grep -i "qwen"
 ```
 
 ### CLI-010: Multi Command
@@ -596,7 +596,7 @@ k-lean test-model --model qwen3-coder | grep -i "qwen"
 # Prerequisites: LiteLLM running, in git project
 
 # Steps
-k-lean multi "security review"
+kln multi "security review"
 
 # Expected
 # - Multi-agent review runs
@@ -610,7 +610,7 @@ echo $?  # Should be 0
 ### CLI-011: Multi with Thorough Flag
 ```bash
 # Steps
-k-lean multi --thorough "security review"
+kln multi --thorough "security review"
 
 # Expected
 # - 4-agent config used
@@ -625,7 +625,7 @@ k-lean multi --thorough "security review"
 # Prerequisites: Services running
 
 # Steps
-k-lean debug
+kln debug
 
 # Expected
 # - Dashboard displayed
@@ -638,20 +638,20 @@ k-lean debug
 ### CLI-013: Sync Command
 ```bash
 # Steps
-k-lean sync --check
+kln sync --check
 
 # Expected
 # - Shows sync status
 # - Lists differences
 
 # Verify
-k-lean sync --check | grep -E "synced|differs"
+kln sync --check | grep -E "synced|differs"
 ```
 
 ### CLI-014: Test Command (Full Suite)
 ```bash
 # Steps
-k-lean test
+kln test
 
 # Expected
 # - All 27 tests run
@@ -659,7 +659,7 @@ k-lean test
 # - Exit code reflects pass/fail
 
 # Verify
-k-lean test | grep -E "passed|failed"
+kln test | grep -E "passed|failed"
 ```
 
 ### CLI-015: Unknown Command
@@ -1086,7 +1086,7 @@ smol-kln custom-agent "task"
 
 ### MULTI-001: 3-Agent Default
 ```bash
-k-lean multi "code review"
+kln multi "code review"
 
 # Expected
 # - Manager, file_scout, analyzer used
@@ -1096,7 +1096,7 @@ k-lean multi "code review"
 
 ### MULTI-002: 4-Agent Thorough
 ```bash
-k-lean multi --thorough "security audit"
+kln multi --thorough "security audit"
 
 # Expected
 # - All 4 agents used
@@ -1107,7 +1107,7 @@ k-lean multi --thorough "security audit"
 ### MULTI-003: Agent Communication
 ```bash
 # Steps
-k-lean multi "review authentication" --verbose
+kln multi "review authentication" --verbose
 
 # Expected
 # - Agent handoffs visible
@@ -1120,7 +1120,7 @@ k-lean multi "review authentication" --verbose
 ```bash
 # Prerequisites: One model unavailable
 
-k-lean multi "review"
+kln multi "review"
 
 # Expected
 # - Graceful degradation
@@ -1130,7 +1130,7 @@ k-lean multi "review"
 
 ### MULTI-005: Output Format - Text
 ```bash
-k-lean multi --output text "review"
+kln multi --output text "review"
 
 # Expected
 # - Plain text output
@@ -1139,14 +1139,14 @@ k-lean multi --output text "review"
 
 ### MULTI-006: Output Format - JSON
 ```bash
-k-lean multi --output json "review"
+kln multi --output json "review"
 
 # Expected
 # - Valid JSON output
 # - Structured data
 
 # Verify
-k-lean multi --output json "review" | jq .
+kln multi --output json "review" | jq .
 ```
 
 ---
@@ -1157,12 +1157,12 @@ k-lean multi --output json "review" | jq .
 ```bash
 # Fresh system
 pipx install k-lean
-k-lean install
-k-lean setup  # nanogpt
-k-lean start
-k-lean status
-k-lean models
-k-lean test
+kln install
+kln setup  # nanogpt
+kln start
+kln status
+kln models
+kln test
 
 # Expected
 # - All steps succeed
@@ -1200,8 +1200,8 @@ FindKnowledge auth
 ```bash
 # Prerequisites: Primary model down
 
-k-lean models --health
-k-lean multi "review"
+kln models --health
+kln multi "review"
 
 # Expected
 # - Unhealthy model skipped
@@ -1211,8 +1211,8 @@ k-lean multi "review"
 ### INT-005: Concurrent Reviews
 ```bash
 # Two terminals
-# Terminal 1: k-lean multi "security"
-# Terminal 2: k-lean multi "performance"
+# Terminal 1: kln multi "security"
+# Terminal 2: kln multi "performance"
 
 # Expected
 # - Both complete
@@ -1224,7 +1224,7 @@ k-lean multi "review"
 ```bash
 # Prerequisites: Project with 1000+ files
 
-k-lean multi "architecture review"
+kln multi "architecture review"
 
 # Expected
 # - Handles scale
@@ -1237,11 +1237,11 @@ k-lean multi "architecture review"
 # Prerequisites: LiteLLM not running
 
 /kln:status
-k-lean models
+kln models
 
 # Expected
 # - Clear error message
-# - Suggests: k-lean start
+# - Suggests: kln start
 ```
 
 ### INT-008: Upgrade Path
@@ -1249,8 +1249,8 @@ k-lean models
 # Prerequisites: Old version installed
 
 pipx upgrade k-lean
-k-lean install
-k-lean doctor -f
+kln install
+kln doctor -f
 
 # Expected
 # - Smooth upgrade
@@ -1279,8 +1279,8 @@ ls ~/project-b/.knowledge-db/
 
 ### INT-010: Telemetry End-to-End
 ```bash
-k-lean start --telemetry
-k-lean multi "review"
+kln start --telemetry
+kln multi "review"
 
 # Expected
 # - Traces in Phoenix
@@ -1297,9 +1297,9 @@ k-lean multi "review"
 
 ### Smoke Test (5 min)
 - [ ] `k-lean --version`
-- [ ] `k-lean status`
-- [ ] `k-lean models`
-- [ ] `k-lean test`
+- [ ] `kln status`
+- [ ] `kln models`
+- [ ] `kln test`
 
 ### Quick Validation (15 min)
 - [ ] INST-001, INST-003
@@ -1334,7 +1334,7 @@ k-lean multi "review"
 
 ## Automation Notes
 
-### Automated (via `k-lean test`)
+### Automated (via `kln test`)
 - CLI command parsing
 - Config validation
 - Model discovery
@@ -1353,12 +1353,12 @@ k-lean multi "review"
   run: pipx install k-lean
 
 - name: Run Tests
-  run: k-lean test
+  run: kln test
 
 - name: Smoke Test
   run: |
     k-lean --version
-    k-lean status
+    kln status
 ```
 
 ---

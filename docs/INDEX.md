@@ -46,7 +46,7 @@ Package entry point with path constants.
 | `SMOL_AGENTS_DIR` | `~/.klean/agents/` | Agent definitions |
 
 ### `klean/cli.py`
-Main CLI entry point. Implements all `k-lean` commands.
+Main CLI entry point. Implements all `kln` commands.
 
 | Command | Function | Description |
 |---------|----------|-------------|
@@ -304,7 +304,7 @@ tests/
     └── test_tools_citations.py  # Citation validation
 ```
 
-Run with: `k-lean test` or `pytest tests/`
+Run with: `kln test` or `pytest tests/`
 
 ---
 

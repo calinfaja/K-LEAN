@@ -87,11 +87,11 @@ Status: SUCCESS
 | Command | Status | Output |
 |---------|--------|--------|
 | `k-lean --help` | PASS | Shows 14 commands |
-| `k-lean version` | PASS | v1.0.0-beta |
-| `k-lean status` | PASS | Component dashboard |
-| `k-lean doctor` | PASS | No issues found |
-| `k-lean models` | PASS | 18 models listed |
-| `k-lean test` | PASS | 27/27 tests pass |
+| `kln version` | PASS | v1.0.0-beta |
+| `kln status` | PASS | Component dashboard |
+| `kln doctor` | PASS | No issues found |
+| `kln models` | PASS | 18 models listed |
+| `kln test` | PASS | 27/27 tests pass |
 | `smol-kln --list` | PASS | 9 agents listed |
 | `smol-kln --help` | PASS | Usage shown |
 
@@ -311,15 +311,15 @@ pipx install .
 # Result: SUCCESS - all deps resolved
 
 # Step 3: Deploy to Claude Code
-k-lean install
+kln install
 # Result: SUCCESS - 44 scripts, 9 commands, 5 hooks
 
 # Step 4: Configure API
-k-lean setup
+kln setup
 # Result: SUCCESS - Interactive wizard works
 
 # Step 5: Verify
-k-lean doctor
+kln doctor
 # Result: SUCCESS (if LiteLLM running)
 ```
 
@@ -415,7 +415,7 @@ When knowledge server is running, direct `knowledge_db.py add` fails with SQLite
 
 3. **Add knowledge server add endpoint** - Enable direct adds
 4. **Create INSTALLATION.md** - Step-by-step guide with screenshots
-5. **Add `k-lean quickstart`** - One command to setup everything
+5. **Add `kln quickstart`** - One command to setup everything
 
 ### Medium Priority
 

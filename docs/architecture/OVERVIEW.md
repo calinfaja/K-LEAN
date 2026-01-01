@@ -140,9 +140,9 @@ cd k-lean
 pipx install .
 
 # Setup
-k-lean install          # Deploy to ~/.claude/
-k-lean setup            # Configure API (interactive)
-k-lean doctor           # Verify everything works
+kln install          # Deploy to ~/.claude/
+kln setup            # Configure API (interactive)
+kln doctor           # Verify everything works
 ```
 
 ### First Use
@@ -158,23 +158,23 @@ k-lean doctor           # Verify everything works
 
 ```bash
 # Core
-k-lean install          # Install to ~/.claude/
-k-lean setup            # Configure API provider
-k-lean uninstall        # Remove components
+kln install          # Install to ~/.claude/
+kln setup            # Configure API provider
+kln uninstall        # Remove components
 
 # Services
-k-lean start            # Start LiteLLM proxy
-k-lean start -s all     # Start LiteLLM + Knowledge server
-k-lean stop             # Stop all services
+kln start            # Start LiteLLM proxy
+kln start -s all     # Start LiteLLM + Knowledge server
+kln stop             # Stop all services
 
 # Status
-k-lean status           # Component status
-k-lean doctor [-f]      # Diagnose (auto-fix)
-k-lean models [--health]# List models
+kln status           # Component status
+kln doctor [-f]      # Diagnose (auto-fix)
+kln models [--health]# List models
 
 # Development
-k-lean test             # Run test suite
-k-lean debug            # Live monitoring
+kln test             # Run test suite
+kln debug            # Live monitoring
 ```
 
 ---
@@ -201,7 +201,7 @@ k-lean/
 
 ### Symlink Architecture
 
-After `k-lean install`, ~/.claude/ contains:
+After `kln install`, ~/.claude/ contains:
 
 ```
 ~/.claude/

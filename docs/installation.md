@@ -22,13 +22,13 @@ cd k-lean
 pipx install .
 
 # 3. Install components (symlinks scripts, commands, hooks)
-k-lean install
+kln install
 
 # 4. Install SmolKLN agents (optional but recommended)
 pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'
 
 # 5. Verify
-k-lean doctor
+kln doctor
 ```
 
 **After PyPI release:** `pipx install k-lean`
@@ -37,7 +37,7 @@ k-lean doctor
 
 ```bash
 # Interactive setup wizard
-k-lean setup
+kln setup
 ```
 
 **Providers:**
@@ -54,9 +54,9 @@ k-lean setup
 ## Start Services
 
 ```bash
-k-lean start              # LiteLLM proxy only
-k-lean start -s all       # LiteLLM + Knowledge server
-k-lean start --telemetry  # Also start Phoenix telemetry server
+kln start              # LiteLLM proxy only
+kln start -s all       # LiteLLM + Knowledge server
+kln start --telemetry  # Also start Phoenix telemetry server
 ```
 
 ## Optional: Agent Telemetry
@@ -73,7 +73,7 @@ This installs:
 
 **Usage:**
 ```bash
-k-lean start --telemetry                 # Start Phoenix on :6006
+kln start --telemetry                 # Start Phoenix on :6006
 smol-kln security-auditor "audit" -t     # Run agent with tracing
 ```
 
@@ -82,14 +82,14 @@ View traces at `http://localhost:6006`
 ## Verify
 
 ```bash
-k-lean status             # Component status
-k-lean models --health    # Model health
+kln status             # Component status
+kln models --health    # Model health
 ```
 
 ## Uninstall
 
 ```bash
-k-lean uninstall
+kln uninstall
 pipx uninstall k-lean
 ```
 
@@ -99,6 +99,6 @@ pipx uninstall k-lean
 |-------|-----|
 | LiteLLM not starting | `lsof -i :4000` (check port) |
 | Models unhealthy | Check API key in `~/.config/litellm/.env` |
-| Config errors | `k-lean doctor -f` (auto-fix) |
+| Config errors | `kln doctor -f` (auto-fix) |
 
 See [.agents/troubleshooting.md](../.agents/troubleshooting.md) for detailed diagnostics.

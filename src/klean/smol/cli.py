@@ -69,7 +69,7 @@ Examples:
     if args.list:
         agents_dir = Path.home() / ".klean" / "agents"
         if not agents_dir.exists():
-            print("No agents installed. Run: k-lean install")
+            print("No agents installed. Run: kln install")
             sys.exit(1)
 
         agents = list_available_agents(agents_dir)

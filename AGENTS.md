@@ -6,19 +6,19 @@
 
 ```bash
 pipx install k-lean    # Install
-k-lean doctor          # Verify setup
-k-lean status          # Check components
+kln doctor          # Verify setup
+kln status          # Check components
 ```
 
 ## Key Commands
 
 | Command | Purpose |
 |---------|---------|
-| `k-lean doctor` | Validate configuration and services |
-| `k-lean status` | Show installed components |
-| `k-lean models` | List available LLM models |
-| `k-lean start/stop` | Control LiteLLM & KB services |
-| `k-lean test` | Run 27-point test suite |
+| `kln doctor` | Validate configuration and services |
+| `kln status` | Show installed components |
+| `kln models` | List available LLM models |
+| `kln start/stop` | Control LiteLLM & KB services |
+| `kln test` | Run 27-point test suite |
 
 ## Project Structure
 
@@ -39,7 +39,7 @@ src/klean/
 **Do:**
 - Use `kb-root.sh` for path resolution (never hardcode paths)
 - Check both `content` and `reasoning_content` for thinking models
-- Run `k-lean test` before committing
+- Run `kln test` before committing
 - Keep CLAUDE.md minimal (K-LEAN is a plugin, not owner)
 
 **Don't:**

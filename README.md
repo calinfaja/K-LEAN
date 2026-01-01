@@ -39,9 +39,9 @@ cd k-lean
 pipx install .
 
 # Setup
-k-lean install                # Deploy to ~/.claude/
-k-lean setup                  # Configure API (interactive)
-k-lean doctor                 # Verify everything works
+kln install                # Deploy to ~/.claude/
+kln setup                  # Configure API (interactive)
+kln doctor                 # Verify everything works
 ```
 
 **In Claude Code:**
@@ -194,35 +194,35 @@ Type these directly in Claude Code:
 
 ```bash
 # Core Setup
-k-lean install          # Install components to ~/.claude/
-k-lean setup            # Configure API provider (interactive)
-k-lean uninstall        # Remove components from ~/.claude/
+kln install          # Install components to ~/.claude/
+kln setup            # Configure API provider (interactive)
+kln uninstall        # Remove components from ~/.claude/
 
 # Service Management
-k-lean start            # Start LiteLLM proxy
-k-lean start -s all     # Start LiteLLM + Knowledge server
-k-lean start --telemetry # Also start Phoenix (agent tracing)
-k-lean stop             # Stop all services
+kln start            # Start LiteLLM proxy
+kln start -s all     # Start LiteLLM + Knowledge server
+kln start --telemetry # Also start Phoenix (agent tracing)
+kln stop             # Stop all services
 
 # Status & Diagnostics
-k-lean status           # Show component status
-k-lean doctor           # Diagnose configuration issues
-k-lean doctor -f        # Auto-fix common issues
-k-lean debug            # Live monitoring dashboard
+kln status           # Show component status
+kln doctor           # Diagnose configuration issues
+kln doctor -f        # Auto-fix common issues
+kln debug            # Live monitoring dashboard
 
 # Models
-k-lean models           # List available models
-k-lean models --health  # Check model health (~60s)
-k-lean test-model       # Test a specific model with quick prompt
+kln models           # List available models
+kln models --health  # Check model health (~60s)
+kln test-model       # Test a specific model with quick prompt
 
 # Reviews & Testing
-k-lean multi "task"     # Multi-agent review (3 agents)
-k-lean multi -t "task"  # Thorough review (4 agents)
-k-lean test             # Run test suite (27 tests)
+kln multi "task"     # Multi-agent review (3 agents)
+kln multi -t "task"  # Thorough review (4 agents)
+kln test             # Run test suite (27 tests)
 
 # Development & Info
-k-lean sync             # Sync package data for PyPI
-k-lean version          # Show K-LEAN version information
+kln sync             # Sync package data for PyPI
+kln version          # Show K-LEAN version information
 ```
 
 ---
@@ -309,8 +309,8 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 git clone https://github.com/calinfaja/k-lean.git
 cd k-lean
 pipx install -e .           # Editable mode
-k-lean install --dev        # Symlink instead of copy
-k-lean test                 # Verify (27 tests)
+kln install --dev        # Symlink instead of copy
+kln test                 # Verify (27 tests)
 ```
 
 ---

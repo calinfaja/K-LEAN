@@ -26,7 +26,7 @@ echo "===================="
 # Check config exists
 if [ ! -f "$CONFIG_FILE" ]; then
     echo -e "${RED}ERROR: Config not found: $CONFIG_FILE${NC}"
-    echo "   Run: k-lean install"
+    echo "   Run: kln install"
     exit 1
 fi
 

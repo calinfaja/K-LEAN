@@ -47,13 +47,13 @@ jobs:
       # Package Integrity
       # ----------------------------------------
       - name: Sync check
-        run: k-lean sync --check
+        run: kln sync --check
 
       - name: Install components
-        run: k-lean install --yes
+        run: kln install --yes
 
       - name: Doctor check
-        run: k-lean doctor
+        run: kln doctor
 
       # ----------------------------------------
       # Build Verification

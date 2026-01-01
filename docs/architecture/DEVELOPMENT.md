@@ -62,8 +62,8 @@ pipx install -e .
 
 # Verify installation
 k-lean --version    # Should show 1.0.0-beta
-k-lean doctor       # Check configuration
-k-lean test         # Run test suite (27 tests)
+kln doctor       # Check configuration
+kln test         # Run test suite (27 tests)
 ```
 
 ### Optional Dependencies
@@ -131,13 +131,13 @@ vim src/klean/cli.py
 ruff check src/
 
 # 3. Run tests
-k-lean test
+kln test
 
 # 4. If editing data/ files, sync
-k-lean sync
+kln sync
 
 # 5. Validate everything
-k-lean doctor -f
+kln doctor -f
 
 # 6. Commit with conventional commit message
 git add -A
@@ -149,9 +149,9 @@ git commit -m "feat: add new review mode"
 After editing files in `src/klean/data/`, sync updates to installation:
 
 ```bash
-k-lean sync           # Sync data files to ~/.claude/
-k-lean sync --check   # Check without syncing (CI mode)
-k-lean sync --clean   # Remove stale files
+kln sync           # Sync data files to ~/.claude/
+kln sync --check   # Check without syncing (CI mode)
+kln sync --clean   # Remove stale files
 ```
 
 **When to sync:**
@@ -163,8 +163,8 @@ k-lean sync --clean   # Remove stale files
 ### Live Debugging
 
 ```bash
-k-lean debug              # Full dashboard
-k-lean debug --compact    # Minimal (for hooks)
+kln debug              # Full dashboard
+kln debug --compact    # Minimal (for hooks)
 ```
 
 ---
@@ -341,7 +341,7 @@ Before committing:
 - [ ] Shell scripts source kb-root.sh
 - [ ] Thinking model responses handled (both formats)
 - [ ] Error handling present
-- [ ] `k-lean test` passes
+- [ ] `kln test` passes
 - [ ] `ruff check src/` passes
 
 ---
@@ -351,9 +351,9 @@ Before committing:
 ### Running Tests
 
 ```bash
-k-lean test              # Run full test suite (27 tests)
-k-lean doctor            # Validate configuration
-k-lean models --health   # Check model availability
+kln test              # Run full test suite (27 tests)
+kln doctor            # Validate configuration
+kln models --health   # Check model availability
 ```
 
 ### Test Categories
@@ -413,7 +413,7 @@ echo "Hello from my-new-script"
 
 ```bash
 chmod +x src/klean/data/scripts/my-new-script.sh
-k-lean sync
+kln sync
 ```
 
 3. Test:
@@ -443,7 +443,7 @@ Short description of what this command does.
 2. Sync:
 
 ```bash
-k-lean sync
+kln sync
 ```
 
 ### Adding a New Hook
@@ -484,7 +484,7 @@ cp src/klean/data/agents/TEMPLATE.md src/klean/data/agents/my-agent.md
 3. Sync and test:
 
 ```bash
-k-lean sync
+kln sync
 smol-kln my-agent "test task"
 ```
 
@@ -496,10 +496,10 @@ smol-kln my-agent "test task"
 
 | Command | Purpose |
 |---------|---------|
-| `k-lean doctor` | Full system diagnostics |
-| `k-lean doctor -f` | Diagnose + auto-fix |
-| `k-lean status` | Component status |
-| `k-lean models --health` | Check model health |
+| `kln doctor` | Full system diagnostics |
+| `kln doctor -f` | Diagnose + auto-fix |
+| `kln status` | Component status |
+| `kln models --health` | Check model health |
 
 ### Issue: LiteLLM Proxy Not Running
 
@@ -515,7 +515,7 @@ lsof -i :4000
 
 **Fixes:**
 ```bash
-k-lean start                           # Start proxy
+kln start                           # Start proxy
 ~/.claude/scripts/start-litellm.sh     # Direct script
 ```
 
@@ -537,10 +537,10 @@ k-lean start                           # Start proxy
 cat ~/.config/litellm/.env
 
 # Re-run setup wizard
-k-lean setup
+kln setup
 
 # Verify NanoGPT subscription
-k-lean doctor
+kln doctor
 ```
 
 ### Issue: Knowledge Server Slow
@@ -558,7 +558,7 @@ is_kb_server_running               # Check server status
 
 **Fixes:**
 ```bash
-k-lean start -s knowledge          # Start KB server
+kln start -s knowledge          # Start KB server
 rm /tmp/kb-*.sock                  # Clean stale socket
 ~/.claude/scripts/knowledge-server.py start
 ```
@@ -577,7 +577,7 @@ ls -la ~/.venvs/knowledge-db/bin/python
 
 **Fixes:**
 ```bash
-k-lean install --component knowledge
+kln install --component knowledge
 # Or manually:
 python3 -m venv ~/.venvs/knowledge-db
 ~/.venvs/knowledge-db/bin/pip install txtai sentence-transformers
@@ -591,7 +591,7 @@ python3 -m venv ~/.venvs/knowledge-db
 
 **Diagnosis:**
 ```bash
-k-lean doctor
+kln doctor
 cat ~/.config/litellm/config.yaml | grep os.environ
 ```
 
@@ -628,7 +628,7 @@ ls -la /tmp/claude-reviews/
 **Fix:**
 ```bash
 pipx install -e . --force
-k-lean sync --clean
+kln sync --clean
 ```
 
 ### Log Locations
@@ -645,18 +645,18 @@ k-lean sync --clean
 
 ```bash
 # Full restart
-k-lean stop
-k-lean start -s all
+kln stop
+kln start -s all
 
 # Reset knowledge DB (per-project)
 rm -rf .knowledge-db/
 # Will auto-recreate on next /kln:learn or FindKnowledge
 
 # Complete reinstall
-k-lean uninstall
+kln uninstall
 pipx uninstall k-lean
 pipx install k-lean
-k-lean install
+kln install
 ```
 
 ---
@@ -667,16 +667,16 @@ k-lean install
 
 ```bash
 # 1. Run full test suite
-k-lean test
+kln test
 
 # 2. Check for issues
-k-lean doctor
+kln doctor
 
 # 3. Lint code
 ruff check src/
 
 # 4. Verify sync
-k-lean sync --check
+kln sync --check
 ```
 
 ### Version Update
