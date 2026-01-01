@@ -185,7 +185,7 @@ class SmolKLNExecutor:
                 - memory_history: List[Dict] (session memory entries)
         """
         try:
-            from smolagents import CodeAgent, ActionStep, TaskStep
+            from smolagents import CodeAgent
         except ImportError:
             return {
                 "output": "Error: smolagents not installed. Install with: pip install smolagents[litellm]",
