@@ -242,7 +242,7 @@ if [ -f ~/.knowledge-db/entries.jsonl ]; then
     # Validate each entry
     ~/.venvs/knowledge-db/bin/python << 'EOF'
 import json
-with open('/home/calin/.knowledge-db/entries.jsonl') as f:
+with open('.knowledge-db/entries.jsonl') as f:
     count = 0
     for line in f:
         try:

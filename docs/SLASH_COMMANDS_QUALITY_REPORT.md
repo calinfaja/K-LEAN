@@ -171,7 +171,7 @@ prompt_templates={
 Process: RUNNING
 PID: 32802
 Memory: 936MB
-Project: /home/calin/claudeAgentic
+Project: /path/to/project
 Entries: 210
 ```
 
