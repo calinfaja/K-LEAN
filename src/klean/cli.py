@@ -188,7 +188,7 @@ def _query_kb_entries(socket_path: str) -> str:
 def print_banner():
     """Print the K-LEAN banner."""
     console.print(Panel.fit(
-        f"[bold cyan]K-LEAN Companion v{__version__}[/bold cyan]\n"
+        f"[bold cyan]K-LEAN v{__version__}[/bold cyan]\n"
         "[dim]Multi-Model Code Review & Knowledge Capture System[/dim]",
         border_style="cyan"
     ))
