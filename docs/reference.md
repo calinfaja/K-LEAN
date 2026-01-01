@@ -22,18 +22,18 @@
 
 ## Models
 
-| Model | Type | Best For |
-|-------|------|----------|
-| `qwen3-coder` | Standard | General coding |
-| `deepseek-v3-thinking` | Thinking | Architecture |
-| `glm-4.6-thinking` | Thinking | Standards |
-| `kimi-k2-thinking` | Thinking | Planning |
-| `minimax-m2` | Thinking | Research |
-| `hermes-4-70b` | Standard | Scripting |
+Models are **auto-discovered** from LiteLLM proxy. No hardcoded model names.
 
-*Models are auto-discovered from LiteLLM. Use `kln models` for current list.*
+```bash
+kln models           # List available models
+kln models --health  # Check model health
+```
 
-**Thinking models** return `reasoning_content` instead of `content`.
+**Model types:**
+- **Standard** — Regular chat completions
+- **Thinking** — Return `reasoning_content` with reasoning chains (DeepSeek, GLM, Kimi)
+
+User controls model priority via order in `~/.config/litellm/config.yaml`.
 
 ## Slash Commands
 
@@ -131,7 +131,7 @@ See [multi-agent-implementation-plan.md](multi-agent-implementation-plan.md) for
 
 SmolKLN agents can be traced with Phoenix for debugging and performance analysis.
 
-**Install:** `pipx inject k-lean 'k-lean[telemetry]'`
+**Install:** `pipx inject kln-ai 'kln-ai[telemetry]'`
 
 | Flag | Command | Effect |
 |------|---------|--------|

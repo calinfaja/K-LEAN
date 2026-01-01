@@ -10,9 +10,9 @@
 
 K-LEAN (Knowledge-Lean) is an addon for Claude Code that provides:
 
-- **18 LLM models** via LiteLLM proxy (dynamic discovery)
+- **Multiple LLM models** via LiteLLM proxy (dynamic discovery)
 - **Consensus reviews** from 3-5 models in parallel
-- **Persistent Knowledge DB** with semantic search (210+ entries)
+- **Persistent Knowledge DB** with semantic search (per-project)
 - **8 SmolKLN agents** for domain-specific analysis
 - **9 slash commands** for reviews, debugging, and documentation
 - **4 hooks** for automatic knowledge capture
@@ -54,7 +54,7 @@ Claude Code uses a single AI model. K-LEAN adds:
    ┌─────────────────────┐  ┌──────────────────────────────────┐
    │  LiteLLM Proxy      │  │  Knowledge DB (txtai)            │
    │  localhost:4000     │  │  .knowledge-db/ per project      │
-   │  18 models          │  │  Unix socket for fast queries    │
+   │  Dynamic discovery  │  │  Unix socket for fast queries    │
    └──────────┬──────────┘  └──────────────────────────────────┘
               │
               ▼
@@ -71,7 +71,7 @@ Claude Code uses a single AI model. K-LEAN adds:
 
 | Component | Count | Description |
 |-----------|-------|-------------|
-| Models | 18 | Via LiteLLM (dynamic discovery) |
+| Models | Dynamic | Via LiteLLM (auto-discovered) |
 | Slash Commands | 10 | /kln:quick, multi, deep, agent, rethink, doc, learn, remember, status, help |
 | SmolKLN Agents | 8 | code-reviewer, security-auditor, debugger, performance-engineer, rust-expert, c-pro, arm-cortex-expert, orchestrator |
 | Hooks | 5 | FindKnowledge, SaveInfo, async reviews, session-start, post-tool |
