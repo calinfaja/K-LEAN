@@ -1,7 +1,5 @@
 # Installation
 
-> **Note:** K-LEAN is in beta. Install from source until PyPI release.
-
 ## Prerequisites
 
 | Requirement | Version | Check |
@@ -14,24 +12,26 @@
 ## Install
 
 ```bash
-# 1. Clone repository
-git clone https://github.com/calinfaja/k-lean.git
-cd k-lean
+# 1. Install K-LEAN
+pipx install kln-ai
 
-# 2. Install K-LEAN
-pipx install .
-
-# 3. Install components (symlinks scripts, commands, hooks)
+# 2. Install components (scripts, commands, hooks)
 kln install
 
-# 4. Install SmolKLN agents (optional but recommended)
-pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'
+# 3. Configure API provider
+kln setup
 
-# 5. Verify
+# 4. Verify
 kln doctor
 ```
 
-**After PyPI release:** `pipx install k-lean`
+**From source (development):**
+```bash
+git clone https://github.com/calinfaja/k-lean.git
+cd k-lean
+pipx install -e .
+kln install
+```
 
 ## Configure LiteLLM
 
@@ -64,7 +64,7 @@ kln start --telemetry  # Also start Phoenix telemetry server
 Install Phoenix for SmolKLN agent tracing:
 
 ```bash
-pipx inject k-lean 'k-lean[telemetry]'
+pipx inject kln-ai 'kln-ai[telemetry]'
 ```
 
 This installs:
@@ -90,7 +90,7 @@ kln models --health    # Model health
 
 ```bash
 kln uninstall
-pipx uninstall k-lean
+pipx uninstall kln-ai
 ```
 
 ## Troubleshooting
