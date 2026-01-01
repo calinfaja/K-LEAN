@@ -72,5 +72,62 @@ src/klean/
 - **Claude Code** hooks integration
 - **NanoGPT / OpenRouter** as LLM providers
 
+## PyPI Release Process
+
+### Package Info
+- **Name**: `kln-ai` (k-lean and kln were taken)
+- **Install**: `pipx install kln-ai`
+- **URL**: https://pypi.org/project/kln-ai/
+
+### Release Steps
+
+1. **Sync package data** (if scripts/commands changed):
+   ```bash
+   kln sync
+   ```
+
+2. **Run tests**:
+   ```bash
+   kln test
+   ```
+
+3. **Build package**:
+   ```bash
+   rm -rf dist/
+   pyproject-build .
+   ```
+
+4. **Upload to PyPI**:
+   ```bash
+   twine upload dist/*
+   ```
+   Token stored in `~/.pypirc`
+
+### Version Management
+
+- Version defined in TWO places (keep in sync):
+  - `pyproject.toml` -> `version = "x.y.z"`
+  - `src/klean/__init__.py` -> `__version__ = "x.y.z"`
+- PyPI rejects duplicate versions - must bump for each upload
+- Use semantic versioning: `major.minor.patch-beta`
+
+### Dependencies
+
+All core features require these (included in base install):
+- `txtai`, `sentence-transformers` - Knowledge DB
+- `smolagents[litellm]`, `ddgs`, `markdownify`, `lizard` - SmolKLN agents
+
+Optional extras:
+- `[telemetry]` - Phoenix tracing
+- `[agent-sdk]` - Claude Agent SDK
+
+### Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| Name conflict | Check availability: `curl -s https://pypi.org/pypi/NAME/json` |
+| Auth failed | Regenerate token at pypi.org, update `~/.pypirc` |
+| Version exists | Bump version in both files |
+
 ---
 *For Claude Code specific config, see [CLAUDE.md](CLAUDE.md)*
