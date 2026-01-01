@@ -20,6 +20,7 @@ k-lean doctor
 
 | Doc | Purpose |
 |-----|---------|
+| [Project Index](INDEX.md) | Complete codebase reference |
 | [Installation](installation.md) | Setup guide |
 | [Usage](usage.md) | Commands and workflows |
 | [Reference](reference.md) | All options and configuration |

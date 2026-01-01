@@ -28,7 +28,7 @@ src/klean/
 ├── data/
 │   ├── scripts/        # 36 shell + 9 Python scripts
 │   ├── commands/kln/   # 9 slash commands
-│   ├── hooks/          # 5 Claude Code hooks
+│   ├── hooks/          # 4 Claude Code hooks
 │   ├── droids/         # 8 specialist AI personas
 │   └── core/           # Review engine + prompts
 └── agents/             # Agentic reviewers

@@ -21,6 +21,16 @@ Ideas for v2.0:
 - Cost Tracking
 - JSON output mode
 
+### [SWE-bench Integration](swe-bench-integration.md)
+Benchmarking SmolKLN agents against industry-standard evaluations.
+- **Status**: Planned
+- **Effort**: 1-2 weeks
+- **Features**:
+  - SWE-bench Verified (500 instances)
+  - Terminal-Bench support
+  - Multi-agent strategies (consensus, routing)
+  - Cost tracking per benchmark run
+
 ### [TOON Compression](toon/)
 Token-Oriented Object Notation for ~18% token reduction.
 - Status: Implemented, not integrated

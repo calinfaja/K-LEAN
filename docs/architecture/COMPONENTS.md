@@ -237,7 +237,7 @@ Uses:
 
 ## 2. Hooks System
 
-K-LEAN integrates with Claude Code via **5 hooks** that trigger on specific events.
+K-LEAN integrates with Claude Code via **4 hooks** that trigger on specific events.
 
 ### Hook Overview
 
@@ -1175,8 +1175,8 @@ src/klean/smol/
 
 **What agents receive:**
 ```
-## Project: claudeAgentic
-Root: `/home/calin/claudeAgentic`
+## Project: my-project
+Root: `/path/to/my-project`
 Branch: `main` (9 files changed)
 
 ## Project Instructions (CLAUDE.md)

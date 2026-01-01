@@ -108,7 +108,7 @@ Comprehensive checklist for open source release readiness.
 - [x] .agents/ technical docs comprehensive
 - [x] All internal links valid
 - [x] Installation instructions functional
-- [x] Command counts accurate (9 commands, 8 agents, 5 hooks)
+- [x] Command counts accurate (9 commands, 8 agents, 4 hooks)
 
 ### Security
 - [x] No passwords or tokens
