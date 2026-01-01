@@ -17,17 +17,16 @@
 
 ## Why K-LEAN?
 
-Claude Code is exceptional—but sometimes you need a **second opinion**.
+Need a second opinion on your code? Want validation before merging? Looking for domain expertise your model doesn't have? Stuck in a loop and need fresh eyes to break out?
 
-When debugging goes circular, architecture decisions feel uncertain, or you want validation before merging—getting perspectives from **multiple top-tier models** breaks the loop and catches what a single model might miss.
+One model's confidence isn't proof. K-LEAN brings in **OpenAI, Gemini, DeepSeek, Moonshot, Minimax**, and more—when multiple models agree, you ship with confidence.
 
-K-LEAN gives you:
-- **12 LLM models** for code reviews (DeepSeek, Qwen, GLM, Kimi, Minimax, Hermes)
-- **Consensus scoring** showing which issues multiple models agree on
-- **Persistent memory** that survives across sessions
-- **8 specialist agents** for domain-specific analysis
+- **9 slash commands** — `/kln:quick`, `/kln:multi`, `/kln:agent`, `/kln:rethink`...
+- **8 specialist agents** — Security, Rust, embedded C, ARM Cortex, performance
+- **4 smart hooks** — Auto-capture, git tracking, session management
+- **Persistent knowledge** — Insights that survive across sessions
 
-All for **$15/month** via NanoGPT—or pay-per-use with OpenRouter.
+Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 
 ---
 
