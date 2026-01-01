@@ -1,35 +1,45 @@
 # Usage
 
-## Review Commands
+Complete guide to K-LEAN commands, agents, and workflows.
+
+---
+
+## Contents
+
+- [Slash Commands](#slash-commands)
+- [SmolKLN Agents](#smolkln-agents)
+- [Knowledge System](#knowledge-system)
+- [Workflows](#workflows)
+- [CLI Commands](#cli-commands)
+- [Output Locations](#output-locations)
+
+---
+
+## Slash Commands
+
+All commands are used inside Claude Code.
+
+### Review Commands
 
 | Command | Description | Time |
 |---------|-------------|------|
 | `/kln:quick <focus>` | Single model review | ~30s |
 | `/kln:multi <focus>` | 3-5 model consensus | ~60s |
-| `/kln:agent --role <role>` | SmolKLN specialist agent | ~2min |
+| `/kln:agent <role> <task>` | Specialist agent | ~2min |
 | `/kln:rethink` | Contrarian debugging | ~20s |
 
 **Examples:**
 ```bash
 /kln:quick security
 /kln:multi "check error handling"
-/kln:agent --role security-auditor "audit latest changes"
+/kln:agent security-auditor "audit authentication"
 ```
 
-**Async (background):**
-```bash
-/kln:multi --async "full audit"    # Run in background
-```
-
-## Knowledge Commands
-
-### Saving Knowledge
-
-**Recommended:** Use `/kln:learn` for context-aware extraction:
+### Knowledge Commands
 
 | Command | Description |
 |---------|-------------|
-| `/kln:learn` | Extract learnings from recent conversation context |
+| `/kln:learn` | Extract learnings from conversation context |
 | `/kln:learn "topic"` | Focused extraction on specific topic |
 | `/kln:remember` | End-of-session comprehensive capture |
 
@@ -37,15 +47,105 @@
 ```bash
 /kln:learn                     # Auto-detect learnings from context
 /kln:learn "auth bug fix"      # Extract insights about auth bug
-/kln:remember                  # End-of-session, reviews git diff/log
+/kln:remember                  # End-of-session, syncs to KB
 ```
+
+### Utility Commands
+
+| Command | Description |
+|---------|-------------|
+| `/kln:status` | System health check (services, models, KB) |
+| `/kln:doc <title>` | Generate session documentation |
+| `/kln:help` | Show command reference |
+
+### Flags
+
+Most commands support these flags:
+
+| Flag | Description |
+|------|-------------|
+| `--async` | Run in background |
+| `--models N` | Number of models (for `/kln:multi`) |
+| `--output json\|text` | Output format |
+
+---
+
+## SmolKLN Agents
+
+8 specialist agents with domain expertise, powered by smolagents.
+
+### Available Agents
+
+| Agent | Expertise |
+|-------|-----------|
+| `code-reviewer` | OWASP, SOLID, code quality |
+| `security-auditor` | Vulnerabilities, auth, crypto |
+| `debugger` | Root cause analysis |
+| `performance-engineer` | Profiling, optimization |
+| `rust-expert` | Ownership, lifetimes, unsafe |
+| `c-pro` | C99/C11, POSIX, memory |
+| `arm-cortex-expert` | Embedded ARM, real-time |
+| `orchestrator` | Multi-agent coordination |
+
+### Usage
+
+```bash
+# In Claude Code
+/kln:agent security-auditor "audit the payment module"
+/kln:agent debugger "investigate the memory leak"
+/kln:agent rust-expert "review unsafe blocks"
+
+# Direct CLI
+smol-kln security-auditor "audit auth" --model qwen3-coder
+smol-kln --list  # List available agents
+```
+
+### Agent Features
+
+- **Tools**: Agents can read files, search code, query Knowledge DB
+- **Memory**: Session learnings persist to KB after execution
+- **Telemetry**: Enable tracing with `--telemetry` flag
+
+```bash
+smol-kln security-auditor "audit" --telemetry
+# View traces at http://localhost:6006
+```
+
+### Multi-Agent Reviews
+
+Orchestrated reviews using multiple agents:
+
+```bash
+# 3-agent (default) - manager + file_scout + analyzer
+kln multi "Review src/klean/cli.py for bugs"
+
+# 4-agent (thorough) - adds security_auditor + synthesizer
+kln multi --thorough "Security audit of auth module"
+```
+
+---
+
+## Knowledge System
+
+Persistent semantic memory across sessions.
+
+### Saving Knowledge
+
+| Method | When to Use |
+|--------|-------------|
+| `/kln:learn` | Mid-session, capture insights from context |
+| `/kln:learn "topic"` | Focused capture on specific topic |
+| `/kln:remember` | End-of-session, comprehensive capture |
 
 ### Searching Knowledge
 
+Type these keywords directly in Claude Code (no `/` prefix):
+
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Semantic search knowledge DB |
-| `SaveInfo <url>` | Smart save URL with LLM evaluation |
+| `FindKnowledge <query>` | Semantic search Knowledge DB |
+| `SaveInfo <url>` | Evaluate URL with LLM, save if relevant |
+| `InitKB` | Initialize Knowledge DB for current project |
 
 **Examples:**
 ```bash
@@ -53,101 +153,93 @@ FindKnowledge "authentication patterns"
 SaveInfo https://docs.example.com/api
 ```
 
-## Session Management
+### End-of-Session Workflow
 
-| Command | Action |
-|---------|--------|
-| `/kln:learn` | Mid-session knowledge capture |
-| `/kln:remember` | End-of-session capture |
-| `/kln:doc` | Generate session docs |
-
-**Mid-session workflow:**
 ```bash
-# Work on feature, find bugs, research solutions...
-/kln:learn "the fixes we made"   # Capture learnings
-# Continue working...
-```
-
-**End-of-session workflow:**
-```bash
-/kln:remember    # Captures learnings to KB + syncs Serena → KB
+/kln:remember    # Captures learnings + syncs Serena lessons
 /clear           # Clear context
 ```
 
 The `/kln:remember` command:
 1. Extracts learnings from git diff/log
 2. Saves entries to Knowledge DB
-3. Appends summary to Serena lessons-learned
-4. Syncs Serena lessons to KB (makes them searchable by agents)
+3. Syncs Serena lessons to KB (searchable by agents)
 
-## SmolKLN Agents
-
-8 specialist agents for domain-specific analysis.
-
-**Agent Memory:** Agents persist session learnings to KB after execution. Future agents can search prior findings via `knowledge_search` tool.
-
-**Tracing:** Enable telemetry for debugging agent behavior:
-```bash
-smol-kln security-auditor "audit" --telemetry
-# View at http://localhost:6006
-```
-
-| Agent | Expertise |
-|-------|-----------|
-| `code-reviewer` | OWASP, SOLID, quality |
-| `security-auditor` | Vulnerabilities, auth, crypto |
-| `debugger` | Root cause analysis |
-| `arm-cortex-expert` | Embedded ARM systems |
-| `c-pro` | C99/C11/POSIX |
-| `rust-expert` | Ownership, lifetimes |
-| `performance-engineer` | Profiling, optimization |
-| `orchestrator` | Coordinates other agents |
+---
 
 ## Workflows
 
-**Quick check:**
+### Quick Check
 ```bash
 /kln:quick "check for issues"
 ```
 
-**Pre-commit:**
+### Pre-Commit
 ```bash
 /kln:multi "review changes"
 ```
 
-**Pre-release:**
+### Pre-Release
 ```bash
-/kln:agent --role security-auditor "comprehensive security and quality audit"
+/kln:agent security-auditor "comprehensive security audit"
 ```
 
-**Stuck debugging:**
+### Stuck Debugging
 ```bash
 /kln:rethink
 ```
 
-**Found something useful:**
+### Found Something Useful
 ```bash
-/kln:learn "the solution"
+/kln:learn "the solution we found"
 ```
 
-## Multi-Agent Reviews (kln multi)
-
-Orchestrated reviews using multiple specialized agents:
-
+### End of Session
 ```bash
-# 3-agent (default) - manager + file_scout + analyzer
-kln multi "Review src/klean/cli.py for bugs"
-
-# 4-agent (thorough) - adds code_analyzer + security_auditor + synthesizer
-kln multi --thorough "Security audit of auth module"
-
-# With telemetry
-kln multi "Review changes" --telemetry
+/kln:remember
 ```
 
-**Output:** `.claude/kln/multiAgent/<timestamp>_multi-[3|4]-agent_<task>.md`
+---
 
-See [reference.md](reference.md#multi-agent-k-lean-multi) for agent configurations.
+## CLI Commands
+
+Commands run in terminal (not Claude Code).
+
+### Core Commands
+
+```bash
+kln install            # Install components to ~/.claude/
+kln setup              # Configure API provider (interactive)
+kln uninstall          # Remove components
+```
+
+### Service Management
+
+```bash
+kln start              # Start LiteLLM proxy
+kln start -s all       # Start LiteLLM + Knowledge server
+kln stop               # Stop all services
+```
+
+### Diagnostics
+
+```bash
+kln status             # Component status
+kln doctor             # Validate configuration
+kln doctor -f          # Auto-fix issues
+kln models             # List available models
+kln models --health    # Check model health
+```
+
+### Development
+
+```bash
+kln test               # Run test suite
+kln sync               # Sync package data
+kln debug              # Live monitoring dashboard
+```
+
+---
 
 ## Output Locations
 
@@ -156,8 +248,11 @@ See [reference.md](reference.md#multi-agent-k-lean-multi) for agent configuratio
 | SmolKLN agents | `.claude/kln/agentExecute/` |
 | Multi-agent reviews | `.claude/kln/multiAgent/` |
 | Quick reviews | `.claude/kln/quickReview/` |
-| Async logs | `/tmp/claude-reviews/` |
-| Knowledge | `.knowledge-db/` |
+| Knowledge DB | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |
 | System logs | `~/.klean/logs/` |
 | Phoenix traces | `http://localhost:6006` |
+
+---
+
+See [reference.md](reference.md) for complete configuration options.
