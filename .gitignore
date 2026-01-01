@@ -22,6 +22,7 @@ env/
 
 # Testing
 .pytest_cache/
+.ruff_cache/
 .coverage
 .coverage.*
 htmlcov/
@@ -81,9 +82,6 @@ secrets.json
 # Local LiteLLM config with real keys
 litellm-local.yaml
 config-local.yaml
-
-# Session outputs
-/tmp/claude-reviews/
 
 # Temporary files
 *.tmp
