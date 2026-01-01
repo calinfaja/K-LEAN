@@ -2,7 +2,7 @@
 
 > **Multi-Model Code Reviews & Persistent Knowledge for Claude Code**
 
-**Version:** 1.0.0-beta | **License:** Apache 2.0
+**Version:** 1.0.0b1 | **License:** Apache 2.0
 
 ---
 
@@ -184,19 +184,19 @@ kln debug            # Live monitoring
 ```
 k-lean/
 ├── src/klean/              # Main package
-│   ├── __init__.py         # Version: 1.0.0-beta
-│   ├── cli.py              # CLI entry point
+│   ├── __init__.py         # Version
+│   ├── cli.py              # CLI entry point (kln command)
 │   ├── smol/               # SmolKLN agent system
 │   └── data/               # Installable assets
-│       ├── scripts/        # 36+ shell & Python scripts
-│       ├── commands/kln/   # 9 slash commands
-│       ├── hooks/          # 4 Claude Code hooks
-│       ├── agents/         # 8 SmolKLN agent definitions
+│       ├── scripts/        # Shell & Python scripts
+│       ├── commands/kln/   # Slash commands
+│       ├── hooks/          # Claude Code hooks
+│       ├── agents/         # SmolKLN agent definitions
 │       └── core/           # Review engine & prompts
-├── docs/                   # User documentation
-├── .agents/                # Technical documentation
+├── docs/                   # Documentation
+│   └── architecture/       # Technical docs
 ├── CLAUDE.md               # Claude Code instructions
-└── AGENTS.md               # Universal AI instructions
+└── pyproject.toml          # Package metadata
 ```
 
 ### Symlink Architecture
@@ -271,9 +271,5 @@ Each git repository gets its own:
 
 | Document | Description |
 |----------|-------------|
-| [project-overview.md](project-overview.md) | Problem/solution context |
-| [architecture.md](architecture.md) | Detailed system design |
-| [smolkln-implementation.md](smolkln-implementation.md) | Agent system details |
-| [knowledge-db.md](knowledge-db.md) | Semantic memory system |
-| [review-system.md](review-system.md) | Multi-model pipeline |
-| [troubleshooting.md](troubleshooting.md) | Common issues & fixes |
+| [COMPONENTS.md](COMPONENTS.md) | CLI, Hooks, Knowledge DB, LiteLLM, Reviews, SmolKLN |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Setup, workflow, coding conventions, release |

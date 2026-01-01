@@ -1692,4 +1692,4 @@ Key papers:
 
 ---
 
-*Generated from: cli.md, hooks.md, knowledge-db.md, litellm.md, review-system.md, smolkln-implementation.md*
+*Last updated: 2026-01*
