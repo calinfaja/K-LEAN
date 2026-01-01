@@ -202,7 +202,7 @@ if echo "$USER_PROMPT" | grep -qi "^asyncReview "; then
     FOCUS=$(echo "$USER_PROMPT" | sed -E 's/^asyncReview[[:space:]]+[^[:space:]]+[[:space:]]*(.*)/\1/i')
 
     if [ -z "$MODEL" ]; then
-        echo "{\"systemMessage\": \"[WARN] Usage: asyncReview <model> <focus>\\nRun 'k-lean models' to see available models\"}"
+        echo "{\"systemMessage\": \"[WARN] Usage: asyncReview <model> <focus>\\nRun 'kln models' to see available models\"}"
         exit 0
     fi
 

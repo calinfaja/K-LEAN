@@ -180,17 +180,17 @@ done
 section "7. K-LEAN CLI"
 # ─────────────────────────────────────────────────────────────────────
 
-if command -v k-lean &>/dev/null; then
-    pass "k-lean command available"
+if command -v kln &>/dev/null; then
+    pass "kln command available"
 
-    version=$(k-lean --version 2>&1)
+    version=$(kln --version 2>&1)
     if [[ "$version" =~ "1.0.0" ]]; then
-        pass "k-lean version: $version"
+        pass "kln version: $version"
     else
         warn "Unexpected version: $version"
     fi
 else
-    fail "k-lean command not found"
+    fail "kln command not found"
 fi
 
 # ─────────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ if curl -s localhost:4000/health | grep -q "healthy_endpoints"; then
     model_count=$(curl -s localhost:4000/health | grep -o '"model"' | wc -l)
     pass "LiteLLM running ($model_count models)"
 else
-    warn "LiteLLM not responding (may need: k-lean start)"
+    warn "LiteLLM not responding (may need: kln start)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────
@@ -271,10 +271,10 @@ fi
 section "12. K-LEAN TEST SUITE"
 # ─────────────────────────────────────────────────────────────────────
 
-if k-lean test 2>&1 | grep -q "All.*tests passed"; then
-    pass "k-lean test suite passes"
+if kln test 2>&1 | grep -q "All.*tests passed"; then
+    pass "kln test suite passes"
 else
-    warn "k-lean test suite has issues"
+    warn "kln test suite has issues"
 fi
 
 # ─────────────────────────────────────────────────────────────────────

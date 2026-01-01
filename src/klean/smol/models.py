@@ -38,7 +38,7 @@ def create_model(
     resolved_model = get_model(model_id)
     if not resolved_model:
         raise ValueError(
-            "No models available. Check LiteLLM is running: k-lean status"
+            "No models available. Check LiteLLM is running: kln status"
         )
 
     return LiteLLMModel(

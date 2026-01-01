@@ -2,14 +2,14 @@
 K-LEAN CLI - Command line interface for K-LEAN installation and management.
 
 Usage:
-    k-lean install [--dev] [--component COMPONENT]
-    k-lean uninstall
-    k-lean status
-    k-lean doctor [--auto-fix]
-    k-lean start [--service SERVICE]
-    k-lean stop [--service SERVICE]
-    k-lean debug [--follow] [--filter COMPONENT]
-    k-lean version
+    kln install [--dev] [--component COMPONENT]
+    kln uninstall
+    kln status
+    kln doctor [--auto-fix]
+    kln start [--service SERVICE]
+    kln stop [--service SERVICE]
+    kln debug [--follow] [--filter COMPONENT]
+    kln version
 """
 
 import json
@@ -120,7 +120,7 @@ def get_kb_project_status() -> tuple:
 
     # Guard: scripts not installed yet
     if not scripts_dir.exists():
-        return ("N/A", "run k-lean install", "")
+        return ("N/A", "run kln install", "")
 
     kb_utils_path = scripts_dir / "kb_utils.py"
     if not kb_utils_path.exists():
@@ -591,7 +591,7 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
 
     if not start_script.exists():
         console.print("[red]Error: start-litellm.sh not found[/red]")
-        console.print("   Run: k-lean install")
+        console.print("   Run: kln install")
         return False
 
     # Check .env exists
@@ -936,7 +936,7 @@ def get_model_health() -> Dict[str, str]:
 @click.version_option(version=__version__, prog_name="k-lean")
 def main():
     """K-LEAN: Multi-model code review and knowledge capture system for Claude Code."""
-    # Services are started explicitly via `k-lean start`
+    # Services are started explicitly via `kln start`
     # Optional autostart can be configured in ~/.bashrc
     pass
 
@@ -1154,11 +1154,11 @@ def install(dev: bool, component: str, yes: bool):
     env_file = CONFIG_DIR / ".env"
     step = 1
     if not env_file.exists():
-        console.print(f"  {step}. Configure API keys: [cyan]k-lean setup[/cyan]")
+        console.print(f"  {step}. Configure API keys: [cyan]kln setup[/cyan]")
         step += 1
-    console.print(f"  {step}. Start services: [cyan]k-lean start[/cyan]")
+    console.print(f"  {step}. Start services: [cyan]kln start[/cyan]")
     step += 1
-    console.print(f"  {step}. Verify: [cyan]k-lean status[/cyan]")
+    console.print(f"  {step}. Verify: [cyan]kln status[/cyan]")
 
     # Check if smolagents is installed
     if not _check_smolagents_installed():
@@ -1274,7 +1274,7 @@ def status():
             table.add_row("SmolKLN Agents", f"[yellow]OK ({count})[/yellow]", "[yellow]smolagents not installed[/yellow]")
     else:
         if smolagents_installed:
-            table.add_row("SmolKLN Agents", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
+            table.add_row("SmolKLN Agents", "[yellow]NOT INSTALLED[/yellow]", "run: kln install")
         else:
             table.add_row("SmolKLN Agents", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
@@ -1283,7 +1283,7 @@ def status():
     if rules_file.exists():
         table.add_row("Rules", "[green]OK[/green]", "~/.claude/rules/k-lean.md")
     else:
-        table.add_row("Rules", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
+        table.add_row("Rules", "[yellow]NOT INSTALLED[/yellow]", "run: kln install")
 
     # Knowledge DB
     if VENV_DIR.exists():
@@ -1308,7 +1308,7 @@ def status():
         elif kb_status == "N/A":
             table.add_row("  └─ Current dir", "[dim]N/A[/dim]", kb_details)
     else:
-        table.add_row("Knowledge DB", "[yellow]NOT INSTALLED[/yellow]", "run: k-lean install")
+        table.add_row("Knowledge DB", "[yellow]NOT INSTALLED[/yellow]", "run: kln install")
 
     # LiteLLM
     model_count, providers = get_litellm_info()
@@ -1322,7 +1322,7 @@ def status():
         if model_count > 0:
             table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", f"({model_count} models configured)")
         else:
-            table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "run: k-lean start")
+            table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "run: kln start")
 
     console.print(table)
 
@@ -1355,7 +1355,7 @@ def doctor(auto_fix: bool):
     """Validate K-LEAN configuration and services (fast).
 
     Checks: config files, .env, API keys, subscription status, hooks, services.
-    Does NOT check individual model health (use 'k-lean models --health' for that).
+    Does NOT check individual model health (use 'kln models --health' for that).
 
     Use --auto-fix (-f) to automatically:
     - Configure Claude Code hooks in settings.json
@@ -1517,13 +1517,13 @@ def doctor(auto_fix: bool):
             issues.append(("WARNING", "Thinking models callback not installed"))
             console.print("  [yellow]○[/yellow] Thinking models: Callback not installed")
             console.print("    [dim]SmolKLN won't work with glm-4.6-thinking, kimi-k2-thinking, etc.[/dim]")
-            console.print("    [dim]Fix: k-lean install -c config[/dim]")
+            console.print("    [dim]Fix: kln install -c config[/dim]")
 
     # Check Python venv
     if VENV_DIR.exists():
         python = VENV_DIR / "bin" / "python"
         if not python.exists():
-            issues.append(("ERROR", "Knowledge DB venv is broken - recreate with k-lean install"))
+            issues.append(("ERROR", "Knowledge DB venv is broken - recreate with kln install"))
 
     # Check for broken symlinks
     for check_dir in [scripts_dir, CLAUDE_DIR / "commands" / "kln", CLAUDE_DIR / "hooks"]:
@@ -1604,8 +1604,8 @@ def doctor(auto_fix: bool):
     if litellm_status["running"]:
         console.print(f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
 
-        # Note: Model health moved to 'k-lean models --health' for faster doctor execution
-        console.print("  [dim]○[/dim] Model Health: Use [cyan]k-lean models --health[/cyan]")
+        # Note: Model health moved to 'kln models --health' for faster doctor execution
+        console.print("  [dim]○[/dim] Model Health: Use [cyan]kln models --health[/cyan]")
     else:
         if auto_fix:
             console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
@@ -1657,9 +1657,9 @@ def doctor(auto_fix: bool):
     if rules_file.exists():
         console.print("  [green][OK][/green] k-lean.md: Installed")
     else:
-        issues.append(("INFO", "Rules not installed - run k-lean install"))
+        issues.append(("INFO", "Rules not installed - run kln install"))
         console.print("  [yellow]○[/yellow] k-lean.md: NOT INSTALLED")
-        console.print("    [dim]Install with: k-lean install[/dim]")
+        console.print("    [dim]Install with: kln install[/dim]")
 
     console.print("")
 
@@ -1685,7 +1685,7 @@ def doctor(auto_fix: bool):
             console.print(f"  • {fix}")
 
     if not auto_fix and any(level in ["WARNING", "ERROR"] for level, _ in issues):
-        console.print("\n[cyan]Tip:[/cyan] Run [bold]k-lean doctor --auto-fix[/bold] to auto-start services")
+        console.print("\n[cyan]Tip:[/cyan] Run [bold]kln doctor --auto-fix[/bold] to auto-start services")
 
 
 @main.command()
@@ -2162,7 +2162,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
                 return Panel(
                     "[dim]No LLM calls yet[/dim]\n\n"
                     "[dim]Run a review with --telemetry[/dim]\n"
-                    "[dim]or use k-lean multi[/dim]",
+                    "[dim]or use kln multi[/dim]",
                     title="[bold]Recent LLM Calls[/bold]", border_style="cyan"
                 )
             # Show basic debug.log data
@@ -2367,7 +2367,7 @@ def debug(follow: bool, component_filter: str, lines: int, compact: bool, interv
             console.print("\n[yellow]Dashboard closed[/yellow]")
     else:
         console.print(render_full_dashboard())
-        console.print("\n[dim]Tip: Run 'k-lean debug' for live updates (Ctrl+C to exit)[/dim]")
+        console.print("\n[dim]Tip: Run 'kln debug' for live updates (Ctrl+C to exit)[/dim]")
 
 
 @main.command()
@@ -2383,7 +2383,7 @@ def models(test: bool, health: bool):
 
     if not check_litellm():
         console.print("\n[red]LiteLLM proxy is not running![/red]")
-        console.print("Start it with: [cyan]k-lean start --service litellm[/cyan]")
+        console.print("Start it with: [cyan]kln start --service litellm[/cyan]")
         return
 
     models_list = discover_models()
@@ -2411,7 +2411,7 @@ def models(test: bool, health: bool):
                 console.print(f"[green][OK] All {healthy_count} models healthy[/green]\n")
             elif healthy_count == 0:
                 console.print(f"[red]✗ All {unhealthy_count} models unhealthy![/red]")
-                console.print("[dim]Check: k-lean doctor -f[/dim]\n")
+                console.print("[dim]Check: kln doctor -f[/dim]\n")
             else:
                 console.print(f"[yellow]○ {healthy_count}/{total} models healthy ({unhealthy_count} failing)[/yellow]\n")
 
@@ -2513,7 +2513,7 @@ def test_model(model: Optional[str], prompt: Optional[str]):
         console.print("[bold]Available models:[/bold]")
         for m in models_list:
             console.print(f"  • {m}")
-        console.print("\nUsage: [cyan]k-lean test-model <model> [prompt][/cyan]")
+        console.print("\nUsage: [cyan]kln test-model <model> [prompt][/cyan]")
         return
 
     if model not in models_list:
@@ -2570,9 +2570,9 @@ def sync(check: bool, clean: bool, verbose: bool):
     Use before building for PyPI release.
 
     Examples:
-        k-lean sync           # Sync files to package
-        k-lean sync --check   # Check if in sync (for CI)
-        k-lean sync --clean   # Remove stale files first
+        kln sync           # Sync files to package
+        kln sync --check   # Check if in sync (for CI)
+        kln sync --clean   # Remove stale files first
     """
     print_banner()
 
@@ -2682,7 +2682,7 @@ def sync(check: bool, clean: bool, verbose: bool):
                 console.print(f"  [yellow]• {total_missing} files need to be added[/yellow]")
             if total_stale:
                 console.print(f"  [yellow]• {total_stale} stale files to remove (use --clean)[/yellow]")
-            console.print("\n[dim]Run 'k-lean sync' to sync, or 'k-lean sync --clean' to also remove stale files[/dim]")
+            console.print("\n[dim]Run 'kln sync' to sync, or 'kln sync --clean' to also remove stale files[/dim]")
             sys.exit(1)
     else:
         console.print(f"[green][OK] Synced {total_synced} files[/green]")
@@ -2751,9 +2751,9 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
       - Synthesizer (kimi-k2): Report formatting
 
     Examples:
-        k-lean multi "Review src/auth/ for security issues"
-        k-lean multi --thorough "Review the authentication module"
-        k-lean multi -m kimi-k2-thinking "Review cli.py"
+        kln multi "Review src/auth/ for security issues"
+        kln multi --thorough "Review the authentication module"
+        kln multi -m kimi-k2-thinking "Review cli.py"
     """
     # Setup telemetry if requested
     if telemetry:
@@ -2832,9 +2832,9 @@ def setup(provider: Optional[str]):
     Creates ~/.config/litellm/config.yaml and ~/.config/litellm/.env
 
     Examples:
-        k-lean setup                # Interactive menu
-        k-lean setup -p nanogpt     # Direct NanoGPT setup
-        k-lean setup -p openrouter  # Direct OpenRouter setup
+        kln setup                # Interactive menu
+        kln setup -p nanogpt     # Direct NanoGPT setup
+        kln setup -p openrouter  # Direct OpenRouter setup
     """
     print_banner()
 
@@ -2895,7 +2895,7 @@ def setup(provider: Optional[str]):
 
         # Create .env file
         env_content = f"""# K-LEAN LiteLLM Environment Variables - NanoGPT
-# Generated by k-lean setup
+# Generated by kln setup
 
 NANOGPT_API_BASE={api_base}
 NANOGPT_API_KEY={api_key}
@@ -2910,7 +2910,7 @@ NANOGPT_API_KEY={api_key}
             shutil.copy(template, CONFIG_DIR / "config.yaml")
             console.print("[green][OK] NanoGPT configuration created[/green]")
         else:
-            console.print("[yellow]! Config template not found - run 'k-lean install' first[/yellow]")
+            console.print("[yellow]! Config template not found - run 'kln install' first[/yellow]")
 
     elif provider == 'openrouter':
         console.print("\n[bold]Configuring OpenRouter...[/bold]")
@@ -2924,7 +2924,7 @@ NANOGPT_API_KEY={api_key}
 
         # Create .env file
         env_content = f"""# K-LEAN LiteLLM Environment Variables - OpenRouter
-# Generated by k-lean setup
+# Generated by kln setup
 
 OPENROUTER_API_BASE=https://openrouter.ai/api/v1
 OPENROUTER_API_KEY={api_key}
@@ -2939,7 +2939,7 @@ OPENROUTER_API_KEY={api_key}
             shutil.copy(template, CONFIG_DIR / "config.yaml")
             console.print("[green][OK] OpenRouter configuration created[/green]")
         else:
-            console.print("[yellow]! Config template not found - run 'k-lean install' first[/yellow]")
+            console.print("[yellow]! Config template not found - run 'kln install' first[/yellow]")
 
     # Summary
     console.print("\n" + "=" * 40)
@@ -2949,8 +2949,8 @@ OPENROUTER_API_KEY={api_key}
     console.print(f"  Config:  [cyan]{CONFIG_DIR}/config.yaml[/cyan]")
     console.print(f"  Secrets: [cyan]{CONFIG_DIR}/.env[/cyan] (keep safe!)")
     console.print("\n[bold]Next steps:[/bold]")
-    console.print("  1. Start LiteLLM: [cyan]k-lean start[/cyan]")
-    console.print("  2. Verify models: [cyan]k-lean models --health[/cyan]")
+    console.print("  1. Start LiteLLM: [cyan]kln start[/cyan]")
+    console.print("  2. Verify models: [cyan]kln models --health[/cyan]")
     console.print("  3. Test in Claude: [cyan]healthcheck[/cyan]")
 
 

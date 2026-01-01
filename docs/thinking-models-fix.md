@@ -192,7 +192,7 @@ The `merge_reasoning_content_in_choices: true` per-model setting is the correct 
 
 ## Configuration Files
 
-**Installed by `k-lean install`:**
+**Installed by `kln install`:**
 - `~/.config/litellm/config.yaml` - LiteLLM configuration with thinking models
 - `~/.config/litellm/.env` - Environment variables (NANOGPT_API_KEY, NANOGPT_API_BASE)
 
@@ -216,7 +216,7 @@ With quotes, LiteLLM treats the value as a literal string and fails to resolve t
 ```bash
 ~/.claude/scripts/start-litellm.sh
 # or
-k-lean start
+kln start
 ```
 
 ---

@@ -130,19 +130,19 @@ smol-kln security-auditor "audit" --telemetry
 /kln:learn "the solution"
 ```
 
-## Multi-Agent Reviews (k-lean multi)
+## Multi-Agent Reviews (kln multi)
 
 Orchestrated reviews using multiple specialized agents:
 
 ```bash
 # 3-agent (default) - manager + file_scout + analyzer
-k-lean multi "Review src/klean/cli.py for bugs"
+kln multi "Review src/klean/cli.py for bugs"
 
 # 4-agent (thorough) - adds code_analyzer + security_auditor + synthesizer
-k-lean multi --thorough "Security audit of auth module"
+kln multi --thorough "Security audit of auth module"
 
 # With telemetry
-k-lean multi "Review changes" --telemetry
+kln multi "Review changes" --telemetry
 ```
 
 **Output:** `.claude/kln/multiAgent/<timestamp>_multi-[3|4]-agent_<task>.md`

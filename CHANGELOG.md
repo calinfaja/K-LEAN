@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Initial open source release
-- K-LEAN CLI (`k-lean status`, `k-lean doctor`, `k-lean start`)
+- K-LEAN CLI (`kln status`, `kln doctor`, `kln start`)
 - Knowledge DB with per-project semantic search
 - Multi-model code review via LiteLLM proxy
 - SmolKLN agents (8 specialist AI agents)

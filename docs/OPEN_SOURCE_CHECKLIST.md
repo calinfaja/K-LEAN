@@ -126,7 +126,7 @@ Comprehensive checklist for open source release readiness.
 git remote set-url origin https://github.com/calinfaja/k-lean.git
 
 # 2. Verify all fixes
-k-lean doctor
+kln doctor
 ```
 
 ---
@@ -135,8 +135,8 @@ k-lean doctor
 
 1. [ ] Fix all  CRITICAL issues above
 2. [ ] Fix  IMPORTANT issues (recommended)
-3. [ ] Run `k-lean sync` to sync package data
-4. [ ] Run `k-lean test` to verify installation
+3. [ ] Run `kln sync` to sync package data
+4. [ ] Run `kln test` to verify installation
 5. [ ] Build package: `python -m build`
 6. [ ] Test install: `pipx install dist/*.whl`
 7. [ ] Create GitHub release with tag `v1.0.0-beta`

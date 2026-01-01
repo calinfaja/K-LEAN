@@ -16,7 +16,7 @@ Thank you for your interest in contributing to K-LEAN!
    ```
 4. Verify installation:
    ```bash
-   k-lean status
+   kln status
    ```
 
 ## Development Workflow
@@ -28,7 +28,7 @@ Thank you for your interest in contributing to K-LEAN!
 2. Make your changes
 3. Test your changes:
    ```bash
-   k-lean doctor
+   kln doctor
    ```
 4. Commit with clear messages
 5. Push and create a Pull Request
@@ -44,7 +44,7 @@ Thank you for your interest in contributing to K-LEAN!
 - One feature/fix per PR
 - Update documentation as needed
 - Add tests for new functionality
-- Ensure `k-lean doctor` passes
+- Ensure `kln doctor` passes
 
 ## Reporting Issues
 

@@ -8,6 +8,6 @@
 - [ ] Refactoring
 
 ## Checklist
-- [ ] `k-lean doctor` passes
+- [ ] `kln doctor` passes
 - [ ] Documentation updated
 - [ ] No breaking changes (or documented)

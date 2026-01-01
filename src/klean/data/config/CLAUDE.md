@@ -39,11 +39,11 @@ Per-project semantic search. **Auto-initializes on first SaveThis.**
 ## K-LEAN CLI
 
 ```bash
-k-lean status     # Component status
-k-lean doctor -f  # Diagnose + auto-fix
-k-lean start      # Start services
-k-lean models     # List with health
-k-lean test       # Run test suite
+kln status     # Component status
+kln doctor -f  # Diagnose + auto-fix
+kln start      # Start services
+kln models     # List with health
+kln test       # Run test suite
 ```
 
 ## Available Models
@@ -51,8 +51,8 @@ k-lean test       # Run test suite
 **Dynamic discovery** from LiteLLM proxy. Models depend on your configuration.
 
 ```bash
-k-lean models          # List all available models
-k-lean models --first  # Show default model
+kln models          # List all available models
+kln models --first  # Show default model
 ```
 
 Configure in `~/.config/litellm/config.yaml`. Supports NanoGPT, OpenRouter, Ollama, etc.
@@ -75,8 +75,8 @@ Chronological log at `.knowledge-db/timeline.txt`
 ## LiteLLM Setup
 
 ```bash
-k-lean setup      # Interactive configuration
-k-lean start      # Start LiteLLM proxy
+kln setup      # Interactive configuration
+kln start      # Start LiteLLM proxy
 ```
 
 Providers: NanoGPT, OpenRouter, Ollama (any OpenAI-compatible)

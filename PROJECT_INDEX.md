@@ -44,7 +44,7 @@ k-lean/
 
 | Command | Source | Description |
 |---------|--------|-------------|
-| `k-lean` | `src/klean/cli.py:main` | Main CLI (install, status, doctor, multi, etc.) |
+| `kln` | `src/klean/cli.py:main` | Main CLI (install, status, doctor, multi, etc.) |
 | `smol-kln` | `src/klean/smol/cli.py:main` | SmolAgents executor |
 
 ---
@@ -199,17 +199,17 @@ Multi-agent orchestration (3 or 4 agent configurations):
 pipx install k-lean
 
 # Configure provider
-k-lean setup
+kln setup
 
 # Start services
-k-lean start
+kln start
 
 # Check status
-k-lean status
-k-lean doctor -f  # Auto-fix issues
+kln status
+kln doctor -f  # Auto-fix issues
 
 # Run reviews
-k-lean multi "security review"
+kln multi "security review"
 smol-kln security-auditor "audit auth"
 ```
 

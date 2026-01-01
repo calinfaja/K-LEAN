@@ -12,8 +12,8 @@ Multi-model code review and knowledge capture for Claude Code.
 
 ```bash
 pipx install k-lean
-k-lean install
-k-lean doctor
+kln install
+kln doctor
 ```
 
 ## Documentation

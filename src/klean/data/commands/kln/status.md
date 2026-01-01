@@ -18,7 +18,7 @@ Check the health and status of K-LEAN components and services.
 
 **NOT for:**
 - Actual code review → use `/kln:quick`, `/kln:multi`, or `/kln:agent`
-- CLI troubleshooting → use `k-lean doctor -f`
+- CLI troubleshooting → use `kln doctor -f`
 
 ## Subcommands
 
@@ -144,4 +144,4 @@ Service Health Check
 
 - If subcommand is invalid, show help message
 - If services are down, report specific failures with troubleshooting hints
-- Suggest `k-lean doctor -f` for auto-fix of common issues
+- Suggest `kln doctor -f` for auto-fix of common issues

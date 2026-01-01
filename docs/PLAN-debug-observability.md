@@ -4,13 +4,13 @@
 
 ## Overview
 
-Enhance `k-lean debug` with:
-1. **LiteLLM Routing Health** - Via `/health` endpoint (on-demand via `k-lean models --health`)
+Enhance `kln debug` with:
+1. **LiteLLM Routing Health** - Via `/health` endpoint (on-demand via `kln models --health`)
 2. **SmolKLN Agent Telemetry** - Trace agent execution with Phoenix [OK]
 
 > **Note:** LiteLLM Admin UI was evaluated but requires prisma/database setup.
 > The `/health` endpoint takes 60s (makes real API calls) so it's not suitable for
-> the live dashboard. Use `k-lean models --health` for deep diagnostics instead.
+> the live dashboard. Use `kln models --health` for deep diagnostics instead.
 
 ---
 
@@ -19,7 +19,7 @@ Enhance `k-lean debug` with:
 ### Current State
 - LiteLLM runs on `localhost:4000`
 - Has built-in Admin UI at `/ui` (requires master_key + database)
-- `k-lean debug` shows services but no link to UI
+- `kln debug` shows services but no link to UI
 
 ### Implementation Steps
 
@@ -43,7 +43,7 @@ general_settings:
 
 Add to the template so new installs get it (commented out by default).
 
-#### Step 1.2: Add UI Link to `k-lean debug`
+#### Step 1.2: Add UI Link to `kln debug`
 **File:** `src/klean/cli.py` - `render_services_panel()`
 
 ```python
@@ -176,7 +176,7 @@ else:
     lines.append("[bold]Phoenix[/bold]   [dim]○ OFF[/dim]")
 ```
 
-#### Step 2.5: Add `k-lean start --telemetry`
+#### Step 2.5: Add `kln start --telemetry`
 **File:** `src/klean/cli.py`
 
 ```python
@@ -198,13 +198,13 @@ def start(service, telemetry):
 
 ```bash
 # Start everything with telemetry
-k-lean start --telemetry
+kln start --telemetry
 
 # Run an agent with tracing
 smol-kln.py security-auditor "audit auth" --telemetry
 
 # View the dashboards
-k-lean debug --ui        # Opens LiteLLM UI
+kln debug --ui        # Opens LiteLLM UI
 # Or manually:
 # http://localhost:4000/ui   - LiteLLM (spend, requests)
 # http://localhost:6006      - Phoenix (agent traces)
@@ -238,7 +238,7 @@ k-lean debug --ui        # Opens LiteLLM UI
 | 2.2 | Add `--telemetry` to smol-kln.py | [OK] | smol-kln.py |
 | 2.3 | Add Phoenix start/check functions | [OK] | cli.py |
 | 2.4 | Add Phoenix to debug dashboard | [OK] | cli.py |
-| 2.5 | Add `--telemetry` to k-lean start | [OK] | cli.py |
+| 2.5 | Add `--telemetry` to kln start | [OK] | cli.py |
 
 **All phases completed.**
 
@@ -248,7 +248,7 @@ k-lean debug --ui        # Opens LiteLLM UI
 
 1. **LiteLLM UI:**
    - Start LiteLLM with database
-   - Make a request via `k-lean models --health`
+   - Make a request via `kln models --health`
    - Verify spend shows in UI
 
 2. **Phoenix Telemetry:**
@@ -257,5 +257,5 @@ k-lean debug --ui        # Opens LiteLLM UI
    - Verify trace appears at `localhost:6006`
 
 3. **Integration:**
-   - Run `k-lean debug` and verify both UIs are shown
-   - Run `k-lean debug --ui` opens browser
+   - Run `kln debug` and verify both UIs are shown
+   - Run `kln debug --ui` opens browser
