@@ -52,14 +52,10 @@ $ARGUMENTS
 
 ## Execution
 
-Run via `smol-kln` command (installed with k-lean) which uses smolagents with LiteLLM:
+Run via `kln-smol` command (installed with k-lean) which uses smolagents with LiteLLM:
 
 ```bash
-# Preferred: Use the installed command
-smol-kln <agent> "<task>" [--model MODEL] [--telemetry]
-
-# Fallback: Script path (same functionality)
-~/.claude/scripts/smol-kln.py <agent> "<task>" [--model MODEL]
+kln-smol <agent> "<task>" [--model MODEL] [--telemetry]
 ```
 
 **Note:** Requires smolagents: `pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'`

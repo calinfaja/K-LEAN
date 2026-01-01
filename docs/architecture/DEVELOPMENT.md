@@ -468,7 +468,7 @@ cp src/klean/data/agents/TEMPLATE.md src/klean/data/agents/my-agent.md
 
 ```bash
 kln sync
-smol-kln my-agent "test task"
+kln-smol my-agent "test task"
 ```
 
 ---

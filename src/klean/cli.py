@@ -1032,7 +1032,7 @@ def install(dev: bool, component: str, yes: bool):
         else:
             console.print(f"  [yellow]SmolKLN agents source not found at {pkg_agents}[/yellow]")
 
-        # Note: smol-kln command is installed via pipx as part of k-lean package
+        # Note: kln-smol command is installed via pipx as part of k-lean package
 
     # Install config
     if component in ["all", "config"]:
@@ -1387,9 +1387,9 @@ def doctor(auto_fix: bool):
     else:
         issues.append(("ERROR", "Scripts directory not found"))
 
-    # Check smol-kln command (installed via pipx as part of k-lean)
-    if not shutil.which("smol-kln"):
-        issues.append(("WARNING", "smol-kln command not found - SmolKLN agents won't work"))
+    # Check kln-smol command (installed via pipx as part of k-lean)
+    if not shutil.which("kln-smol"):
+        issues.append(("WARNING", "kln-smol command not found - SmolKLN agents won't work"))
 
     # Check lib/common.sh
     common_sh = CLAUDE_DIR / "lib" / "common.sh"
