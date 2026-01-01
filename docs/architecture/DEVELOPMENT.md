@@ -285,7 +285,7 @@ source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
 "$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge_db.py"
 
 # Bad - hardcoded paths (NEVER DO THIS)
-/home/calin/.venvs/knowledge-db/bin/python
+/home/user/.venvs/knowledge-db/bin/python
 ~/.claude/scripts/knowledge_db.py
 ```
 

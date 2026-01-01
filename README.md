@@ -1,11 +1,19 @@
-# K-LEAN
+<p align="center">
+  <img src="assets/logo-readme.png" alt="K-LEAN" width="200">
+</p>
 
-> **Multi-Model Code Reviews & Persistent Knowledge for Claude Code**
+<h1 align="center">K-LEAN</h1>
 
-[![CI](https://github.com/calinfaja/k-lean/actions/workflows/ci.yml/badge.svg)](https://github.com/calinfaja/k-lean/actions)
-[![Version](https://img.shields.io/badge/version-1.0.0--beta-blue.svg)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9+-yellow.svg)](https://python.org)
+<p align="center">
+  <strong>Multi-Model Code Reviews & Persistent Knowledge for Claude Code</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/calinfaja/k-lean/actions"><img src="https://github.com/calinfaja/k-lean/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-1.0.0--beta-blue.svg" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9+-yellow.svg" alt="Python"></a>
+</p>
 
 ---
 
@@ -149,7 +157,7 @@ Uses 4 contrarian techniques:
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────────┐ │
 │  │    Hooks      │  │   /kln:*      │  │   SmolKLN Agents      │ │
 │  │ FindKnowledge │  │   Commands    │  │   8 Specialists       │ │
-│  │ SaveInfo      │  │   (10 total)  │  │   + Tools             │ │
+│  │ SaveInfo      │  │   (9 total)   │  │   + Tools             │ │
 │  └───────┬───────┘  └───────┬───────┘  └───────────┬───────────┘ │
 └──────────┼──────────────────┼──────────────────────┼─────────────┘
            │                  │                      │
@@ -281,9 +289,9 @@ k-lean/
 │   ├── smol/               # SmolKLN agent system
 │   ├── knowledge/          # Knowledge DB integration
 │   └── data/               # Installable assets
-│       ├── scripts/        # 43 shell & Python scripts
-│       ├── commands/kln/   # 10 slash commands
-│       ├── hooks/          # 5 Claude Code hooks
+│       ├── scripts/        # 39 shell & Python scripts
+│       ├── commands/kln/   # 9 slash commands
+│       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # Configuration templates
 ├── docs/                   # User documentation

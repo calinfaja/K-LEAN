@@ -1,40 +1,41 @@
 # Project Index: K-LEAN
 
-**Generated**: 2025-12-29
+**Generated**: 2026-01-01
 **Version**: 1.0.0-beta
-**Description**: Multi-model code review and knowledge capture system for Claude Code
+**License**: Apache-2.0
+
+---
+
+## Project Summary
+
+Multi-model code review and persistent knowledge system for Claude Code. Get consensus from 3-5 LLMs, capture insights to a searchable knowledge base, and use 8 specialist agents for domain-specific analysis.
 
 ---
 
 ## Project Structure
 
 ```
-claudeAgentic/
-├── src/klean/              # Main Python package
-│   ├── cli.py              # Main CLI entry point (k-lean command)
-│   ├── discovery.py        # Dynamic model discovery from LiteLLM
-│   ├── smol/               # SmolAgents integration
+k-lean/
+├── src/klean/              # Main package (16K lines Python)
+│   ├── cli.py              # CLI entry point (k-lean command)
+│   ├── discovery.py        # Model discovery from LiteLLM
+│   ├── smol/               # SmolKLN agent system
 │   │   ├── cli.py          # smol-kln command
-│   │   ├── executor.py     # Agent execution engine
+│   │   ├── executor.py     # Single agent execution
 │   │   ├── multi_agent.py  # Multi-agent orchestration
-│   │   ├── tools.py        # Agent tools (grep, git, etc.)
+│   │   ├── tools.py        # Agent tools (read, grep, git)
 │   │   └── loader.py       # Agent .md file parser
-│   ├── tools/              # MCP tools (async)
 │   ├── knowledge/          # Knowledge DB integration
-│   ├── utils/              # Utility re-exports
-│   └── data/               # Installable data files
-│       ├── core/           # klean_core.py (quick/multi reviews)
-│       ├── commands/kln/   # Slash commands (.md)
-│       ├── scripts/        # Shell/Python scripts
-│       ├── hooks/          # Claude Code hooks
-│       ├── agents/         # SmolKLN agent definitions
-│       ├── multi-agents/   # Multi-agent system definitions
-│       ├── rules/          # Claude Code rules
-│       └── config/         # LiteLLM config templates
-├── tests/                  # pytest tests
-├── docs/                   # Documentation
-├── roadmap/                # Future plans
-└── config/                 # Development configs
+│   └── data/               # Installable assets
+│       ├── scripts/        # 35 shell & Python scripts (5K lines)
+│       ├── commands/kln/   # 9 slash commands
+│       ├── hooks/          # 4 Claude Code hooks
+│       ├── agents/         # 8 SmolKLN agent definitions
+│       └── config/         # LiteLLM & provider templates
+├── tests/                  # 6 unit tests + fixtures
+├── docs/                   # User & architecture docs
+├── CLAUDE.md               # Claude Code instructions
+└── AGENTS.md               # Universal AI instructions
 ```
 
 ---
@@ -116,13 +117,16 @@ Multi-agent orchestration (3 or 4 agent configurations):
 
 | Agent | File | Specialty |
 |-------|------|-----------|
-| security-auditor | agents/security-auditor.md | OWASP security analysis |
-| code-reviewer | agents/code-reviewer.md | Code quality review |
-| debugger | agents/debugger.md | Bug investigation |
-| performance-engineer | agents/performance-engineer.md | Performance optimization |
-| rust-expert | agents/rust-expert.md | Rust-specific analysis |
-| c-pro | agents/c-pro.md | C/embedded expertise |
-| arm-cortex-expert | agents/arm-cortex-expert.md | ARM MCU development |
+| code-reviewer | agents/code-reviewer.md | OWASP, SOLID, code quality |
+| security-auditor | agents/security-auditor.md | Vulnerabilities, auth, crypto |
+| debugger | agents/debugger.md | Root cause analysis |
+| performance-engineer | agents/performance-engineer.md | Profiling, optimization |
+| rust-expert | agents/rust-expert.md | Ownership, lifetimes, unsafe |
+| c-pro | agents/c-pro.md | C99/C11, POSIX, embedded |
+| arm-cortex-expert | agents/arm-cortex-expert.md | ARM MCU, real-time |
+| orchestrator | agents/orchestrator.md | Multi-agent coordination |
+
+**Agent Tools**: `read_file`, `search_files`, `grep`, `knowledge_search`, `get_complexity`
 
 ---
 
@@ -223,12 +227,27 @@ smol-kln security-auditor "audit auth"
 
 ## File Count Summary
 
-- Python files: 43
-- Markdown files: 100+
-- Shell scripts: 35
-- YAML configs: 17
-- Tests: 9 files (27+ test cases)
+| Type | Count | Lines |
+|------|-------|-------|
+| Python | 53 | 16,438 |
+| Shell | 35 | 5,421 |
+| Markdown | 100+ | - |
+| YAML/TOML | 12 | - |
+| Tests | 6 | - |
 
 ---
 
-*Index size: ~3KB | Full codebase: ~60K tokens | Savings: 94%*
+## Documentation
+
+| Document | Path |
+|----------|------|
+| Installation | `docs/installation.md` |
+| Usage | `docs/usage.md` |
+| Reference | `docs/reference.md` |
+| Architecture | `docs/architecture/OVERVIEW.md` |
+| Components | `docs/architecture/COMPONENTS.md` |
+| Development | `docs/architecture/DEVELOPMENT.md` |
+
+---
+
+*Index size: ~4KB | Full codebase: ~60K tokens | Savings: 94%*

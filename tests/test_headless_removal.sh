@@ -248,7 +248,7 @@ fi
 section "11. NO STALE REFERENCES IN SOURCE"
 # ─────────────────────────────────────────────────────────────────────
 
-REPO_ROOT="${1:-$(git rev-parse --show-toplevel 2>/dev/null || echo "/home/calin/claudeAgentic")}"
+REPO_ROOT="${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 
 # Check for kln:deep references (excluding benchmark historical data)
 deep_refs=$(grep -r "kln:deep" "$REPO_ROOT/src" "$REPO_ROOT/docs" --include="*.md" --include="*.py" --include="*.sh" 2>/dev/null | grep -v "agent-benchmark-results.md" | grep -v "\.pyc" | wc -l)

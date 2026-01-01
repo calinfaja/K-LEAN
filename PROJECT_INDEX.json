@@ -3,7 +3,7 @@
     "name": "k-lean",
     "version": "1.0.0-beta",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
-    "generated": "2025-12-29",
+    "generated": "2026-01-01",
     "python_version": ">=3.9",
     "license": "Apache-2.0"
   },
@@ -71,14 +71,16 @@
     "session-start": {"file": "data/hooks/session-start.sh", "trigger": "SessionStart"}
   },
   "agents": {
-    "security-auditor": {"file": "data/agents/security-auditor.md", "specialty": "OWASP security"},
-    "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "Code quality"},
-    "debugger": {"file": "data/agents/debugger.md", "specialty": "Bug investigation"},
-    "performance-engineer": {"file": "data/agents/performance-engineer.md", "specialty": "Performance"},
-    "rust-expert": {"file": "data/agents/rust-expert.md", "specialty": "Rust"},
-    "c-pro": {"file": "data/agents/c-pro.md", "specialty": "C/embedded"},
-    "arm-cortex-expert": {"file": "data/agents/arm-cortex-expert.md", "specialty": "ARM MCU"}
+    "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "OWASP, SOLID, code quality"},
+    "security-auditor": {"file": "data/agents/security-auditor.md", "specialty": "Vulnerabilities, auth, crypto"},
+    "debugger": {"file": "data/agents/debugger.md", "specialty": "Root cause analysis"},
+    "performance-engineer": {"file": "data/agents/performance-engineer.md", "specialty": "Profiling, optimization"},
+    "rust-expert": {"file": "data/agents/rust-expert.md", "specialty": "Ownership, lifetimes, unsafe"},
+    "c-pro": {"file": "data/agents/c-pro.md", "specialty": "C99/C11, POSIX, embedded"},
+    "arm-cortex-expert": {"file": "data/agents/arm-cortex-expert.md", "specialty": "ARM MCU, real-time"},
+    "orchestrator": {"file": "data/agents/orchestrator.md", "specialty": "Multi-agent coordination"}
   },
+  "agent_tools": ["read_file", "search_files", "grep", "knowledge_search", "get_complexity"],
   "multi_agents": {
     "3_agent": ["manager", "file_scout", "analyzer"],
     "4_agent": ["manager", "file_scout", "code_analyzer", "security_auditor", "synthesizer"]
@@ -112,11 +114,11 @@
     "core_tests": "src/klean/data/core/tests/"
   },
   "file_counts": {
-    "python": 43,
-    "markdown": 100,
-    "shell": 35,
-    "yaml": 17,
-    "tests": 9
+    "python": {"count": 53, "lines": 16438},
+    "shell": {"count": 35, "lines": 5421},
+    "markdown": {"count": 100},
+    "yaml_toml": {"count": 12},
+    "tests": {"count": 6}
   },
   "key_patterns": [
     "Dynamic model discovery from LiteLLM",

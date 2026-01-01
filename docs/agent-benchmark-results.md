@@ -372,9 +372,9 @@ Final Review → T6 (Claude Opus, most thorough)
 Full outputs stored at:
 - T1: `.claude/kln/benchmark/T1_headless_qwen3.md`
 - T2: `.claude/kln/benchmark/T2_smolkln_agent.md`
-- T3: `/home/calin/Project/micropython_nRF/.claude/kln/multiAgent/2025-12-23_20-45-46_multi-3-agent_*.md`
-- T4: `/home/calin/Project/micropython_nRF/.claude/kln/multiAgent/2025-12-23_21-12-04_multi-4-agent_*.md`
-- T5: `/home/calin/Project/micropython_nRF/.claude/kln/deepInspect/2025-12-23_21-48-47_qwen3-coder_*.md`
+- T3: `<project>/.claude/kln/multiAgent/2025-12-23_20-45-46_multi-3-agent_*.md`
+- T4: `<project>/.claude/kln/multiAgent/2025-12-23_21-12-04_multi-4-agent_*.md`
+- T5: `<project>/.claude/kln/deepInspect/2025-12-23_21-48-47_qwen3-coder_*.md`
 - T6: (inline in this benchmark session)
 
 Phoenix Traces: http://localhost:6006 (project: klean-multi)
