@@ -35,7 +35,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Version check
-        run: k-lean --version
+        run: kln --version
 
       # ----------------------------------------
       # Unit Tests (mocked, no services needed)
