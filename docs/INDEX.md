@@ -1,6 +1,6 @@
 # K-LEAN Documentation
 
-> Complete codebase reference: [PROJECT_INDEX.md](../PROJECT_INDEX.md)
+> Codebase reference: [PROJECT_INDEX.md](../PROJECT_INDEX.md) | [PROJECT_INDEX.json](../PROJECT_INDEX.json)
 
 ## User Guides
 
