@@ -935,7 +935,7 @@ def scan_secrets(path: str = ".", file_pattern: str = "*") -> str:
     if not findings:
         return f"No potential secrets found in {path} ({files_scanned} files scanned). Note: This is a basic scan - use dedicated tools like 'detect-secrets' or 'gitleaks' for thorough scanning."
 
-    output = f"## Potential Secrets Found\n\n"
+    output = "## Potential Secrets Found\n\n"
     output += f"Files scanned: {files_scanned}\n"
     output += f"Findings: {len(findings)}\n\n"
     output += "**WARNING**: Review each finding - some may be false positives.\n\n"
@@ -1054,7 +1054,6 @@ def _python_complexity(path) -> str:
     lines = content.splitlines()
     total_lines = len(lines)
 
-    findings = []
     functions = []
 
     class ComplexityVisitor(ast.NodeVisitor):
