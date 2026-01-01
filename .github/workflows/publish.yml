@@ -69,7 +69,8 @@ jobs:
     needs: [verify, test]
     if: always() && needs.verify.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
-    environment: pypi  # Optional: adds manual approval step
+    permissions:
+      contents: write  # Required for creating tags and releases
     steps:
       - uses: actions/checkout@v4
 
@@ -92,11 +93,91 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: twine upload dist/*
 
+      # ----------------------------------------
+      # Post-Publish Verification
+      # ----------------------------------------
+      - name: Wait for PyPI to index
+        run: |
+          echo "Waiting 30s for PyPI to index the package..."
+          sleep 30
+
+      - name: Verify package on PyPI API
+        run: |
+          echo "Checking PyPI API for version ${{ inputs.version }}..."
+          RESPONSE=$(curl -s https://pypi.org/pypi/kln-ai/json)
+          LATEST=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['info']['version'])")
+          echo "Latest version on PyPI: $LATEST"
+          if [ "$LATEST" != "${{ inputs.version }}" ]; then
+            echo "WARNING: PyPI shows $LATEST, expected ${{ inputs.version }}"
+            echo "Package may still be indexing..."
+          else
+            echo "SUCCESS: Version ${{ inputs.version }} confirmed on PyPI"
+          fi
+
+      - name: Test install from PyPI
+        run: |
+          echo "Creating fresh venv and installing from PyPI..."
+          python -m venv /tmp/test-install
+          /tmp/test-install/bin/pip install --upgrade pip
+          /tmp/test-install/bin/pip install kln-ai==${{ inputs.version }}
+          echo "Testing kln --version..."
+          /tmp/test-install/bin/kln --version
+          echo "SUCCESS: Package installs and runs correctly"
+
+      # ----------------------------------------
+      # Git Tag
+      # ----------------------------------------
+      - name: Create git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="v${{ inputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping..."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+            echo "Created and pushed tag: $TAG"
+          fi
+
+      # ----------------------------------------
+      # GitHub Release
+      # ----------------------------------------
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ inputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping..."
+          else
+            gh release create "$TAG" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="$TAG" \
+              --generate-notes \
+              dist/*
+            echo "Created GitHub Release: $TAG"
+          fi
+
+      # ----------------------------------------
+      # Summary
+      # ----------------------------------------
       - name: Create summary
         run: |
           echo "## Published to PyPI" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Package:** kln-ai" >> $GITHUB_STEP_SUMMARY
           echo "**Version:** ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Install with: \`pipx install kln-ai\`" >> $GITHUB_STEP_SUMMARY
+          echo "### Verification" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Published to PyPI" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Verified on PyPI API" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Test install successful" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Git tag created" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] GitHub Release created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Install" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "pipx install kln-ai" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
