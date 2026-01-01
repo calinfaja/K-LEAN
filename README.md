@@ -23,7 +23,7 @@ One model's confidence isn't proof. K-LEAN brings in **OpenAI, Gemini, DeepSeek,
 
 - **9 slash commands** — `/kln:quick`, `/kln:multi`, `/kln:agent`, `/kln:rethink`...
 - **8 specialist agents** — Security, Rust, embedded C, ARM Cortex, performance
-- **4 smart hooks** — Auto-capture, git tracking, session management
+- **4 smart hooks** — Service auto-start, keyword handling, git tracking, web capture
 - **Persistent knowledge** — Insights that survive across sessions
 
 Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
@@ -140,14 +140,26 @@ Uses 4 techniques: inversion, assumption challenge, domain shift, root cause ref
 
 ---
 
-## Hook Keywords
+## Smart Hooks
 
-Type these directly in Claude Code:
+K-LEAN hooks run automatically in the background:
+
+- **Service auto-start** — LiteLLM proxy and Knowledge Server start on session begin
+- **Keyword handling** — Type keywords directly, no slash command needed
+- **Git tracking** — Commits logged to timeline, facts extracted automatically
+- **Web capture** — URLs from WebFetch/Tavily evaluated and saved if relevant
+
+### Hook Keywords
+
+Type these directly in Claude Code (no `/` prefix):
 
 | Keyword | Action |
 |---------|--------|
 | `FindKnowledge <query>` | Semantic search knowledge DB |
-| `SaveInfo <url>` | Evaluate URL and save if relevant |
+| `SaveInfo <url>` | Evaluate URL with AI, save if relevant |
+| `InitKB` | Initialize knowledge DB for current project |
+| `asyncConsensus [focus]` | Background 3-model consensus review |
+| `asyncReview <model> <focus>` | Background single-model review |
 
 ---
 
@@ -187,15 +199,23 @@ kln version          # Show version
 
 ---
 
-## Why NanoGPT?
+## Recommended Providers
 
-K-LEAN uses [NanoGPT](https://nano-gpt.com) as the default backend:
+### NanoGPT
 
-- **DeepSeek, Qwen, GLM, Kimi, Minimax, Hermes, Llama** — All accessible
-- **Thinking models** — DeepSeek-R1, GLM-4.6-Thinking with reasoning chains
-- **Simple setup** — One API key, all models
+[NanoGPT](https://nano-gpt.com) — Best value subscription for top-tier models.
 
-**Alternative:** [OpenRouter](https://openrouter.ai)
+- **Top providers** — DeepSeek, Alibaba, Zhipu, Moonshot, Minimax, Meta
+- **Thinking models** — Reasoning chains for complex analysis
+- **Simple setup** — One API key, 200+ models
+
+### OpenRouter
+
+[OpenRouter](https://openrouter.ai) — Unified API gateway for major providers.
+
+- **Top providers** — Anthropic, Google, Meta, Mistral, DeepSeek, OpenAI
+- **Free tiers** — Some models available at no cost
+- **Simple setup** — One API key, 500+ models
 
 ---
 
