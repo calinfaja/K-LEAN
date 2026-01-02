@@ -79,8 +79,8 @@ if [ ! -f "$KB_DIR/timeline.txt" ]; then
     log_success "Created timeline.txt"
 fi
 
-# Step 2b: Initialize txtai index if not exists
-if [ ! -d "$KB_DIR/index" ]; then
+# Step 2b: Initialize fastembed index if not exists
+if [ ! -f "$KB_DIR/embeddings.npy" ]; then
     log_info "Initializing knowledge index..."
 
     # Create initial entry to bootstrap the index
@@ -89,7 +89,7 @@ if [ ! -d "$KB_DIR/index" ]; then
         --json-input '{"title":"Knowledge DB Initialized","summary":"This project knowledge database was initialized.","type":"system","source":"kb-init","quality":"low","tags":["system","initialization"]}' \
         --json 2>/dev/null
 
-    if [ -d "$KB_DIR/index" ]; then
+    if [ -f "$KB_DIR/embeddings.npy" ]; then
         log_success "Created initial knowledge index"
     else
         log_error "Failed to create knowledge index"
@@ -124,8 +124,8 @@ else
     "$PYTHON" "$KB_SERVER" start "$PROJECT_ROOT" > /dev/null 2>&1 &
     SERVER_PID=$!
 
-    # Wait for server to start (txtai index loading takes ~12-15s on cold start)
-    log_info "Waiting for server to initialize (this may take 15-20 seconds on first run)..."
+    # Wait for server to start (fastembed model loading takes ~5-10s on cold start)
+    log_info "Waiting for server to initialize (this may take 10-15 seconds on first run)..."
 
     MAX_WAIT=25
     WAITED=0
@@ -170,11 +170,11 @@ else
     log_error "Search command failed"
 fi
 
-# Check 3: Verify txtai can be imported
-if "$PYTHON" -c "from txtai import Embeddings" 2>/dev/null; then
-    log_success "txtai library available"
+# Check 3: Verify fastembed can be imported
+if "$PYTHON" -c "from fastembed import TextEmbedding" 2>/dev/null; then
+    log_success "fastembed library available"
 else
-    log_error "txtai not installed. Run: pip install txtai[database,ann]"
+    log_error "fastembed not installed. Run: pip install fastembed numpy"
 fi
 
 # Step 6: Summary

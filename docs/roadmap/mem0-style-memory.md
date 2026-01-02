@@ -72,8 +72,8 @@ Implement automatic memory extraction and learning, inspired by [Mem0](https://g
 | **LangGraph** | SQLite checkpoints | ❌ No | ❌ No |
 | **CrewAI** | ChromaDB + SQLite | ❌ No | ❌ No |
 | **Smolagents** | None (in-memory) | ❌ No | ❌ No |
-| **K-LEAN (current)** | txtai + Serena | Manual | ❌ No |
-| **K-LEAN (planned)** | txtai + Serena | ✅ Yes | ✅ Yes |
+| **K-LEAN (current)** | fastembed + Serena | Manual | ❌ No |
+| **K-LEAN (planned)** | fastembed + Serena | ✅ Yes | ✅ Yes |
 
 ---
 
@@ -333,7 +333,7 @@ memory:
 |-----------|-------|--------|----------------|
 | Extract facts | qwen3-coder | ~500 | Included in $15/mo |
 | Compress context | Local | 0 | Free |
-| Search KB | txtai | 0 | Free |
+| Search KB | fastembed | 0 | Free |
 
 **Per agent run**: ~500-1000 tokens for extraction = negligible cost
 

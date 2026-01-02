@@ -467,7 +467,7 @@ class KnowledgeRetrieverTool(Tool if SMOLAGENTS_AVAILABLE else object):
     def forward(self, query: str) -> str:
         """Execute knowledge search."""
         if self.db is None:
-            return "Knowledge DB not available. Install with: pip install txtai"
+            return "Knowledge DB not available. Install with: pip install fastembed numpy"
 
         try:
             results = self.db.search(query, limit=5)
