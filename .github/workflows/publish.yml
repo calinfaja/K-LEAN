@@ -70,7 +70,8 @@ jobs:
     if: always() && needs.verify.result == 'success' && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required for creating tags
+      contents: write   # Required for creating tags
+      workflows: write  # Required when workflow files changed
     steps:
       - uses: actions/checkout@v4
 
