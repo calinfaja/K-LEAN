@@ -93,14 +93,18 @@
   "agent_tools": ["read_file", "search_files", "grep", "knowledge_search", "get_complexity"],
   "knowledge_db": {
     "storage": ".knowledge-db/",
-    "backend": "fastembed",
-    "model": "BAAI/bge-small-en-v1.5",
+    "backend": "fastembed-hybrid",
+    "models": {
+      "dense": "BAAI/bge-small-en-v1.5",
+      "sparse": "Qdrant/bm42-all-minilm-l6-v2-attentions",
+      "reranker": "Xenova/ms-marco-MiniLM-L-6-v2"
+    },
+    "search_pipeline": ["dense", "sparse", "rrf_fusion", "reranking"],
     "server_type": "unix_socket",
     "scripts": {
       "core": "data/scripts/knowledge_db.py",
       "server": "data/scripts/knowledge-server.py",
       "search": "data/scripts/knowledge-search.py",
-      "hybrid_search": "data/scripts/knowledge-hybrid-search.py",
       "capture": "data/scripts/knowledge-capture.py",
       "query_cli": "data/scripts/knowledge-query.sh",
       "init": "data/scripts/kb-init.sh"

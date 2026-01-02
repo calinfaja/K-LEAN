@@ -479,10 +479,8 @@ class KnowledgeRetrieverTool(Tool if SMOLAGENTS_AVAILABLE else object):
 
         output = "RELEVANT PRIOR KNOWLEDGE:\n\n"
         for r in results:
-            score = r.get("score", 0)
-            if score < 0.3:
-                continue
-            output += f"### {r.get('title', 'Untitled')} (relevance: {score:.0%})\n"
+            # RRF scores are small (0.01-0.03), reranker handles relevance filtering
+            output += f"### {r.get('title', 'Untitled')}\n"
             if r.get("url"):
                 output += f"Source: {r['url']}\n"
             if r.get("summary"):
@@ -979,7 +977,7 @@ def _lizard_complexity(path) -> str:
     try:
         import lizard
     except ImportError:
-        return "lizard not installed. Install with: pipx inject k-lean lizard"
+        return "lizard not installed. Install with: pipx inject kln-ai lizard"
 
     result = lizard.analyze_file(str(path))
     if not result:
