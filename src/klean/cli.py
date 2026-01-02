@@ -933,7 +933,7 @@ def get_model_health() -> Dict[str, str]:
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="k-lean")
+@click.version_option(version=__version__, prog_name="kln")
 def main():
     """K-LEAN: Multi-model code review and knowledge capture system for Claude Code."""
     # Services are started explicitly via `kln start`
@@ -1079,7 +1079,7 @@ def install(dev: bool, component: str, yes: bool):
     # Install core module (klean_core.py, prompts)
     if component in ["all", "core"]:
         console.print("[bold]Installing core module...[/bold]")
-        core_dst = CLAUDE_DIR / "k-lean"
+        core_dst = CLAUDE_DIR / "kln"
         if source_core.exists():
             ensure_dir(core_dst)
             # Copy main Python file
@@ -1178,7 +1178,7 @@ def uninstall(yes: bool):
     console.print("  - ~/.claude/scripts/")
     console.print("  - ~/.claude/commands/kln/")
     console.print("  - ~/.claude/hooks/")
-    console.print("  - ~/.claude/rules/k-lean.md")
+    console.print("  - ~/.claude/rules/kln.md")
     console.print("  - ~/.klean/agents/")
 
     if not yes and not click.confirm("\nProceed with uninstallation?"):
@@ -1191,7 +1191,7 @@ def uninstall(yes: bool):
     stop_knowledge_server(stop_all=True)
 
     # Create backup directory
-    backup_dir = CLAUDE_DIR / "backups" / f"k-lean-{__version__}"
+    backup_dir = CLAUDE_DIR / "backups" / f"kln-{__version__}"
     ensure_dir(backup_dir)
 
     # Backup and remove
@@ -1201,7 +1201,7 @@ def uninstall(yes: bool):
         CLAUDE_DIR / "scripts",
         CLAUDE_DIR / "commands" / "kln",
         CLAUDE_DIR / "hooks",
-        CLAUDE_DIR / "rules" / "k-lean.md",
+        CLAUDE_DIR / "rules" / "kln.md",
         SMOL_AGENTS_DIR,
     ]:
         if path.exists():
@@ -1279,9 +1279,9 @@ def status():
             table.add_row("SmolKLN Agents", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
     # Rules
-    rules_file = CLAUDE_DIR / "rules" / "k-lean.md"
+    rules_file = CLAUDE_DIR / "rules" / "kln.md"
     if rules_file.exists():
-        table.add_row("Rules", "[green]OK[/green]", "~/.claude/rules/k-lean.md")
+        table.add_row("Rules", "[green]OK[/green]", "~/.claude/rules/kln.md")
     else:
         table.add_row("Rules", "[yellow]NOT INSTALLED[/yellow]", "run: kln install")
 
@@ -1653,12 +1653,12 @@ def doctor(auto_fix: bool):
 
     # Check rules
     console.print("\n[bold]Rules:[/bold]")
-    rules_file = CLAUDE_DIR / "rules" / "k-lean.md"
+    rules_file = CLAUDE_DIR / "rules" / "kln.md"
     if rules_file.exists():
-        console.print("  [green][OK][/green] k-lean.md: Installed")
+        console.print("  [green][OK][/green] kln.md: Installed")
     else:
         issues.append(("INFO", "Rules not installed - run kln install"))
-        console.print("  [yellow]○[/yellow] k-lean.md: NOT INSTALLED")
+        console.print("  [yellow]○[/yellow] kln.md: NOT INSTALLED")
         console.print("    [dim]Install with: kln install[/dim]")
 
     console.print("")

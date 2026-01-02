@@ -30,7 +30,7 @@ routing:
 
 # Latency cache settings
 cache:
-  latency_file: "~/.claude/k-lean/cache/latency.json"
+  latency_file: "~/.claude/kln/cache/latency.json"
   max_age_hours: 24
 
 # Output settings
