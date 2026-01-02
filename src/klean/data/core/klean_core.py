@@ -31,9 +31,9 @@ except ImportError:
 # Configuration
 #------------------------------------------------------------------------------
 
-CONFIG_PATH = Path.home() / ".claude" / "k-lean" / "config.yaml"
-CACHE_DIR = Path.home() / ".claude" / "k-lean" / "cache"
-PROMPTS_DIR = Path.home() / ".claude" / "k-lean" / "prompts"
+CONFIG_PATH = Path.home() / ".claude" / "kln" / "config.yaml"
+CACHE_DIR = Path.home() / ".claude" / "kln" / "cache"
+PROMPTS_DIR = Path.home() / ".claude" / "kln" / "prompts"
 
 def load_config() -> dict:
     """Load K-LEAN configuration"""

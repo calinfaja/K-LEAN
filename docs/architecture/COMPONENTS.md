@@ -1648,7 +1648,7 @@ Auto-discovered from LiteLLM. Use `kln models` to see current list.
 | Type | Location |
 |------|----------|
 | CLI | `src/klean/cli.py` |
-| Rules | `~/.claude/rules/k-lean.md` |
+| Rules | `~/.claude/rules/kln.md` |
 | Hooks | `~/.claude/hooks/` |
 | Scripts | `~/.claude/scripts/` |
 | Knowledge DB | `.knowledge-db/` (per project) |
