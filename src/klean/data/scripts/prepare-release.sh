@@ -11,8 +11,9 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DATA_DIR="$SCRIPT_DIR/src/klean/data"
+# Find repo root (where pyproject.toml is)
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && while [ ! -f pyproject.toml ] && [ "$(pwd)" != "/" ]; do cd ..; done && pwd)"
+DATA_DIR="$REPO_ROOT/src/klean/data"
 
 # Colors
 RED='\033[0;31m'
@@ -26,9 +27,9 @@ log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# Get version from VERSION file
+# Get version from pyproject.toml (single source of truth)
 get_version() {
-    cat "$SCRIPT_DIR/VERSION" 2>/dev/null || echo "0.0.0"
+    grep '^version' "$REPO_ROOT/pyproject.toml" | head -1 | cut -d'"' -f2
 }
 
 # Clean data directory
@@ -48,44 +49,44 @@ populate_data() {
     # Scripts
     log_info "Copying scripts..."
     mkdir -p "$DATA_DIR/scripts"
-    cp "$SCRIPT_DIR/scripts"/*.sh "$DATA_DIR/scripts/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/scripts"/*.py "$DATA_DIR/scripts/" 2>/dev/null || true
+    cp "$REPO_ROOT/scripts"/*.sh "$DATA_DIR/scripts/" 2>/dev/null || true
+    cp "$REPO_ROOT/scripts"/*.py "$DATA_DIR/scripts/" 2>/dev/null || true
     local script_count=$(ls -1 "$DATA_DIR/scripts" 2>/dev/null | wc -l)
     log_success "Copied $script_count scripts"
 
     # Commands (kln) - canonical source is commands/kln/
     log_info "Copying commands..."
     mkdir -p "$DATA_DIR/commands/kln"
-    cp "$SCRIPT_DIR/commands/kln"/*.md "$DATA_DIR/commands/kln/" 2>/dev/null || true
+    cp "$REPO_ROOT/commands/kln"/*.md "$DATA_DIR/commands/kln/" 2>/dev/null || true
     local cmd_count=$(ls -1 "$DATA_DIR/commands/kln" 2>/dev/null | wc -l)
     log_success "Copied $cmd_count commands"
 
     # Hooks
     log_info "Copying hooks..."
     mkdir -p "$DATA_DIR/hooks"
-    cp "$SCRIPT_DIR/hooks"/*.sh "$DATA_DIR/hooks/" 2>/dev/null || true
+    cp "$REPO_ROOT/hooks"/*.sh "$DATA_DIR/hooks/" 2>/dev/null || true
     local hook_count=$(ls -1 "$DATA_DIR/hooks" 2>/dev/null | wc -l)
     log_success "Copied $hook_count hooks"
 
     # SmolKLN Agents
     log_info "Copying SmolKLN agents..."
     mkdir -p "$DATA_DIR/agents"
-    cp "$SCRIPT_DIR/src/klean/data/agents"/*.md "$DATA_DIR/agents/" 2>/dev/null || true
+    cp "$REPO_ROOT/src/klean/data/agents"/*.md "$DATA_DIR/agents/" 2>/dev/null || true
     local agent_count=$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)
     log_success "Copied $agent_count SmolKLN agents"
 
     # Config
     log_info "Copying configuration..."
     mkdir -p "$DATA_DIR/config/litellm"
-    cp "$SCRIPT_DIR/config/CLAUDE.md" "$DATA_DIR/config/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/config/litellm"/*.yaml "$DATA_DIR/config/litellm/" 2>/dev/null || true
-    cp "$SCRIPT_DIR/config/litellm/.env.example" "$DATA_DIR/config/litellm/" 2>/dev/null || true
+    cp "$REPO_ROOT/config/CLAUDE.md" "$DATA_DIR/config/" 2>/dev/null || true
+    cp "$REPO_ROOT/config/litellm"/*.yaml "$DATA_DIR/config/litellm/" 2>/dev/null || true
+    cp "$REPO_ROOT/config/litellm/.env.example" "$DATA_DIR/config/litellm/" 2>/dev/null || true
     log_success "Copied configuration files"
 
     # Lib
     log_info "Copying lib..."
     mkdir -p "$DATA_DIR/lib"
-    cp "$SCRIPT_DIR/lib"/*.sh "$DATA_DIR/lib/" 2>/dev/null || true
+    cp "$REPO_ROOT/lib"/*.sh "$DATA_DIR/lib/" 2>/dev/null || true
     log_success "Copied lib files"
 
     # Make scripts executable
@@ -114,7 +115,7 @@ check_release() {
     fi
 
     # Check pyproject.toml version matches
-    local pyproject_version=$(grep -oP 'version = "\K[^"]+' "$SCRIPT_DIR/pyproject.toml" 2>/dev/null || echo "")
+    local pyproject_version=$(grep '^version = ' "$REPO_ROOT/pyproject.toml" | head -1 | cut -d'"' -f2)
     if [[ "$pyproject_version" != "$version" ]]; then
         log_warn "pyproject.toml version ($pyproject_version) != VERSION ($version)"
     else
@@ -122,7 +123,7 @@ check_release() {
     fi
 
     # Check __init__.py version matches
-    local init_version=$(grep -oP '__version__ = "\K[^"]+' "$SCRIPT_DIR/src/klean/__init__.py" 2>/dev/null || echo "")
+    local init_version=$(grep '__version__ = ' "$REPO_ROOT/src/klean/__init__.py" | head -1 | cut -d'"' -f2)
     if [[ "$init_version" != "$version" ]]; then
         log_warn "__init__.py version ($init_version) != VERSION ($version)"
     else
@@ -163,14 +164,14 @@ check_release() {
     fi
 
     # Check MANIFEST.in
-    if [ -f "$SCRIPT_DIR/MANIFEST.in" ]; then
+    if [ -f "$REPO_ROOT/MANIFEST.in" ]; then
         log_success "MANIFEST.in exists"
     else
         log_warn "MANIFEST.in missing (recommended for sdist)"
     fi
 
     # Check README
-    if [ -f "$SCRIPT_DIR/README.md" ]; then
+    if [ -f "$REPO_ROOT/README.md" ]; then
         log_success "README.md exists"
     else
         log_error "README.md missing"
