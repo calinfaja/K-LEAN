@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/calinfaja/K-LEAN/actions"><img src="https://github.com/calinfaja/K-LEAN/actions/workflows/push-checks.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/calinfaja/K-LEAN/actions"><img src="https://github.com/calinfaja/K-LEAN/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://pypi.org/project/kln-ai/"><img src="https://img.shields.io/pypi/v/kln-ai.svg" alt="PyPI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9+-yellow.svg" alt="Python"></a>
@@ -227,8 +227,9 @@ For a complete coding experience:
 |------|-------------|
 | [SuperClaude](https://github.com/SuperClaude-Org/SuperClaude) | Use `/sc:*` and `/kln:*` together |
 | [Serena MCP](https://github.com/oraios/serena) | Shared memory, code understanding |
-| Context7 MCP | Documentation lookup |
-| Tavily MCP | Web search for research |
+| [Context7 MCP](https://github.com/upstash/context7) | Documentation lookup |
+| [Tavily MCP](https://github.com/tavily-ai/tavily-mcp) | Web search for research |
+| [Sequential Thinking MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) | Step-by-step reasoning for complex problems |
 
 **Telemetry:** Install [Phoenix](https://github.com/Arize-ai/phoenix) to watch agent steps and reviews at `localhost:6006`.
 
