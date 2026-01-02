@@ -144,12 +144,14 @@ SmolAgents-based agent system:
 ## Knowledge Database
 
 **Storage**: `.knowledge-db/` per project
+**Backend**: fastembed (ONNX-based, ~200MB vs 7GB with txtai)
 **Server**: Unix socket, auto-starts on first use
 
 | Script | Purpose |
 |--------|---------|
 | knowledge-server.py | Persistent server daemon |
-| knowledge-search.py | Semantic search (txtai) |
+| knowledge_db.py | Core fastembed implementation |
+| knowledge-search.py | Semantic search |
 | knowledge-hybrid-search.py | BM25 + semantic hybrid |
 | knowledge-capture.py | Entry creation |
 | knowledge-query.sh | CLI query interface |
@@ -196,8 +198,8 @@ SmolAgents-based agent system:
 - rich>=13.0.0 - Terminal formatting
 - pyyaml>=6.0.0 - YAML parsing
 - httpx>=0.27.0 - HTTP client
-- txtai>=7.0.0 - Semantic embeddings
-- sentence-transformers>=2.0.0 - Embedding models
+- fastembed>=0.3.0 - Semantic embeddings (ONNX-based)
+- numpy>=1.24.0 - Numerical operations
 - smolagents[litellm]>=1.17.0 - Agent framework
 - lizard>=1.17.0 - Code complexity analysis
 - ddgs>=6.0.0 - Web search

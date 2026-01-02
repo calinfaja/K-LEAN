@@ -416,7 +416,7 @@ echo $?  # Check exit code
 
 ## 3. Knowledge Database
 
-The Knowledge DB provides **persistent semantic memory** across Claude Code sessions using txtai embeddings.
+The Knowledge DB provides **persistent semantic memory** across Claude Code sessions using fastembed (ONNX-based, ~200MB).
 
 ### Key Features
 
@@ -1557,7 +1557,8 @@ kln-smol --list   # List available agents
 ### 6.15 Dependencies
 
 - `smolagents[litellm]>=1.17.0` - Core agent framework
-- `txtai>=7.0.0` - Knowledge DB (semantic search)
+- `fastembed>=0.3.0` - Knowledge DB embeddings (ONNX-based)
+- `numpy>=1.24.0` - Vector operations
 - `ddgs>=6.0.0` - DuckDuckGo web search tool
 - `markdownify>=0.11.0` - HTML to markdown for VisitWebpageTool
 - LiteLLM proxy at `localhost:4000` (configurable)

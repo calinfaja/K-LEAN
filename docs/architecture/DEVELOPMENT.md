@@ -563,7 +563,7 @@ ls -la ~/.venvs/knowledge-db/bin/python
 kln install --component knowledge
 # Or manually:
 python3 -m venv ~/.venvs/knowledge-db
-~/.venvs/knowledge-db/bin/pip install txtai sentence-transformers
+~/.venvs/knowledge-db/bin/pip install fastembed numpy
 ```
 
 ### Issue: Config Validation Errors
@@ -743,7 +743,7 @@ summary  -> Show results + link to create GitHub release
 |---------|---------|
 | click, rich | CLI framework |
 | pyyaml, httpx | Config & HTTP |
-| txtai, sentence-transformers | Knowledge DB |
+| fastembed, numpy | Knowledge DB |
 | smolagents[litellm] | SmolKLN agents |
 | ddgs, markdownify, lizard | Agent tools |
 

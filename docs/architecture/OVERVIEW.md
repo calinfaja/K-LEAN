@@ -52,7 +52,7 @@ Claude Code uses a single AI model. K-LEAN adds:
              │                 │                   │
              ▼                 ▼                   ▼
    ┌─────────────────────┐  ┌──────────────────────────────────┐
-   │  LiteLLM Proxy      │  │  Knowledge DB (txtai)            │
+   │  LiteLLM Proxy      │  │  Knowledge DB (fastembed)        │
    │  localhost:4000     │  │  .knowledge-db/ per project      │
    │  Dynamic discovery  │  │  Unix socket for fast queries    │
    └──────────┬──────────┘  └──────────────────────────────────┘
@@ -242,7 +242,7 @@ Each git repository gets its own:
 ```
 /kln:learn "topic" -> Claude extracts from context
   -> knowledge-capture.py -> V2 schema -> entries.jsonl
-  -> txtai re-index (on next query)
+  -> fastembed re-index (on next query)
 ```
 
 ### Consensus Flow
