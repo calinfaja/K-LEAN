@@ -135,8 +135,11 @@ def find_knowledge_db(project_root: Path) -> Optional[Path]:
     kb_path = project_root / ".knowledge-db"
 
     if kb_path.exists() and kb_path.is_dir():
-        # Check if it has the index
-        if (kb_path / "index").exists() or (kb_path / "embeddings").exists():
+        # Check if it has the index (multiple formats for backwards compatibility)
+        has_fastembed = (kb_path / "embeddings.npy").exists() and (kb_path / "index.json").exists()
+        has_txtai = (kb_path / "index").is_dir()
+        has_embeddings = (kb_path / "embeddings").is_dir()
+        if has_fastembed or has_txtai or has_embeddings:
             return kb_path
 
     return None

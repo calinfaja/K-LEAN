@@ -122,8 +122,9 @@ def temp_knowledge_db(tmp_path):
     kb_dir.mkdir()
 
     # Create index marker (fastembed uses embeddings.npy + index.json)
+    import numpy as np
+    np.save(str(kb_dir / "embeddings.npy"), np.array([[0.1, 0.2, 0.3]]))
     (kb_dir / "index.json").write_text("{}")
-    # Note: embeddings.npy would be created by actual KnowledgeDB
 
     return kb_dir
 
