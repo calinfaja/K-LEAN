@@ -32,7 +32,7 @@ jobs:
 
       - name: Verify version matches __init__.py
         run: |
-          INIT_VERSION=$(grep '__version__' src/klean/__init__.py | cut -d'"' -f2)
+          INIT_VERSION=$(grep '^__version__' src/klean/__init__.py | head -1 | cut -d'"' -f2)
           echo "__init__.py version: $INIT_VERSION"
           if [ "${{ inputs.version }}" != "$INIT_VERSION" ]; then
             echo "ERROR: Version mismatch with __init__.py!"
