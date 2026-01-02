@@ -1,6 +1,6 @@
 ---
 name: quick
-description: "Fast code review via LiteLLM (~30s). Returns GRADE, RISK, findings."
+description: "Fast code review via LiteLLM (~60s). Returns GRADE, RISK, findings."
 allowed-tools: Bash, Read, Glob, Grep
 argument-hint: "<what to review> [--model MODEL]"
 ---

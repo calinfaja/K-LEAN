@@ -136,6 +136,10 @@ CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content // empty')
 [ -z "$CONTENT" ] && CONTENT=$(echo "$RESPONSE" | jq -r '.choices[0].message.reasoning_content // empty')
 [ -z "$CONTENT" ] && { echo "ERROR: No response"; echo "$RESPONSE"; exit 1; }
 
+# Strip <think>...</think> tags from output (deepseek-r1 includes them inline)
+# Use perl for multiline matching since sed doesn't handle newlines in [^<]*
+CONTENT=$(echo "$CONTENT" | perl -0777 -pe 's/<think>.*?<\/think>\s*//gs')
+
 # Append content to markdown file
 echo "$CONTENT" >> "$OUTPUT_FILE"
 

@@ -91,6 +91,55 @@ def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
     return True
 
 
+def validate_file_paths(final_answer: str, agent_memory=None, **kwargs) -> bool:
+    """Verify all file paths cited in final answer actually exist on filesystem.
+
+    This function prevents agents from hallucinating non-existent file paths.
+    Used as a smolagents final_answer_check alongside validate_citations.
+
+    Args:
+        final_answer: The agent's final answer string
+        agent_memory: List of agent memory steps (unused, but required by smolagents)
+        **kwargs: Accepts additional args (e.g., agent=) passed by smolagents
+
+    Returns:
+        True if all cited files exist or no citations present, False otherwise
+    """
+    if not final_answer:
+        return True
+
+    answer_str = str(final_answer) if not isinstance(final_answer, str) else final_answer
+
+    # Extract file paths from citations (format: file.ext:123 or path/file.ext:123-456)
+    citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)'
+    citations = re.findall(citation_pattern, answer_str)
+
+    if not citations:
+        return True
+
+    # Get project root from context or current directory
+    project_root = Path.cwd()
+    if 'agent' in kwargs and hasattr(kwargs['agent'], 'additional_args'):
+        ctx = kwargs['agent'].additional_args.get('context', {})
+        if 'project_root' in ctx:
+            project_root = Path(ctx['project_root'])
+
+    # Check each cited file exists
+    missing_files = []
+    for file_path, _ in citations:
+        full_path = project_root / file_path
+        abs_path = Path(file_path)
+
+        if not full_path.exists() and not abs_path.exists():
+            missing_files.append(file_path)
+
+    # Fail if >=50% of cited files don't exist (likely hallucination)
+    if missing_files and len(missing_files) / len(citations) >= 0.5:
+        return False
+
+    return True
+
+
 def get_citation_stats(final_answer: str, agent_memory=None) -> Dict[str, Any]:
     """Get statistics about citations in the final answer.
 

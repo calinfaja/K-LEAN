@@ -13,8 +13,8 @@ Knowledge-driven Lightweight Execution & Analysis Network
 
 | Command | Type | Duration | Description |
 |---------|------|----------|-------------|
-| `/kln:quick <focus>` | API | ~30s | Fast single-model review for quick insights |
-| `/kln:multi <focus>` | API | ~60s | Multi-model consensus (parallel execution) |
+| `/kln:quick <focus>` | API | ~60s | Fast single-model review for quick insights |
+| `/kln:multi <focus>` | API | ~2min | Multi-model consensus (parallel execution) |
 | `/kln:agent <task>` | SDK | ~2min | SmolKLN specialist agent for domain-specific tasks |
 | `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
 | `/kln:learn [topic]` | Local | ~30s | Extract learnings from context (mid-session) |

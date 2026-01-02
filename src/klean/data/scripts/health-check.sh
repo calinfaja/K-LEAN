@@ -14,32 +14,36 @@
 QUICK_MODE=false
 [ "$1" = "--quick" ] && QUICK_MODE=true
 
-# All available models
-MODELS="qwen3-coder deepseek-v3-thinking glm-4.6-thinking minimax-m2 kimi-k2-thinking hermes-4-70b"
-
 echo "═══════════════════════════════════════════════════════════════"
 echo "  MODEL HEALTH CHECK"
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
-# Check proxy first (use /models endpoint - faster than /health)
+# Check proxy first and get models via auto-discovery
 echo "Checking LiteLLM proxy (localhost:4000)..."
-if ! curl -s --max-time 5 http://localhost:4000/models > /dev/null 2>&1; then
+MODELS_JSON=$(curl -s --max-time 5 http://localhost:4000/models 2>/dev/null)
+if [ -z "$MODELS_JSON" ] || ! echo "$MODELS_JSON" | jq -e '.data' > /dev/null 2>&1; then
     echo "[ERROR] FAIL: LiteLLM proxy not responding"
     echo ""
-    echo "Start it with: start-nano-proxy"
+    echo "Start it with: kln start"
     exit 1
 fi
-echo "[OK] Proxy is running"
+
+# Extract model IDs from LiteLLM response
+MODELS=$(echo "$MODELS_JSON" | jq -r '.data[].id' 2>/dev/null | sort)
+MODEL_COUNT=$(echo "$MODELS" | wc -l)
+echo "[OK] Proxy is running ($MODEL_COUNT models discovered)"
 echo ""
 
 if $QUICK_MODE; then
     echo "Quick mode - skipping individual model tests"
+    echo "Models available:"
+    echo "$MODELS" | sed 's/^/  - /'
     exit 0
 fi
 
 # Test each model
-echo "Testing all models..."
+echo "Testing $MODEL_COUNT models..."
 echo "─────────────────────────────────────────────────────────────────"
 
 HEALTHY=0
