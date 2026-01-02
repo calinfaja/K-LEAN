@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 """
-Knowledge Database - Core txtai integration for semantic search
+Knowledge Database - Fastembed implementation for semantic search
 
-This module provides a KnowledgeDB class that wraps txtai for:
+This module provides a KnowledgeDB class using fastembed + numpy for:
 - Storing knowledge entries with metadata
 - Semantic search across all entries
 - Auto-detection of project's .knowledge-db directory
 
+Replaces txtai backend with lightweight fastembed (ONNX-based).
+Install size: ~200 MB vs 7+ GB with txtai/PyTorch.
+
 Usage:
-    from knowledge_db import KnowledgeDB
+    from knowledge_db_fastembed import KnowledgeDB
 
     db = KnowledgeDB()  # Auto-detects project root
     db.add({
         "title": "BLE Optimization",
         "summary": "Nordic's guide on connection intervals",
-        "url": "https://...",
         ...
     })
     results = db.search("power optimization")
@@ -27,28 +29,44 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+
 # Import shared utilities
 try:
-    from kb_utils import SCHEMA_V2_DEFAULTS, debug_log, find_project_root, migrate_entry  # noqa: F401
+    from kb_utils import debug_log, find_project_root, migrate_entry
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
     from kb_utils import debug_log, find_project_root, migrate_entry
 
-# txtai imports
+# Fastembed imports
 try:
-    from txtai import Embeddings
+    from fastembed import TextEmbedding
 except ImportError:
-    print("ERROR: txtai not installed. Run: ~/.venvs/knowledge-db/bin/pip install txtai[database,ann]")
+    print("ERROR: fastembed not installed. Run: pip install fastembed")
     sys.exit(1)
+
+
+# Global model instance (singleton for performance)
+_model: Optional[TextEmbedding] = None
+
+
+def get_embedding_model() -> TextEmbedding:
+    """Get or create singleton embedding model."""
+    global _model
+    if _model is None:
+        # Use same model as sentence-transformers for compatibility
+        # bge-small-en-v1.5 has 384 dimensions, same as all-MiniLM-L6-v2
+        _model = TextEmbedding("BAAI/bge-small-en-v1.5")
+    return _model
 
 
 class KnowledgeDB:
     """
-    Semantic knowledge database using txtai.
+    Semantic knowledge database using fastembed + numpy.
 
     Stores entries in project's .knowledge-db/ directory with:
-    - SQLite backend for metadata storage
-    - Vector embeddings for semantic search
+    - Numpy array for vector embeddings
+    - JSON index for entry ID to row mapping
     - JSONL backup for human-readable records
     """
 
@@ -71,24 +89,100 @@ class KnowledgeDB:
             )
 
         self.db_path = self.project_root / ".knowledge-db"
-        self.index_path = self.db_path / "index"
+        self.embeddings_path = self.db_path / "embeddings.npy"
+        self.index_path = self.db_path / "index.json"
         self.jsonl_path = self.db_path / "entries.jsonl"
+        self.old_txtai_path = self.db_path / "index"  # Old txtai SQLite
 
         # Create directory if needed
         self.db_path.mkdir(parents=True, exist_ok=True)
 
-        # Initialize embeddings with SQLite backend
-        # WAL mode enables concurrent read/write access (fixes "database is locked" error)
-        self.embeddings = Embeddings(
-            content=True,  # Store content alongside vectors
-            backend="sqlite",  # Use SQLite for storage
-            path="sentence-transformers/all-MiniLM-L6-v2",  # Fast, good quality model
-            sqlite={"wal": True}  # Enable WAL for concurrent access
-        )
+        # Initialize model (lazy load on first use)
+        self._model: Optional[TextEmbedding] = None
+
+        # In-memory index
+        self._embeddings: Optional[np.ndarray] = None
+        self._id_to_row: Dict[str, int] = {}
+        self._row_to_id: Dict[int, str] = {}
+        self._entries: List[Dict[str, Any]] = []  # Cached entries
 
         # Load existing index if present
-        if self.index_path.exists():
-            self.embeddings.load(str(self.index_path))
+        self._load_index()
+
+        # Auto-migrate from txtai if needed
+        if self._needs_migration():
+            debug_log("Detected old txtai index, migrating to fastembed...")
+            self.rebuild_index()
+
+    @property
+    def model(self) -> TextEmbedding:
+        """Lazy load embedding model."""
+        if self._model is None:
+            self._model = get_embedding_model()
+        return self._model
+
+    def _needs_migration(self) -> bool:
+        """Check if migration from txtai is needed."""
+        # Has old txtai index but no new fastembed index
+        has_old = self.old_txtai_path.exists()
+        has_new = self.embeddings_path.exists()
+        has_entries = self.jsonl_path.exists()
+        return has_old and not has_new and has_entries
+
+    def _load_index(self) -> None:
+        """Load embeddings, index, and entries from disk."""
+        if self.embeddings_path.exists() and self.index_path.exists():
+            try:
+                self._embeddings = np.load(str(self.embeddings_path))
+                with open(self.index_path) as f:
+                    self._id_to_row = json.load(f)
+                self._row_to_id = {v: k for k, v in self._id_to_row.items()}
+
+                # Load entries into memory
+                self._entries = []
+                if self.jsonl_path.exists():
+                    with open(self.jsonl_path) as f:
+                        for line in f:
+                            if line.strip():
+                                try:
+                                    e = json.loads(line)
+                                    if isinstance(e, dict):
+                                        self._entries.append(migrate_entry(e))
+                                except json.JSONDecodeError:
+                                    pass
+
+                # Validate consistency
+                if len(self._embeddings) != len(self._entries):
+                    debug_log(f"WARNING: Index/entries mismatch ({len(self._embeddings)} vs {len(self._entries)})")
+
+                debug_log(f"Loaded {len(self._id_to_row)} embeddings from disk")
+            except Exception as e:
+                debug_log(f"Failed to load index: {e}")
+                self._embeddings = None
+                self._id_to_row = {}
+                self._row_to_id = {}
+                self._entries = []
+
+    def _save_index(self) -> None:
+        """Save embeddings and index to disk."""
+        if self._embeddings is not None:
+            np.save(str(self.embeddings_path), self._embeddings)
+            with open(self.index_path, "w") as f:
+                json.dump(self._id_to_row, f)
+            debug_log(f"Saved {len(self._id_to_row)} embeddings to disk")
+
+    def _build_searchable_text(self, entry: Dict[str, Any]) -> str:
+        """Build searchable text from entry fields."""
+        searchable_parts = [
+            entry.get("title", ""),
+            entry.get("summary", ""),
+            entry.get("atomic_insight", ""),
+            entry.get("problem_solved", ""),
+            " ".join(entry.get("key_concepts", [])),
+            " ".join(entry.get("tags", [])),
+            entry.get("what_worked", ""),
+        ]
+        return " ".join(filter(None, searchable_parts))
 
     def add(self, entry: Dict[str, Any]) -> str:
         """
@@ -102,15 +196,10 @@ class KnowledgeDB:
                 - url: Source URL
                 - problem_solved: What problem this solves
                 - key_concepts: List of keywords/concepts
-                - relevance_score: 0-1 score from Haiku
-                - project_context: Related project/topic
-                - what_worked: For solutions, what worked
-                - constraints: Any limitations
-                - confidence_score (optional): 0-1 confidence, default 0.7
-                - tags (optional): List of searchable tags
-                - usage_count (optional): Times referenced, default 0
-                - last_used (optional): ISO timestamp of last use
-                - source_quality (optional): high|medium|low, default medium
+                - relevance_score: 0-1 score
+                - confidence_score: 0-1 confidence
+                - tags: List of searchable tags
+                - etc.
 
         Returns:
             Entry ID (UUID)
@@ -128,32 +217,32 @@ class KnowledgeDB:
         if "summary" not in entry:
             raise ValueError("Entry must have 'summary' field")
 
-        # Add default metadata fields if not provided
+        # Add default metadata fields
         entry.setdefault("confidence_score", 0.7)
         entry.setdefault("tags", [])
         entry.setdefault("usage_count", 0)
         entry.setdefault("last_used", None)
         entry.setdefault("source_quality", "medium")
 
-        # Build searchable text from key fields (including V2 fields)
-        searchable_parts = [
-            entry.get("title", ""),
-            entry.get("summary", ""),
-            entry.get("atomic_insight", ""),  # V2: one-sentence takeaway
-            entry.get("problem_solved", ""),
-            " ".join(entry.get("key_concepts", [])),
-            " ".join(entry.get("tags", [])),
-            entry.get("what_worked", ""),
-        ]
-        searchable_text = " ".join(filter(None, searchable_parts))
+        # Build searchable text
+        searchable_text = self._build_searchable_text(entry)
 
-        # Upsert in txtai - format: (id, {"text": ..., ...metadata}, None)
-        # Use upsert to add or update entries (not overwrite entire index)
-        doc = {"text": searchable_text, **entry}
-        self.embeddings.upsert([(entry_id, doc, None)])
+        # Generate embedding
+        embedding = list(self.model.embed([searchable_text]))[0]
 
-        # Save index
-        self.embeddings.save(str(self.index_path))
+        # Add to in-memory index
+        if self._embeddings is None:
+            self._embeddings = embedding.reshape(1, -1)
+        else:
+            self._embeddings = np.vstack([self._embeddings, embedding])
+
+        row_idx = len(self._id_to_row)
+        self._id_to_row[entry_id] = row_idx
+        self._row_to_id[row_idx] = entry_id
+        self._entries.append(entry)  # Add to cache
+
+        # Save to disk
+        self._save_index()
 
         # Append to JSONL backup
         with open(self.jsonl_path, "a") as f:
@@ -172,76 +261,28 @@ class KnowledgeDB:
         Returns:
             List of matching entries with scores
         """
-        if not self.index_path.exists():
+        if self._embeddings is None or len(self._embeddings) == 0:
             return []
 
-        # Use SQL query to get full content with metadata
-        # Escape single quotes to prevent SQL injection
-        safe_query = query.replace("'", "''")
-        sql_query = f"select id, text, title, summary, url, type, problem_solved, key_concepts, relevance_score, what_worked, constraints, found_date, confidence_score, tags, usage_count, last_used, source_quality, score from txtai where similar('{safe_query}') limit {limit}"
+        # Generate query embedding
+        query_embedding = list(self.model.embed([query]))[0]
 
-        try:
-            results = self.embeddings.search(sql_query)
-        except Exception as e:
-            debug_log(f"SQL search failed, falling back: {e}")
-            results = self.embeddings.search(query, limit=limit)
+        # Compute cosine similarity (embeddings are normalized)
+        scores = self._embeddings @ query_embedding
 
-        # Load JSONL entries for enrichment
-        jsonl_entries = {}
-        if self.jsonl_path.exists():
-            with open(self.jsonl_path) as f:
-                for line in f:
-                    if line.strip():
-                        try:
-                            entry = json.loads(line)
-                            if isinstance(entry, dict):
-                                jsonl_entries[entry.get("id")] = entry
-                        except json.JSONDecodeError:
-                            pass
+        # Get top-k indices
+        top_indices = np.argsort(scores)[::-1][:limit]
 
-        # Format results with V2 fields and migration
-        formatted = []
-        for result in results:
-            if isinstance(result, dict):
-                entry_id = result.get("id")
-                # Enrich with data from JSONL (especially list/JSON fields)
-                jsonl_entry = jsonl_entries.get(entry_id, {})
+        # Format results from cached entries
+        results = []
+        for idx in top_indices:
+            idx = int(idx)
+            if idx < len(self._entries):
+                entry = self._entries[idx].copy()
+                entry["score"] = float(scores[idx])
+                results.append(entry)
 
-                # Build entry with all fields
-                entry = {
-                    "score": result.get("score", 0),
-                    "id": entry_id,
-                    "title": result.get("title", ""),
-                    "summary": result.get("summary", ""),
-                    "url": result.get("url", ""),
-                    "type": result.get("type", ""),
-                    "problem_solved": result.get("problem_solved", ""),
-                    "key_concepts": jsonl_entry.get("key_concepts", []),  # From JSONL
-                    "relevance_score": result.get("relevance_score", 0),
-                    "what_worked": result.get("what_worked", ""),
-                    "constraints": result.get("constraints", ""),
-                    "found_date": result.get("found_date", ""),
-                    "confidence_score": result.get("confidence_score", 0.7),
-                    "tags": jsonl_entry.get("tags", []),  # From JSONL
-                    "usage_count": result.get("usage_count", 0),
-                    "last_used": result.get("last_used"),
-                    "source_quality": result.get("source_quality", "medium"),
-                    # V2 fields
-                    "atomic_insight": jsonl_entry.get("atomic_insight", result.get("atomic_insight", "")),
-                    "quality": jsonl_entry.get("quality", result.get("quality", "medium")),
-                    "source": jsonl_entry.get("source", result.get("source", "manual")),
-                    "source_path": jsonl_entry.get("source_path", result.get("source_path", "")),
-                }
-                # Apply migration for any missing fields
-                formatted.append(migrate_entry(entry))
-            elif isinstance(result, tuple):
-                # Handle tuple format (id, score)
-                formatted.append({
-                    "score": result[1] if len(result) > 1 else 0,
-                    "id": result[0]
-                })
-
-        return formatted
+        return results
 
     def get(self, entry_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -253,10 +294,19 @@ class KnowledgeDB:
         Returns:
             Entry dictionary or None if not found
         """
-        results = self.embeddings.search(
-            f"select * from txtai where id = '{entry_id}'"
-        )
-        return results[0] if results else None
+        if not self.jsonl_path.exists():
+            return None
+
+        with open(self.jsonl_path) as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        entry = json.loads(line)
+                        if isinstance(entry, dict) and entry.get("id") == entry_id:
+                            return migrate_entry(entry)
+                    except json.JSONDecodeError:
+                        pass
+        return None
 
     def stats(self) -> Dict[str, Any]:
         """
@@ -265,29 +315,19 @@ class KnowledgeDB:
         Returns:
             Dictionary with count, size, last_updated
         """
-        count = 0
+        count = len(self._id_to_row) if self._id_to_row else 0
         size_bytes = 0
         last_updated = None
 
-        if self.index_path.exists():
-            # Count entries
-            try:
-                count = self.embeddings.count()
-            except Exception as e:
-                debug_log(f"Embeddings count failed: {e}")
-                # Fallback: count JSONL lines
-                if self.jsonl_path.exists():
-                    with open(self.jsonl_path) as f:
-                        count = sum(1 for _ in f)
+        # Get size
+        for f in self.db_path.rglob("*"):
+            if f.is_file():
+                size_bytes += f.stat().st_size
 
-            # Get size
-            for f in self.db_path.rglob("*"):
-                if f.is_file():
-                    size_bytes += f.stat().st_size
-
-            # Last modified
+        # Last modified
+        if self.embeddings_path.exists():
             last_updated = datetime.fromtimestamp(
-                self.index_path.stat().st_mtime
+                self.embeddings_path.stat().st_mtime
             ).isoformat()
 
         return {
@@ -295,14 +335,14 @@ class KnowledgeDB:
             "size_bytes": size_bytes,
             "size_human": f"{size_bytes / 1024:.1f} KB",
             "last_updated": last_updated,
-            "db_path": str(self.db_path)
+            "db_path": str(self.db_path),
+            "backend": "fastembed",
         }
 
     def rebuild_index(self) -> int:
         """
-        Rebuild the txtai index from JSONL backup.
-        This reads all entries from entries.jsonl and creates a fresh index.
-        Also migrates old schema entries with default values for new fields.
+        Rebuild the index from JSONL backup.
+        Migrates from txtai format or rebuilds fastembed index.
 
         Returns:
             Number of entries indexed
@@ -312,54 +352,60 @@ class KnowledgeDB:
 
         # Read all entries from JSONL
         entries = []
+        needs_id_update = False
         with open(self.jsonl_path) as f:
             for line in f:
                 if line.strip():
-                    entry = json.loads(line)
-                    entries.append(entry)
+                    try:
+                        entry = json.loads(line)
+                        if isinstance(entry, dict):
+                            entry = migrate_entry(entry)
+                            # Ensure every entry has an ID
+                            if not entry.get("id"):
+                                entry["id"] = str(uuid.uuid4())
+                                needs_id_update = True
+                            entries.append(entry)
+                    except json.JSONDecodeError:
+                        pass
 
         if not entries:
             return 0
 
-        # Remove existing index
-        import shutil
-        if self.index_path.exists():
-            shutil.rmtree(self.index_path)
+        # Update JSONL if we assigned new IDs
+        if needs_id_update:
+            debug_log("Updating entries with missing IDs...")
+            with open(self.jsonl_path, "w") as f:
+                for entry in entries:
+                    f.write(json.dumps(entry) + "\n")
 
-        # Re-initialize embeddings
-        self.embeddings = Embeddings(
-            content=True,
-            backend="sqlite",
-            path="sentence-transformers/all-MiniLM-L6-v2"
-        )
+        # Build searchable texts
+        texts = [self._build_searchable_text(e) for e in entries]
 
-        # Build documents for batch indexing
-        documents = []
-        for entry in entries:
-            entry_id = entry.get("id") or str(uuid.uuid4())
+        # Generate embeddings in batch
+        debug_log(f"Generating embeddings for {len(texts)} entries...")
+        embeddings_list = list(self.model.embed(texts))
+        self._embeddings = np.array(embeddings_list)
 
-            # Migrate old schema: add defaults for all V2 fields
-            entry = migrate_entry(entry)
+        # Build index and cache
+        self._id_to_row = {}
+        self._row_to_id = {}
+        self._entries = entries  # Cache all entries
+        for idx, entry in enumerate(entries):
+            entry_id = entry["id"]  # Now guaranteed to exist
+            self._id_to_row[entry_id] = idx
+            self._row_to_id[idx] = entry_id
 
-            # Build searchable text with V2 fields
-            searchable_parts = [
-                entry.get("title", ""),
-                entry.get("summary", ""),
-                entry.get("atomic_insight", ""),  # V2
-                entry.get("problem_solved", ""),
-                " ".join(entry.get("key_concepts", [])),
-                " ".join(entry.get("tags", [])),
-                entry.get("what_worked", ""),
-            ]
-            searchable_text = " ".join(filter(None, searchable_parts))
-            doc = {"text": searchable_text, **entry}
-            documents.append((entry_id, doc, None))
+        # Save to disk
+        self._save_index()
 
-        # Index all at once
-        self.embeddings.index(documents)
-        self.embeddings.save(str(self.index_path))
+        # Remove old txtai index if present
+        if self.old_txtai_path.exists():
+            import shutil
+            shutil.rmtree(self.old_txtai_path)
+            debug_log("Removed old txtai index")
 
-        return len(documents)
+        debug_log(f"Rebuilt index with {len(entries)} entries")
+        return len(entries)
 
     def list_recent(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
@@ -376,7 +422,12 @@ class KnowledgeDB:
             with open(self.jsonl_path) as f:
                 for line in f:
                     if line.strip():
-                        entries.append(json.loads(line))
+                        try:
+                            entry = json.loads(line)
+                            if isinstance(entry, dict):
+                                entries.append(migrate_entry(entry))
+                        except json.JSONDecodeError:
+                            pass
 
         # Sort by date descending
         entries.sort(key=lambda x: x.get("found_date", ""), reverse=True)
@@ -386,14 +437,9 @@ class KnowledgeDB:
         """
         Add a pre-structured entry (from Claude session or smart-capture).
 
-        Accepts V2 schema fields:
-            title, summary, atomic_insight, type, tags, key_concepts,
-            quality, source, source_path, relevance_score, etc.
-
         Returns:
             Entry ID (UUID)
         """
-        # Build entry with all V2 fields
         entry = {
             "id": data.get("id") or str(uuid.uuid4()),
             "found_date": data.get("found_date") or datetime.now().isoformat(),
@@ -401,18 +447,15 @@ class KnowledgeDB:
             "last_used": data.get("last_used"),
             "relevance_score": data.get("relevance_score", 0.8),
             "confidence_score": data.get("confidence_score", 0.8),
-            # Core fields
             "title": data.get("title", ""),
             "summary": data.get("summary", ""),
             "type": data.get("type", "lesson"),
             "tags": data.get("tags", []),
-            # V2 enhanced fields
             "atomic_insight": data.get("atomic_insight", ""),
             "key_concepts": data.get("key_concepts", []),
             "quality": data.get("quality", "medium"),
             "source": data.get("source", "conversation"),
             "source_path": data.get("source_path", ""),
-            # Optional fields
             "url": data.get("url", ""),
             "problem_solved": data.get("problem_solved", ""),
             "what_worked": data.get("what_worked", ""),
@@ -420,17 +463,14 @@ class KnowledgeDB:
             "source_quality": data.get("source_quality", "medium"),
         }
 
-        # Validate required fields
         if not entry["title"] and not entry["summary"]:
             raise ValueError("Entry must have 'title' or 'summary'")
 
-        # Use title as summary or vice versa if one is missing
         if not entry["title"]:
             entry["title"] = entry["summary"][:100]
         if not entry["summary"]:
             entry["summary"] = entry["title"]
 
-        # Add using the standard add method
         return self.add(entry)
 
     def migrate_all(self, rewrite: bool = False) -> dict:
@@ -451,12 +491,11 @@ class KnowledgeDB:
         skipped_lines = 0
 
         with open(self.jsonl_path) as f:
-            for line_num, line in enumerate(f, 1):
+            for line in f:
                 if not line.strip():
                     continue
                 try:
                     entry = json.loads(line)
-                    # Skip non-dict entries (e.g., string fragments from pretty-printed JSON)
                     if not isinstance(entry, dict):
                         skipped_lines += 1
                         continue
@@ -464,13 +503,11 @@ class KnowledgeDB:
                     original_keys = set(entry.keys())
                     migrated = migrate_entry(entry)
 
-                    # Check if any new fields were added
                     if set(migrated.keys()) != original_keys:
                         migrated_count += 1
 
                     entries.append(migrated)
                 except json.JSONDecodeError:
-                    # Skip malformed lines (e.g., pretty-printed JSON fragments)
                     skipped_lines += 1
 
         result = {
@@ -482,12 +519,10 @@ class KnowledgeDB:
         }
 
         if rewrite and migrated_count > 0:
-            # Backup original
             backup_path = self.jsonl_path.with_suffix(".jsonl.bak")
             import shutil
             shutil.copy(self.jsonl_path, backup_path)
 
-            # Rewrite with migrated entries
             with open(self.jsonl_path, "w") as f:
                 for entry in entries:
                     f.write(json.dumps(entry) + "\n")
@@ -497,23 +532,26 @@ class KnowledgeDB:
 
         return result
 
+    def count(self) -> int:
+        """Return number of entries."""
+        return len(self._id_to_row) if self._id_to_row else 0
+
 
 # CLI interface
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Knowledge Database CLI")
+    parser = argparse.ArgumentParser(description="Knowledge Database CLI (fastembed)")
     parser.add_argument("command", choices=["stats", "search", "recent", "add", "rebuild", "migrate"],
                         help="Command to run")
-    parser.add_argument("query", nargs="?", help="Search query, entry JSON, or title for add")
+    parser.add_argument("query", nargs="?", help="Search query or entry data")
     parser.add_argument("summary", nargs="?", help="Summary text (for simple add)")
     parser.add_argument("--limit", "-n", type=int, default=5, help="Result limit")
     parser.add_argument("--project", "-p", help="Project path")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
-    parser.add_argument("--json-input", dest="json_input", help="Add structured entry from JSON string")
-    parser.add_argument("--check", action="store_true", help="Check migration status only (for migrate)")
-    # Simple add arguments
-    parser.add_argument("--title", "-t", help="Entry title (alternative to positional)")
+    parser.add_argument("--json-input", dest="json_input", help="Add structured entry from JSON")
+    parser.add_argument("--check", action="store_true", help="Check migration status only")
+    parser.add_argument("--title", "-t", help="Entry title")
     parser.add_argument("--tags", help="Comma-separated tags")
     parser.add_argument("--source", "-s", help="Source identifier")
     parser.add_argument("--url", "-u", help="Source URL")
@@ -526,7 +564,7 @@ if __name__ == "__main__":
         print(f"ERROR: {e}")
         sys.exit(1)
 
-    # Handle --json-input first (structured entry input from Claude/smart-capture)
+    # Handle --json-input
     if args.json_input:
         try:
             data = json.loads(args.json_input)
@@ -549,6 +587,7 @@ if __name__ == "__main__":
             print(json.dumps(stats, indent=2))
         else:
             print(f"Knowledge DB: {stats['db_path']}")
+            print(f"Backend: {stats['backend']}")
             print(f"Entries: {stats['count']}")
             print(f"Size: {stats['size_human']}")
             print(f"Last updated: {stats['last_updated']}")
@@ -591,22 +630,19 @@ if __name__ == "__main__":
     elif args.command == "add":
         entry = None
 
-        # Try JSON first (for backwards compatibility)
         if args.query and args.query.startswith("{"):
             try:
                 entry = json.loads(args.query)
             except json.JSONDecodeError:
                 pass
 
-        # If not JSON, use simple positional/flag arguments
         if entry is None:
             title = args.title or args.query
-            summary = args.summary or args.query  # Use title as summary if no summary
+            summary = args.summary or args.query
 
             if not title:
                 print("ERROR: Add requires title")
-                print("Usage: knowledge_db.py add \"Title\" \"Summary\" [--tags t1,t2] [--source src] [--url url]")
-                print("   or: knowledge_db.py add '{\"title\":\"...\", \"summary\":\"...\"}'")
+                print("Usage: knowledge_db_fastembed.py add \"Title\" \"Summary\" [--tags t1,t2]")
                 sys.exit(1)
 
             entry = {
@@ -631,10 +667,9 @@ if __name__ == "__main__":
     elif args.command == "rebuild":
         print("Rebuilding index from JSONL backup...")
         count = db.rebuild_index()
-        print(f"Rebuilt index with {count} entries")
+        print(f"Rebuilt index with {count} entries (backend: fastembed)")
 
     elif args.command == "migrate":
-        # Run migration check or full migration
         result = db.migrate_all(rewrite=not args.check)
 
         if args.json:
@@ -644,10 +679,9 @@ if __name__ == "__main__":
                 print("No entries to migrate.")
             elif result["status"] == "checked":
                 if result["needs_migration"]:
-                    print(f"Migration needed: {result['migrated']}/{result['total']} entries need V2 fields")
-                    print("Run with --check removed to apply migration")
+                    print(f"Migration needed: {result['migrated']}/{result['total']} entries")
                 else:
-                    print(f"All {result['total']} entries already have V2 schema fields")
+                    print(f"All {result['total']} entries have V2 schema")
             elif result["status"] == "migrated":
-                print(f"Migrated {result['migrated']} entries to V2 schema")
-                print(f"Backup saved to: {result['backup']}")
+                print(f"Migrated {result['migrated']} entries")
+                print(f"Backup: {result['backup']}")

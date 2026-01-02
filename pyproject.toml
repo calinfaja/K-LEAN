@@ -34,9 +34,9 @@ dependencies = [
     "rich>=13.0.0",
     "pyyaml>=6.0.0",
     "httpx>=0.27.0",
-    # Knowledge DB (required for most features)
-    "txtai>=7.0.0",
-    "sentence-transformers>=2.0.0",
+    # Knowledge DB - lightweight fastembed (ONNX-based, ~200MB vs 7GB with txtai)
+    "fastembed>=0.3.0",
+    "numpy>=1.24.0",
     # SmolKLN Agents (required for agents and kln multi)
     "smolagents[litellm]>=1.17.0",
     "ddgs>=6.0.0",

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Knowledge Server - Per-project txtai daemon for fast searches
+Knowledge Server - Per-project fastembed daemon for fast searches
 
 Each project gets its own server instance with dedicated socket.
 Eliminates cold start by keeping embeddings loaded in memory.
@@ -100,59 +100,53 @@ class KnowledgeServer:
 
         self.socket_path = get_socket_path(self.project_root)
         self.pid_path = get_pid_path(self.project_root)
-        self.embeddings = None
+        self.db = None
+        self.embeddings = None  # Legacy alias
         self.running = False
         self.load_time = 0
         self.last_activity = time.time()
 
     def load_index(self):
-        """Load txtai embeddings index."""
-        index_path = self.project_root / ".knowledge-db" / "index"
-        if not index_path.exists():
+        """Load fastembed-based knowledge index."""
+        db_path = self.project_root / ".knowledge-db"
+        # Check for fastembed format (embeddings.npy) or old txtai format (index/)
+        has_fastembed = (db_path / "embeddings.npy").exists()
+        has_txtai = (db_path / "index").exists()
+        has_entries = (db_path / "entries.jsonl").exists()
+
+        if not has_fastembed and not has_txtai and not has_entries:
             return False
 
-        print(f"Loading index from {index_path}...")
+        print(f"Loading index from {db_path}...")
         start = time.time()
 
-        # Heavy imports happen once
-        from txtai import Embeddings
+        # Import KnowledgeDB (fastembed-based)
+        sys.path.insert(0, str(Path(__file__).parent))
+        from knowledge_db import KnowledgeDB
 
-        # Use WAL mode for concurrent read/write access
-        self.embeddings = Embeddings(sqlite={"wal": True})
-        self.embeddings.load(str(index_path))
+        # KnowledgeDB handles auto-migration from txtai
+        self.db = KnowledgeDB(str(self.project_root))
+        self.embeddings = self.db  # Alias for compatibility
 
         self.load_time = time.time() - start
-        print(f"Index loaded in {self.load_time:.2f}s ({self.embeddings.count()} entries)")
+        count = self.db.count() if hasattr(self.db, 'count') else len(self.db._id_to_row)
+        print(f"Index loaded in {self.load_time:.2f}s ({count} entries)")
         return True
 
     def search(self, query, limit=5):
         """Perform semantic search."""
         self.last_activity = time.time()
 
-        if not self.embeddings:
+        if not self.db:
             return {"error": "No index loaded"}
 
         start = time.time()
-        results = self.embeddings.search(query, limit)
+        # KnowledgeDB.search() returns formatted results with scores
+        results = self.db.search(query, limit)
         search_time = time.time() - start
 
-        # Format results
-        formatted = []
-        for item in results:
-            if isinstance(item, dict):
-                formatted.append(item)
-            elif isinstance(item, (list, tuple)) and len(item) >= 2:
-                score, data = item[0], item[1]
-                if isinstance(data, dict):
-                    data["score"] = score
-                    formatted.append(data)
-                else:
-                    formatted.append({"id": data, "score": score})
-            else:
-                formatted.append({"data": str(item), "score": 0})
-
         return {
-            "results": formatted,
+            "results": results,
             "search_time_ms": round(search_time * 1000, 2),
             "query": query
         }
@@ -178,9 +172,10 @@ class KnowledgeServer:
                     "status": "running",
                     "project": str(self.project_root),
                     "load_time": self.load_time,
-                    "index_loaded": self.embeddings is not None,
+                    "index_loaded": self.db is not None,
                     "idle_seconds": int(idle_time),
-                    "entries": self.embeddings.count() if self.embeddings else 0
+                    "entries": self.db.count() if self.db else 0,
+                    "backend": "fastembed"
                 }
             elif cmd == "ping":
                 response = {"pong": True, "project": str(self.project_root)}
