@@ -31,11 +31,6 @@ Benchmarking SmolKLN agents against industry-standard evaluations.
   - Multi-agent strategies (consensus, routing)
   - Cost tracking per benchmark run
 
-### [TOON Compression](toon/)
-Token-Oriented Object Notation for ~18% token reduction.
-- Status: Implemented, not integrated
-- Dependency: `python-toon` library
-
 ## Completed
 
 - ~~Mem0 Foundation (A+B)~~ → Session persistence + Serena sync (Dec 2024)
