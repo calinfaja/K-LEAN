@@ -55,14 +55,14 @@ Examples:
             SmolagentsInstrumentor().instrument()
             print("Telemetry enabled - view at http://localhost:6006")
         except ImportError:
-            print("Warning: Telemetry not installed. Run: pipx inject k-lean 'k-lean[telemetry]'")
+            print("Warning: Telemetry not installed. Run: pipx inject kln-ai 'kln-ai[telemetry]'")
 
     # Check if smolagents is installed
     try:
         from klean.smol import SmolKLNExecutor, list_available_agents
     except ImportError:
         print("Error: smolagents not installed.")
-        print("Install with: pipx inject k-lean 'smolagents[litellm]'")
+        print("Install with: pipx inject kln-ai 'smolagents[litellm]'")
         sys.exit(1)
 
     # List agents

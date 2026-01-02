@@ -116,7 +116,7 @@ if echo "$USER_PROMPT" | grep -qi "^SaveInfo "; then
 fi
 
 #------------------------------------------------------------------------------
-# FINDKNOWLEDGE <query> - Now uses hybrid search (Phase 2)
+# FINDKNOWLEDGE <query> - Uses hybrid search (dense + sparse + RRF fusion)
 #------------------------------------------------------------------------------
 if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
     # Extract the query
@@ -129,21 +129,20 @@ if echo "$USER_PROMPT" | grep -qi "^FindKnowledge "; then
 
     echo " Searching knowledge DB with hybrid search: $QUERY" >&2
 
-    # PHASE 2: Use hybrid search (semantic + keyword + tag)
-    if [ -f "$SCRIPTS_DIR/knowledge-hybrid-search.py" ]; then
-        # Use hybrid search engine (semantic + keyword + tag fallback)
-        RESULT=$("$PYTHON_BIN" "$SCRIPTS_DIR/knowledge-hybrid-search.py" "$QUERY" --strategy hybrid --verbose 2>&1)
+    # Use knowledge_db.py directly (hybrid search with RRF)
+    if [ -f "$SCRIPTS_DIR/knowledge_db.py" ]; then
+        RESULT=$("$PYTHON_BIN" "$SCRIPTS_DIR/knowledge_db.py" search "$QUERY" --limit 5 2>&1)
 
         # Emit search event (Phase 4)
         if [ -f "$SCRIPTS_DIR/knowledge-events.py" ]; then
-            "$PYTHON_BIN" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid\"}" 2>/dev/null &
+            "$PYTHON_BIN" "$SCRIPTS_DIR/knowledge-events.py" emit "knowledge:search" "{\"query\": \"$QUERY\", \"strategy\": \"hybrid-rrf\"}" 2>/dev/null &
         fi
 
         # Escape for JSON
         RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
         echo "{\"systemMessage\": $RESULT_ESCAPED}"
     elif [ -x "$SCRIPTS_DIR/knowledge-query.sh" ]; then
-        # Fallback to old search
+        # Fallback to shell script
         RESULT=$("$SCRIPTS_DIR/knowledge-query.sh" "$QUERY" 2>&1)
         RESULT_ESCAPED=$(echo "$RESULT" | jq -Rs .)
         echo "{\"systemMessage\": $RESULT_ESCAPED}"

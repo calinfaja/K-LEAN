@@ -1164,7 +1164,7 @@ def install(dev: bool, component: str, yes: bool):
     if not _check_smolagents_installed():
         console.print("\n[bold]Optional - SmolKLN agents:[/bold]")
         console.print("  To use SmolKLN agents, install:")
-        console.print("  [cyan]pipx inject k-lean 'smolagents[litellm]'[/cyan]")
+        console.print("  [cyan]pipx inject kln-ai 'smolagents[litellm]'[/cyan]")
 
 
 @main.command()
@@ -1649,7 +1649,7 @@ def doctor(auto_fix: bool):
     else:
         issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
         console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
-        console.print("    [dim]Install with: pipx inject k-lean 'smolagents[litellm]'[/dim]")
+        console.print("    [dim]Install with: pipx inject kln-ai 'smolagents[litellm]'[/dim]")
 
     # Check rules
     console.print("\n[bold]Rules:[/bold]")
@@ -1866,7 +1866,7 @@ def start(service: str, port: int, telemetry: bool):
                 log_debug_event("cli", "service_start", service="phoenix")
             else:
                 console.print("[red]✗[/red] Phoenix Telemetry: Failed to start")
-                console.print("[dim]  Install with: pipx inject k-lean 'k-lean[telemetry]'[/dim]")
+                console.print("[dim]  Install with: pipx inject kln-ai 'kln-ai[telemetry]'[/dim]")
                 failed.append("Phoenix")
 
     # Show running knowledge servers
@@ -2764,13 +2764,13 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
             SmolagentsInstrumentor().instrument()
             console.print("[dim]Telemetry enabled - view at http://localhost:6006[/dim]")
         except ImportError:
-            console.print("[yellow]Telemetry not installed. Run: pipx inject k-lean arize-phoenix openinference-instrumentation-smolagents[/yellow]")
+            console.print("[yellow]Telemetry not installed. Run: pipx inject kln-ai arize-phoenix openinference-instrumentation-smolagents[/yellow]")
 
     try:
         from klean.smol.multi_agent import MultiAgentExecutor
     except ImportError:
         console.print("[red]Error: smolagents not installed[/red]")
-        console.print("Install with: pipx inject k-lean 'smolagents[litellm]'")
+        console.print("Install with: pipx inject kln-ai 'smolagents[litellm]'")
         return
 
     variant = "4-agent" if thorough else "3-agent"

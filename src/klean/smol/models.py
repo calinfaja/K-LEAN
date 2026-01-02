@@ -29,10 +29,10 @@ def create_model(
     """
     try:
         from smolagents import LiteLLMModel
-    except ImportError:
+    except ImportError as err:
         raise ImportError(
-            "smolagents not installed. Install with: pipx inject k-lean 'smolagents[litellm]'"
-        )
+            "smolagents not installed. Install with: pipx inject kln-ai 'smolagents[litellm]'"
+        ) from err
 
     # Use discovery: explicit model or first available
     resolved_model = get_model(model_id)

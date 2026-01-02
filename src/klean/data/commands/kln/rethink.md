@@ -111,8 +111,8 @@ DEFAULT_MODEL="deepseek-v3-thinking"
 # If first arg matches a model name, use single model
 # Otherwise treat as focus
 
-PYTHON=~/.local/share/pipx/venvs/k-lean/bin/python
-CORE=~/.claude/k-lean/klean_core.py
+PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
+CORE="-m klean.core"
 
 # Execute rethink
 if [ "$ASYNC" = true ]; then
@@ -138,8 +138,8 @@ cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
 [INSERT EXTRACTED CONTEXT HERE]
 CONTEXT_EOF
 
-PYTHON=~/.local/share/pipx/venvs/k-lean/bin/python
-CORE=~/.claude/k-lean/klean_core.py
+PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
+CORE="-m klean.core"
 
 $PYTHON $CORE rethink --context-file "$CONTEXT_FILE" $ARGUMENTS
 

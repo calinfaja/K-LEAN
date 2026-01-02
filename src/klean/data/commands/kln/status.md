@@ -43,7 +43,7 @@ When invoked:
 
 2. **For "models" subcommand:**
    ```bash
-   ~/.local/share/pipx/venvs/k-lean/bin/python ~/.claude/k-lean/klean_core.py status
+   ~/.local/share/pipx/venvs/kln-ai/bin/python -m klean.core status
    ```
 
 3. **For "health" subcommand:**
@@ -95,7 +95,7 @@ When invoked:
      System status and health checks
      This command
 
-   Need more info? Try: k-lean --help
+   Need more info? Try: kln --help
    ```
 
 ## Example Output
