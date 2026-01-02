@@ -78,10 +78,13 @@ def get_model(data: dict) -> str:
     else:
         color = C.WHITE
 
-    # Shorten display name
-    short = display.lower().replace("claude ", "").replace("-", "")
-    if len(short) > 8:
-        short = short[:8]
+    # Shorten display name - handle both "claude " and "claude-" prefixes
+    short = re.sub(r'^claude[\s-]*', '', name_lower)
+    # Replace dashes with spaces, collapse multiple spaces
+    short = re.sub(r'[-\s]+', ' ', short).strip()
+    # Keep up to 10 chars to preserve versions like "sonnet 4.5"
+    if len(short) > 10:
+        short = short[:10]
 
     return f"{color}[{short}]{C.RESET}"
 
