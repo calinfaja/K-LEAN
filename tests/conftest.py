@@ -121,8 +121,9 @@ def temp_knowledge_db(tmp_path):
     kb_dir = tmp_path / ".knowledge-db"
     kb_dir.mkdir()
 
-    # Create index marker (txtai uses this)
-    (kb_dir / "index").mkdir()
+    # Create index marker (fastembed uses embeddings.npy + index.json)
+    (kb_dir / "index.json").write_text("{}")
+    # Note: embeddings.npy would be created by actual KnowledgeDB
 
     return kb_dir
 

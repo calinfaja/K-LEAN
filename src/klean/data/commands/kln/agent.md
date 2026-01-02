@@ -58,7 +58,7 @@ Run via `kln-smol` command (installed with k-lean) which uses smolagents with Li
 kln-smol <agent> "<task>" [--model MODEL] [--telemetry]
 ```
 
-**Note:** Requires smolagents: `pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'`
+**Note:** Requires smolagents: `pipx inject k-lean 'smolagents[litellm]'`
 
 ### Tools Available to Agents
 

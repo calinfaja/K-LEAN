@@ -62,7 +62,7 @@ Examples:
         from klean.smol import SmolKLNExecutor, list_available_agents
     except ImportError:
         print("Error: smolagents not installed.")
-        print("Install with: pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'")
+        print("Install with: pipx inject k-lean 'smolagents[litellm]'")
         sys.exit(1)
 
     # List agents

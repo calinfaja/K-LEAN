@@ -1135,7 +1135,7 @@ def install(dev: bool, component: str, yes: bool):
                 capture_output=True  # pip upgrade is fast, keep quiet
             )
             result = subprocess.run(
-                [str(pip), "install", "txtai", "sentence-transformers"]
+                [str(pip), "install", "fastembed", "numpy"]
                 # No -q or capture_output: show real-time download progress
             )
             if result.returncode == 0:
@@ -1164,7 +1164,7 @@ def install(dev: bool, component: str, yes: bool):
     if not _check_smolagents_installed():
         console.print("\n[bold]Optional - SmolKLN agents:[/bold]")
         console.print("  To use SmolKLN agents, install:")
-        console.print("  [cyan]pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'[/cyan]")
+        console.print("  [cyan]pipx inject k-lean 'smolagents[litellm]'[/cyan]")
 
 
 @main.command()
@@ -1649,7 +1649,7 @@ def doctor(auto_fix: bool):
     else:
         issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
         console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
-        console.print("    [dim]Install with: pipx inject k-lean 'smolagents[litellm]' 'txtai[ann]'[/dim]")
+        console.print("    [dim]Install with: pipx inject k-lean 'smolagents[litellm]'[/dim]")
 
     # Check rules
     console.print("\n[bold]Rules:[/bold]")
@@ -1764,14 +1764,14 @@ def test():
         if pip.exists():
             try:
                 # Use pip show instead of import (faster, no model loading)
-                result = subprocess.run([str(pip), "show", "txtai"],
+                result = subprocess.run([str(pip), "show", "fastembed"],
                                        capture_output=True, timeout=10)
                 if result.returncode == 0:
-                    test_pass("txtai installed")
+                    test_pass("fastembed installed")
                 else:
-                    test_fail("txtai not installed")
+                    test_fail("fastembed not installed")
             except Exception as e:
-                test_fail(f"txtai check failed: {e}")
+                test_fail(f"fastembed check failed: {e}")
         else:
             test_fail("pip not found in venv")
     else:

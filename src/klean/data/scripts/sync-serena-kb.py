@@ -164,7 +164,7 @@ def main():
             print(f"📚 Knowledge DB: {db.db_path}")
         except ImportError:
             print("[ERROR] knowledge_db module not found")
-            print("   Install: pip install txtai")
+            print("   Install: pip install fastembed numpy")
             sys.exit(1)
         except Exception as e:
             print(f"[ERROR] Knowledge DB error: {e}")
