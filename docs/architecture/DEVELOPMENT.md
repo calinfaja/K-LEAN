@@ -653,85 +653,102 @@ kln install
 - **URL**: https://pypi.org/project/kln-ai/
 - **Workflow**: `.github/workflows/publish.yml`
 
+### Version Sources
+
+Version is maintained in TWO files (CI validates they match):
+
+1. `pyproject.toml` -> `version = "X.Y.Z"`
+2. `src/klean/__init__.py` -> `__version__ = "X.Y.Z"`
+
+No separate VERSION file - `prepare-release.sh` reads from pyproject.toml.
+
 ### Pre-Release
 
 ```bash
-# 1. Run full test suite
-kln test
+# 1. Run tests
+pytest tests/ -v --ignore=tests/core/
 
-# 2. Check for issues
+# 2. Check configuration
 kln doctor
 
 # 3. Lint code
-ruff check src/
+ruff check src/ --select=F,E722
 
 # 4. Verify sync
 kln sync --check
+
+# 5. Verify release readiness
+./src/klean/data/scripts/prepare-release.sh --check
 ```
 
 ### Release Process
 
-#### Step 1: Update Version (manual)
-
-Update version in TWO files (keep in sync):
-
-1. `pyproject.toml` -> `version = "1.0.0b2"`
-2. `src/klean/__init__.py` -> `__version__ = "1.0.0b2"`
-
-**Version Format** (PEP 440):
-```
-1.0.0b0  <- beta 0
-1.0.0b1  <- beta 1
-1.0.0    <- stable release
-1.0.1    <- patch
-1.1.0    <- minor
-2.0.0b0  <- next major beta
-```
+#### Step 1: Update Version
 
 ```bash
-# Sync if scripts/commands changed
-kln sync
+# Edit both files with new version
+vim pyproject.toml                    # version = "1.0.0b2"
+vim src/klean/__init__.py             # __version__ = "1.0.0b2"
 
-# Commit version bump
+# Verify they match
+./src/klean/data/scripts/prepare-release.sh --check
+
+# Commit
 git add -A
-git commit -m "Bump to 1.0.0b2"
+git commit -m "chore: bump version to 1.0.0b2"
 git push
 ```
 
-#### Step 2: Run Publish Workflow (GitHub Actions)
+**Version Format** (PEP 440):
+```
+1.0.0b1  <- beta
+1.0.0    <- stable
+1.0.1    <- patch
+1.1.0    <- minor
+```
+
+#### Step 2: Run Publish Workflow
 
 1. Go to: **Actions > Publish to PyPI > Run workflow**
-2. Enter version (e.g., `1.0.0b2`)
+2. Enter version (must match pyproject.toml)
 3. Click **Run workflow**
 
 #### Step 3: Workflow Runs (automatic)
 
-The workflow performs these steps:
-
 ```
 verify   -> Check version matches pyproject.toml and __init__.py
-test     -> Lint (ruff), pytest, sync check
-publish  -> Build package, twine check, upload to PyPI
-verify   -> Wait 30s, check PyPI API, test install in fresh venv
-tag      -> Create and push git tag (v1.0.0b2)
-summary  -> Show results + link to create GitHub release
+test     -> Lint, pytest, sync check
+publish  -> Build, twine check, upload to PyPI
+verify   -> Check PyPI API, test install in fresh venv
+tag      -> Create git tag (v1.0.0b2)
 ```
 
-#### Step 4: Create GitHub Release (manual)
+#### Step 4: Create GitHub Release
 
-1. Click the link in workflow summary, or go to Releases
-2. Select the tag created by workflow
-3. Click "Generate release notes"
-4. Publish release
+1. Go to Releases, select the new tag
+2. Click "Generate release notes"
+3. Publish
+
+### Local Build (optional)
+
+```bash
+# Build locally before GitHub Actions
+python -m build
+twine check dist/*
+
+# Test install
+pipx install dist/*.whl --force
+kln --version
+```
 
 ### Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Version mismatch | Workflow fails if input doesn't match files |
+| Version mismatch | Update both pyproject.toml AND __init__.py |
 | Auth failed | Check `PYPI_TOKEN` in GitHub Secrets |
 | Version exists | PyPI rejects duplicates - bump version |
-| Test install fails | Check dependencies in pyproject.toml |
+| sdist missing files | Check MANIFEST.in includes all needed files |
 
 ---
 
