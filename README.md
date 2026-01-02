@@ -33,7 +33,7 @@ Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 ## Quick Start
 
 ```bash
-# Install
+# Install (~60s)
 pipx install kln-ai
 
 # Setup
@@ -44,8 +44,8 @@ kln doctor                 # Verify everything works
 
 **In Claude Code:**
 ```bash
-/kln:quick security           # Fast review (~30s)
-/kln:multi "error handling"   # 3-5 model consensus (~60s)
+/kln:quick security           # Fast review (~60s)
+/kln:multi "error handling"   # 3-5 model consensus (~2min)
 /kln:agent security-auditor   # Specialist agent (~2min)
 ```
 

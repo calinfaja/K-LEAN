@@ -12,7 +12,7 @@ from .context import format_context_for_prompt, gather_project_context
 from .executor import add_step_awareness
 from .models import create_model
 from .multi_config import get_3_agent_config, get_4_agent_config
-from .tools import get_citation_stats, get_tools_for_agent, validate_citations
+from .tools import get_citation_stats, get_tools_for_agent, validate_citations, validate_file_paths
 
 
 class MultiAgentExecutor:
@@ -240,7 +240,7 @@ class MultiAgentExecutor:
                 planning_interval=manager_config.planning_interval,
                 additional_authorized_imports=safe_imports,
                 step_callbacks=[add_step_awareness],  # Warn on low steps
-                final_answer_checks=[validate_citations],  # Verify file:line citations
+                final_answer_checks=[validate_citations, validate_file_paths],  # Verify citations + paths exist
             )
 
             # REPLACE default system prompt for manager too

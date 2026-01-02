@@ -23,6 +23,7 @@ from .tools import (
     get_default_tools,
     get_tools_for_agent,
     validate_citations,
+    validate_file_paths,
 )
 
 
@@ -269,7 +270,7 @@ class SmolKLNExecutor:
             planning_interval=3,  # Plan every 3 steps to stay on track
             additional_authorized_imports=safe_imports,
             step_callbacks=[add_step_awareness],  # Warn on low steps
-            final_answer_checks=[validate_citations],  # Verify file:line citations
+            final_answer_checks=[validate_citations, validate_file_paths],  # Verify citations + paths exist
         )
 
         # REPLACE default system prompt to remove John Doe/Ulam examples

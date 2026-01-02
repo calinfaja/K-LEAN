@@ -113,11 +113,12 @@ done
 get_response() {
     # Check content first, if empty check reasoning_content (for thinking models)
     local content=$(jq -r '.choices[0].message.content // empty' "$1")
-    if [ -n "$content" ]; then
-        echo "$content"
-    else
-        jq -r '.choices[0].message.reasoning_content // "No response"' "$1"
+    if [ -z "$content" ]; then
+        content=$(jq -r '.choices[0].message.reasoning_content // "No response"' "$1")
     fi
+    # Strip <think>...</think> tags from output (deepseek-r1 includes them inline)
+    # Use perl for multiline matching since sed doesn't handle newlines in [^<]*
+    echo "$content" | perl -0777 -pe 's/<think>.*?<\/think>\s*//gs'
 }
 
 # Build model list for header

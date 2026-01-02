@@ -72,11 +72,11 @@ When invoked:
    ==================
 
    /kln:quick <model> <focus>
-     Fast single-model review (~30s)
+     Fast single-model review (~60s)
      Models: qwen, deepseek, glm, minimax, kimi, hermes
 
    /kln:multi <focus>
-     Multi-model consensus review (~60s)
+     Multi-model consensus review (~2min)
      Uses: qwen, deepseek, glm
 
    /kln:agent --role <role> <task>
