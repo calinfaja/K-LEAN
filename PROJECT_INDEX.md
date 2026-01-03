@@ -58,10 +58,11 @@ k-lean/
 Primary CLI with Click commands (reorganized in this session):
 - **Root commands** (8): `init`, `install`, `uninstall`, `status`, `doctor`, `start`, `stop`, `multi`
 - **Model subgroup** (`kln model`): `list`, `add`, `remove`, `test`
+- **Provider subgroup** (`kln provider`): `list`, `add`, `set-key`, `remove`
 - **Admin subgroup** (`kln admin`, hidden): `sync`, `debug`, `test`
 
 Key improvements:
-- 65% fewer visible commands (17 flat → 7 root + 2 groups)
+- 65% fewer visible commands (17 flat → 7 root + 3 groups)
 - Noun-verb pattern (`kln model add` vs `kln add-model`)
 - Admin tools hidden from main help
 - Cognitive load reduced ~60%
@@ -80,6 +81,13 @@ LiteLLM configuration generation with non-destructive merging:
 - `add_model_to_config()` - Add single model to config
 - `remove_model_from_config()` - Remove model from config
 - `list_models_in_config()` - List all configured models
+
+### `src/klean/model_defaults.py`
+Default model configurations for each provider:
+- `get_nanogpt_models()` - Returns 8 recommended NanoGPT models
+- `get_openrouter_models()` - Returns 3 recommended OpenRouter models
+- `NANOGPT_MODELS` - Static list of NanoGPT model definitions
+- `OPENROUTER_MODELS` - Static list of OpenRouter model definitions
 
 ### `src/klean/discovery.py`
 Dynamic model discovery from LiteLLM proxy:
@@ -276,6 +284,12 @@ kln model list --health  # Check model health
 kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
 kln model remove "claude-3-sonnet"
 kln model test "gpt-4"   # Test a specific model
+
+# Manage providers
+kln provider list        # Show configured providers
+kln provider add openrouter --api-key $KEY  # Add provider with models
+kln provider set-key nanogpt --key $NEWKEY  # Update API key
+kln provider remove openrouter              # Remove provider
 
 # Run reviews (in Claude Code)
 /kln:quick security

@@ -208,8 +208,8 @@ Commands run in terminal (not Claude Code).
 ### Core Commands
 
 ```bash
+kln init               # Initialize: install + configure provider
 kln install            # Install components to ~/.claude/
-kln setup              # Configure API provider (interactive)
 kln uninstall          # Remove components
 ```
 
@@ -227,16 +227,33 @@ kln stop               # Stop all services
 kln status             # Component status
 kln doctor             # Validate configuration
 kln doctor -f          # Auto-fix issues
-kln models             # List available models
-kln models --health    # Check model health
 ```
 
-### Development
+### Model Management
 
 ```bash
-kln test               # Run test suite
-kln sync               # Sync package data
-kln debug              # Live monitoring dashboard
+kln model list         # List available models
+kln model list --health  # Check model health
+kln model add          # Add individual model
+kln model remove       # Remove model
+kln model test         # Test a specific model
+```
+
+### Provider Management
+
+```bash
+kln provider list      # Show configured providers
+kln provider add       # Add provider with recommended models
+kln provider set-key   # Update API key
+kln provider remove    # Remove provider
+```
+
+### Development (Hidden Admin Subgroup)
+
+```bash
+kln admin test         # Run test suite
+kln admin sync         # Sync package data
+kln admin debug        # Live monitoring dashboard
 ```
 
 ---
