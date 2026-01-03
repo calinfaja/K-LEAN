@@ -214,7 +214,7 @@ Top 3 Recommendations:
 
 ## Model Discovery
 
-Models are auto-discovered from LiteLLM. Use `kln models` to see available models.
+Models are auto-discovered from LiteLLM. Use `kln model list` to see available models.
 
 **Substring matching**: Type part of a model name and it will match:
 - `deepseek` → matches `deepseek-v3-thinking` (prefers thinking models)

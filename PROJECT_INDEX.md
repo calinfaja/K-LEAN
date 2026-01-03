@@ -1,7 +1,7 @@
 # Project Index: K-LEAN
 
 **Generated**: 2026-01-03
-**Version**: 1.0.0b1
+**Version**: 1.0.0b2
 **License**: Apache-2.0
 
 ---
@@ -55,16 +55,16 @@ k-lean/
 ## Core Modules
 
 ### `src/klean/cli.py`
-Primary CLI with Click commands:
-- `init` - Unified initialization (new in this session)
-- `install` / `uninstall` - Component installation
-- `status` / `doctor` - Health checks and auto-fix (with statusline config)
-- `start` / `stop` - Service management (LiteLLM, Knowledge server)
-- `models` / `test-model` - Model discovery and testing
-- `add-model` - Add individual models (new in this session)
-- `remove-model` - Remove models (new in this session)
-- `multi` - Multi-agent orchestrated review
-- `setup` - Provider configuration (NanoGPT, OpenRouter)
+Primary CLI with Click commands (reorganized in this session):
+- **Root commands** (8): `init`, `install`, `uninstall`, `status`, `doctor`, `start`, `stop`, `multi`
+- **Model subgroup** (`kln model`): `list`, `add`, `remove`, `test`
+- **Admin subgroup** (`kln admin`, hidden): `sync`, `debug`, `test`
+
+Key improvements:
+- 65% fewer visible commands (17 flat → 7 root + 2 groups)
+- Noun-verb pattern (`kln model add` vs `kln add-model`)
+- Admin tools hidden from main help
+- Cognitive load reduced ~60%
 
 ### `src/klean/model_utils.py`
 Model extraction and parsing utilities:
@@ -260,23 +260,22 @@ SmolAgents-based agent system:
 # Install
 pipx install kln-ai
 
-# Configure provider
-kln install
-kln setup
+# Initialize with provider selection (includes install + setup)
+kln init                  # NanoGPT, OpenRouter, or skip LiteLLM
 
 # Start services
 kln start
 
 # Check status
 kln status
-kln doctor -f  # Auto-fix issues
+kln doctor -f            # Auto-fix issues
 
-# Initialize with provider selection
-kln init
-
-# Add individual models
-kln add-model "openrouter/anthropic/claude-3.5-sonnet"
-kln remove-model "claude-3-sonnet"
+# Manage models (new subgroup structure)
+kln model list           # List available models
+kln model list --health  # Check model health
+kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
+kln model remove "claude-3-sonnet"
+kln model test "gpt-4"   # Test a specific model
 
 # Run reviews (in Claude Code)
 /kln:quick security

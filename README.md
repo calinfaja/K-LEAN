@@ -176,26 +176,31 @@ Type these directly in Claude Code (no `/` prefix):
 ## CLI Reference
 
 ```bash
-# Installation & Setup
+# Setup (unified)
+kln init             # Initialize: install + configure provider (NanoGPT, OpenRouter, skip)
+
+# Installation & Management
 kln install          # Install to ~/.claude/
 kln uninstall        # Remove components
-kln setup            # Configure API providers (interactive)
-kln add-model        # Add individual models to config
+kln status           # Show component status
 
 # Services
 kln start            # Start LiteLLM proxy
 kln stop             # Stop all services
-kln status           # Show component status
 
 # Diagnostics
 kln doctor           # Check configuration
 kln doctor -f        # Auto-fix issues
-kln models           # List available models
-kln models --health  # Check model health
 
-# Development
-kln test             # Run test suite
-kln version          # Show version
+# Model Management (new subgroup)
+kln model list       # List available models
+kln model list --health  # Check model health
+kln model add        # Add individual model
+kln model remove     # Remove model
+kln model test       # Test a specific model
+
+# Review
+kln multi            # Run multi-agent orchestrated review
 ```
 
 ---

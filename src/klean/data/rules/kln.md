@@ -33,6 +33,6 @@
 ~/.claude/scripts/knowledge-query.sh "<query>"
 ```
 
-**CLI:** `kln status` | `kln doctor -f` | `kln models`
+**CLI:** `kln status` | `kln doctor -f` | `kln model list`
 
 **Help:** `/kln:help`
