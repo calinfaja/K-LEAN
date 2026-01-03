@@ -2,34 +2,51 @@
 
 ## CLI Commands
 
+### Core Commands (Root Level)
+
 | Command | Description |
 |---------|-------------|
-| `kln init` | Initialize K-LEAN with provider selection (new) |
+| `kln init` | Initialize K-LEAN with provider selection |
 | `kln install` | Install components to ~/.claude/ |
-| `kln setup` | Configure API provider (interactive) |
 | `kln uninstall` | Remove components |
+| `kln start` | Start LiteLLM proxy |
+| `kln start -s all` | Start LiteLLM + KB server |
+| `kln start --telemetry` | Start Phoenix telemetry server |
+| `kln stop` | Stop services |
 | `kln status` | Show component status |
 | `kln doctor` | Validate configuration |
 | `kln doctor -f` | Auto-fix common issues |
-| `kln add-model <id>` | Add individual model (new) |
-| `kln remove-model <name>` | Remove model from config (new) |
-| `kln start` | Start LiteLLM proxy |
-| `kln start -s all` | Start LiteLLM + KB server |
-| `kln stop` | Stop services |
-| `kln models` | List available models |
-| `kln models --health` | Check model health |
-| `kln test` | Run test suite |
-| `kln sync` | Sync files to package data for release |
-| `kln start --telemetry` | Start Phoenix telemetry server |
-| `kln debug` | Live dashboard (shows Phoenix status) |
+| `kln multi` | Run multi-agent orchestrated review |
+
+### Model Management Subgroup
+
+Access with `kln model <command>`
+
+| Command | Description |
+|---------|-------------|
+| `kln model list` | List available models |
+| `kln model list --health` | Check model health |
+| `kln model add` | Add individual model |
+| `kln model remove` | Remove model from config |
+| `kln model test` | Test a specific model |
+
+### Development Tools (Hidden Admin Subgroup)
+
+Access with `kln admin <command>`
+
+| Command | Description |
+|---------|-------------|
+| `kln admin sync` | Sync files to package data for release |
+| `kln admin debug` | Live dashboard (shows Phoenix status) |
+| `kln admin test` | Run comprehensive test suite |
 
 ## Models
 
 Models are **auto-discovered** from LiteLLM proxy. No hardcoded model names.
 
 ```bash
-kln models           # List available models
-kln models --health  # Check model health
+kln model list           # List available models
+kln model list --health  # Check model health
 ```
 
 **Model types:**

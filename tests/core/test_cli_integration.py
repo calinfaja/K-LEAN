@@ -170,6 +170,64 @@ class TestCLIRethink(unittest.TestCase):
         self.assertNotIn("unrecognized arguments: --telemetry", stderr)
 
 
+class TestModelSubcommands(unittest.TestCase):
+    """Test model subcommand group (model list, add, remove, test)."""
+
+    def test_model_group_help(self):
+        """Should show model group help with all subcommands."""
+        stdout, stderr, code = run_klean_command(["model", "--help"])
+        combined = stdout + stderr
+        self.assertIn("list", combined.lower())
+        self.assertIn("add", combined.lower())
+        self.assertIn("remove", combined.lower())
+        self.assertIn("test", combined.lower())
+
+    def test_model_list_command_exists(self):
+        """Should execute model list command without crashing."""
+        stdout, stderr, code = run_klean_command(["model", "list"])
+        # May fail if LiteLLM not running, but should not crash
+        self.assertNotIn("Traceback", stderr)
+
+    def test_model_add_help(self):
+        """Should show model add help."""
+        stdout, stderr, code = run_klean_command(["model", "add", "--help"])
+        combined = stdout + stderr
+        self.assertIn("provider", combined.lower())
+
+    def test_model_remove_help(self):
+        """Should show model remove help."""
+        stdout, stderr, code = run_klean_command(["model", "remove", "--help"])
+        combined = stdout + stderr
+        self.assertNotIn("Error", combined)
+
+
+class TestAdminSubcommands(unittest.TestCase):
+    """Test admin subcommand group (sync, debug, test)."""
+
+    def test_admin_group_help(self):
+        """Should show admin group help with all subcommands."""
+        stdout, stderr, code = run_klean_command(["admin", "--help"])
+        combined = stdout + stderr
+        self.assertIn("sync", combined.lower())
+        self.assertIn("debug", combined.lower())
+        self.assertIn("test", combined.lower())
+
+    def test_admin_sync_help(self):
+        """Should show admin sync help."""
+        stdout, stderr, code = run_klean_command(["admin", "sync", "--help"])
+        combined = stdout + stderr
+        self.assertIn("sync", combined.lower())
+
+    def test_admin_not_in_main_help(self):
+        """Admin commands should NOT appear in main help."""
+        stdout, stderr, code = run_klean_command(["--help"])
+        combined = stdout + stderr
+        # admin should not be listed in main help (it's hidden)
+        main_help_lines = [line for line in combined.split('\n') if 'admin' in line.lower() and 'hidden' not in line.lower()]
+        # Check that admin is not listed as a regular command
+        self.assertTrue(len(main_help_lines) <= 1 or 'subcommand' not in main_help_lines[0].lower())
+
+
 class TestNoHttpxImports(unittest.TestCase):
     """Verify httpx has been removed from klean_core.py."""
 

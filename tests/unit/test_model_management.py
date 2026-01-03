@@ -1,4 +1,4 @@
-"""Tests for model management (add-model, remove-model commands)."""
+"""Tests for model management (model add, model remove commands)."""
 
 import tempfile
 from pathlib import Path
@@ -69,12 +69,12 @@ class TestModelUtils:
 
 
 class TestAddModelCommand:
-    """Tests for kln add-model command."""
+    """Tests for kln model add command."""
 
     def test_add_model_command_exists(self):
-        """Test that kln add-model command exists."""
+        """Test that kln model add command exists."""
         runner = CliRunner()
-        result = runner.invoke(main, ["add-model", "--help"])
+        result = runner.invoke(main, ["model", "add", "--help"])
         assert result.exit_code == 0
         assert "Add a new model" in result.output
 
@@ -88,7 +88,7 @@ class TestAddModelCommand:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["add-model", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
+                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
                 )
 
                 assert result.exit_code != 0
@@ -117,7 +117,7 @@ model_list:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["add-model", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
+                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
                 )
 
                 assert result.exit_code == 0
@@ -130,12 +130,12 @@ model_list:
 
 
 class TestRemoveModelCommand:
-    """Tests for kln remove-model command."""
+    """Tests for kln model remove command."""
 
     def test_remove_model_command_exists(self):
-        """Test that kln remove-model command exists."""
+        """Test that kln model remove command exists."""
         runner = CliRunner()
-        result = runner.invoke(main, ["remove-model", "--help"])
+        result = runner.invoke(main, ["model", "remove", "--help"])
         assert result.exit_code == 0
         assert "Remove a model" in result.output
 
@@ -149,7 +149,7 @@ class TestRemoveModelCommand:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["remove-model", "nonexistent-model"]
+                    ["model", "remove", "nonexistent-model"]
                 )
 
                 assert result.exit_code != 0
@@ -178,7 +178,7 @@ model_list:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["remove-model", "nonexistent-model"]
+                    ["model", "remove", "nonexistent-model"]
                 )
 
                 assert result.exit_code == 0
@@ -212,7 +212,7 @@ model_list:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["remove-model", "test-model-1"]
+                    ["model", "remove", "test-model-1"]
                 )
 
                 assert result.exit_code == 0
@@ -247,14 +247,14 @@ model_list: []
                 # Add model
                 result1 = runner.invoke(
                     main,
-                    ["add-model", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
+                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
                 )
                 assert result1.exit_code == 0
 
                 # Remove model
                 result2 = runner.invoke(
                     main,
-                    ["remove-model", "claude-3.5-sonnet"]
+                    ["model", "remove", "claude-3.5-sonnet"]
                 )
                 assert result2.exit_code == 0
 

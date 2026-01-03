@@ -37,15 +37,14 @@ Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 pipx install kln-ai
 
 # Setup (3-4 minutes total)
-kln init                  # Initialize with provider selection (new)
-kln setup                 # Configure API credentials (if needed)
+kln init                  # Initialize with provider selection
 kln start                 # Start LiteLLM proxy service
 kln status                # Verify configuration
 
 # Optional: Add more models
-kln add-model "openrouter/anthropic/claude-3.5-sonnet"
-kln remove-model "claude-3-sonnet"  # Remove a model
-kln restart
+kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
+kln model remove "claude-3-sonnet"  # Remove a model
+kln start
 ```
 
 **In Claude Code:**
