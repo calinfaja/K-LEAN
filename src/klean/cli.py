@@ -1080,6 +1080,14 @@ def provider_list():
 @click.option("--api-key", "-k", help="API key (if not provided, will prompt)")
 def provider_add(provider_name: str, api_key: str):
     """Add or update a provider configuration."""
+    from klean.config_generator import (
+        _yaml_to_string,
+        generate_env_file,
+        load_config_yaml,
+        merge_models_into_config,
+    )
+    from klean.model_defaults import get_nanogpt_models, get_openrouter_models
+
     if not api_key:
         api_key = click.prompt(f"{provider_name.upper()} API Key", hide_input=True)
 
@@ -1091,7 +1099,6 @@ def provider_add(provider_name: str, api_key: str):
     existing_env = _load_existing_env()
 
     # Create provider dict
-    from klean.config_generator import generate_env_file
     providers_dict = {provider_name: api_key}
 
     # Generate new env content (preserves existing providers)
@@ -1103,9 +1110,44 @@ def provider_add(provider_name: str, api_key: str):
     (CONFIG_DIR / ".env").chmod(0o600)
 
     console.print(f"\n[green]✓[/green] Configured {provider_name.upper()} API key")
-    console.print("[dim]Models from this provider will be available after restart[/dim]")
+
+    # Show recommended models and ask for confirmation
+    if provider_name == "nanogpt":
+        recommended_models = get_nanogpt_models()
+    else:
+        recommended_models = get_openrouter_models()
+
+    console.print(f"\n[bold]Recommended {provider_name.upper()} Models ({len(recommended_models)})[/bold]")
+    for model in recommended_models:
+        console.print(f"  • {model['model_name']}")
+
+    install_models = click.confirm("\nAdd these recommended models?", default=True)
+
+    if install_models:
+        # Load existing config or create new one
+        config_path = CONFIG_DIR / "config.yaml"
+        existing_config = load_config_yaml(config_path)
+
+        if existing_config is None:
+            # No config exists yet, create new one with recommended models
+            from klean.config_generator import generate_litellm_config
+            config_yaml = generate_litellm_config(recommended_models)
+        else:
+            # Merge recommended models into existing config
+            updated_config = merge_models_into_config(existing_config, recommended_models)
+            config_yaml = _yaml_to_string(updated_config)
+
+        # Write updated config
+        config_path.write_text(config_yaml)
+
+        console.print(f"\n[green]✓[/green] Added {len(recommended_models)} recommended models")
+        console.print("Changes will take effect after service restart")
+    else:
+        console.print("\nNo models added. Add them later with:")
+        console.print(f"  [cyan]kln model add --provider {provider_name} \"model-id\"[/cyan]")
+
     console.print("\nNext steps:")
-    console.print(f"  • Add models: [cyan]kln model add --provider {provider_name} \"model-id\"[/cyan]")
+    console.print("  • Review models: [cyan]kln model list[/cyan]")
     console.print("  • Restart services: [cyan]kln restart[/cyan]")
 
 
@@ -2681,6 +2723,9 @@ def init(provider: Optional[str], api_key: Optional[str]):
             return
 
     # Interactive menu if --provider not specified
+    selected_providers = []
+    provider_apis = {}
+
     if not provider:
         from klean.model_defaults import (
             get_nanogpt_models,
@@ -2688,7 +2733,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
         )
 
         console.print("\n[bold]K-LEAN Initialization[/bold]")
-        console.print("Which provider do you want to use?\n")
+        console.print("Which providers do you want to configure?\n")
 
         nanogpt_count = len(get_nanogpt_models())
         openrouter_count = len(get_openrouter_models())
@@ -2702,42 +2747,101 @@ def init(provider: Optional[str], api_key: Optional[str]):
         for key, (_, desc) in choices.items():
             console.print(f"  {key}) {desc}")
 
-        choice = click.prompt("\nChoose", type=click.Choice(choices.keys()))
-        provider = choices[choice][0]
+        # Multi-provider selection loop
+        while True:
+            choice = click.prompt("\nChoose", type=click.Choice(choices.keys()))
+            provider_choice = choices[choice][0]
+
+            if provider_choice == "skip":
+                provider = "skip"
+                break
+
+            if provider_choice not in selected_providers:
+                selected_providers.append(provider_choice)
+                console.print(f"  [green]✓[/green] Added {provider_choice.upper()}")
+
+            if not click.confirm("Add another provider?", default=False):
+                break
+
+        # If no providers selected via loop, use the last selection
+        if not selected_providers and provider != "skip":
+            selected_providers = [provider] if provider else []
+    else:
+        # Command-line provider specified
+        if provider != "skip":
+            selected_providers = [provider]
 
     # Generate config (if not skip)
-    if provider != "skip":
-        if not api_key:
-            api_key = click.prompt(
-                f"\n{provider.upper()} API Key",
-                hide_input=True,
-                confirmation_prompt=False
-            )
+    if provider != "skip" or selected_providers:
+        # Collect API keys for all selected providers
+        for prov in selected_providers:
+            if prov == provider and api_key:
+                # Use provided API key for the single --provider case
+                provider_apis[prov] = api_key
+            else:
+                # Prompt for each provider
+                key = click.prompt(
+                    f"\n{prov.upper()} API Key",
+                    hide_input=True,
+                    confirmation_prompt=False
+                )
+                provider_apis[prov] = key
 
-        # Get default models
-        models = (
-            get_nanogpt_models()
-            if provider == "nanogpt"
-            else get_openrouter_models()
+        # Show recommended models and ask for confirmation
+        all_models = []
+        models_by_provider = {}
+
+        for prov in selected_providers:
+            if prov == "nanogpt":
+                prov_models = get_nanogpt_models()
+            elif prov == "openrouter":
+                prov_models = get_openrouter_models()
+            else:
+                prov_models = []
+
+            models_by_provider[prov] = prov_models
+            all_models.extend(prov_models)
+
+        # Display models and ask for confirmation
+        console.print("\n[bold]Recommended Models[/bold]")
+        for prov in selected_providers:
+            prov_models = models_by_provider[prov]
+            console.print(f"\n{prov.upper()} ({len(prov_models)} models):")
+            for model in prov_models:
+                console.print(f"  • {model['model_name']}")
+
+        # Ask if user wants to install models
+        console.print()
+        install_models = click.confirm(
+            "Install these recommended models?",
+            default=True
         )
 
         # Generate config files (preserving existing providers)
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        config_yaml = generate_litellm_config(models)
 
         # Load existing .env to preserve other providers
         existing_env = _load_existing_env()
 
         env_content = generate_env_file(
-            {provider: api_key},
+            provider_apis,
             existing_env=existing_env
         )
+
+        if install_models:
+            config_yaml = generate_litellm_config(all_models)
+            console.print(f"\n[green]✓[/green] Configured with {len(all_models)} recommended models")
+        else:
+            config_yaml = generate_litellm_config([])
+            console.print("\n[green]✓[/green] Configured API keys (no models yet)")
+            console.print("Add models later with: [cyan]kln model add --provider <provider> \"model-id\"[/cyan]")
 
         (CONFIG_DIR / "config.yaml").write_text(config_yaml)
         (CONFIG_DIR / ".env").write_text(env_content)
         (CONFIG_DIR / ".env").chmod(0o600)
 
-        console.print(f"\n[green]✓[/green] Configured {provider.upper()} with {len(models)} models")
+        providers_str = ", ".join([p.upper() for p in selected_providers])
+        console.print(f"[green]✓[/green] {providers_str} providers configured")
 
     # Install components (invoke existing install command)
     console.print("Installing K-LEAN components...")
@@ -2760,11 +2864,13 @@ def init(provider: Optional[str], api_key: Optional[str]):
         console.print("\nAdd API provider later:")
         console.print("  [cyan]kln init --provider nanogpt --api-key $KEY[/cyan]")
     else:
-        console.print(f"Configuration ready with {provider.upper()}:")
+        providers_display = ", ".join([p.upper() for p in selected_providers])
+        console.print(f"Configuration ready with {providers_display}:")
+        console.print(f"  • {len(all_models)} recommended models configured")
         console.print("  • Review providers: [cyan]kln provider list[/cyan]")
-        console.print("  • Add another provider: [cyan]kln provider add openrouter --api-key $KEY[/cyan]")
         console.print("  • Review models: [cyan]kln model list[/cyan]")
-        console.print("  • Add more models: [cyan]kln model add --provider {provider} \"model-id\"[/cyan]")
+        console.print("  • Add more models: [cyan]kln model add --provider <provider> \"model-id\"[/cyan]")
+        console.print("  • Add another provider: [cyan]kln provider add <provider> --api-key $KEY[/cyan]")
         console.print("  • Verify config: [cyan]kln doctor[/cyan]")
         console.print("\nWhen ready to start services:")
         console.print("  [cyan]kln start[/cyan]")

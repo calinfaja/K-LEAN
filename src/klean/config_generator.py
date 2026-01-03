@@ -6,14 +6,14 @@ Supports multiple providers without overwriting existing keys.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Optional
 
 import yaml
 
 from klean.model_utils import extract_model_name, is_thinking_model, parse_model_id
 
 
-def generate_litellm_config(models: List[Dict]) -> str:
+def generate_litellm_config(models: list[dict]) -> str:
     """Generate litellm config.yaml content.
 
     Args:
@@ -53,7 +53,7 @@ def generate_litellm_config(models: List[Dict]) -> str:
     return _yaml_to_string(config)
 
 
-def _create_model_entry(model: Dict) -> Dict:
+def _create_model_entry(model: dict) -> dict:
     """Create a single model entry for config.yaml.
 
     Args:
@@ -99,7 +99,7 @@ def _create_model_entry(model: Dict) -> Dict:
         }
 
 
-def _yaml_to_string(config: Dict) -> str:
+def _yaml_to_string(config: dict) -> str:
     """Convert config dict to YAML string with comments.
 
     Args:
@@ -174,7 +174,7 @@ def _yaml_to_string(config: Dict) -> str:
     return yaml_str
 
 
-def _model_to_yaml(model: Dict) -> str:
+def _model_to_yaml(model: dict) -> str:
     """Convert a model entry to YAML string.
 
     Args:
@@ -197,7 +197,7 @@ def _model_to_yaml(model: Dict) -> str:
     return yaml_str
 
 
-def load_env_file(env_path: Path) -> Dict[str, str]:
+def load_env_file(env_path: Path) -> dict[str, str]:
     """Load existing .env file.
 
     Args:
@@ -220,7 +220,7 @@ def load_env_file(env_path: Path) -> Dict[str, str]:
 
 
 def generate_env_file(
-    providers: Dict[str, str], existing_env: Optional[Dict] = None
+    providers: dict[str, str], existing_env: Optional[dict] = None
 ) -> str:
     """Generate .env file content, preserving existing keys.
 
@@ -256,7 +256,7 @@ def generate_env_file(
     return content
 
 
-def load_config_yaml(config_path: Path) -> Dict:
+def load_config_yaml(config_path: Path) -> dict:
     """Load existing config.yaml file.
 
     Args:
@@ -277,8 +277,8 @@ def load_config_yaml(config_path: Path) -> Dict:
 
 
 def merge_models_into_config(
-    existing_config: Dict, new_models: List[Dict]
-) -> Dict:
+    existing_config: dict, new_models: list[dict]
+) -> dict:
     """Merge new models into existing config without duplicates.
 
     Args:
@@ -288,15 +288,17 @@ def merge_models_into_config(
     Returns:
         Updated config dict with merged models
     """
-    existing_names: Set[str] = {
+    existing_names: set[str] = {
         model.get("model_name") for model in existing_config.get("model_list", [])
         if isinstance(model, dict) and "model_name" in model
     }
 
-    # Add only new models
+    # Add only new models (transform them first)
     for model in new_models:
         if model.get("model_name") not in existing_names:
-            existing_config["model_list"].append(model)
+            # Transform model to have litellm_params structure
+            model_entry = _create_model_entry(model)
+            existing_config["model_list"].append(model_entry)
 
     return existing_config
 
@@ -378,7 +380,7 @@ def remove_model_from_config(config_path: Path, model_name: str) -> bool:
     return True
 
 
-def list_models_in_config(config_path: Path) -> List[Dict]:
+def list_models_in_config(config_path: Path) -> list[dict]:
     """List all models in current config.
 
     Args:
@@ -402,7 +404,7 @@ def list_models_in_config(config_path: Path) -> List[Dict]:
     return models
 
 
-def _yaml_to_string_dict(config: Dict) -> str:
+def _yaml_to_string_dict(config: dict) -> str:
     """Convert config dict to YAML string (reuse existing logic).
 
     This is the internal version that accepts a dict instead of extracting from config.
