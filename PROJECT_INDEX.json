@@ -2,7 +2,7 @@
   "project": {
     "name": "k-lean",
     "package_name": "kln-ai",
-    "version": "1.0.0b1",
+    "version": "1.0.0b2",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
     "generated": "2026-01-03",
     "python_version": ">=3.9",

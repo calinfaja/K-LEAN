@@ -52,7 +52,7 @@ When no model is specified, K-LEAN selects based on task type:
 
 ### Model Health
 
-Use `/kln:status` or `kln models` to see current model availability.
+Use `/kln:status` or `kln model list` to see current model availability.
 
 ## Command Examples
 
@@ -143,12 +143,12 @@ Use `/kln:status` or `kln models` to see current model availability.
 System management commands:
 
 ```bash
-kln status      # Component status and health
-kln doctor -f   # Diagnose issues with auto-fix
-kln start       # Start all services
-kln debug       # Live monitoring dashboard
-kln models      # List models with health checks
-kln models --test  # Test all models with latency
+kln status           # Component status and health
+kln doctor -f        # Diagnose issues with auto-fix
+kln start            # Start all services
+kln admin debug      # Live monitoring dashboard
+kln model list       # List available models
+kln model list --test   # Test all models with latency
 ```
 
 ## Getting Started
@@ -168,7 +168,7 @@ kln models --test  # Test all models with latency
 ## Need Help?
 
 - Quick reference: `/kln:status`
-- Model health: `kln models --health`
+- Model health: `kln model list --health`
 - System diagnostics: `kln doctor -f`
 - Timeline: `~/.claude/scripts/timeline-query.sh today`
 

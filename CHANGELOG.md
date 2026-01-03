@@ -21,6 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - CONFIG_DIR check in init command
 - CLI error handling with proper sys.exit() usage
 - 28 new comprehensive unit tests
+- **Test fixes (v1.0.0b2)**: CLI integration tests now use new refactored CLI entry point
+- **Code quality**: Ruff 100% pass (fixed unused imports, deprecated type hints, format strings)
+- **Test coverage**: Updated test assertions to match new CLI structure and docstrings
+- All 197 tests now passing (191 existing + 6 refactored + improved quality)
 
 ### Changed
 - Installation now includes zero-config statusline setup

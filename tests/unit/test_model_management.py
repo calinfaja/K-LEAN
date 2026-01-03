@@ -76,7 +76,7 @@ class TestAddModelCommand:
         runner = CliRunner()
         result = runner.invoke(main, ["model", "add", "--help"])
         assert result.exit_code == 0
-        assert "Add a new model" in result.output
+        assert "Add individual model" in result.output
 
     def test_add_model_no_config(self):
         """Test add-model fails when config doesn't exist."""
@@ -137,7 +137,7 @@ class TestRemoveModelCommand:
         runner = CliRunner()
         result = runner.invoke(main, ["model", "remove", "--help"])
         assert result.exit_code == 0
-        assert "Remove a model" in result.output
+        assert "Remove model" in result.output
 
     def test_remove_model_no_config(self):
         """Test remove-model fails when config doesn't exist."""

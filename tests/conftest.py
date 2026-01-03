@@ -14,10 +14,22 @@ import pytest
 import tempfile
 import json
 import time
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from dataclasses import dataclass
 from typing import Optional
+
+
+# =============================================================================
+# Setup: Add src directory to PYTHONPATH for imports
+# =============================================================================
+
+def pytest_configure(config):
+    """Add src directory to PYTHONPATH so imports work."""
+    src_path = str(Path(__file__).parent.parent / "src")
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
 
 
 # =============================================================================

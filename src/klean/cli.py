@@ -19,17 +19,14 @@ import signal
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import click
 from rich.console import Console
-from rich.layout import Layout
-from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from klean import (
     CLAUDE_DIR,
@@ -485,7 +482,7 @@ def get_knowledge_pid_file() -> Path:
     return PIDS_DIR / "knowledge.pid"
 
 
-def check_litellm_detailed() -> Dict[str, Any]:
+def check_litellm_detailed() -> dict[str, Any]:
     """Check LiteLLM status with detailed info."""
     result = {"running": False, "port": 4000, "models": [], "error": None}
     try:
@@ -624,7 +621,7 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
             # Wait for proxy to be ready
             # LiteLLM can take 15-30s on cold start, but we don't block forever
             # Quick check (5s) to catch immediate failures, then trust it's starting
-            for i in range(50):  # 5 seconds quick check
+            for _i in range(50):  # 5 seconds quick check
                 time.sleep(0.1)
                 if check_litellm():
                     return True
@@ -753,7 +750,7 @@ def log_debug_event(component: str, event: str, **kwargs) -> None:
         pass  # Silent fail for logging
 
 
-def read_debug_log(lines: int = 50, component: Optional[str] = None) -> List[Dict]:
+def read_debug_log(lines: int = 50, component: Optional[str] = None) -> list[dict]:
     """Read recent entries from debug log."""
     log_file = LOGS_DIR / "debug.log"
     if not log_file.exists():
@@ -776,7 +773,7 @@ def read_debug_log(lines: int = 50, component: Optional[str] = None) -> List[Dic
     return entries[-lines:]
 
 
-def discover_models() -> List[str]:
+def discover_models() -> list[str]:
     """Discover available models from LiteLLM proxy."""
     try:
         import urllib.request
@@ -790,7 +787,7 @@ def discover_models() -> List[str]:
     return []
 
 
-def query_phoenix_traces(limit: int = 500) -> Optional[Dict]:
+def query_phoenix_traces(limit: int = 500) -> Optional[dict]:
     """Query Phoenix telemetry for recent LLM traces.
 
     Returns aggregated stats and recent spans from all projects.
@@ -798,27 +795,27 @@ def query_phoenix_traces(limit: int = 500) -> Optional[Dict]:
     if not check_phoenix():
         return None
 
-    query = '''{
-        projects {
-            edges {
-                node {
+    query = f'''{{
+        projects {{
+            edges {{
+                node {{
                     name
                     traceCount
-                    spans(first: %d) {
-                        edges {
-                            node {
+                    spans(first: {limit}) {{
+                        edges {{
+                            node {{
                                 name
                                 latencyMs
                                 startTime
                                 statusCode
                                 attributes
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }''' % limit
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+        }}
+    }}'''
 
     try:
         import urllib.request
@@ -906,7 +903,7 @@ def query_phoenix_traces(limit: int = 500) -> Optional[Dict]:
         return None
 
 
-def get_model_health() -> Dict[str, str]:
+def get_model_health() -> dict[str, str]:
     """Check health of each model."""
     health = {}
     health_script = CLAUDE_DIR / "scripts" / "health-check-model.sh"
@@ -964,7 +961,7 @@ def configure_statusline() -> bool:
             try:
                 with open(settings_file) as f:
                     settings = json.load(f)
-            except (json.JSONDecodeError, IOError):
+            except (OSError, json.JSONDecodeError):
                 # If settings.json is corrupt, start fresh
                 settings = {}
 
@@ -1140,7 +1137,6 @@ def model_add(provider: str, model_id: str):
         kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
         kln model add --provider nanogpt "moonshotai/kimi-k2"
     """
-    from klean.config_generator import load_env_file
 
     config_file = CONFIG_DIR / "config.yaml"
     if not config_file.exists():
@@ -1208,7 +1204,7 @@ def model_add(provider: str, model_id: str):
         console.print(f"\n[green][OK] Added model '{model_name}'[/green]")
         console.print(f"  Provider: {provider}")
         console.print(f"  LiteLLM ID: {full_model_id}")
-        console.print(f"\nRestart services to use the new model:")
+        console.print("\nRestart services to use the new model:")
         console.print("  [cyan]kln restart[/cyan]")
     except Exception as e:
         console.print(f"[red]Error saving config: {e}[/red]")
@@ -1223,7 +1219,7 @@ def model_remove(model_name: str):
         kln model remove "claude-3-sonnet"
         kln model remove "deepseek-v3-thinking"
     """
-    from klean.config_generator import remove_model_from_config, list_models_in_config
+    from klean.config_generator import list_models_in_config, remove_model_from_config
 
     config_file = CONFIG_DIR / "config.yaml"
     if not config_file.exists():
@@ -1248,7 +1244,7 @@ def model_remove(model_name: str):
         thinking_label = " (thinking)" if model["is_thinking"] else ""
         console.print(f"  • {model['model_name']}{thinking_label}")
 
-    console.print(f"\nRestart services to apply changes:")
+    console.print("\nRestart services to apply changes:")
     console.print("  [cyan]kln restart[/cyan]")
 
 
@@ -1273,14 +1269,14 @@ def model_test(model: Optional[str], prompt: Optional[str]):
     # Use provided prompt or default
     test_prompt = prompt or "Say 'Hello' and nothing else"
 
-    console.print(f"\n[bold]Model Test[/bold]")
+    console.print("\n[bold]Model Test[/bold]")
     console.print(f"Prompt: {test_prompt}\n")
 
     try:
         from klean.smol.models import LLMClient
         client = LLMClient()
         response = client.call_model(model, test_prompt, max_tokens=100, timeout=30)
-        console.print(f"[green]✓ Success[/green]")
+        console.print("[green]✓ Success[/green]")
         console.print(f"Response: {response}")
     except Exception as e:
         console.print(f"[red]✗ Error: {e}[/red]")
@@ -1312,7 +1308,7 @@ def admin_sync(check: bool, clean: bool, verbose: bool):
     src_root = Path(__file__).parent.parent.parent
     data_dir = Path(__file__).parent / "data"
 
-    console.print(f"[bold]K-LEAN File Sync[/bold]")
+    console.print("[bold]K-LEAN File Sync[/bold]")
     console.print(f"Source: {src_root}")
     console.print(f"Target: {data_dir}\n")
 
@@ -2269,7 +2265,7 @@ def stop(service: str, all_projects: bool):
     console.print(f"\n[green]Stopped {len(stopped)} service(s)[/green]")
 
 
-def get_session_stats() -> Dict[str, Any]:
+def get_session_stats() -> dict[str, Any]:
     """Get session statistics from debug log."""
     stats = {
         "session_start": None,
@@ -2483,8 +2479,8 @@ def init(provider: Optional[str], api_key: Optional[str]):
         kln init --provider skip                    # Knowledge system only
     """
     from klean.config_generator import (
-        generate_litellm_config,
         generate_env_file,
+        generate_litellm_config,
     )
     from klean.model_defaults import (
         get_nanogpt_models,
@@ -2564,18 +2560,18 @@ def init(provider: Optional[str], api_key: Optional[str]):
         console.print("  • Capture learnings: [cyan]/kln:learn[/cyan]")
         console.print("  • Search knowledge: type [cyan]FindKnowledge query[/cyan]")
         console.print("\nAdd API provider later:")
-        console.print("  [cyan]kln setup[/cyan]")
+        console.print("  [cyan]kln init --provider nanogpt --api-key $KEY[/cyan]")
     else:
         console.print(f"Configuration ready with {provider.upper()}:")
-        console.print("  • Review config: [cyan]kln models[/cyan]")
-        console.print("  • Add more models: [cyan]kln add-model[/cyan]")
-        console.print("  • Remove models: [cyan]kln remove-model[/cyan]")
+        console.print("  • Review config: [cyan]kln model list[/cyan]")
+        console.print("  • Add more models: [cyan]kln model add --provider nanogpt \"model-id\"[/cyan]")
+        console.print("  • Remove models: [cyan]kln model remove \"model-id\"[/cyan]")
         console.print("  • Verify config: [cyan]kln doctor[/cyan]")
         console.print("\nWhen ready to start services:")
         console.print("  [cyan]kln start[/cyan]")
 
 
-def _dict_to_yaml(config: Dict) -> str:
+def _dict_to_yaml(config: dict) -> str:
     """Convert config dict to YAML with proper formatting."""
     import yaml
 
