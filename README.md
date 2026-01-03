@@ -36,17 +36,28 @@ Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 # Install (~60s)
 pipx install kln-ai
 
-# Setup
-kln install                # Deploy to ~/.claude/
-kln setup                  # Configure API (interactive)
-kln doctor                 # Verify everything works
+# Setup (3-4 minutes total)
+kln init                  # Initialize with provider selection (new)
+kln setup                 # Configure API credentials (if needed)
+kln start                 # Start LiteLLM proxy service
+kln status                # Verify configuration
+
+# Optional: Add more models
+kln add-model "openrouter/anthropic/claude-3.5-sonnet"
+kln remove-model "claude-3-sonnet"  # Remove a model
+kln restart
 ```
 
 **In Claude Code:**
 ```bash
-/kln:quick security           # Fast review (~60s)
-/kln:multi "error handling"   # 3-5 model consensus (~2min)
-/kln:agent security-auditor   # Specialist agent (~2min)
+/kln:quick "security"          # Fast review (~60s)
+/kln:multi "error handling"    # 3-5 model consensus (~2min)
+/kln:agent security-auditor    # Specialist agent (~2min)
+```
+
+**For development:**
+```bash
+kln install               # (Usually automatic, only needed after major upgrades)
 ```
 
 ---
@@ -166,10 +177,11 @@ Type these directly in Claude Code (no `/` prefix):
 ## CLI Reference
 
 ```bash
-# Installation
+# Installation & Setup
 kln install          # Install to ~/.claude/
 kln uninstall        # Remove components
-kln setup            # Configure API provider
+kln setup            # Configure API providers (interactive)
+kln add-model        # Add individual models to config
 
 # Services
 kln start            # Start LiteLLM proxy
@@ -180,6 +192,7 @@ kln status           # Show component status
 kln doctor           # Check configuration
 kln doctor -f        # Auto-fix issues
 kln models           # List available models
+kln models --health  # Check model health
 
 # Development
 kln test             # Run test suite
