@@ -16,8 +16,13 @@
   "core_modules": {
     "cli": {
       "path": "src/klean/cli.py",
-      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "models", "multi", "setup", "add_model", "remove_model", "configure_statusline"],
-      "purpose": "Primary CLI with Click commands"
+      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "multi", "model", "admin", "configure_statusline"],
+      "command_structure": {
+        "root": ["init", "install", "uninstall", "start", "stop", "status", "doctor", "multi"],
+        "model_subgroup": ["list", "add", "remove", "test"],
+        "admin_subgroup": ["sync", "debug", "test"]
+      },
+      "purpose": "Primary CLI with Click commands, organized into root + 2 subgroups"
     },
     "model_utils": {
       "path": "src/klean/model_utils.py",
