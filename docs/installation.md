@@ -15,13 +15,10 @@
 # 1. Install K-LEAN
 pipx install kln-ai
 
-# 2. Install components (scripts, commands, hooks)
-kln install
+# 2. Initialize (installs components + configures provider)
+kln init
 
-# 3. Configure API provider
-kln setup
-
-# 4. Verify
+# 3. Verify
 kln doctor
 ```
 
@@ -35,14 +32,16 @@ kln install
 
 ## Configure LiteLLM
 
+Provider configuration is included in `kln init`. To add providers later:
+
 ```bash
-# Interactive setup wizard
-kln setup
+kln provider add nanogpt --api-key $KEY
+kln provider add openrouter --api-key $KEY
 ```
 
 **Providers:**
-- **NanoGPT**: https://nano-gpt.com (12 models, subscription)
-- **OpenRouter**: https://openrouter.ai (6 models, pay-per-use)
+- **NanoGPT**: https://nano-gpt.com (8 recommended models)
+- **OpenRouter**: https://openrouter.ai (3 recommended models)
 
 **Config files:**
 ```
@@ -83,7 +82,7 @@ View traces at `http://localhost:6006`
 
 ```bash
 kln status             # Component status
-kln models --health    # Model health
+kln model list --health  # Model health
 ```
 
 ## Uninstall

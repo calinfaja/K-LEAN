@@ -7,10 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-- `kln init` - Unified initialization command with provider selection
+- `kln init` - Unified initialization command with provider selection and multi-provider support
 - `kln model` subgroup - Model management commands (list, add, remove, test)
+- `kln provider` subgroup - Provider management commands (list, add, set-key, remove)
 - `kln admin` subgroup (hidden) - Development tools (sync, debug, test)
 - `model_utils.py` - Model name extraction and parsing utilities
+- `model_defaults.py` - Default model configurations for NanoGPT (8) and OpenRouter (3)
+- Multi-provider selection in `kln init` with model confirmation prompts
+- Recommended models auto-installation when adding providers
 - `configure_statusline()` - Automatic Claude Code statusline configuration
 - Automatic statusline setup during installation
 - Statusline validation in `doctor` command with auto-fix
@@ -30,8 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Installation now includes zero-config statusline setup
 - Doctor command enhanced with statusline validation
 - Config merging now fully non-destructive
-- **CLI reorganization:** 17 flat commands → 7 root + 2 subgroups for better UX
+- **CLI reorganization:** 17 flat commands → 7 root + 3 subgroups for better UX
   - Model management now under `kln model` (list, add, remove, test)
+  - Provider management now under `kln provider` (list, add, set-key, remove)
   - Development tools hidden under `kln admin` (sync, debug, test)
   - Removed redundant `setup` command (merged into `init`)
   - Removed `version` command (use `kln --version`)

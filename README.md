@@ -192,12 +192,18 @@ kln stop             # Stop all services
 kln doctor           # Check configuration
 kln doctor -f        # Auto-fix issues
 
-# Model Management (new subgroup)
+# Model Management (subgroup)
 kln model list       # List available models
 kln model list --health  # Check model health
 kln model add        # Add individual model
 kln model remove     # Remove model
 kln model test       # Test a specific model
+
+# Provider Management (subgroup)
+kln provider list    # Show configured providers
+kln provider add     # Add provider with recommended models
+kln provider set-key # Update API key
+kln provider remove  # Remove provider
 
 # Review
 kln multi            # Run multi-agent orchestrated review

@@ -20,9 +20,10 @@
       "command_structure": {
         "root": ["init", "install", "uninstall", "start", "stop", "status", "doctor", "multi"],
         "model_subgroup": ["list", "add", "remove", "test"],
+        "provider_subgroup": ["list", "add", "set-key", "remove"],
         "admin_subgroup": ["sync", "debug", "test"]
       },
-      "purpose": "Primary CLI with Click commands, organized into root + 2 subgroups"
+      "purpose": "Primary CLI with Click commands, organized into root + 3 subgroups"
     },
     "model_utils": {
       "path": "src/klean/model_utils.py",
@@ -33,6 +34,11 @@
       "path": "src/klean/config_generator.py",
       "exports": ["generate_litellm_config", "load_config_yaml", "merge_models_into_config", "add_model_to_config", "remove_model_from_config", "list_models_in_config"],
       "purpose": "LiteLLM configuration generation and management with smart merging"
+    },
+    "model_defaults": {
+      "path": "src/klean/model_defaults.py",
+      "exports": ["get_nanogpt_models", "get_openrouter_models", "NANOGPT_MODELS", "OPENROUTER_MODELS"],
+      "purpose": "Default model configurations for each provider"
     },
     "discovery": {
       "path": "src/klean/discovery.py",

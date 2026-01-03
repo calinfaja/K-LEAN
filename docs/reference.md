@@ -30,6 +30,17 @@ Access with `kln model <command>`
 | `kln model remove` | Remove model from config |
 | `kln model test` | Test a specific model |
 
+### Provider Management Subgroup
+
+Access with `kln provider <command>`
+
+| Command | Description |
+|---------|-------------|
+| `kln provider list` | Show configured providers |
+| `kln provider add <name>` | Add provider with recommended models |
+| `kln provider set-key <name>` | Update provider's API key |
+| `kln provider remove <name>` | Remove provider configuration |
+
 ### Development Tools (Hidden Admin Subgroup)
 
 Access with `kln admin <command>`
