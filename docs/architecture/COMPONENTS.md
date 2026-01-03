@@ -18,23 +18,26 @@
 
 ## 1. CLI Commands
 
-The K-LEAN CLI provides 14 commands for managing the system.
+The K-LEAN CLI provides 17 commands for managing the system.
 
 ### Command Overview
 
 | Command | Purpose | Speed |
 |---------|---------|-------|
+| `kln init` | Initialize with provider selection (new) | ~10s |
+| `kln install` | Install components | Varies |
+| `kln setup` | Configure API provider (interactive) | ~30s |
+| `kln uninstall` | Remove components | ~5s |
 | `kln doctor` | Validate config (.env, subscription, services) | ~3s |
 | `kln doctor -f` | Auto-fix issues | ~5s |
 | `kln status` | Show installed components and services | ~2s |
+| `kln add-model` | Add individual model (new) | ~1s |
+| `kln remove-model` | Remove model (new) | ~1s |
 | `kln models` | List available models | ~1s |
 | `kln models --health` | Check model health | ~60s |
 | `kln models --test` | Test each model with latency | Slow |
 | `kln start` | Start LiteLLM proxy | ~3s |
 | `kln stop` | Stop services | ~1s |
-| `kln install` | Install components | Varies |
-| `kln setup` | Configure API provider (interactive) | ~30s |
-| `kln uninstall` | Remove components | ~5s |
 | `kln sync` | Sync package data (dev) | ~2s |
 | `kln test` | Run test suite | ~10s |
 | `kln test-model` | Test specific model | ~5s |

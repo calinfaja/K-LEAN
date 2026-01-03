@@ -1,6 +1,6 @@
 # Project Index: K-LEAN
 
-**Generated**: 2026-01-01
+**Generated**: 2026-01-03
 **Version**: 1.0.0b1
 **License**: Apache-2.0
 
@@ -16,8 +16,10 @@ Multi-model code review and persistent knowledge system for Claude Code. Get con
 
 ```
 k-lean/
-├── src/klean/              # Main package (~5.2K lines Python)
+├── src/klean/              # Main package (~5.4K lines Python)
 │   ├── cli.py              # CLI entry point (kln command)
+│   ├── model_utils.py      # Model extraction and parsing utilities
+│   ├── config_generator.py # LiteLLM config generation and merging
 │   ├── discovery.py        # Model discovery from LiteLLM
 │   ├── smol/               # SmolKLN agent system (16 modules)
 │   │   ├── cli.py          # kln-smol command
@@ -33,7 +35,7 @@ k-lean/
 │       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # LiteLLM & provider templates
-├── tests/                  # 9 test files
+├── tests/                  # 11 test files
 ├── docs/                   # User & architecture docs
 ├── config/litellm/         # LiteLLM proxy configuration
 └── pyproject.toml          # Package configuration
@@ -54,12 +56,30 @@ k-lean/
 
 ### `src/klean/cli.py`
 Primary CLI with Click commands:
+- `init` - Unified initialization (new in this session)
 - `install` / `uninstall` - Component installation
-- `status` / `doctor` - Health checks and auto-fix
+- `status` / `doctor` - Health checks and auto-fix (with statusline config)
 - `start` / `stop` - Service management (LiteLLM, Knowledge server)
 - `models` / `test-model` - Model discovery and testing
+- `add-model` - Add individual models (new in this session)
+- `remove-model` - Remove models (new in this session)
 - `multi` - Multi-agent orchestrated review
 - `setup` - Provider configuration (NanoGPT, OpenRouter)
+
+### `src/klean/model_utils.py`
+Model extraction and parsing utilities:
+- `extract_model_name()` - Extract short name from model ID
+- `parse_model_id()` - Parse provider and model from ID
+- `is_thinking_model()` - Detect thinking/extended-thinking models
+
+### `src/klean/config_generator.py`
+LiteLLM configuration generation with non-destructive merging:
+- `generate_litellm_config()` - Generate config.yaml content
+- `load_config_yaml()` - Load existing config
+- `merge_models_into_config()` - Add models without duplicates
+- `add_model_to_config()` - Add single model to config
+- `remove_model_from_config()` - Remove model from config
+- `list_models_in_config()` - List all configured models
 
 ### `src/klean/discovery.py`
 Dynamic model discovery from LiteLLM proxy:
@@ -229,6 +249,8 @@ SmolAgents-based agent system:
 | test_async_completion.py | Async model calls |
 | test_llm_client.py | LLM client integration |
 | test_cli_integration.py | CLI end-to-end |
+| test_init_command.py | Init command (new in this session) |
+| test_model_management.py | Model management commands (new in this session) |
 
 ---
 
@@ -248,6 +270,13 @@ kln start
 # Check status
 kln status
 kln doctor -f  # Auto-fix issues
+
+# Initialize with provider selection
+kln init
+
+# Add individual models
+kln add-model "openrouter/anthropic/claude-3.5-sonnet"
+kln remove-model "claude-3-sonnet"
 
 # Run reviews (in Claude Code)
 /kln:quick security
@@ -271,11 +300,11 @@ kln doctor -f  # Auto-fix issues
 
 | Type | Count |
 |------|-------|
-| Python | ~50 |
+| Python | ~51 |
 | Shell | 35 |
 | Markdown (agents, commands, docs) | 50+ |
 | YAML/TOML | 12 |
-| Tests | 9 |
+| Tests | 11 |
 
 ---
 

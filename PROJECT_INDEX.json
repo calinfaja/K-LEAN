@@ -4,10 +4,10 @@
     "package_name": "kln-ai",
     "version": "1.0.0b1",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
-    "generated": "2026-01-01",
+    "generated": "2026-01-03",
     "python_version": ">=3.9",
     "license": "Apache-2.0",
-    "lines_of_code": 5208
+    "lines_of_code": 5350
   },
   "entry_points": {
     "kln": "src/klean/cli.py:main",
@@ -16,8 +16,18 @@
   "core_modules": {
     "cli": {
       "path": "src/klean/cli.py",
-      "exports": ["main", "install", "uninstall", "status", "doctor", "start", "stop", "models", "multi", "setup"],
+      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "models", "multi", "setup", "add_model", "remove_model", "configure_statusline"],
       "purpose": "Primary CLI with Click commands"
+    },
+    "model_utils": {
+      "path": "src/klean/model_utils.py",
+      "exports": ["extract_model_name", "parse_model_id", "is_thinking_model"],
+      "purpose": "Model name extraction, parsing, and thinking model detection"
+    },
+    "config_generator": {
+      "path": "src/klean/config_generator.py",
+      "exports": ["generate_litellm_config", "load_config_yaml", "merge_models_into_config", "add_model_to_config", "remove_model_from_config", "list_models_in_config"],
+      "purpose": "LiteLLM configuration generation and management with smart merging"
     },
     "discovery": {
       "path": "src/klean/discovery.py",
@@ -135,15 +145,15 @@
   "tests": {
     "framework": "pytest",
     "path": "tests/",
-    "count": 9,
-    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py"]
+    "count": 11,
+    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py", "test_init_command.py", "test_model_management.py"]
   },
   "file_counts": {
-    "python": 50,
+    "python": 51,
     "shell": 35,
     "markdown": 50,
     "yaml_toml": 12,
-    "tests": 9
+    "tests": 11
   },
   "directories": {
     "installed": {

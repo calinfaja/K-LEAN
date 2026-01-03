@@ -4,12 +4,15 @@
 
 | Command | Description |
 |---------|-------------|
+| `kln init` | Initialize K-LEAN with provider selection (new) |
 | `kln install` | Install components to ~/.claude/ |
 | `kln setup` | Configure API provider (interactive) |
 | `kln uninstall` | Remove components |
 | `kln status` | Show component status |
 | `kln doctor` | Validate configuration |
 | `kln doctor -f` | Auto-fix common issues |
+| `kln add-model <id>` | Add individual model (new) |
+| `kln remove-model <name>` | Remove model from config (new) |
 | `kln start` | Start LiteLLM proxy |
 | `kln start -s all` | Start LiteLLM + KB server |
 | `kln stop` | Stop services |

@@ -941,6 +941,57 @@ def main():
     pass
 
 
+def configure_statusline() -> bool:
+    """Configure Claude Code statusline with K-LEAN statusline script.
+
+    Automatically adds statusline configuration to ~/.claude/settings.json
+    so the statusline works immediately after installation.
+
+    Returns:
+        True if configuration succeeded, False if skipped/failed
+    """
+    try:
+        settings_file = CLAUDE_DIR / "settings.json"
+        statusline_script = CLAUDE_DIR / "scripts" / "klean-statusline.py"
+
+        # Check if statusline script exists
+        if not statusline_script.exists():
+            return False
+
+        # Read existing settings or create new ones
+        settings = {}
+        if settings_file.exists():
+            try:
+                with open(settings_file) as f:
+                    settings = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                # If settings.json is corrupt, start fresh
+                settings = {}
+
+        # Check if statusline is already configured
+        existing_statusline = settings.get("statusLine", {})
+        existing_command = existing_statusline.get("command", "")
+
+        if existing_command == str(statusline_script):
+            # Already configured correctly
+            return True
+
+        # Configure statusline
+        settings["statusLine"] = {
+            "command": str(statusline_script)
+        }
+
+        # Write back with proper formatting
+        ensure_dir(CLAUDE_DIR)
+        with open(settings_file, "w") as f:
+            json.dump(settings, f, indent=2)
+
+        return True
+    except Exception as e:
+        console.print(f"[yellow]Warning: Could not configure statusline: {e}[/yellow]")
+        return False
+
+
 @main.command()
 @click.option("--dev", is_flag=True, help="Development mode: use symlinks instead of copies")
 @click.option("--component", "-c",
@@ -1049,6 +1100,9 @@ def install(dev: bool, component: str, yes: bool):
             ensure_dir(CONFIG_DIR)
             for cfg_file in litellm_src.glob("*.yaml"):
                 dst = CONFIG_DIR / cfg_file.name
+                # Skip config.yaml if it already exists (user configured via 'kln setup')
+                if cfg_file.name == "config.yaml" and dst.exists():
+                    continue
                 if dev:
                     if dst.exists() or dst.is_symlink():
                         dst.unlink()
@@ -1142,6 +1196,14 @@ def install(dev: bool, component: str, yes: bool):
                 console.print("  [green]Knowledge database ready[/green]")
             else:
                 console.print("  [yellow]Warning: Some dependencies may not have installed[/yellow]")
+
+    # Configure statusline (if scripts were installed)
+    if component in ["all", "scripts"]:
+        console.print("[bold]Configuring statusline...[/bold]")
+        if configure_statusline():
+            console.print("  [green]Statusline configured[/green]")
+        else:
+            console.print("  [dim]Statusline: skipped or already configured[/dim]")
 
     # Summary
     console.print("\n[bold green]Installation complete![/bold green]")
@@ -1245,14 +1307,6 @@ def status():
         table.add_row("KLN Commands", f"OK ({count})", "/kln:help")
     else:
         table.add_row("KLN Commands", "[red]NOT INSTALLED[/red]", "")
-
-    # SuperClaude (external optional framework)
-    sc_dir = CLAUDE_DIR / "commands" / "sc"
-    if sc_dir.exists():
-        count = len(list(sc_dir.glob("*.md")))
-        table.add_row("SuperClaude", f"[dim]Available ({count})[/dim]", "[dim]optional framework[/dim]")
-    else:
-        table.add_row("SuperClaude", "[dim]Not installed[/dim]", "[dim]optional[/dim]")
 
     # Hooks
     hooks_dir = CLAUDE_DIR / "hooks"
@@ -1595,6 +1649,31 @@ def doctor(auto_fix: bool):
             except Exception as e:
                 console.print(f"  [red]✗[/red] Failed to configure hooks: {e}")
                 issues.append(("ERROR", f"Failed to auto-configure hooks: {e}"))
+
+    # Check statusline configuration
+    console.print("[bold]Statusline Configuration:[/bold]")
+    if settings_file.exists():
+        try:
+            settings = json.loads(settings_file.read_text())
+            statusline_config = settings.get("statusLine", {})
+            statusline_command = statusline_config.get("command", "")
+            expected_statusline = str(CLAUDE_DIR / "scripts" / "klean-statusline.py")
+
+            if statusline_command == expected_statusline:
+                console.print("  [green][OK][/green] Statusline: CONFIGURED")
+            elif statusline_command:
+                console.print(f"  [yellow]○[/yellow] Statusline: Different command configured: {statusline_command}")
+            else:
+                console.print("  [yellow]○[/yellow] Statusline: Not configured")
+                if auto_fix:
+                    console.print("  [dim]Auto-configuring statusline...[/dim]")
+                    if configure_statusline():
+                        console.print("  [green][OK][/green] Statusline: CONFIGURED")
+                        fixes_applied.append("Configured Claude Code statusline")
+        except json.JSONDecodeError:
+            console.print("  [yellow]○[/yellow] Statusline: Could not read settings.json")
+    else:
+        console.print("  [yellow]○[/yellow] Statusline: settings.json not found")
 
     # Service checks with auto-fix
     console.print("[bold]Service Status:[/bold]")
@@ -2831,11 +2910,23 @@ def setup(provider: Optional[str]):
     Interactive setup for configuring LiteLLM with NanoGPT or OpenRouter.
     Creates ~/.config/litellm/config.yaml and ~/.config/litellm/.env
 
+    Supports configuring multiple providers. Preserves existing API keys.
+
     Examples:
         kln setup                # Interactive menu
         kln setup -p nanogpt     # Direct NanoGPT setup
         kln setup -p openrouter  # Direct OpenRouter setup
     """
+    from klean.model_defaults import (
+        get_nanogpt_models,
+        get_openrouter_models,
+    )
+    from klean.config_generator import (
+        generate_litellm_config,
+        generate_env_file,
+        load_env_file,
+    )
+
     print_banner()
 
     console.print("\n[bold cyan]LiteLLM Setup Wizard[/bold cyan]")
@@ -2855,91 +2946,106 @@ def setup(provider: Optional[str]):
         shutil.copy(existing_config, backup_path)
         console.print(f"[dim]Backed up existing config to {backup_path}[/dim]")
 
-    # Provider selection
+    # Load existing .env to preserve keys
+    env_file = CONFIG_DIR / ".env"
+    existing_env = load_env_file(env_file) if env_file.exists() else {}
+
+    providers_to_configure = {}
+    models_to_add = []
+
+    # Provider selection - checkbox style
     if not provider:
-        console.print("\nSelect your API provider:\n")
-        console.print("  [cyan]1)[/cyan] NanoGPT (12 models, subscription)")
-        console.print("  [cyan]2)[/cyan] OpenRouter (diverse models, pay-per-use)")
-        console.print("  [cyan]3)[/cyan] Skip setup (use existing config)")
+        console.print("\nSelect API providers (you can add multiple):\n")
+        console.print("  [cyan]1)[/cyan] OpenRouter (3 models: deepseek-chat, gemini-2.5-flash, gemini-3-flash)")
+        console.print("  [cyan]2)[/cyan] NanoGPT (8 standard models)")
+        console.print("  [cyan]3)[/cyan] NanoGPT + Thinking models (12 total)")
+        console.print("  [cyan]4)[/cyan] Skip setup (use existing config)")
         console.print()
 
-        choice = click.prompt("Enter choice", type=click.Choice(['1', '2', '3']), default='1')
+        while True:
+            choice = click.prompt("Enter choice (1-4)", type=click.Choice(['1', '2', '3', '4']), default='1')
 
-        if choice == '1':
-            provider = 'nanogpt'
-        elif choice == '2':
-            provider = 'openrouter'
-        else:
-            console.print("[yellow]Skipping setup[/yellow]")
-            return
+            if choice == '4':
+                console.print("[yellow]Skipping setup[/yellow]")
+                return
 
-    # Configure based on provider
-    if provider == 'nanogpt':
-        console.print("\n[bold]Configuring NanoGPT...[/bold]")
-        console.print("[dim]Get your API key from https://nano-gpt.com[/dim]\n")
+            if choice == '1':
+                console.print("\n[bold]Configuring OpenRouter...[/bold]")
+                console.print("[dim]Get your API key from https://openrouter.ai[/dim]\n")
+                api_key = click.prompt("Enter your OpenRouter API key", hide_input=True)
+                if api_key:
+                    providers_to_configure["openrouter"] = api_key
+                    models_to_add.extend(get_openrouter_models())
+                    console.print("[green][OK] OpenRouter added[/green]")
+                else:
+                    console.print("[red]API key cannot be empty[/red]")
 
-        api_key = click.prompt("Enter your NanoGPT API key", hide_input=True)
+            elif choice == '2':
+                console.print("\n[bold]Configuring NanoGPT...[/bold]")
+                console.print("[dim]Get your API key from https://nano-gpt.com[/dim]\n")
+                api_key = click.prompt("Enter your NanoGPT API key", hide_input=True)
+                if api_key:
+                    providers_to_configure["nanogpt"] = api_key
+                    models_to_add.extend(get_nanogpt_models(include_thinking=False))
+                    console.print("[green][OK] NanoGPT added (standard models)[/green]")
+                else:
+                    console.print("[red]API key cannot be empty[/red]")
 
-        if not api_key:
-            console.print("[red]API key cannot be empty[/red]")
-            return
+            elif choice == '3':
+                console.print("\n[bold]Configuring NanoGPT with Thinking models...[/bold]")
+                console.print("[dim]Get your API key from https://nano-gpt.com[/dim]\n")
+                api_key = click.prompt("Enter your NanoGPT API key", hide_input=True)
+                if api_key:
+                    providers_to_configure["nanogpt"] = api_key
+                    models_to_add.extend(get_nanogpt_models(include_thinking=True))
+                    console.print("[green][OK] NanoGPT added (8 standard + 4 thinking models)[/green]")
+                else:
+                    console.print("[red]API key cannot be empty[/red]")
 
-        # Auto-detect subscription
-        console.print("[dim]Detecting account type...[/dim]")
-        api_base = detect_nanogpt_endpoint(api_key)
+            if providers_to_configure or choice in ['4']:
+                break
 
-        if "subscription" in api_base:
-            console.print("[green][OK] Subscription account detected[/green]")
-        else:
-            console.print("[cyan][INFO] Pay-per-use account detected[/cyan]")
+            console.print("[yellow]Add another provider?[/yellow]")
 
-        # Create .env file
-        env_content = f"""# K-LEAN LiteLLM Environment Variables - NanoGPT
-# Generated by kln setup
+    else:
+        # Direct provider setup
+        if provider == 'nanogpt':
+            console.print("\n[bold]Configuring NanoGPT...[/bold]")
+            console.print("[dim]Get your API key from https://nano-gpt.com[/dim]\n")
+            api_key = click.prompt("Enter your NanoGPT API key", hide_input=True)
+            if not api_key:
+                console.print("[red]API key cannot be empty[/red]")
+                return
+            providers_to_configure["nanogpt"] = api_key
+            models_to_add.extend(get_nanogpt_models(include_thinking=False))
 
-NANOGPT_API_BASE={api_base}
-NANOGPT_API_KEY={api_key}
-"""
-        env_file = CONFIG_DIR / ".env"
-        env_file.write_text(env_content)
-        env_file.chmod(0o600)
+        elif provider == 'openrouter':
+            console.print("\n[bold]Configuring OpenRouter...[/bold]")
+            console.print("[dim]Get your API key from https://openrouter.ai[/dim]\n")
+            api_key = click.prompt("Enter your OpenRouter API key", hide_input=True)
+            if not api_key:
+                console.print("[red]API key cannot be empty[/red]")
+                return
+            providers_to_configure["openrouter"] = api_key
+            models_to_add.extend(get_openrouter_models())
 
-        # Copy config template
-        template = find_config_template("config.yaml")
-        if template:
-            shutil.copy(template, CONFIG_DIR / "config.yaml")
-            console.print("[green][OK] NanoGPT configuration created[/green]")
-        else:
-            console.print("[yellow]! Config template not found - run 'kln install' first[/yellow]")
+    if not providers_to_configure:
+        console.print("[yellow]No providers configured[/yellow]")
+        return
 
-    elif provider == 'openrouter':
-        console.print("\n[bold]Configuring OpenRouter...[/bold]")
-        console.print("[dim]Get your API key from https://openrouter.ai[/dim]\n")
+    # Generate and save config files
+    console.print("[dim]Generating configuration...[/dim]")
 
-        api_key = click.prompt("Enter your OpenRouter API key", hide_input=True)
+    # Generate config.yaml
+    config_content = generate_litellm_config(models_to_add)
+    config_file = CONFIG_DIR / "config.yaml"
+    config_file.write_text(config_content)
 
-        if not api_key:
-            console.print("[red]API key cannot be empty[/red]")
-            return
-
-        # Create .env file
-        env_content = f"""# K-LEAN LiteLLM Environment Variables - OpenRouter
-# Generated by kln setup
-
-OPENROUTER_API_BASE=https://openrouter.ai/api/v1
-OPENROUTER_API_KEY={api_key}
-"""
-        env_file = CONFIG_DIR / ".env"
-        env_file.write_text(env_content)
-        env_file.chmod(0o600)
-
-        # Copy config template
-        template = find_config_template("openrouter.yaml")
-        if template:
-            shutil.copy(template, CONFIG_DIR / "config.yaml")
-            console.print("[green][OK] OpenRouter configuration created[/green]")
-        else:
-            console.print("[yellow]! Config template not found - run 'kln install' first[/yellow]")
+    # Generate and save .env (merge with existing)
+    env_content = generate_env_file(providers_to_configure, existing_env)
+    env_file = CONFIG_DIR / ".env"
+    env_file.write_text(env_content)
+    env_file.chmod(0o600)
 
     # Summary
     console.print("\n" + "=" * 40)
@@ -2948,10 +3054,289 @@ OPENROUTER_API_KEY={api_key}
     console.print("\nConfiguration saved to:")
     console.print(f"  Config:  [cyan]{CONFIG_DIR}/config.yaml[/cyan]")
     console.print(f"  Secrets: [cyan]{CONFIG_DIR}/.env[/cyan] (keep safe!)")
+    console.print(f"\n[bold]Models enabled: {len(models_to_add)}[/bold]")
     console.print("\n[bold]Next steps:[/bold]")
     console.print("  1. Start LiteLLM: [cyan]kln start[/cyan]")
     console.print("  2. Verify models: [cyan]kln models --health[/cyan]")
     console.print("  3. Test in Claude: [cyan]healthcheck[/cyan]")
+
+
+@main.command()
+@click.option(
+    "--provider", "-p",
+    type=click.Choice(["nanogpt", "openrouter", "skip"]),
+    help="Provider (nanogpt, openrouter, or skip LiteLLM)"
+)
+@click.option("--api-key", "-k", help="API key (skips prompt)")
+def init(provider: Optional[str], api_key: Optional[str]):
+    """Initialize K-LEAN: install + configure provider (no start).
+
+    Complete first-time setup for K-LEAN. Installs components and
+    optionally configures an API provider. Run 'kln start' separately
+    when ready to start the LiteLLM proxy.
+
+    Examples:
+        kln init                                    # Interactive menu
+        kln init --provider nanogpt --api-key $KEY  # Silent NanoGPT setup
+        kln init --provider skip                    # Knowledge system only
+    """
+    from klean.config_generator import (
+        generate_litellm_config,
+        generate_env_file,
+    )
+    from klean.model_defaults import (
+        get_nanogpt_models,
+        get_openrouter_models,
+    )
+
+    # Check if already initialized
+    if (CONFIG_DIR / "config.yaml").exists():
+        console.print("[yellow]K-LEAN already initialized.[/yellow]")
+        if not click.confirm("Reconfigure?", default=False):
+            console.print("Cancelled.")
+            return
+
+    # Interactive menu if --provider not specified
+    if not provider:
+        console.print("\n[bold]K-LEAN Initialization[/bold]")
+        console.print("Which provider do you want to use?\n")
+
+        choices = {
+            "1": ("nanogpt", "NanoGPT (12 models)"),
+            "2": ("openrouter", "OpenRouter (3 models)"),
+            "3": ("skip", "Skip LiteLLM (knowledge system only)"),
+        }
+
+        for key, (_, desc) in choices.items():
+            console.print(f"  {key}) {desc}")
+
+        choice = click.prompt("\nChoose", type=click.Choice(choices.keys()))
+        provider = choices[choice][0]
+
+    # Generate config (if not skip)
+    if provider != "skip":
+        if not api_key:
+            api_key = click.prompt(
+                f"\n{provider.upper()} API Key",
+                hide_input=True,
+                confirmation_prompt=False
+            )
+
+        # Get default models
+        models = (
+            get_nanogpt_models()
+            if provider == "nanogpt"
+            else get_openrouter_models()
+        )
+
+        # Generate config files
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        config_yaml = generate_litellm_config(models)
+        env_content = generate_env_file(
+            {provider: api_key},
+            existing_env={}
+        )
+
+        (CONFIG_DIR / "config.yaml").write_text(config_yaml)
+        (CONFIG_DIR / ".env").write_text(env_content)
+        (CONFIG_DIR / ".env").chmod(0o600)
+
+        console.print(f"\n[green]✓[/green] Configured {provider.upper()} with {len(models)} models")
+
+    # Install components (invoke existing install command)
+    console.print("Installing K-LEAN components...")
+    try:
+        # Call install command with --yes flag to skip prompts
+        ctx = click.get_current_context()
+        ctx.invoke(install, dev=False, component="all", yes=True)
+        console.print("[green]✓[/green] Installed to ~/.claude/")
+    except Exception as e:
+        console.print(f"[red]Error installing components: {e}[/red]")
+        return
+
+    # Show summary
+    console.print("\n[bold green]✓ K-LEAN initialized![/bold green]\n")
+
+    if provider == "skip":
+        console.print("Knowledge system ready (no LiteLLM configured):")
+        console.print("  • Capture learnings: [cyan]/kln:learn[/cyan]")
+        console.print("  • Search knowledge: type [cyan]FindKnowledge query[/cyan]")
+        console.print("\nAdd API provider later:")
+        console.print("  [cyan]kln setup[/cyan]")
+    else:
+        console.print(f"Configuration ready with {provider.upper()}:")
+        console.print("  • Review config: [cyan]kln models[/cyan]")
+        console.print("  • Add more models: [cyan]kln add-model[/cyan]")
+        console.print("  • Remove models: [cyan]kln remove-model[/cyan]")
+        console.print("  • Verify config: [cyan]kln doctor[/cyan]")
+        console.print("\nWhen ready to start services:")
+        console.print("  [cyan]kln start[/cyan]")
+
+
+@main.command(name="add-model")
+@click.option("--provider", "-p", type=click.Choice(['nanogpt', 'openrouter']),
+              required=True, help="API provider (nanogpt or openrouter)")
+@click.argument("model_id")
+def add_model(provider: str, model_id: str):
+    """Add a new model to the LiteLLM configuration.
+
+    Adds a model to ~/.config/litellm/config.yaml without overwriting existing models.
+
+    Examples:
+        kln add-model --provider openrouter "anthropic/claude-3.5-sonnet"
+        kln add-model --provider nanogpt "moonshotai/kimi-k2"
+    """
+    from klean.config_generator import load_env_file
+
+    config_file = CONFIG_DIR / "config.yaml"
+    if not config_file.exists():
+        console.print("[red]Error: config.yaml not found. Run 'kln setup' first.[/red]")
+        sys.exit(1)
+
+    # Parse the model ID
+    if provider == "openrouter":
+        full_model_id = f"openrouter/{model_id}"
+        model_name = model_id.split("/")[-1]
+    elif provider == "nanogpt":
+        full_model_id = f"openai/{model_id}"
+        model_name = model_id.split("/")[-1]
+    else:
+        console.print(f"[red]Error: Unknown provider '{provider}'[/red]")
+        sys.exit(1)
+
+    # Create model entry
+    if provider == "openrouter":
+        model_entry = {
+            "model_name": model_name,
+            "litellm_params": {
+                "model": full_model_id,
+                "api_key": "os.environ/OPENROUTER_API_KEY",
+            },
+        }
+    else:  # nanogpt
+        model_entry = {
+            "model_name": model_name,
+            "litellm_params": {
+                "model": full_model_id,
+                "api_key": "os.environ/NANOGPT_API_KEY",
+            },
+        }
+        # Use thinking endpoint for thinking models
+        if "thinking" in model_name.lower():
+            model_entry["litellm_params"]["api_base"] = "os.environ/NANOGPT_THINKING_API_BASE"
+        else:
+            model_entry["litellm_params"]["api_base"] = "os.environ/NANOGPT_API_BASE"
+
+    # Load existing config
+    import yaml
+    try:
+        config_content = config_file.read_text()
+        config = yaml.safe_load(config_content)
+    except Exception as e:
+        console.print(f"[red]Error reading config.yaml: {e}[/red]")
+        sys.exit(1)
+
+    # Check if model already exists
+    existing_names = [m.get("model_name") for m in config.get("model_list", [])]
+    if model_name in existing_names:
+        console.print(f"[yellow]Warning: Model '{model_name}' already exists in config[/yellow]")
+        if not click.confirm("Overwrite?"):
+            return
+        # Remove existing entry
+        config["model_list"] = [m for m in config["model_list"] if m.get("model_name") != model_name]
+
+    # Add new model
+    config["model_list"].append(model_entry)
+
+    # Save updated config
+    try:
+        config_file.write_text(_dict_to_yaml(config))
+        console.print(f"\n[green][OK] Added model '{model_name}'[/green]")
+        console.print(f"  Provider: {provider}")
+        console.print(f"  LiteLLM ID: {full_model_id}")
+        console.print(f"\nRestart services to use the new model:")
+        console.print("  [cyan]kln restart[/cyan]")
+    except Exception as e:
+        console.print(f"[red]Error saving config: {e}[/red]")
+
+
+@main.command(name="remove-model")
+@click.argument("model_name")
+def remove_model(model_name: str):
+    """Remove a model from the LiteLLM configuration.
+
+    Removes a model by its short name from ~/.config/litellm/config.yaml.
+
+    Examples:
+        kln remove-model "claude-3.5-sonnet"
+        kln remove-model "deepseek-v3-thinking"
+    """
+    from klean.config_generator import remove_model_from_config, list_models_in_config
+
+    config_file = CONFIG_DIR / "config.yaml"
+    if not config_file.exists():
+        console.print("[red]Error: config.yaml not found. Run 'kln setup' first.[/red]")
+        sys.exit(1)
+
+    # Try to remove the model
+    removed = remove_model_from_config(config_file, model_name)
+
+    if not removed:
+        console.print(f"[yellow]Model '{model_name}' not found in config[/yellow]")
+        console.print("\nAvailable models:")
+        models = list_models_in_config(config_file)
+        for model in models:
+            console.print(f"  • {model['model_name']}")
+        return
+
+    console.print(f"[green]✓[/green] Removed model '{model_name}'")
+    console.print("\nRemaining models:")
+    models = list_models_in_config(config_file)
+    for model in models:
+        thinking_label = " (thinking)" if model["is_thinking"] else ""
+        console.print(f"  • {model['model_name']}{thinking_label}")
+
+    console.print(f"\nRestart services to apply changes:")
+    console.print("  [cyan]kln restart[/cyan]")
+
+
+def _dict_to_yaml(config: Dict) -> str:
+    """Convert config dict to YAML with proper formatting."""
+    import yaml
+
+    class CustomDumper(yaml.SafeDumper):
+        pass
+
+    def represent_none(self, _):
+        return self.represent_scalar("tag:yaml.org,2002:null", "")
+
+    CustomDumper.add_representer(type(None), represent_none)
+
+    yaml_str = "# K-LEAN LiteLLM Configuration\n"
+    yaml_str += "# ============================\n"
+    yaml_str += "#\n"
+    yaml_str += "# ENDPOINT RULES:\n"
+    yaml_str += "#   *-thinking models -> NANOGPT_THINKING_API_BASE\n"
+    yaml_str += "#   all other models  -> NANOGPT_API_BASE or OPENROUTER_API_BASE\n"
+    yaml_str += "#\n"
+    yaml_str += "# No quotes around os.environ/ values!\n"
+    yaml_str += "\n"
+
+    yaml_str += "litellm_settings:\n"
+    yaml_str += "  drop_params: true\n"
+    yaml_str += "\n"
+    yaml_str += "model_list:\n"
+
+    for model in config.get("model_list", []):
+        yaml_str += f"  - model_name: {model.get('model_name')}\n"
+        yaml_str += "    litellm_params:\n"
+        params = model.get("litellm_params", {})
+        yaml_str += f"      model: {params.get('model')}\n"
+        if "api_base" in params:
+            yaml_str += f"      api_base: {params.get('api_base')}\n"
+        yaml_str += f"      api_key: {params.get('api_key')}\n"
+
+    return yaml_str
 
 
 if __name__ == "__main__":
