@@ -990,6 +990,191 @@ def configure_statusline() -> bool:
 
 
 # ============================================================
+# PROVIDER SUBCOMMAND GROUP
+# ============================================================
+
+def _load_existing_env() -> dict:
+    """Load existing .env variables."""
+    env_file = CONFIG_DIR / ".env"
+    if not env_file.exists():
+        return {}
+
+    env_vars = {}
+    try:
+        for line in env_file.read_text().split('\n'):
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip()
+    except Exception:
+        pass
+    return env_vars
+
+
+def _get_configured_providers() -> dict:
+    """Get list of configured providers and their status."""
+    env_vars = _load_existing_env()
+    providers = {}
+
+    # Check each known provider
+    for provider_name, key_var in [("nanogpt", "NANOGPT_API_KEY"), ("openrouter", "OPENROUTER_API_KEY")]:
+        if key_var in env_vars:
+            # Check if key looks valid (not placeholder)
+            key_value = env_vars[key_var]
+            is_configured = key_value and "your-" not in key_value.lower()
+            providers[provider_name] = {"configured": is_configured, "key": key_value}
+
+    return providers
+
+
+@click.group()
+def provider():
+    """Manage K-LEAN providers (NanoGPT, OpenRouter, etc.)"""
+    pass
+
+
+@provider.command(name="list")
+def provider_list():
+    """List configured providers and their status."""
+    print_banner()
+
+    providers = _get_configured_providers()
+
+    if not providers:
+        console.print("[yellow]No providers configured[/yellow]")
+        console.print("Add one with: [cyan]kln provider add nanogpt --api-key $KEY[/cyan]")
+        return
+
+    table = Table(title="Configured Providers")
+    table.add_column("Provider", style="cyan")
+    table.add_column("Status", style="green")
+    table.add_column("Models", style="dim")
+
+    # For each provider, try to count models in config
+    config_file = CONFIG_DIR / "config.yaml"
+    model_counts = {}
+    if config_file.exists():
+        try:
+            import yaml
+            config = yaml.safe_load(config_file.read_text())
+            for model in config.get("model_list", []):
+                provider_name = model.get("litellm_params", {}).get("model", "").split("/")[0]
+                if provider_name in model_counts:
+                    model_counts[provider_name] += 1
+                else:
+                    model_counts[provider_name] = 1
+        except Exception:
+            pass
+
+    for name, info in sorted(providers.items()):
+        status = "[green]✓ ACTIVE[/green]" if info["configured"] else "[red]✗ NOT CONFIGURED[/red]"
+        model_count = model_counts.get(name, 0)
+        models = f"({model_count} models)" if model_count > 0 else "(no models)"
+        table.add_row(name.upper(), status, models)
+
+    console.print(table)
+
+
+@provider.command(name="add")
+@click.argument("provider_name", type=click.Choice(["nanogpt", "openrouter"]))
+@click.option("--api-key", "-k", help="API key (if not provided, will prompt)")
+def provider_add(provider_name: str, api_key: str):
+    """Add or update a provider configuration."""
+    if not api_key:
+        api_key = click.prompt(f"{provider_name.upper()} API Key", hide_input=True)
+
+    if not api_key:
+        console.print("[red]Error: API key cannot be empty[/red]")
+        return
+
+    # Load existing env
+    existing_env = _load_existing_env()
+
+    # Create provider dict
+    from klean.config_generator import generate_env_file
+    providers_dict = {provider_name: api_key}
+
+    # Generate new env content (preserves existing providers)
+    env_content = generate_env_file(providers_dict, existing_env=existing_env)
+
+    # Write updated .env
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    (CONFIG_DIR / ".env").write_text(env_content)
+    (CONFIG_DIR / ".env").chmod(0o600)
+
+    console.print(f"\n[green]✓[/green] Configured {provider_name.upper()} API key")
+    console.print("[dim]Models from this provider will be available after restart[/dim]")
+    console.print("\nNext steps:")
+    console.print(f"  • Add models: [cyan]kln model add --provider {provider_name} \"model-id\"[/cyan]")
+    console.print("  • Restart services: [cyan]kln restart[/cyan]")
+
+
+@provider.command(name="set-key")
+@click.argument("provider_name", type=click.Choice(["nanogpt", "openrouter"]))
+@click.option("--key", "-k", help="New API key")
+def provider_set_key(provider_name: str, key: str):
+    """Update API key for an existing provider."""
+    if not key:
+        key = click.prompt(f"New {provider_name.upper()} API Key", hide_input=True)
+
+    if not key:
+        console.print("[red]Error: API key cannot be empty[/red]")
+        return
+
+    existing_env = _load_existing_env()
+
+    # Check if provider exists
+    key_var = f"{provider_name.upper()}_API_KEY"
+    if key_var not in existing_env:
+        console.print(f"[yellow]Warning: {provider_name.upper()} not previously configured[/yellow]")
+        if not click.confirm("Continue anyway?", default=False):
+            return
+
+    from klean.config_generator import generate_env_file
+    providers_dict = {provider_name: key}
+    env_content = generate_env_file(providers_dict, existing_env=existing_env)
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    (CONFIG_DIR / ".env").write_text(env_content)
+    (CONFIG_DIR / ".env").chmod(0o600)
+
+    console.print(f"[green]✓[/green] Updated {provider_name.upper()} API key")
+
+
+@provider.command(name="remove")
+@click.argument("provider_name", type=click.Choice(["nanogpt", "openrouter"]))
+def provider_remove(provider_name: str):
+    """Remove a provider configuration."""
+    if not click.confirm(f"Remove {provider_name.upper()} configuration?", default=False):
+        console.print("Cancelled")
+        return
+
+    existing_env = _load_existing_env()
+
+    # Remove provider keys
+    key_vars = [f"{provider_name.upper()}_API_KEY", f"{provider_name.upper()}_API_BASE"]
+    if provider_name == "nanogpt":
+        key_vars.append("NANOGPT_THINKING_API_BASE")
+
+    for key_var in key_vars:
+        existing_env.pop(key_var, None)
+
+    # Rebuild .env without this provider
+    content = "# K-LEAN LiteLLM Environment Variables\n"
+    content += "# Generated by kln setup\n"
+    content += "\n"
+    for key in sorted(existing_env.keys()):
+        content += f"{key}={existing_env[key]}\n"
+
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    (CONFIG_DIR / ".env").write_text(content)
+    (CONFIG_DIR / ".env").chmod(0o600)
+
+    console.print(f"[green]✓[/green] Removed {provider_name.upper()} configuration")
+    console.print("[dim]Models from this provider will no longer be available[/dim]")
+
+
+# ============================================================
 # MODEL SUBCOMMAND GROUP
 # ============================================================
 
@@ -1361,6 +1546,7 @@ def admin_test():
 
 
 # Register subcommand groups
+main.add_command(provider)
 main.add_command(model)
 main.add_command(admin)
 
@@ -2496,12 +2682,20 @@ def init(provider: Optional[str], api_key: Optional[str]):
 
     # Interactive menu if --provider not specified
     if not provider:
+        from klean.model_defaults import (
+            get_nanogpt_models,
+            get_openrouter_models,
+        )
+
         console.print("\n[bold]K-LEAN Initialization[/bold]")
         console.print("Which provider do you want to use?\n")
 
+        nanogpt_count = len(get_nanogpt_models())
+        openrouter_count = len(get_openrouter_models())
+
         choices = {
-            "1": ("nanogpt", "NanoGPT (12 models)"),
-            "2": ("openrouter", "OpenRouter (3 models)"),
+            "1": ("nanogpt", f"NanoGPT ({nanogpt_count} recommended models)"),
+            "2": ("openrouter", f"OpenRouter ({openrouter_count} recommended models)"),
             "3": ("skip", "Skip LiteLLM (knowledge system only)"),
         }
 
@@ -2527,12 +2721,16 @@ def init(provider: Optional[str], api_key: Optional[str]):
             else get_openrouter_models()
         )
 
-        # Generate config files
+        # Generate config files (preserving existing providers)
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         config_yaml = generate_litellm_config(models)
+
+        # Load existing .env to preserve other providers
+        existing_env = _load_existing_env()
+
         env_content = generate_env_file(
             {provider: api_key},
-            existing_env={}
+            existing_env=existing_env
         )
 
         (CONFIG_DIR / "config.yaml").write_text(config_yaml)
@@ -2563,9 +2761,10 @@ def init(provider: Optional[str], api_key: Optional[str]):
         console.print("  [cyan]kln init --provider nanogpt --api-key $KEY[/cyan]")
     else:
         console.print(f"Configuration ready with {provider.upper()}:")
-        console.print("  • Review config: [cyan]kln model list[/cyan]")
-        console.print("  • Add more models: [cyan]kln model add --provider nanogpt \"model-id\"[/cyan]")
-        console.print("  • Remove models: [cyan]kln model remove \"model-id\"[/cyan]")
+        console.print("  • Review providers: [cyan]kln provider list[/cyan]")
+        console.print("  • Add another provider: [cyan]kln provider add openrouter --api-key $KEY[/cyan]")
+        console.print("  • Review models: [cyan]kln model list[/cyan]")
+        console.print("  • Add more models: [cyan]kln model add --provider {provider} \"model-id\"[/cyan]")
         console.print("  • Verify config: [cyan]kln doctor[/cyan]")
         console.print("\nWhen ready to start services:")
         console.print("  [cyan]kln start[/cyan]")
