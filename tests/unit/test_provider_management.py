@@ -1,12 +1,10 @@
 """Tests for provider management functionality."""
 
-import tempfile
-from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-from klean.cli import main, _load_existing_env, _get_configured_providers
+from klean.cli import _get_configured_providers, _load_existing_env, main
 
 
 class TestProviderCommands:
@@ -39,7 +37,8 @@ class TestProviderCommands:
         """Test adding NanoGPT provider."""
         result = cli_runner.invoke(
             main,
-            ["provider", "add", "nanogpt", "--api-key", "sk-nano-test123"]
+            ["provider", "add", "nanogpt", "--api-key", "sk-nano-test123"],
+            input="y\n"  # Confirm model installation
         )
         assert result.exit_code == 0
         assert "Configured NANOGPT API key" in result.output
@@ -54,7 +53,8 @@ class TestProviderCommands:
         """Test adding OpenRouter provider."""
         result = cli_runner.invoke(
             main,
-            ["provider", "add", "openrouter", "--api-key", "sk-or-test456"]
+            ["provider", "add", "openrouter", "--api-key", "sk-or-test456"],
+            input="y\n"  # Confirm model installation
         )
         assert result.exit_code == 0
         assert "Configured OPENROUTER API key" in result.output
@@ -69,14 +69,16 @@ class TestProviderCommands:
         # Add NanoGPT first
         result1 = cli_runner.invoke(
             main,
-            ["provider", "add", "nanogpt", "--api-key", "sk-nano-original"]
+            ["provider", "add", "nanogpt", "--api-key", "sk-nano-original"],
+            input="y\n"  # Confirm model installation
         )
         assert result1.exit_code == 0
 
         # Add OpenRouter
         result2 = cli_runner.invoke(
             main,
-            ["provider", "add", "openrouter", "--api-key", "sk-or-new"]
+            ["provider", "add", "openrouter", "--api-key", "sk-or-new"],
+            input="y\n"  # Confirm model installation
         )
         assert result2.exit_code == 0
 
@@ -146,8 +148,9 @@ class TestProviderCommands:
             "SOME_OTHER_VAR=value\n"
         )
 
-        import klean.cli
         import unittest.mock
+
+        import klean.cli
         with unittest.mock.patch.object(klean.cli, "CONFIG_DIR", temp_config):
             env_vars = _load_existing_env()
 
@@ -164,8 +167,9 @@ class TestProviderCommands:
             "OPENROUTER_API_KEY=sk-or-456\n"
         )
 
-        import klean.cli
         import unittest.mock
+
+        import klean.cli
         with unittest.mock.patch.object(klean.cli, "CONFIG_DIR", temp_config):
             providers = _get_configured_providers()
 
