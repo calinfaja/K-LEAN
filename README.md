@@ -270,7 +270,7 @@ git clone https://github.com/calinfaja/K-LEAN.git
 cd k-lean
 pipx install -e .
 kln install --dev
-kln test
+kln admin test
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
