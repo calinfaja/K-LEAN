@@ -29,6 +29,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Code quality**: Ruff 100% pass (fixed unused imports, deprecated type hints, format strings)
 - **Test coverage**: Updated test assertions to match new CLI structure and docstrings
 - All 197 tests now passing (191 existing + 6 refactored + improved quality)
+- **QA fixes (v1.0.0b2)**:
+  - `kln model test` now uses httpx with discovery endpoint (was importing non-existent LLMClient)
+  - Slash commands (`/kln:quick`, `/kln:multi`, `/kln:rethink`, `/kln:status`) now use correct script path
+  - Script count in `kln status` now includes both `.sh` and `.py` files (was showing 29 instead of 39)
+  - Removed dead code checking for non-existent `thinking_transform.py` callback
 
 ### Changed
 - Installation now includes zero-config statusline setup

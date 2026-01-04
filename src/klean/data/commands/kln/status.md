@@ -43,7 +43,7 @@ When invoked:
 
 2. **For "models" subcommand:**
    ```bash
-   ~/.local/share/pipx/venvs/kln-ai/bin/python -m klean.core status
+   ~/.local/share/pipx/venvs/kln-ai/bin/python ~/.claude/kln/klean_core.py status
    ```
 
 3. **For "health" subcommand:**

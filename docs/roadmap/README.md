@@ -21,6 +21,15 @@ Ideas for v2.0:
 - Cost Tracking
 - JSON output mode
 
+### [klean.core Module Refactor](klean-core-module.md)
+Convert klean_core.py to proper importable Python module.
+- **Status**: Planned
+- **Effort**: 2-4 hours
+- **Benefits**:
+  - `python -m klean.core` works
+  - `from klean.core import LLMClient` works
+  - Slash commands use standard module syntax
+
 ### [SWE-bench Integration](swe-bench-integration.md)
 Benchmarking SmolKLN agents against industry-standard evaluations.
 - **Status**: Planned

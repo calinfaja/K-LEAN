@@ -1568,14 +1568,24 @@ def model_test(model: Optional[str], prompt: Optional[str]):
     console.print(f"Prompt: {test_prompt}\n")
 
     try:
-        from klean.smol.models import LLMClient
+        import httpx
+        from klean.discovery import LITELLM_ENDPOINT
 
-        client = LLMClient()
-        response = client.call_model(model, test_prompt, max_tokens=100, timeout=30)
-        console.print("[green]✓ Success[/green]")
-        console.print(f"Response: {response}")
+        resp = httpx.post(
+            f"{LITELLM_ENDPOINT}/v1/chat/completions",
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": test_prompt}],
+                "max_tokens": 100
+            },
+            timeout=30
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        console.print("[green]Success[/green]")
+        console.print(f"Response: {content}")
     except Exception as e:
-        console.print(f"[red]✗ Error: {e}[/red]")
+        console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -1983,8 +1993,10 @@ def status():
     # Scripts
     scripts_dir = CLAUDE_DIR / "scripts"
     if scripts_dir.exists():
-        count = len(list(scripts_dir.glob("*.sh")))
-        is_symlink = any(f.is_symlink() for f in scripts_dir.glob("*.sh"))
+        sh_scripts = list(scripts_dir.glob("*.sh"))
+        py_scripts = list(scripts_dir.glob("*.py"))
+        count = len(sh_scripts) + len(py_scripts)
+        is_symlink = any(f.is_symlink() for f in sh_scripts + py_scripts)
         mode = "(symlinked)" if is_symlink else "(copied)"
         table.add_row("Scripts", f"OK ({count})", mode)
     else:
@@ -2281,19 +2293,6 @@ def doctor(auto_fix: bool):
                             )
                     else:
                         console.print("  [green][OK][/green] LiteLLM .env: Pay-per-use configured")
-
-        # Check thinking models callback
-        callbacks_dir = CONFIG_DIR / "callbacks"
-        thinking_callback = callbacks_dir / "thinking_transform.py"
-        if thinking_callback.exists():
-            console.print("  [green][OK][/green] Thinking models: Callback installed")
-        else:
-            issues.append(("WARNING", "Thinking models callback not installed"))
-            console.print("  [yellow]○[/yellow] Thinking models: Callback not installed")
-            console.print(
-                "    [dim]SmolKLN won't work with glm-4.6-thinking, kimi-k2-thinking, etc.[/dim]"
-            )
-            console.print("    [dim]Fix: kln install -c config[/dim]")
 
     # Check Python venv
     if VENV_DIR.exists():

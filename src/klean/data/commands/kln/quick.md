@@ -32,7 +32,7 @@ git diff HEAD~1..HEAD | head -500 > /tmp/kln-review.txt
 
 # 2. Send to review
 cat /tmp/kln-review.txt | ~/.local/share/pipx/venvs/kln-ai/bin/python \
-    -m klean.core quick -m "MODEL" "FOCUS"
+    ~/.claude/kln/klean_core.py quick -m "MODEL" "FOCUS"
 ```
 
 **MODEL**: `--model` flag or "auto"

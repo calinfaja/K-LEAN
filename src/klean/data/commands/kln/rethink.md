@@ -112,7 +112,7 @@ DEFAULT_MODEL="deepseek-v3-thinking"
 # Otherwise treat as focus
 
 PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
-CORE="-m klean.core"
+CORE=~/.claude/kln/klean_core.py
 
 # Execute rethink
 if [ "$ASYNC" = true ]; then
@@ -139,7 +139,7 @@ cat > "$CONTEXT_FILE" << 'CONTEXT_EOF'
 CONTEXT_EOF
 
 PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
-CORE="-m klean.core"
+CORE=~/.claude/kln/klean_core.py
 
 $PYTHON $CORE rethink --context-file "$CONTEXT_FILE" $ARGUMENTS
 

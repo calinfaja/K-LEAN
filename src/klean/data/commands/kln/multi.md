@@ -36,7 +36,7 @@ $ARGUMENTS
 
 ```bash
 PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
-CORE="-m klean.core"
+CORE=~/.claude/kln/klean_core.py
 
 # Run multi-model review
 $PYTHON $CORE multi $ARGUMENTS
