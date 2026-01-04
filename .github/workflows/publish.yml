@@ -62,8 +62,8 @@ jobs:
       - name: Run pytest
         run: pytest tests/ -v --tb=short --ignore=tests/core/
 
-      - name: Sync check
-        run: kln sync --check
+      - name: Verify install works
+        run: kln --version && kln doctor
 
   publish:
     needs: [verify, test]

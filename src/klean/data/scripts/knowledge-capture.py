@@ -216,10 +216,25 @@ def create_entry_from_json(data: dict):
 
 
 def save_entry(entry, knowledge_dir):
-    """Save entry to knowledge database."""
-    entries_file = knowledge_dir / "entries.jsonl"
+    """Save entry to knowledge database with proper indexing.
 
-    # Append entry as JSONL
+    Uses KnowledgeDB.add() to ensure the entry is immediately searchable.
+    Falls back to JSONL-only append if KnowledgeDB is unavailable.
+    """
+    try:
+        from knowledge_db import KnowledgeDB
+
+        # Use KnowledgeDB to add with proper indexing
+        db = KnowledgeDB(str(knowledge_dir.parent))
+        db.add(entry)
+        return True
+    except ImportError:
+        debug_log("KnowledgeDB not available, falling back to JSONL-only")
+    except Exception as e:
+        debug_log(f"KnowledgeDB.add() failed: {e}, falling back to JSONL-only")
+
+    # Fallback: append to JSONL only (entry won't be searchable until index rebuild)
+    entries_file = knowledge_dir / "entries.jsonl"
     with open(entries_file, "a") as f:
         f.write(json.dumps(entry) + "\n")
 

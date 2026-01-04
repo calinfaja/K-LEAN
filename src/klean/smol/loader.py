@@ -86,14 +86,17 @@ def parse_agent_file(path: Path) -> Agent:
 
 
 def list_available_agents(agents_dir: Path = None) -> List[str]:
-    """List all available agent names."""
+    """List all available agent names.
+
+    Filters out template files (TEMPLATE.md) from the listing.
+    """
     if agents_dir is None:
         agents_dir = Path.home() / ".klean" / "agents"
 
     if not agents_dir.exists():
         return []
 
-    return [p.stem for p in agents_dir.glob("*.md")]
+    return [p.stem for p in agents_dir.glob("*.md") if p.stem.upper() != "TEMPLATE"]
 
 
 def load_agent(name: str, agents_dir: Path = None) -> Agent:

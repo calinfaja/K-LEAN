@@ -32,31 +32,51 @@ Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 
 ## Quick Start
 
+### 1. Get an API Key (required)
+
+Choose one provider and get your API key:
+- **[NanoGPT](https://nano-gpt.com)** — Subscription access to DeepSeek, Qwen, GLM, Kimi
+- **[OpenRouter](https://openrouter.ai)** — Unified access to GPT, Gemini, Claude
+
+### 2. Install
+
 ```bash
-# Install (~60s)
+# Install pipx if you don't have it
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install K-LEAN
 pipx install kln-ai
+```
 
-# Setup (3-4 minutes total)
-kln init                  # Initialize with provider selection
-kln start                 # Start LiteLLM proxy service
-kln status                # Verify configuration
+### 3. Setup
 
-# Optional: Add more models
-kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
-kln model remove "claude-3-sonnet"  # Remove a model
+```bash
+kln init                  # Select provider, enter API key
+kln start                 # Start LiteLLM proxy
+kln status                # Verify everything works
+```
+
+Or non-interactive:
+```bash
+kln init --provider nanogpt --api-key $NANOGPT_API_KEY
 kln start
 ```
 
-**In Claude Code:**
+### 4. Use in Claude Code
+
 ```bash
-/kln:quick "security"          # Fast review (~60s)
-/kln:multi "error handling"    # 3-5 model consensus (~2min)
+/kln:quick "security"          # Fast review (~30s)
+/kln:multi "error handling"    # 3-5 model consensus (~60s)
 /kln:agent security-auditor    # Specialist agent (~2min)
 ```
 
-**For development:**
+### Optional: Add More Models
+
 ```bash
-kln install               # (Usually automatic, only needed after major upgrades)
+kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
+kln model remove "claude-3-sonnet"
+kln start  # Restart to apply changes
 ```
 
 ---
@@ -224,21 +244,41 @@ kln multi            # Run multi-agent orchestrated review
 
 ## Recommended Providers
 
+K-LEAN comes with **curated model sets** for each provider—no manual configuration needed.
+
 ### NanoGPT
 
-[NanoGPT](https://nano-gpt.com) — Best value subscription for top-tier models.
+[NanoGPT](https://nano-gpt.com) — Subscription access to top-tier models.
 
-- **Top providers** — DeepSeek, Alibaba, Zhipu, Moonshot, Minimax, Meta
-- **Thinking models** — Reasoning chains for complex analysis
-- **Simple setup** — One API key, 200+ models
+**10 models pre-configured:**
+| Model | Provider | Specialty |
+|-------|----------|-----------|
+| `deepseek-r1` | DeepSeek | Reasoning, code review |
+| `deepseek-v3.2` | DeepSeek | Fast general purpose |
+| `qwen3-coder` | Alibaba | Code-focused |
+| `glm-4.7` | Zhipu | Multilingual |
+| `kimi-k2` | Moonshot | Long context |
+| `llama-4-maverick` | Meta | Creative |
+| `llama-4-scout` | Meta | Analytical |
+| `mimo-v2-flash` | Xiaomi | Fast inference |
+| `gpt-oss-120b` | OpenAI-OSS | Large capacity |
+| `devstral-2-123b` | Mistral | Code generation |
+
+**+4 thinking models** (auto-configured): `deepseek-v3.2-thinking`, `glm-4.7-thinking`, `kimi-k2-thinking`, `deepseek-r1-thinking`
 
 ### OpenRouter
 
-[OpenRouter](https://openrouter.ai) — Unified API gateway for major providers.
+[OpenRouter](https://openrouter.ai) — Unified API for multiple providers.
 
-- **Top providers** — Anthropic, Google, Meta, Mistral, DeepSeek, OpenAI
-- **Free tiers** — Some models available at no cost
-- **Simple setup** — One API key, 500+ models
+**6 models pre-configured:**
+| Model | Provider | Specialty |
+|-------|----------|-----------|
+| `gemini-3-flash` | Google | Fast, multimodal |
+| `gemini-2.5-flash` | Google | Balanced |
+| `gpt-5-mini` | OpenAI | Efficient |
+| `gpt-5.1-codex-mini` | OpenAI | Code-focused |
+| `qwen3-coder-plus` | Alibaba | Enhanced coding |
+| `deepseek-v3.2-speciale` | DeepSeek | Specialized |
 
 ---
 
