@@ -30,6 +30,129 @@ Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 
 ---
 
+## What You Get
+
+### 1. Second Opinions on Demand
+
+Three ways to get external perspectives—pick based on speed vs depth:
+
+| Command | What Happens | Time |
+|---------|--------------|------|
+| `/kln:quick` | 1 model reviews code you provide | ~30s |
+| `/kln:multi` | 3-5 models vote on same code | ~60s |
+| `/kln:rethink` | Contrarian techniques when you're stuck | ~20s |
+
+**`/kln:quick`** — You gather the code (git diff, file content), one model reviews it fast.
+```
+/kln:quick "security review"
+# Grade: B+ | Risk: MEDIUM | 3 findings
+```
+
+**`/kln:multi`** — Same code goes to 5 models in parallel. When 4/5 agree, it's real.
+```
+/kln:multi "check error handling"
+# 4/5 AGREE: Missing null check at line 42
+```
+
+**`/kln:rethink`** — Stuck debugging 10+ minutes? Get contrarian ideas: inversion, assumption challenge, domain shift.
+```
+/kln:rethink
+# "What if the bug isn't in the parser—what if the input is already corrupt?"
+```
+
+**How:** LiteLLM proxy routes to multiple providers (NanoGPT, OpenRouter). Dynamic model discovery, parallel async execution, response aggregation with consensus scoring.
+
+---
+
+### 2. Knowledge That Sticks
+
+Your insights survive sessions. Capture mid-session or end-of-session:
+
+**`/kln:learn`** — Extract learnings NOW, while context is fresh.
+```
+/kln:learn "JWT issue"
+# Found 3 learnings → Saved to Knowledge DB
+```
+
+**`/kln:remember`** — End of session. Reviews git diff, extracts warnings/patterns/solutions, syncs to Serena MCP.
+```
+/kln:remember
+# Saved 5 entries (2 warnings, 2 patterns, 1 solution)
+# Synced to Serena lessons-learned
+```
+
+**`FindKnowledge`** — Search anytime. Just type the keyword.
+```
+FindKnowledge "JWT validation"
+# Found: [2024-12-15] JWT refresh token race condition fix
+```
+
+**How:** Per-project knowledge database with hybrid search—dense embeddings (BGE-small via [fastembed](https://github.com/qdrant/fastembed)) + sparse matching (BM25) + RRF fusion + cross-encoder reranking. Runs locally via ONNX, <100ms queries.
+
+> **No API key?** Knowledge DB works fully offline. You can still use `/kln:learn`, `/kln:remember`, and `FindKnowledge` without NanoGPT or OpenRouter—embeddings run locally on your machine.
+
+---
+
+### 3. Agents That Explore
+
+Unlike models that review what you give them, **agents read your codebase themselves**.
+
+8 specialists with tools: `read_file`, `grep`, `search_files`, `knowledge_search`, `get_complexity`.
+
+| Agent | Expertise |
+|-------|-----------|
+| `security-auditor` | OWASP Top 10, auth, crypto |
+| `rust-expert` | Ownership, lifetimes, unsafe |
+| `debugger` | Root cause analysis |
+| `arm-cortex-expert` | Embedded ARM, real-time |
+
+```
+/kln:agent security-auditor "audit payment module"
+# Agent greps for payment → reads 3 files → finds 2 vulnerabilities
+```
+
+**Parallel mode** — Run 3 agents at once (code-reviewer + security-auditor + performance-engineer):
+```
+/kln:agent --parallel "review auth system"
+# 3 specialists, 3 perspectives, unified report
+```
+
+**How:** Built on [smolagents](https://github.com/huggingface/smolagents) with LiteLLM integration. Multi-step reasoning, tool use, and memory persistence. Orchestrator coordinates multi-agent tasks.
+
+---
+
+### 4. Hooks That Work in Background
+
+4 hooks run automatically—you don't call them:
+
+| Hook | Trigger | What It Does |
+|------|---------|--------------|
+| `session-start` | Claude Code opens | Starts LiteLLM + Knowledge Server |
+| `user-prompt` | You type keywords | `FindKnowledge`, `SaveInfo`, `asyncConsensus` |
+| `post-bash` | After git commits | Logs to timeline, extracts facts |
+| `post-web` | After WebFetch | Evaluates URLs, saves if relevant |
+
+**Keywords you can type directly** (no slash):
+```
+FindKnowledge "rate limiting"     # Search KB
+SaveInfo https://docs.example.com # Evaluate + save if useful
+asyncConsensus security           # Background 3-model review
+```
+
+**How:** Claude Code hook system with pattern matching. Services auto-start on session begin. Git commits logged to timeline. Web content evaluated and captured if relevant.
+
+---
+
+### 5. Status Line
+```
+[opus 4.5] │ claudeAgentic │ git:(main●) +27-23 │ llm:16 kb:[OK]
+```
+Model. Project. Branch (● = dirty). Lines changed. Models ready. KB health.
+
+**How:** Custom statusline polling LiteLLM and Knowledge DB on each prompt.
+
+---
+
 ## Quick Start
 
 ### 1. Get an API Key (required)
