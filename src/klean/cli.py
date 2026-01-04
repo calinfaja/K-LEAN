@@ -1009,12 +1009,13 @@ def configure_statusline() -> bool:
                 # If settings.json is corrupt, start fresh
                 settings = {}
 
-        # Check if statusline is already configured
+        # Check if statusline is already configured correctly
         existing_statusline = settings.get("statusLine", {})
         existing_command = existing_statusline.get("command", "")
+        existing_type = existing_statusline.get("type", "")
 
-        if existing_command == str(statusline_script):
-            # Already configured correctly
+        if existing_command == str(statusline_script) and existing_type == "command":
+            # Already configured correctly (both command and type are set)
             return True
 
         # Configure statusline
