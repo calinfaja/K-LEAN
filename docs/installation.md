@@ -40,8 +40,8 @@ kln provider add openrouter --api-key $KEY
 ```
 
 **Providers:**
-- **NanoGPT**: https://nano-gpt.com (8 recommended models)
-- **OpenRouter**: https://openrouter.ai (3 recommended models)
+- **NanoGPT**: https://nano-gpt.com (10 recommended models)
+- **OpenRouter**: https://openrouter.ai (6 recommended models)
 
 **Config files:**
 ```
