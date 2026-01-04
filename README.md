@@ -30,6 +30,57 @@ Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 
 ---
 
+## Quick Start
+
+### 1. Get an API Key (required)
+
+Choose one provider and get your API key:
+- **[NanoGPT](https://nano-gpt.com)** — Subscription access to DeepSeek, Qwen, GLM, Kimi
+- **[OpenRouter](https://openrouter.ai)** — Unified access to GPT, Gemini, Claude
+
+### 2. Install
+
+```bash
+# Install pipx if you don't have it
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install K-LEAN
+pipx install kln-ai
+```
+
+### 3. Setup
+
+```bash
+kln init                  # Select provider, enter API key
+kln start                 # Start LiteLLM proxy
+kln status                # Verify everything works
+```
+
+Or non-interactive:
+```bash
+kln init --provider nanogpt --api-key $NANOGPT_API_KEY
+kln start
+```
+
+### 4. Use in Claude Code
+
+```bash
+/kln:quick "security"          # Fast review (~30s)
+/kln:multi "error handling"    # 3-5 model consensus (~60s)
+/kln:agent security-auditor    # Specialist agent (~2min)
+```
+
+### Optional: Add More Models
+
+```bash
+kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
+kln model remove "claude-3-sonnet"
+kln start  # Restart to apply changes
+```
+
+---
+
 ## What You Get
 
 ### 1. Second Opinions on Demand
@@ -153,57 +204,6 @@ asyncConsensus security           # Background 3-model review
 Model. Project. Branch (● = dirty). Lines changed. Models ready. KB health.
 
 **How:** Custom statusline polling LiteLLM and Knowledge DB on each prompt.
-
----
-
-## Quick Start
-
-### 1. Get an API Key (required)
-
-Choose one provider and get your API key:
-- **[NanoGPT](https://nano-gpt.com)** — Subscription access to DeepSeek, Qwen, GLM, Kimi
-- **[OpenRouter](https://openrouter.ai)** — Unified access to GPT, Gemini, Claude
-
-### 2. Install
-
-```bash
-# Install pipx if you don't have it
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
-
-# Install K-LEAN
-pipx install kln-ai
-```
-
-### 3. Setup
-
-```bash
-kln init                  # Select provider, enter API key
-kln start                 # Start LiteLLM proxy
-kln status                # Verify everything works
-```
-
-Or non-interactive:
-```bash
-kln init --provider nanogpt --api-key $NANOGPT_API_KEY
-kln start
-```
-
-### 4. Use in Claude Code
-
-```bash
-/kln:quick "security"          # Fast review (~30s)
-/kln:multi "error handling"    # 3-5 model consensus (~60s)
-/kln:agent security-auditor    # Specialist agent (~2min)
-```
-
-### Optional: Add More Models
-
-```bash
-kln model add --provider openrouter "anthropic/claude-3.5-sonnet"
-kln model remove "claude-3-sonnet"
-kln start  # Restart to apply changes
-```
 
 ---
 
