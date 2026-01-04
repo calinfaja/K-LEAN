@@ -109,15 +109,18 @@ Unlike models that review what you give them, **agents read your codebase themse
 ```
 /kln:agent security-auditor "audit payment module"
 # Agent greps for payment → reads 3 files → finds 2 vulnerabilities
+
+/kln:agent rust-expert --model qwen3-coder "review unsafe blocks"
+# Want a specific LLM? Use --model to pick your expert
 ```
 
-**Parallel mode** — Run 3 agents at once (code-reviewer + security-auditor + performance-engineer):
+**`--parallel`** — Need multiple perspectives? Run 3 specialists at once:
 ```
 /kln:agent --parallel "review auth system"
-# 3 specialists, 3 perspectives, unified report
+# code-reviewer + security-auditor + performance-engineer → unified report
 ```
 
-**How:** Built on [smolagents](https://github.com/huggingface/smolagents) with LiteLLM integration. Multi-step reasoning, tool use, and memory persistence. Orchestrator coordinates multi-agent tasks.
+**How:** Built on [smolagents](https://github.com/huggingface/smolagents) with LiteLLM integration. Multi-step reasoning, tool use, and memory persistence.
 
 ---
 

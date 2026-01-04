@@ -2,7 +2,7 @@
   "project": {
     "name": "k-lean",
     "package_name": "kln-ai",
-    "version": "1.0.0b2",
+    "version": "1.0.0b3",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
     "generated": "2026-01-03",
     "python_version": ">=3.9",
@@ -132,7 +132,7 @@
     }
   },
   "scripts": {
-    "count": 35,
+    "count": 39,
     "review": ["quick-review.sh", "consensus-review.sh", "second-opinion.sh"],
     "service": ["setup-litellm.sh", "start-litellm.sh", "health-check.sh", "session-helper.sh"],
     "utility": ["timeline-query.sh", "smart-capture.sh", "fact-extract.sh", "async-dispatch.sh"]
@@ -156,15 +156,15 @@
   "tests": {
     "framework": "pytest",
     "path": "tests/",
-    "count": 11,
-    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py", "test_init_command.py", "test_model_management.py"]
+    "count": 13,
+    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py", "test_init_command.py", "test_model_management.py", "test_provider_management.py", "test_knowledge_db.py"]
   },
   "file_counts": {
     "python": 51,
-    "shell": 35,
+    "shell": 29,
     "markdown": 50,
     "yaml_toml": 12,
-    "tests": 11
+    "tests": 13
   },
   "directories": {
     "installed": {

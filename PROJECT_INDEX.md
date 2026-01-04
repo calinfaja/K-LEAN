@@ -1,7 +1,7 @@
 # Project Index: K-LEAN
 
 **Generated**: 2026-01-03
-**Version**: 1.0.0b2
+**Version**: 1.0.0b3
 **License**: Apache-2.0
 
 ---
@@ -30,12 +30,12 @@ k-lean/
 │   │   └── loader.py       # Agent .md file parser
 │   ├── tools/              # Agent tools (grep, read, search)
 │   └── data/               # Installable assets
-│       ├── scripts/        # 35 shell & Python scripts
+│       ├── scripts/        # 39 shell & Python scripts
 │       ├── commands/kln/   # 9 slash commands
 │       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # LiteLLM & provider templates
-├── tests/                  # 11 test files
+├── tests/                  # 13 test files
 ├── docs/                   # User & architecture docs
 ├── config/litellm/         # LiteLLM proxy configuration
 └── pyproject.toml          # Package configuration
@@ -262,8 +262,10 @@ SmolAgents-based agent system:
 | test_async_completion.py | Async model calls |
 | test_llm_client.py | LLM client integration |
 | test_cli_integration.py | CLI end-to-end |
-| test_init_command.py | Init command (new in this session) |
-| test_model_management.py | Model management commands (new in this session) |
+| test_init_command.py | Init command |
+| test_model_management.py | Model management commands |
+| test_provider_management.py | Provider management commands |
+| test_knowledge_db.py | Knowledge database hybrid search |
 
 ---
 

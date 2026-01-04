@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Statusline validation in `doctor` command with auto-fix
 
 ### Fixed
+- `make_executable()` now handles both `*.sh` and `*.py` files (statusline script was not executable)
 - SuperClaude decoupling in status command
 - Empty model_list YAML handling (None → [])
 - CONFIG_DIR check in init command
@@ -28,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Test fixes (v1.0.0b2)**: CLI integration tests now use new refactored CLI entry point
 - **Code quality**: Ruff 100% pass (fixed unused imports, deprecated type hints, format strings)
 - **Test coverage**: Updated test assertions to match new CLI structure and docstrings
-- All 197 tests now passing (191 existing + 6 refactored + improved quality)
+- All 207 tests now passing (197 from b2 + 10 new)
 - **QA fixes (v1.0.0b2)**:
   - `kln model test` now uses httpx with discovery endpoint (was importing non-existent LLMClient)
   - Slash commands (`/kln:quick`, `/kln:multi`, `/kln:rethink`, `/kln:status`) now use correct script path

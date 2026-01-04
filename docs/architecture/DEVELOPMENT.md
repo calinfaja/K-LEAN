@@ -61,7 +61,7 @@ cd k-lean
 pipx install -e .
 
 # Verify installation
-kln --version       # Should show 1.0.0b2
+kln --version       # Should show 1.0.0b3
 kln doctor          # Check configuration
 kln test            # Run test suite
 ```

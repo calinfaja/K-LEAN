@@ -267,13 +267,14 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
 
 
 def make_executable(path: Path) -> None:
-    """Make shell scripts executable."""
-    for script in path.glob("*.sh"):
-        if script.exists():
-            script.chmod(script.stat().st_mode | 0o111)
-        elif script.is_symlink():
-            target = os.readlink(script)
-            click.echo(f"  Warning: broken symlink {script.name} -> {target}", err=True)
+    """Make shell and Python scripts executable."""
+    for pattern in ["*.sh", "*.py"]:
+        for script in path.glob(pattern):
+            if script.exists():
+                script.chmod(script.stat().st_mode | 0o111)
+            elif script.is_symlink():
+                target = os.readlink(script)
+                click.echo(f"  Warning: broken symlink {script.name} -> {target}", err=True)
 
 
 def check_litellm() -> bool:
@@ -2802,25 +2803,26 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
     """Run multi-agent orchestrated review.
 
     Uses multiple specialized agents coordinated by a manager for thorough code reviews.
+    All agents use the first available model from LiteLLM (override manager with -m).
 
     \b
     3-Agent (default):
-      - Manager (glm-4.6-thinking): Orchestration
-      - File Scout (qwen3-coder): Fast file discovery
-      - Analyzer (kimi-k2-thinking): Deep analysis
+      - Manager: Orchestration
+      - File Scout: Fast file discovery
+      - Analyzer: Deep analysis
 
     \b
     4-Agent (--thorough):
-      - Manager (glm-4.6-thinking): Orchestration
-      - File Scout (qwen3-coder): File discovery
-      - Code Analyzer (deepseek-v3-thinking): Bug detection
-      - Security Auditor (deepseek-v3-thinking): Security analysis
-      - Synthesizer (kimi-k2): Report formatting
+      - Manager: Orchestration
+      - File Scout: File discovery
+      - Code Analyzer: Bug detection
+      - Security Auditor: Security analysis
+      - Synthesizer: Report formatting
 
     Examples:
         kln multi "Review src/auth/ for security issues"
         kln multi --thorough "Review the authentication module"
-        kln multi -m kimi-k2-thinking "Review cli.py"
+        kln multi -m deepseek-r1 "Review cli.py"
     """
     # Setup telemetry if requested
     if telemetry:
