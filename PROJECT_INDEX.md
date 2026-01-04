@@ -89,8 +89,8 @@ LiteLLM configuration generation with non-destructive merging:
 
 ### `src/klean/model_defaults.py`
 Default model configurations for each provider:
-- `get_nanogpt_models()` - Returns 8 recommended NanoGPT models
-- `get_openrouter_models()` - Returns 3 recommended OpenRouter models
+- `get_nanogpt_models()` - Returns 10 recommended NanoGPT models
+- `get_openrouter_models()` - Returns 6 recommended OpenRouter models
 - `NANOGPT_MODELS` - Static list of NanoGPT model definitions
 - `OPENROUTER_MODELS` - Static list of OpenRouter model definitions
 
