@@ -8,13 +8,20 @@ on:
 
 jobs:
   test:
+    name: Test Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
 
       # ----------------------------------------
       # Code Quality (catches real bugs)
@@ -26,7 +33,9 @@ jobs:
         run: ruff check src/ --select=F,E722
         # F: Pyflakes (undefined names, unused imports)
         # E722: Bare except clauses
-        # Skips style issues (line length, import order)
+
+      - name: Format check
+        run: ruff format --check src/
 
       # ----------------------------------------
       # Package Installation
@@ -53,10 +62,12 @@ jobs:
         run: kln doctor
 
       # ----------------------------------------
-      # Build Verification
+      # Build Verification (only on 3.11)
       # ----------------------------------------
       - name: Build package
+        if: matrix.python-version == '3.11'
         run: pip install build && python -m build
 
       - name: Check package
+        if: matrix.python-version == '3.11'
         run: pip install twine && twine check dist/*
