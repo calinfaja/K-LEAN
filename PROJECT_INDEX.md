@@ -61,11 +61,16 @@ Primary CLI with Click commands (reorganized in this session):
 - **Provider subgroup** (`kln provider`): `list`, `add`, `set-key`, `remove`
 - **Admin subgroup** (`kln admin`, hidden): `sync`, `debug`, `test`
 
+Key helper functions:
+- `get_litellm_binary()` - Find litellm in pipx venv or system PATH
+- `configure_statusline()` - Configure Claude Code statusline
+
 Key improvements:
-- 65% fewer visible commands (17 flat → 7 root + 3 groups)
+- 65% fewer visible commands (17 flat -> 7 root + 3 groups)
 - Noun-verb pattern (`kln model add` vs `kln add-model`)
 - Admin tools hidden from main help
 - Cognitive load reduced ~60%
+- pipx-compatible binary detection (v1.0.0b2)
 
 ### `src/klean/model_utils.py`
 Model extraction and parsing utilities:

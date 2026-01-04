@@ -16,7 +16,7 @@
   "core_modules": {
     "cli": {
       "path": "src/klean/cli.py",
-      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "multi", "model", "admin", "configure_statusline"],
+      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "multi", "model", "admin", "configure_statusline", "get_litellm_binary"],
       "command_structure": {
         "root": ["init", "install", "uninstall", "start", "stop", "status", "doctor", "multi"],
         "model_subgroup": ["list", "add", "remove", "test"],

@@ -43,6 +43,24 @@ from klean import (
 console = Console()
 
 
+def get_litellm_binary() -> Path | None:
+    """Find litellm binary - checks pipx venv first, then system PATH.
+
+    When installed via pipx, litellm is in the same venv as kln but not in
+    system PATH. This function finds it by looking relative to sys.executable.
+    """
+    # First check in the same bin directory as current Python executable
+    # This works for pipx installations where litellm is in the venv
+    bin_dir = Path(sys.executable).parent
+    litellm_path = bin_dir / "litellm"
+    if litellm_path.exists():
+        return litellm_path
+
+    # Fallback to system PATH (for non-pipx installations)
+    which_result = shutil.which("litellm")
+    return Path(which_result) if which_result else None
+
+
 def get_source_data_dir() -> Path:
     """Get the source data directory - handles both editable and regular installs."""
     # In editable install, DATA_DIR points to src/klean/data
@@ -68,6 +86,7 @@ def get_source_data_dir() -> Path:
 # =============================================================================
 # Status Helper Functions
 # =============================================================================
+
 
 def get_litellm_info() -> tuple:
     """Get model count and detected providers from LiteLLM config.
@@ -184,11 +203,13 @@ def _query_kb_entries(socket_path: str) -> str:
 
 def print_banner():
     """Print the K-LEAN banner."""
-    console.print(Panel.fit(
-        f"[bold cyan]K-LEAN v{__version__}[/bold cyan]\n"
-        "[dim]Multi-Model Code Review & Knowledge Capture System[/dim]",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold cyan]K-LEAN v{__version__}[/bold cyan]\n"
+            "[dim]Multi-Model Code Review & Knowledge Capture System[/dim]",
+            border_style="cyan",
+        )
+    )
 
 
 def ensure_dir(path: Path) -> None:
@@ -235,7 +256,9 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
                         shutil.rmtree(dst_subdir)
                 dst_subdir.symlink_to(item.resolve())
             else:
-                if dst_subdir.exists():
+                if dst_subdir.is_symlink():
+                    dst_subdir.unlink()
+                elif dst_subdir.exists():
                     shutil.rmtree(dst_subdir)
                 shutil.copytree(item, dst_subdir)
             count += 1
@@ -258,6 +281,7 @@ def check_litellm() -> bool:
     try:
         import json
         import urllib.request
+
         # Try /models endpoint which LiteLLM supports
         req = urllib.request.Request("http://localhost:4000/models")
         response = urllib.request.urlopen(req, timeout=2)
@@ -271,6 +295,7 @@ def _check_smolagents_installed() -> bool:
     """Check if smolagents package is installed."""
     try:
         import smolagents  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -284,6 +309,7 @@ def check_command_exists(cmd: str) -> bool:
 def get_project_socket_path(project_path: Path = None) -> Path:
     """Get per-project socket path using same hash as knowledge-server.py."""
     import hashlib
+
     if project_path is None:
         project_path = find_project_root()
     if not project_path:
@@ -347,13 +373,15 @@ def list_knowledge_servers() -> list:
                 client.sendall(b'{"cmd":"status"}')
                 response = json.loads(client.recv(65536).decode())
                 client.close()
-                servers.append({
-                    "socket": str(socket_file),
-                    "pid": pid,
-                    "project": response.get("project", "unknown"),
-                    "entries": response.get("entries", 0),
-                    "idle": response.get("idle_seconds", 0)
-                })
+                servers.append(
+                    {
+                        "socket": str(socket_file),
+                        "pid": pid,
+                        "project": response.get("project", "unknown"),
+                        "entries": response.get("entries", 0),
+                        "idle": response.get("idle_seconds", 0),
+                    }
+                )
             except Exception:
                 pass
     return servers
@@ -363,6 +391,7 @@ def check_phoenix() -> bool:
     """Check if Phoenix telemetry server is running on port 6006."""
     try:
         import urllib.request
+
         urllib.request.urlopen("http://localhost:6006", timeout=1)
         return True
     except Exception:
@@ -380,17 +409,16 @@ def start_phoenix(background: bool = True) -> bool:
 
     try:
         import subprocess
+
         cmd = [sys.executable, "-m", "phoenix.server.main", "serve"]
         if background:
             log_file = LOGS_DIR / "phoenix.log"
             subprocess.Popen(
-                cmd,
-                stdout=open(log_file, "w"),
-                stderr=subprocess.STDOUT,
-                start_new_session=True
+                cmd, stdout=open(log_file, "w"), stderr=subprocess.STDOUT, start_new_session=True
             )
             # Give it a moment to start
             import time
+
             time.sleep(1)
             return check_phoenix()
         else:
@@ -430,13 +458,13 @@ def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool
         ensure_klean_dirs()
         log_file = LOGS_DIR / "knowledge-server.log"
 
-        with open(log_file, 'a') as log:
+        with open(log_file, "a") as log:
             process = subprocess.Popen(
                 [python_cmd, str(knowledge_script), "start", str(project_path)],
                 stdout=log,
                 stderr=log,
                 cwd=str(project_path),
-                start_new_session=True  # Detach from parent process
+                start_new_session=True,  # Detach from parent process
             )
 
         if not wait:
@@ -487,6 +515,7 @@ def check_litellm_detailed() -> dict[str, Any]:
     result = {"running": False, "port": 4000, "models": [], "error": None}
     try:
         import urllib.request
+
         req = urllib.request.Request("http://localhost:4000/models")
         response = urllib.request.urlopen(req, timeout=3)
         data = json.loads(response.read().decode())
@@ -505,32 +534,52 @@ KLEAN_HOOKS_CONFIG = {
     "SessionStart": [
         {
             "matcher": "startup",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}]
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}
+            ],
         },
         {
             "matcher": "resume",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}]
-        }
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}
+            ],
+        },
     ],
     "UserPromptSubmit": [
         {
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/user-prompt-handler.sh", "timeout": 30}]
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/.claude/hooks/user-prompt-handler.sh",
+                    "timeout": 30,
+                }
+            ]
         }
     ],
     "PostToolUse": [
         {
             "matcher": "Bash",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-bash-handler.sh", "timeout": 15}]
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/.claude/hooks/post-bash-handler.sh",
+                    "timeout": 15,
+                }
+            ],
         },
         {
             "matcher": "WebFetch|WebSearch",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}]
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}
+            ],
         },
         {
             "matcher": "mcp__tavily__.*",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}]
-        }
-    ]
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}
+            ],
+        },
+    ],
 }
 
 
@@ -566,7 +615,9 @@ def merge_klean_hooks(existing_settings: dict) -> tuple[dict, list[str]]:
             for klean_hook in klean_hook_list:
                 klean_matcher = klean_hook.get("matcher", "")
                 if not klean_matcher and "hooks" in klean_hook:
-                    klean_matcher = klean_hook["hooks"][0].get("command", "") if klean_hook["hooks"] else ""
+                    klean_matcher = (
+                        klean_hook["hooks"][0].get("command", "") if klean_hook["hooks"] else ""
+                    )
 
                 if klean_matcher not in existing_matchers:
                     hooks[hook_type].append(klean_hook)
@@ -598,8 +649,8 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
         console.print("   Copy from .env.example and add your API key")
         return False
 
-    # Check for litellm binary
-    if not shutil.which("litellm"):
+    # Check for litellm binary (in pipx venv or system PATH)
+    if not get_litellm_binary():
         console.print("[red]Error: litellm not installed. Run: pip install litellm[/red]")
         return False
 
@@ -609,12 +660,12 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
     try:
         if background:
             # Start in background with nohup
-            with open(log_file, 'a') as log:
+            with open(log_file, "a") as log:
                 process = subprocess.Popen(
                     ["bash", str(start_script), str(port)],
                     stdout=log,
                     stderr=log,
-                    start_new_session=True
+                    start_new_session=True,
                 )
                 pid_file.write_text(str(process.pid))
 
@@ -658,10 +709,7 @@ def stop_litellm() -> bool:
 
     # Try to find and kill litellm process
     try:
-        result = subprocess.run(
-            ["pkill", "-f", "litellm.*--port"],
-            capture_output=True
-        )
+        result = subprocess.run(["pkill", "-f", "litellm.*--port"], capture_output=True)
         return result.returncode == 0
     except Exception:
         return False
@@ -721,7 +769,7 @@ def stop_knowledge_server(project_path: Path = None, stop_all: bool = False) -> 
         subprocess.run(
             [python_cmd, str(knowledge_script), "stop", str(project_path)],
             capture_output=True,
-            timeout=5
+            timeout=5,
         )
         time.sleep(0.5)
     except Exception:
@@ -736,15 +784,10 @@ def log_debug_event(component: str, event: str, **kwargs) -> None:
     ensure_klean_dirs()
     log_file = LOGS_DIR / "debug.log"
 
-    entry = {
-        "ts": datetime.now().isoformat(),
-        "component": component,
-        "event": event,
-        **kwargs
-    }
+    entry = {"ts": datetime.now().isoformat(), "component": component, "event": event, **kwargs}
 
     try:
-        with open(log_file, 'a') as f:
+        with open(log_file, "a") as f:
             f.write(json.dumps(entry) + "\n")
     except Exception:
         pass  # Silent fail for logging
@@ -760,7 +803,7 @@ def read_debug_log(lines: int = 50, component: Optional[str] = None) -> list[dic
     try:
         with open(log_file) as f:
             all_lines = f.readlines()
-            for line in all_lines[-lines * 2:]:  # Read extra to filter
+            for line in all_lines[-lines * 2 :]:  # Read extra to filter
                 try:
                     entry = json.loads(line.strip())
                     if component is None or entry.get("component") == component:
@@ -777,6 +820,7 @@ def discover_models() -> list[str]:
     """Discover available models from LiteLLM proxy."""
     try:
         import urllib.request
+
         req = urllib.request.Request("http://localhost:4000/models")
         response = urllib.request.urlopen(req, timeout=3)
         data = json.loads(response.read().decode())
@@ -795,7 +839,7 @@ def query_phoenix_traces(limit: int = 500) -> Optional[dict]:
     if not check_phoenix():
         return None
 
-    query = f'''{{
+    query = f"""{{
         projects {{
             edges {{
                 node {{
@@ -815,15 +859,16 @@ def query_phoenix_traces(limit: int = 500) -> Optional[dict]:
                 }}
             }}
         }}
-    }}'''
+    }}"""
 
     try:
         import urllib.request
+
         req = urllib.request.Request(
             "http://localhost:6006/graphql",
             data=json.dumps({"query": query}).encode(),
             headers={"Content-Type": "application/json"},
-            method="POST"
+            method="POST",
         )
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
@@ -836,7 +881,7 @@ def query_phoenix_traces(limit: int = 500) -> Optional[dict]:
             "avg_latency_ms": 0,
             "error_count": 0,
             "llm_calls": [],
-            "projects": {}
+            "projects": {},
         }
 
         all_latencies = []
@@ -880,15 +925,17 @@ def query_phoenix_traces(limit: int = 500) -> Optional[dict]:
                         result["error_count"] += 1
 
                     # Add to LLM calls list
-                    result["llm_calls"].append({
-                        "time": start_time,
-                        "model": model_name.split("/")[-1] if "/" in model_name else model_name,
-                        "latency_ms": int(latency),
-                        "tokens_in": prompt_tokens,
-                        "tokens_out": completion_tokens,
-                        "status": status,
-                        "project": project_name
-                    })
+                    result["llm_calls"].append(
+                        {
+                            "time": start_time,
+                            "model": model_name.split("/")[-1] if "/" in model_name else model_name,
+                            "latency_ms": int(latency),
+                            "tokens_in": prompt_tokens,
+                            "tokens_out": completion_tokens,
+                            "status": status,
+                            "project": project_name,
+                        }
+                    )
 
         # Calculate averages
         if all_latencies:
@@ -913,10 +960,7 @@ def get_model_health() -> dict[str, str]:
         try:
             if health_script.exists():
                 result = subprocess.run(
-                    ["bash", str(health_script), model],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
+                    ["bash", str(health_script), model], capture_output=True, text=True, timeout=10
                 )
                 health[model] = "OK" if result.returncode == 0 else "FAIL"
             else:
@@ -974,9 +1018,7 @@ def configure_statusline() -> bool:
             return True
 
         # Configure statusline
-        settings["statusLine"] = {
-            "command": str(statusline_script)
-        }
+        settings["statusLine"] = {"command": str(statusline_script)}
 
         # Write back with proper formatting
         ensure_dir(CLAUDE_DIR)
@@ -993,6 +1035,7 @@ def configure_statusline() -> bool:
 # PROVIDER SUBCOMMAND GROUP
 # ============================================================
 
+
 def _load_existing_env() -> dict:
     """Load existing .env variables."""
     env_file = CONFIG_DIR / ".env"
@@ -1001,10 +1044,10 @@ def _load_existing_env() -> dict:
 
     env_vars = {}
     try:
-        for line in env_file.read_text().split('\n'):
+        for line in env_file.read_text().split("\n"):
             line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
                 env_vars[key.strip()] = value.strip()
     except Exception:
         pass
@@ -1017,7 +1060,10 @@ def _get_configured_providers() -> dict:
     providers = {}
 
     # Check each known provider
-    for provider_name, key_var in [("nanogpt", "NANOGPT_API_KEY"), ("openrouter", "OPENROUTER_API_KEY")]:
+    for provider_name, key_var in [
+        ("nanogpt", "NANOGPT_API_KEY"),
+        ("openrouter", "OPENROUTER_API_KEY"),
+    ]:
         if key_var in env_vars:
             # Check if key looks valid (not placeholder)
             key_value = env_vars[key_var]
@@ -1056,6 +1102,7 @@ def provider_list():
     if config_file.exists():
         try:
             import yaml
+
             config = yaml.safe_load(config_file.read_text())
             for model in config.get("model_list", []):
                 provider_name = model.get("litellm_params", {}).get("model", "").split("/")[0]
@@ -1117,7 +1164,9 @@ def provider_add(provider_name: str, api_key: str):
     else:
         recommended_models = get_openrouter_models()
 
-    console.print(f"\n[bold]Recommended {provider_name.upper()} Models ({len(recommended_models)})[/bold]")
+    console.print(
+        f"\n[bold]Recommended {provider_name.upper()} Models ({len(recommended_models)})[/bold]"
+    )
     for model in recommended_models:
         console.print(f"  • {model['model_name']}")
 
@@ -1131,6 +1180,7 @@ def provider_add(provider_name: str, api_key: str):
         if existing_config is None:
             # No config exists yet, create new one with recommended models
             from klean.config_generator import generate_litellm_config
+
             config_yaml = generate_litellm_config(recommended_models)
         else:
             # Merge recommended models into existing config
@@ -1144,7 +1194,7 @@ def provider_add(provider_name: str, api_key: str):
         console.print("Changes will take effect after service restart")
     else:
         console.print("\nNo models added. Add them later with:")
-        console.print(f"  [cyan]kln model add --provider {provider_name} \"model-id\"[/cyan]")
+        console.print(f'  [cyan]kln model add --provider {provider_name} "model-id"[/cyan]')
 
     console.print("\nNext steps:")
     console.print("  • Review models: [cyan]kln model list[/cyan]")
@@ -1168,11 +1218,14 @@ def provider_set_key(provider_name: str, key: str):
     # Check if provider exists
     key_var = f"{provider_name.upper()}_API_KEY"
     if key_var not in existing_env:
-        console.print(f"[yellow]Warning: {provider_name.upper()} not previously configured[/yellow]")
+        console.print(
+            f"[yellow]Warning: {provider_name.upper()} not previously configured[/yellow]"
+        )
         if not click.confirm("Continue anyway?", default=False):
             return
 
     from klean.config_generator import generate_env_file
+
     providers_dict = {provider_name: key}
     env_content = generate_env_file(providers_dict, existing_env=existing_env)
 
@@ -1220,6 +1273,7 @@ def provider_remove(provider_name: str):
 # MODEL SUBCOMMAND GROUP
 # ============================================================
 
+
 @click.group()
 def model():
     """Manage K-LEAN models"""
@@ -1254,6 +1308,7 @@ def model_list(test: bool, health: bool):
         console.print("[dim]Querying LiteLLM /health endpoint...[/dim]\n")
         try:
             import urllib.request
+
             req = urllib.request.Request("http://localhost:4000/health")
             response = urllib.request.urlopen(req, timeout=60)
             health_data = json.loads(response.read().decode())
@@ -1269,7 +1324,9 @@ def model_list(test: bool, health: bool):
                 console.print(f"[red]✗ All {unhealthy_count} models unhealthy![/red]")
                 console.print("[dim]Check: kln doctor -f[/dim]\n")
             else:
-                console.print(f"[yellow]○ {healthy_count}/{total} models healthy ({unhealthy_count} failing)[/yellow]\n")
+                console.print(
+                    f"[yellow]○ {healthy_count}/{total} models healthy ({unhealthy_count} failing)[/yellow]\n"
+                )
 
             # Show unhealthy models
             unhealthy_endpoints = health_data.get("unhealthy_endpoints", [])
@@ -1291,7 +1348,9 @@ def model_list(test: bool, health: bool):
             # Show healthy models
             healthy_endpoints = health_data.get("healthy_endpoints", [])
             if healthy_endpoints and unhealthy_count > 0:
-                console.print(f"\n[green]Healthy models:[/green] {', '.join(e.get('model', '?').split('/')[-1] for e in healthy_endpoints)}")
+                console.print(
+                    f"\n[green]Healthy models:[/green] {', '.join(e.get('model', '?').split('/')[-1] for e in healthy_endpoints)}"
+                )
 
         except Exception as e:
             console.print(f"[red]✗ Could not check health: {e}[/red]")
@@ -1306,15 +1365,17 @@ def model_list(test: bool, health: bool):
         for model in models_list:
             try:
                 start = time.time()
-                data = json.dumps({
-                    "model": model,
-                    "messages": [{"role": "user", "content": "1"}],
-                    "max_tokens": 1
-                }).encode()
+                data = json.dumps(
+                    {
+                        "model": model,
+                        "messages": [{"role": "user", "content": "1"}],
+                        "max_tokens": 1,
+                    }
+                ).encode()
                 req = urllib.request.Request(
                     "http://localhost:4000/chat/completions",
                     data=data,
-                    headers={"Content-Type": "application/json"}
+                    headers={"Content-Type": "application/json"},
                 )
                 urllib.request.urlopen(req, timeout=5)
                 latency = int((time.time() - start) * 1000)
@@ -1354,8 +1415,12 @@ def model_list(test: bool, health: bool):
 
 
 @model.command(name="add")
-@click.option("--provider", required=True, type=click.Choice(["nanogpt", "openrouter"]),
-              help="Model provider (nanogpt or openrouter)")
+@click.option(
+    "--provider",
+    required=True,
+    type=click.Choice(["nanogpt", "openrouter"]),
+    help="Model provider (nanogpt or openrouter)",
+)
 @click.argument("model_id")
 def model_add(provider: str, model_id: str):
     """Add individual model to LiteLLM configuration.
@@ -1406,6 +1471,7 @@ def model_add(provider: str, model_id: str):
 
     # Load existing config
     import yaml
+
     try:
         config_content = config_file.read_text()
         config = yaml.safe_load(config_content)
@@ -1420,7 +1486,9 @@ def model_add(provider: str, model_id: str):
         if not click.confirm("Overwrite?"):
             return
         # Remove existing entry
-        config["model_list"] = [m for m in config["model_list"] if m.get("model_name") != model_name]
+        config["model_list"] = [
+            m for m in config["model_list"] if m.get("model_name") != model_name
+        ]
 
     # Add new model
     config["model_list"].append(model_entry)
@@ -1501,6 +1569,7 @@ def model_test(model: Optional[str], prompt: Optional[str]):
 
     try:
         from klean.smol.models import LLMClient
+
         client = LLMClient()
         response = client.call_model(model, test_prompt, max_tokens=100, timeout=30)
         console.print("[green]✓ Success[/green]")
@@ -1513,6 +1582,7 @@ def model_test(model: Optional[str], prompt: Optional[str]):
 # ============================================================
 # ADMIN SUBCOMMAND GROUP (Hidden - Development Only)
 # ============================================================
+
 
 @click.group(hidden=True)
 def admin():
@@ -1545,7 +1615,9 @@ def admin_sync(check: bool, clean: bool, verbose: bool):
 
     if clean:
         console.print("[yellow]Cleaning target directory...[/yellow]")
-        if data_dir.exists():
+        if data_dir.is_symlink():
+            data_dir.unlink()
+        elif data_dir.exists():
             shutil.rmtree(data_dir)
 
     console.print("[green]Sync complete[/green]")
@@ -1569,6 +1641,7 @@ def admin_debug(follow: bool, component_filter: str, lines: int, compact: bool, 
             console.print("[dim]Debug dashboard active...[/dim]")
             if follow:
                 import time
+
                 time.sleep(interval)
             else:
                 break
@@ -1580,6 +1653,7 @@ def admin_debug(follow: bool, component_filter: str, lines: int, compact: bool, 
 def admin_test():
     """Run comprehensive K-LEAN test suite."""
     import subprocess
+
     print_banner()
 
     console.print("[bold]Running Test Suite[/bold]\n")
@@ -1595,9 +1669,15 @@ main.add_command(admin)
 
 @main.command()
 @click.option("--dev", is_flag=True, help="Development mode: use symlinks instead of copies")
-@click.option("--component", "-c",
-              type=click.Choice(["all", "scripts", "commands", "hooks", "smolkln", "config", "core", "knowledge"]),
-              default="all", help="Component to install")
+@click.option(
+    "--component",
+    "-c",
+    type=click.Choice(
+        ["all", "scripts", "commands", "hooks", "smolkln", "config", "core", "knowledge"]
+    ),
+    default="all",
+    help="Component to install",
+)
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompts")
 def install(dev: bool, component: str, yes: bool):
     """Install K-LEAN components to ~/.claude/"""
@@ -1696,7 +1776,9 @@ def install(dev: bool, component: str, yes: bool):
         console.print("  [dim]CLAUDE.md: skipped (using pure plugin approach)[/dim]")
 
         # LiteLLM config
-        litellm_src = source_config / "litellm" if not dev else source_scripts.parent / "config" / "litellm"
+        litellm_src = (
+            source_config / "litellm" if not dev else source_scripts.parent / "config" / "litellm"
+        )
         if litellm_src.exists():
             ensure_dir(CONFIG_DIR)
             for cfg_file in litellm_src.glob("*.yaml"):
@@ -1719,7 +1801,9 @@ def install(dev: bool, component: str, yes: bool):
                 ensure_dir(callbacks_dst)
                 count = copy_files(callbacks_src, callbacks_dst, "*.py", symlink=dev)
                 if count > 0:
-                    console.print(f"  [green]Installed {count} LiteLLM callbacks (thinking models)[/green]")
+                    console.print(
+                        f"  [green]Installed {count} LiteLLM callbacks (thinking models)[/green]"
+                    )
 
         # Install rules (loaded every Claude session)
         rules_src = DATA_DIR / "rules"
@@ -1762,7 +1846,10 @@ def install(dev: bool, component: str, yes: bool):
             prompts_src = source_core / "prompts"
             if prompts_src.exists():
                 prompts_dst = core_dst / "prompts"
-                if prompts_dst.exists():
+                # Handle existing prompts_dst - symlink or directory
+                if prompts_dst.is_symlink():
+                    prompts_dst.unlink()
+                elif prompts_dst.exists():
                     shutil.rmtree(prompts_dst)
                 if dev:
                     prompts_dst.symlink_to(prompts_src.resolve())
@@ -1787,7 +1874,7 @@ def install(dev: bool, component: str, yes: bool):
             console.print("  [dim](First install may take 2-5 minutes for ML models...)[/dim]")
             subprocess.run(
                 [str(pip), "install", "--upgrade", "pip"],
-                capture_output=True  # pip upgrade is fast, keep quiet
+                capture_output=True,  # pip upgrade is fast, keep quiet
             )
             result = subprocess.run(
                 [str(pip), "install", "fastembed", "numpy"]
@@ -1796,7 +1883,9 @@ def install(dev: bool, component: str, yes: bool):
             if result.returncode == 0:
                 console.print("  [green]Knowledge database ready[/green]")
             else:
-                console.print("  [yellow]Warning: Some dependencies may not have installed[/yellow]")
+                console.print(
+                    "  [yellow]Warning: Some dependencies may not have installed[/yellow]"
+                )
 
     # Configure statusline (if scripts were installed)
     if component in ["all", "scripts"]:
@@ -1926,7 +2015,11 @@ def status():
         if smolagents_installed:
             table.add_row("SmolKLN Agents", f"[green]OK ({count})[/green]", "smolagents ready")
         else:
-            table.add_row("SmolKLN Agents", f"[yellow]OK ({count})[/yellow]", "[yellow]smolagents not installed[/yellow]")
+            table.add_row(
+                "SmolKLN Agents",
+                f"[yellow]OK ({count})[/yellow]",
+                "[yellow]smolagents not installed[/yellow]",
+            )
     else:
         if smolagents_installed:
             table.add_row("SmolKLN Agents", "[yellow]NOT INSTALLED[/yellow]", "run: kln install")
@@ -1951,14 +2044,12 @@ def status():
                 "RUNNING": "green",
                 "STOPPED": "yellow",
                 "NOT INIT": "yellow",
-                "ERROR": "red"
+                "ERROR": "red",
             }.get(kb_status, "dim")
             # Truncate long project names
             display_name = kb_project[:20] + "..." if len(kb_project) > 20 else kb_project
             table.add_row(
-                f"  └─ {display_name}",
-                f"[{status_color}]{kb_status}[/{status_color}]",
-                kb_details
+                f"  └─ {display_name}", f"[{status_color}]{kb_status}[/{status_color}]", kb_details
             )
         elif kb_status == "N/A":
             table.add_row("  └─ Current dir", "[dim]N/A[/dim]", kb_details)
@@ -1975,7 +2066,11 @@ def status():
         table.add_row("LiteLLM Proxy", "[green]RUNNING[/green]", detail)
     else:
         if model_count > 0:
-            table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", f"({model_count} models configured)")
+            table.add_row(
+                "LiteLLM Proxy",
+                "[yellow]NOT RUNNING[/yellow]",
+                f"({model_count} models configured)",
+            )
         else:
             table.add_row("LiteLLM Proxy", "[yellow]NOT RUNNING[/yellow]", "run: kln start")
 
@@ -1997,7 +2092,9 @@ def status():
 
 
 @main.command()
-@click.option("--auto-fix", "-f", is_flag=True, help="Automatically fix issues (hooks, config, services)")
+@click.option(
+    "--auto-fix", "-f", is_flag=True, help="Automatically fix issues (hooks, config, services)"
+)
 def doctor(auto_fix: bool):
     """Validate K-LEAN configuration and services (fast).
 
@@ -2055,26 +2152,44 @@ def doctor(auto_fix: bool):
 
                 # Check for quoted os.environ (common mistake that breaks auth)
                 if '"os.environ/' in config_content or "'os.environ/" in config_content:
-                    issues.append(("ERROR", "LiteLLM config has quoted os.environ/ - remove quotes!"))
+                    issues.append(
+                        ("ERROR", "LiteLLM config has quoted os.environ/ - remove quotes!")
+                    )
                     console.print("  [red]✗[/red] LiteLLM config: Quoted os.environ/ found")
-                    console.print("    [dim]This breaks env var substitution. Edit ~/.config/litellm/config.yaml[/dim]")
-                    console.print("    [dim]Change: api_key: \"os.environ/KEY\" → api_key: os.environ/KEY[/dim]")
+                    console.print(
+                        "    [dim]This breaks env var substitution. Edit ~/.config/litellm/config.yaml[/dim]"
+                    )
+                    console.print(
+                        '    [dim]Change: api_key: "os.environ/KEY" → api_key: os.environ/KEY[/dim]'
+                    )
                     if auto_fix:
                         # Auto-fix by removing quotes around os.environ
                         import re
-                        fixed = re.sub(r'["\']os\.environ/([^"\']+)["\']', r'os.environ/\1', config_content)
+
+                        fixed = re.sub(
+                            r'["\']os\.environ/([^"\']+)["\']', r"os.environ/\1", config_content
+                        )
                         config_yaml.write_text(fixed)
-                        console.print("    [green][OK] Auto-fixed: Removed quotes from os.environ[/green]")
+                        console.print(
+                            "    [green][OK] Auto-fixed: Removed quotes from os.environ[/green]"
+                        )
                         fixes_applied.append("Fixed quoted os.environ in LiteLLM config")
 
                 # Check for hardcoded API keys (security risk)
                 import re
+
                 # Match patterns like api_key: sk-xxx or api_key: "sk-xxx"
-                hardcoded_keys = re.findall(r'api_key:\s*["\']?(sk-[a-zA-Z0-9]{10,}|[a-zA-Z0-9]{32,})["\']?', config_content)
+                hardcoded_keys = re.findall(
+                    r'api_key:\s*["\']?(sk-[a-zA-Z0-9]{10,}|[a-zA-Z0-9]{32,})["\']?', config_content
+                )
                 if hardcoded_keys:
-                    issues.append(("CRITICAL", "LiteLLM config has hardcoded API keys! Use os.environ/VAR"))
+                    issues.append(
+                        ("CRITICAL", "LiteLLM config has hardcoded API keys! Use os.environ/VAR")
+                    )
                     console.print("  [red]✗[/red] LiteLLM config: Hardcoded API keys detected!")
-                    console.print("    [dim]Never commit API keys. Use: api_key: os.environ/NANOGPT_API_KEY[/dim]")
+                    console.print(
+                        "    [dim]Never commit API keys. Use: api_key: os.environ/NANOGPT_API_KEY[/dim]"
+                    )
             except Exception as e:
                 console.print(f"  [yellow]○[/yellow] Could not validate LiteLLM config: {e}")
 
@@ -2085,7 +2200,9 @@ def doctor(auto_fix: bool):
             console.print("  [red]✗[/red] LiteLLM .env: NOT FOUND")
         else:
             env_content = env_file.read_text()
-            has_api_key = "NANOGPT_API_KEY=" in env_content and "your-nanogpt-api-key-here" not in env_content
+            has_api_key = (
+                "NANOGPT_API_KEY=" in env_content and "your-nanogpt-api-key-here" not in env_content
+            )
             has_api_base = "NANOGPT_API_BASE=" in env_content
 
             if not has_api_key:
@@ -2101,21 +2218,25 @@ def doctor(auto_fix: bool):
                 if auto_fix and has_api_key:
                     # Extract API key and auto-detect
                     import re
-                    key_match = re.search(r'NANOGPT_API_KEY=(\S+)', env_content)
+
+                    key_match = re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
                     if key_match:
                         api_key = key_match.group(1)
                         console.print("    [dim]Auto-detecting subscription status...[/dim]")
                         try:
                             import urllib.request
+
                             req = urllib.request.Request(
                                 "https://nano-gpt.com/api/subscription/v1/usage",
-                                headers={"Authorization": f"Bearer {api_key}"}
+                                headers={"Authorization": f"Bearer {api_key}"},
                             )
                             response = urllib.request.urlopen(req, timeout=5)
                             data = json.loads(response.read().decode())
                             if data.get("active"):
                                 api_base = "https://nano-gpt.com/api/subscription/v1"
-                                console.print("    [green][OK] Subscription account detected[/green]")
+                                console.print(
+                                    "    [green][OK] Subscription account detected[/green]"
+                                )
                             else:
                                 api_base = "https://nano-gpt.com/api/v1"
                                 console.print("    [yellow]○ Pay-per-use account detected[/yellow]")
@@ -2130,28 +2251,34 @@ def doctor(auto_fix: bool):
             else:
                 # Check if subscription is still active
                 import re
-                key_match = re.search(r'NANOGPT_API_KEY=(\S+)', env_content)
-                base_match = re.search(r'NANOGPT_API_BASE=(\S+)', env_content)
+
+                key_match = re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
+                base_match = re.search(r"NANOGPT_API_BASE=(\S+)", env_content)
                 if key_match and base_match:
                     api_key = key_match.group(1)
                     api_base = base_match.group(1)
                     if "subscription" in api_base:
                         try:
                             import urllib.request
+
                             req = urllib.request.Request(
                                 "https://nano-gpt.com/api/subscription/v1/usage",
-                                headers={"Authorization": f"Bearer {api_key}"}
+                                headers={"Authorization": f"Bearer {api_key}"},
                             )
                             response = urllib.request.urlopen(req, timeout=5)
                             data = json.loads(response.read().decode())
                             if data.get("active"):
                                 remaining = data.get("daily", {}).get("remaining", 0)
-                                console.print(f"  [green][OK][/green] NanoGPT Subscription: ACTIVE ({remaining} daily remaining)")
+                                console.print(
+                                    f"  [green][OK][/green] NanoGPT Subscription: ACTIVE ({remaining} daily remaining)"
+                                )
                             else:
                                 issues.append(("WARNING", "NanoGPT subscription is not active"))
                                 console.print("  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE")
                         except Exception:
-                            console.print("  [yellow]○[/yellow] NanoGPT Subscription: Could not verify")
+                            console.print(
+                                "  [yellow]○[/yellow] NanoGPT Subscription: Could not verify"
+                            )
                     else:
                         console.print("  [green][OK][/green] LiteLLM .env: Pay-per-use configured")
 
@@ -2163,7 +2290,9 @@ def doctor(auto_fix: bool):
         else:
             issues.append(("WARNING", "Thinking models callback not installed"))
             console.print("  [yellow]○[/yellow] Thinking models: Callback not installed")
-            console.print("    [dim]SmolKLN won't work with glm-4.6-thinking, kimi-k2-thinking, etc.[/dim]")
+            console.print(
+                "    [dim]SmolKLN won't work with glm-4.6-thinking, kimi-k2-thinking, etc.[/dim]"
+            )
             console.print("    [dim]Fix: kln install -c config[/dim]")
 
     # Check Python venv
@@ -2255,7 +2384,9 @@ def doctor(auto_fix: bool):
             if statusline_command == expected_statusline:
                 console.print("  [green][OK][/green] Statusline: CONFIGURED")
             elif statusline_command:
-                console.print(f"  [yellow]○[/yellow] Statusline: Different command configured: {statusline_command}")
+                console.print(
+                    f"  [yellow]○[/yellow] Statusline: Different command configured: {statusline_command}"
+                )
             else:
                 console.print("  [yellow]○[/yellow] Statusline: Not configured")
                 if auto_fix:
@@ -2274,7 +2405,9 @@ def doctor(auto_fix: bool):
     # Check LiteLLM
     litellm_status = check_litellm_detailed()
     if litellm_status["running"]:
-        console.print(f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)")
+        console.print(
+            f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)"
+        )
 
         # Note: Model health moved to 'kln models --health' for faster doctor execution
         console.print("  [dim]○[/dim] Model Health: Use [cyan]kln models --health[/cyan]")
@@ -2357,13 +2490,19 @@ def doctor(auto_fix: bool):
             console.print(f"  • {fix}")
 
     if not auto_fix and any(level in ["WARNING", "ERROR"] for level, _ in issues):
-        console.print("\n[cyan]Tip:[/cyan] Run [bold]kln doctor --auto-fix[/bold] to auto-start services")
+        console.print(
+            "\n[cyan]Tip:[/cyan] Run [bold]kln doctor --auto-fix[/bold] to auto-start services"
+        )
 
 
 @main.command()
-@click.option("--service", "-s",
-              type=click.Choice(["all", "litellm", "knowledge"]),
-              default="litellm", help="Service to start (default: litellm only)")
+@click.option(
+    "--service",
+    "-s",
+    type=click.Choice(["all", "litellm", "knowledge"]),
+    default="litellm",
+    help="Service to start (default: litellm only)",
+)
 @click.option("--port", "-p", default=4000, help="LiteLLM proxy port")
 @click.option("--telemetry", "-t", is_flag=True, help="Also start Phoenix telemetry server")
 def start(service: str, port: int, telemetry: bool):
@@ -2400,14 +2539,20 @@ def start(service: str, port: int, telemetry: bool):
             else:
                 console.print(f"[yellow]○[/yellow] Starting Knowledge Server for {project.name}...")
                 if start_knowledge_server(project, wait=False):
-                    console.print(f"[green][OK][/green] Knowledge Server: Starting for {project.name}")
+                    console.print(
+                        f"[green][OK][/green] Knowledge Server: Starting for {project.name}"
+                    )
                     started.append("Knowledge")
-                    log_debug_event("cli", "service_start", service="knowledge", project=str(project))
+                    log_debug_event(
+                        "cli", "service_start", service="knowledge", project=str(project)
+                    )
                 else:
                     console.print("[red]✗[/red] Knowledge Server: Failed to start")
                     failed.append("Knowledge")
         else:
-            console.print("[yellow]○[/yellow] Knowledge Server: No project found (auto-starts on query)")
+            console.print(
+                "[yellow]○[/yellow] Knowledge Server: No project found (auto-starts on query)"
+            )
 
     # Phoenix telemetry (optional)
     if telemetry:
@@ -2416,7 +2561,9 @@ def start(service: str, port: int, telemetry: bool):
         else:
             console.print("[yellow]○[/yellow] Starting Phoenix Telemetry...")
             if start_phoenix(background=True):
-                console.print("[green][OK][/green] Phoenix Telemetry: Started on http://localhost:6006")
+                console.print(
+                    "[green][OK][/green] Phoenix Telemetry: Started on http://localhost:6006"
+                )
                 started.append("Phoenix")
                 log_debug_event("cli", "service_start", service="phoenix")
             else:
@@ -2443,9 +2590,13 @@ def start(service: str, port: int, telemetry: bool):
 
 
 @main.command()
-@click.option("--service", "-s",
-              type=click.Choice(["all", "litellm", "knowledge"]),
-              default="all", help="Service to stop")
+@click.option(
+    "--service",
+    "-s",
+    type=click.Choice(["all", "litellm", "knowledge"]),
+    default="all",
+    help="Service to stop",
+)
 @click.option("--all-projects", is_flag=True, help="Stop all knowledge servers (all projects)")
 def stop(service: str, all_projects: bool):
     """Stop K-LEAN services."""
@@ -2468,7 +2619,9 @@ def stop(service: str, all_projects: bool):
             servers = list_knowledge_servers()
             if servers:
                 stop_knowledge_server(stop_all=True)
-                console.print(f"[green][OK][/green] Knowledge Servers: Stopped {len(servers)} server(s)")
+                console.print(
+                    f"[green][OK][/green] Knowledge Servers: Stopped {len(servers)} server(s)"
+                )
                 stopped.append(f"Knowledge ({len(servers)})")
                 log_debug_event("cli", "service_stop", service="knowledge", count=len(servers))
             else:
@@ -2478,17 +2631,25 @@ def stop(service: str, all_projects: bool):
             project = find_project_root()
             if project:
                 if stop_knowledge_server(project):
-                    console.print(f"[green][OK][/green] Knowledge Server: Stopped for {project.name}")
+                    console.print(
+                        f"[green][OK][/green] Knowledge Server: Stopped for {project.name}"
+                    )
                     stopped.append("Knowledge")
-                    log_debug_event("cli", "service_stop", service="knowledge", project=str(project))
+                    log_debug_event(
+                        "cli", "service_stop", service="knowledge", project=str(project)
+                    )
                 else:
-                    console.print(f"[yellow]○[/yellow] Knowledge Server: Was not running for {project.name}")
+                    console.print(
+                        f"[yellow]○[/yellow] Knowledge Server: Was not running for {project.name}"
+                    )
             else:
                 console.print("[yellow]○[/yellow] Knowledge Server: No project found")
                 # Show hint about --all-projects
                 servers = list_knowledge_servers()
                 if servers:
-                    console.print(f"[dim]  (Use --all-projects to stop {len(servers)} running server(s))[/dim]")
+                    console.print(
+                        f"[dim]  (Use --all-projects to stop {len(servers)} running server(s))[/dim]"
+                    )
 
     console.print(f"\n[green]Stopped {len(stopped)} service(s)[/green]")
 
@@ -2541,6 +2702,7 @@ def measure_service_latency(service: str) -> Optional[int]:
     try:
         if service == "litellm":
             import urllib.request
+
             req = urllib.request.Request("http://localhost:4000/models")
             urllib.request.urlopen(req, timeout=3)
         elif service == "knowledge":
@@ -2562,21 +2724,20 @@ def create_progress_bar(value: int, max_value: int, width: int = 20, color: str 
     return f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
 
 
-
-
-
 # =============================================================================
 # Setup Command
 # =============================================================================
 
+
 def detect_nanogpt_endpoint(api_key: str) -> str:
     """Auto-detect NanoGPT subscription vs pay-per-use endpoint."""
     import httpx
+
     try:
         response = httpx.get(
             "https://nano-gpt.com/api/subscription/v1/usage",
             headers={"Authorization": f"Bearer {api_key}"},
-            timeout=5.0
+            timeout=5.0,
         )
         if response.status_code == 200 and '"active":true' in response.text:
             return "https://nano-gpt.com/api/subscription/v1"
@@ -2589,11 +2750,16 @@ def detect_nanogpt_endpoint(api_key: str) -> str:
 # Multi-Agent Command
 # =============================================================================
 
+
 @main.command()
 @click.argument("task")
-@click.option("--thorough", "-t", is_flag=True, help="Use 4-agent architecture (slower, more thorough)")
+@click.option(
+    "--thorough", "-t", is_flag=True, help="Use 4-agent architecture (slower, more thorough)"
+)
 @click.option("--manager-model", "-m", help="Override manager model")
-@click.option("--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format")
+@click.option(
+    "--output", "-o", type=click.Choice(["text", "json"]), default="text", help="Output format"
+)
 @click.option("--telemetry", is_flag=True, help="Enable Phoenix telemetry (view at localhost:6006)")
 def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry: bool):
     """Run multi-agent orchestrated review.
@@ -2624,11 +2790,14 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
         try:
             from openinference.instrumentation.smolagents import SmolagentsInstrumentor
             from phoenix.otel import register
+
             register(project_name="klean-multi")
             SmolagentsInstrumentor().instrument()
             console.print("[dim]Telemetry enabled - view at http://localhost:6006[/dim]")
         except ImportError:
-            console.print("[yellow]Telemetry not installed. Run: pipx inject kln-ai arize-phoenix openinference-instrumentation-smolagents[/yellow]")
+            console.print(
+                "[yellow]Telemetry not installed. Run: pipx inject kln-ai arize-phoenix openinference-instrumentation-smolagents[/yellow]"
+            )
 
     try:
         from klean.smol.multi_agent import MultiAgentExecutor
@@ -2655,6 +2824,7 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
 
         if output == "json":
             import json
+
             console.print(json.dumps(result, indent=2))
         else:
             if result["success"]:
@@ -2686,12 +2856,12 @@ def find_config_template(name: str) -> Optional[Path]:
     return None
 
 
-
 @main.command()
 @click.option(
-    "--provider", "-p",
+    "--provider",
+    "-p",
     type=click.Choice(["nanogpt", "openrouter", "skip"]),
-    help="Provider (nanogpt, openrouter, or skip LiteLLM)"
+    help="Provider (nanogpt, openrouter, or skip LiteLLM)",
 )
 @click.option("--api-key", "-k", help="API key (skips prompt)")
 def init(provider: Optional[str], api_key: Optional[str]):
@@ -2781,9 +2951,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
             else:
                 # Prompt for each provider
                 key = click.prompt(
-                    f"\n{prov.upper()} API Key",
-                    hide_input=True,
-                    confirmation_prompt=False
+                    f"\n{prov.upper()} API Key", hide_input=True, confirmation_prompt=False
                 )
                 provider_apis[prov] = key
 
@@ -2812,10 +2980,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
 
         # Ask if user wants to install models
         console.print()
-        install_models = click.confirm(
-            "Install these recommended models?",
-            default=True
-        )
+        install_models = click.confirm("Install these recommended models?", default=True)
 
         # Generate config files (preserving existing providers)
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -2823,18 +2988,19 @@ def init(provider: Optional[str], api_key: Optional[str]):
         # Load existing .env to preserve other providers
         existing_env = _load_existing_env()
 
-        env_content = generate_env_file(
-            provider_apis,
-            existing_env=existing_env
-        )
+        env_content = generate_env_file(provider_apis, existing_env=existing_env)
 
         if install_models:
             config_yaml = generate_litellm_config(all_models)
-            console.print(f"\n[green]✓[/green] Configured with {len(all_models)} recommended models")
+            console.print(
+                f"\n[green]✓[/green] Configured with {len(all_models)} recommended models"
+            )
         else:
             config_yaml = generate_litellm_config([])
             console.print("\n[green]✓[/green] Configured API keys (no models yet)")
-            console.print("Add models later with: [cyan]kln model add --provider <provider> \"model-id\"[/cyan]")
+            console.print(
+                'Add models later with: [cyan]kln model add --provider <provider> "model-id"[/cyan]'
+            )
 
         (CONFIG_DIR / "config.yaml").write_text(config_yaml)
         (CONFIG_DIR / ".env").write_text(env_content)
@@ -2869,8 +3035,12 @@ def init(provider: Optional[str], api_key: Optional[str]):
         console.print(f"  • {len(all_models)} recommended models configured")
         console.print("  • Review providers: [cyan]kln provider list[/cyan]")
         console.print("  • Review models: [cyan]kln model list[/cyan]")
-        console.print("  • Add more models: [cyan]kln model add --provider <provider> \"model-id\"[/cyan]")
-        console.print("  • Add another provider: [cyan]kln provider add <provider> --api-key $KEY[/cyan]")
+        console.print(
+            '  • Add more models: [cyan]kln model add --provider <provider> "model-id"[/cyan]'
+        )
+        console.print(
+            "  • Add another provider: [cyan]kln provider add <provider> --api-key $KEY[/cyan]"
+        )
         console.print("  • Verify config: [cyan]kln doctor[/cyan]")
         console.print("\nWhen ready to start services:")
         console.print("  [cyan]kln start[/cyan]")

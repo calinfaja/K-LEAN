@@ -39,6 +39,8 @@ dependencies = [
     "numpy>=1.24.0",
     # SmolKLN Agents (required for agents and kln multi)
     "smolagents[litellm]>=1.17.0",
+    # LiteLLM proxy dependencies (backoff, uvicorn, etc.) for kln start
+    "litellm[proxy]>=1.0.0",
     "ddgs>=6.0.0",
     "markdownify>=0.11.0",
     "lizard>=1.17.0",

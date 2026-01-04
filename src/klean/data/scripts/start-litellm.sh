@@ -106,5 +106,17 @@ echo ""
 # This allows LiteLLM to load callbacks.thinking_transform
 export PYTHONPATH="$CONFIG_DIR:${PYTHONPATH:-}"
 
+# Find litellm binary - check pipx venv first, then system PATH
+LITELLM_BIN=""
+if [ -f "$HOME/.local/share/pipx/venvs/kln-ai/bin/litellm" ]; then
+    LITELLM_BIN="$HOME/.local/share/pipx/venvs/kln-ai/bin/litellm"
+elif command -v litellm &> /dev/null; then
+    LITELLM_BIN="litellm"
+else
+    echo -e "${RED}ERROR: litellm not found${NC}"
+    echo "   Expected in: ~/.local/share/pipx/venvs/kln-ai/bin/litellm"
+    exit 1
+fi
+
 # Start LiteLLM
-exec litellm --config "$CONFIG_FILE" --port "$PORT"
+exec "$LITELLM_BIN" --config "$CONFIG_FILE" --port "$PORT"
