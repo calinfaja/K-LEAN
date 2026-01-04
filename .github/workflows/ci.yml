@@ -47,7 +47,7 @@ jobs:
       # Package Integrity
       # ----------------------------------------
       - name: Sync check
-        run: kln sync --check
+        run: kln admin sync --check
 
       - name: Install components
         run: kln install --yes
