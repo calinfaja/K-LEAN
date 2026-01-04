@@ -5,23 +5,35 @@ Defines default model lists for each API provider.
 Used by the setup wizard and model management commands.
 """
 
-# OpenRouter default models (3)
+# OpenRouter default models (6)
 OPENROUTER_DEFAULTS = [
     {
-        "model_name": "deepseek-chat",
-        "model_id": "openrouter/deepseek/deepseek-chat-v3-0324",
+        "model_name": "gemini-3-flash",
+        "model_id": "openrouter/google/gemini-3-flash-preview",
     },
     {
         "model_name": "gemini-2.5-flash",
         "model_id": "openrouter/google/gemini-2.5-flash",
     },
     {
-        "model_name": "gemini-3-flash",
-        "model_id": "openrouter/google/gemini-3-flash-preview",
+        "model_name": "qwen3-coder-plus",
+        "model_id": "openrouter/qwen/qwen3-coder-plus",
+    },
+    {
+        "model_name": "deepseek-v3.2-speciale",
+        "model_id": "openrouter/deepseek/deepseek-v3.2-speciale",
+    },
+    {
+        "model_name": "gpt-5-mini",
+        "model_id": "openrouter/openai/gpt-5-mini",
+    },
+    {
+        "model_name": "gpt-5.1-codex-mini",
+        "model_id": "openrouter/openai/gpt-5.1-codex-mini",
     },
 ]
 
-# NanoGPT standard models (8 non-thinking)
+# NanoGPT standard models (10 non-thinking)
 NANOGPT_STANDARD = [
     {
         "model_name": "gpt-oss-120b",
@@ -34,6 +46,10 @@ NANOGPT_STANDARD = [
     {
         "model_name": "llama-4-maverick",
         "model_id": "openai/meta-llama/llama-4-maverick",
+    },
+    {
+        "model_name": "llama-4-scout",
+        "model_id": "openai/meta-llama/llama-4-scout",
     },
     {
         "model_name": "mimo-v2-flash",
@@ -54,6 +70,10 @@ NANOGPT_STANDARD = [
     {
         "model_name": "deepseek-r1",
         "model_id": "openai/deepseek-ai/DeepSeek-R1-0528",
+    },
+    {
+        "model_name": "devstral-2-123b",
+        "model_id": "openai/mistralai/devstral-2-123b-instruct-2512",
     },
 ]
 
