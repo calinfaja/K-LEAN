@@ -98,7 +98,7 @@ while IFS= read -r model; do
     SAFE_NAME=$(echo "$model" | tr -cd '[:alnum:]-_')
     curl -s --max-time 120 http://localhost:4000/chat/completions \
       -H "Content-Type: application/json" \
-      -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 1500}" \
+      -d "{\"model\": \"$model\", \"messages\": [{\"role\": \"system\", \"content\": $(echo "$SYSTEM_PROMPT" | jq -Rs .)}, {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}], \"temperature\": 0.3, \"max_tokens\": 10000}" \
       > "$TEMP_DIR/$SAFE_NAME.json" &
     PIDS="$PIDS $!"
     echo "  Launched: $model"

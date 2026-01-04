@@ -114,7 +114,7 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
       {\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}
     ],
     \"temperature\": 0.3,
-    \"max_tokens\": 1500
+    \"max_tokens\": 10000
   }")
 
 OUTPUT_FILE="$OUTPUT_DIR/$OUTPUT_FILENAME"

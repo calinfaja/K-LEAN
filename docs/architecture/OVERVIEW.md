@@ -2,7 +2,7 @@
 
 > **Multi-Model Code Reviews & Persistent Knowledge for Claude Code**
 
-**Version:** 1.0.0b1 | **License:** Apache 2.0
+**Version:** 1.0.0b2 | **License:** Apache 2.0
 
 ---
 

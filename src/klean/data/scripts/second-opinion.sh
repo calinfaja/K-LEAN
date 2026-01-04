@@ -160,7 +160,7 @@ RESPONSE=$(curl -s --max-time 60 http://localhost:4000/chat/completions \
       {\"role\": \"user\", \"content\": $(echo "$CONTEXT" | jq -Rs .)}
     ],
     \"temperature\": 0.3,
-    \"max_tokens\": 2000
+    \"max_tokens\": 10000
   }")
 
 # Save and display

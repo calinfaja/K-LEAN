@@ -1018,7 +1018,7 @@ def configure_statusline() -> bool:
             return True
 
         # Configure statusline
-        settings["statusLine"] = {"command": str(statusline_script)}
+        settings["statusLine"] = {"type": "command", "command": str(statusline_script)}
 
         # Write back with proper formatting
         ensure_dir(CLAUDE_DIR)
@@ -1662,7 +1662,13 @@ def admin_debug(follow: bool, component_filter: str, lines: int, compact: bool, 
 @admin.command(name="test")
 def admin_test():
     """Run comprehensive K-LEAN test suite."""
+    import shutil
     import subprocess
+
+    if not shutil.which("pytest"):
+        console.print("[red]Error:[/red] pytest is not installed")
+        console.print("  Install with: [cyan]pip install pytest[/cyan]")
+        sys.exit(1)
 
     print_banner()
 
@@ -1904,6 +1910,27 @@ def install(dev: bool, component: str, yes: bool):
             console.print("  [green]Statusline configured[/green]")
         else:
             console.print("  [dim]Statusline: skipped or already configured[/dim]")
+
+    # Configure hooks in settings.json (if hooks were installed)
+    if component in ["all", "hooks"]:
+        console.print("[bold]Configuring hooks...[/bold]")
+        try:
+            settings_file = CLAUDE_DIR / "settings.json"
+            if settings_file.exists():
+                settings = json.loads(settings_file.read_text())
+            else:
+                settings = {}
+
+            settings, added = merge_klean_hooks(settings)
+
+            settings_file.write_text(json.dumps(settings, indent=2))
+
+            if added:
+                console.print(f"  [green]Configured: {', '.join(added)}[/green]")
+            else:
+                console.print("  [dim]Hooks already configured[/dim]")
+        except Exception as e:
+            console.print(f"  [yellow]Warning: Could not configure hooks: {e}[/yellow]")
 
     # Summary
     console.print("\n[bold green]Installation complete![/bold green]")
