@@ -81,6 +81,23 @@ kln start  # Restart to apply changes
 
 ---
 
+## See It In Action
+
+```
+$ /kln:multi "review authentication flow"
+
+GRADE: B+ | RISK: MEDIUM
+
+HIGH CONFIDENCE (4/5 models agree):
+  - auth.py:42 - SQL injection risk in user query
+  - session.py:89 - Missing token expiration check
+
+MEDIUM CONFIDENCE (2/5 models agree):
+  - login.py:15 - Consider rate limiting
+```
+
+---
+
 ## What You Get
 
 ### 1. Second Opinions on Demand
@@ -152,10 +169,14 @@ Unlike models that review what you give them, **agents read your codebase themse
 
 | Agent | Expertise |
 |-------|-----------|
-| `security-auditor` | OWASP Top 10, auth, crypto |
-| `rust-expert` | Ownership, lifetimes, unsafe |
+| `code-reviewer` | OWASP Top 10, SOLID, code quality |
+| `security-auditor` | Vulnerabilities, auth, crypto |
 | `debugger` | Root cause analysis |
+| `performance-engineer` | Profiling, optimization |
+| `rust-expert` | Ownership, lifetimes, unsafe |
+| `c-pro` | C99/C11, POSIX, memory |
 | `arm-cortex-expert` | Embedded ARM, real-time |
+| `orchestrator` | Multi-agent coordination |
 
 ```
 /kln:agent security-auditor "audit payment module"
@@ -207,77 +228,6 @@ Model. Project. Branch (● = dirty). Lines changed. Models ready. KB health.
 
 ---
 
-## See It In Action
-
-```
-$ /kln:multi "review authentication flow"
-
-GRADE: B+ | RISK: MEDIUM
-
-HIGH CONFIDENCE (4/5 models agree):
-  - auth.py:42 - SQL injection risk in user query
-  - session.py:89 - Missing token expiration check
-
-MEDIUM CONFIDENCE (2/5 models agree):
-  - login.py:15 - Consider rate limiting
-```
-
----
-
-## Features
-
-### Multi-Model Consensus
-
-Get **consensus** from 3-5 different LLMs on your code. When they agree, you know it's real.
-
-```bash
-/kln:multi "review authentication flow"
-```
-
-### Specialist Agents
-
-8 domain experts powered by [smolagents](https://github.com/huggingface/smolagents), each with tools to explore your codebase:
-
-| Agent | Expertise |
-|-------|-----------|
-| `code-reviewer` | OWASP Top 10, SOLID, code quality |
-| `security-auditor` | Vulnerabilities, auth, crypto |
-| `debugger` | Root cause analysis |
-| `performance-engineer` | Profiling, optimization |
-| `rust-expert` | Ownership, lifetimes, unsafe |
-| `c-pro` | C99/C11, POSIX, memory |
-| `arm-cortex-expert` | Embedded ARM, real-time |
-| `orchestrator` | Multi-agent coordination |
-
-```bash
-/kln:agent security-auditor "audit the payment module"
-```
-
-### Persistent Knowledge
-
-Never lose insights. K-LEAN captures lessons to a searchable knowledge base:
-
-```bash
-/kln:learn "JWT validation issue"    # Save from context
-FindKnowledge "JWT validation"       # Search later
-```
-
-- **Per-project isolation** — Each repo gets its own knowledge base
-- **Semantic search** — Find by meaning, not just keywords
-- **Auto-capture** — Git commits and reviews logged automatically
-
-### Contrarian Debugging
-
-When you're stuck, get **fresh perspectives**:
-
-```bash
-/kln:rethink
-```
-
-Uses 4 techniques: inversion, assumption challenge, domain shift, root cause reframe.
-
----
-
 ## All Commands
 
 | Command | Description | Time |
@@ -293,29 +243,6 @@ Uses 4 techniques: inversion, assumption challenge, domain shift, root cause ref
 | `/kln:help` | Command reference | instant |
 
 **Flags:** `--async` (background), `--models N` (count), `--output json|text`
-
----
-
-## Smart Hooks
-
-K-LEAN hooks run automatically in the background:
-
-- **Service auto-start** — LiteLLM proxy and Knowledge Server start on session begin
-- **Keyword handling** — Type keywords directly, no slash command needed
-- **Git tracking** — Commits logged to timeline, facts extracted automatically
-- **Web capture** — URLs from WebFetch/Tavily evaluated and saved if relevant
-
-### Hook Keywords
-
-Type these directly in Claude Code (no `/` prefix):
-
-| Keyword | Action |
-|---------|--------|
-| `FindKnowledge <query>` | Semantic search knowledge DB |
-| `SaveInfo <url>` | Evaluate URL with AI, save if relevant |
-| `InitKB` | Initialize knowledge DB for current project |
-| `asyncConsensus [focus]` | Background 3-model consensus review |
-| `asyncReview <model> <focus>` | Background single-model review |
 
 ---
 

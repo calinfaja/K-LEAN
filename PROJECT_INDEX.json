@@ -128,7 +128,13 @@
       "search": "data/scripts/knowledge-search.py",
       "capture": "data/scripts/knowledge-capture.py",
       "query_cli": "data/scripts/knowledge-query.sh",
-      "init": "data/scripts/kb-init.sh"
+      "init": "data/scripts/kb-init.sh",
+      "hybrid_search": "data/scripts/knowledge-hybrid-search.py",
+      "events": "data/scripts/knowledge-events.py",
+      "extract": "data/scripts/knowledge-extract.sh",
+      "utils": "data/scripts/kb_utils.py",
+      "doctor": "data/scripts/kb-doctor.sh",
+      "root": "data/scripts/kb-root.sh"
     }
   },
   "scripts": {
@@ -160,7 +166,7 @@
     "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py", "test_init_command.py", "test_model_management.py", "test_provider_management.py", "test_knowledge_db.py"]
   },
   "file_counts": {
-    "python": 51,
+    "python": 39,
     "shell": 29,
     "markdown": 50,
     "yaml_toml": 12,
