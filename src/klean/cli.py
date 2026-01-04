@@ -1106,7 +1106,17 @@ def provider_list():
 
             config = yaml.safe_load(config_file.read_text())
             for model in config.get("model_list", []):
-                provider_name = model.get("litellm_params", {}).get("model", "").split("/")[0]
+                # Detect provider by api_key field, not model prefix
+                # NanoGPT uses openai/ prefix but should count as nanogpt
+                params = model.get("litellm_params", {})
+                api_key = params.get("api_key", "")
+                if "NANOGPT" in api_key:
+                    provider_name = "nanogpt"
+                elif "OPENROUTER" in api_key:
+                    provider_name = "openrouter"
+                else:
+                    # Fallback to model prefix for unknown providers
+                    provider_name = params.get("model", "").split("/")[0]
                 if provider_name in model_counts:
                     model_counts[provider_name] += 1
                 else:

@@ -54,7 +54,7 @@ def test_init_nanogpt_silent():
 
             assert result.exit_code == 0
             assert "NANOGPT providers configured" in result.output
-            assert "8 recommended models" in result.output
+            assert "10 recommended models" in result.output
 
 
 def test_init_openrouter_silent():
@@ -77,7 +77,7 @@ def test_init_openrouter_silent():
 
             assert result.exit_code == 0
             assert "OPENROUTER providers configured" in result.output
-            assert "3 recommended models" in result.output
+            assert "6 recommended models" in result.output
 
 
 def test_init_skip_litellm():
@@ -206,7 +206,7 @@ def test_init_no_pricing_info():
 
 
 def test_init_openrouter_models_count():
-    """Test that OpenRouter init includes default 3 models."""
+    """Test that OpenRouter init includes default 6 models."""
     runner = CliRunner()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -228,7 +228,7 @@ def test_init_openrouter_models_count():
 
             # Count model_name entries
             model_count = content.count("model_name:")
-            assert model_count == 3, f"Expected 3 models, got {model_count}"
+            assert model_count == 6, f"Expected 6 models, got {model_count}"
 
 
 def test_init_already_initialized():
