@@ -78,20 +78,20 @@ class MultiAgentExecutor:
         """
         if isinstance(result, dict):
             # Extract code (main content) if present
-            if 'code' in result:
-                content = result['code']
+            if "code" in result:
+                content = result["code"]
                 # Handle escaped newlines from JSON serialization
-                if isinstance(content, str) and '\\n' in content:
-                    content = content.replace('\\n', '\n')
+                if isinstance(content, str) and "\\n" in content:
+                    content = content.replace("\\n", "\n")
                 return content
             # Fallback: format dict as readable markdown
             parts = []
-            if 'thought' in result:
+            if "thought" in result:
                 parts.append(f"## Analysis Summary\n\n{result['thought']}")
             for key, value in result.items():
-                if key not in ('thought', 'code'):
+                if key not in ("thought", "code"):
                     parts.append(f"## {key.title()}\n\n{value}")
-            return '\n\n'.join(parts) if parts else str(result)
+            return "\n\n".join(parts) if parts else str(result)
         return str(result)
 
     def _save_result(
@@ -113,7 +113,7 @@ class MultiAgentExecutor:
         content = f"""# Multi-Agent Review Report
 
 **Variant:** {variant}
-**Agents:** {', '.join(agents_used)}
+**Agents:** {", ".join(agents_used)}
 **Task:** {task}
 **Duration:** {duration:.1f}s
 **Generated:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
@@ -171,10 +171,7 @@ class MultiAgentExecutor:
 
             try:
                 model = create_model(agent_config.model, self.api_base)
-                tools = get_tools_for_agent(
-                    agent_config.tools,
-                    project_path=str(self.project_root)
-                )
+                tools = get_tools_for_agent(agent_config.tools, project_path=str(self.project_root))
 
                 # Load system prompt
                 system_prompt = self._load_agent_prompt(name)
@@ -183,8 +180,16 @@ class MultiAgentExecutor:
                 # queue, random, re, stat, statistics, time, unicodedata are default)
                 # Avoid: os, subprocess, sys, socket, pathlib, shutil, io
                 safe_imports = [
-                    "json", "typing", "functools", "copy", "string",
-                    "decimal", "enum", "dataclasses", "operator", "textwrap",
+                    "json",
+                    "typing",
+                    "functools",
+                    "copy",
+                    "string",
+                    "decimal",
+                    "enum",
+                    "dataclasses",
+                    "operator",
+                    "textwrap",
                 ]
 
                 agent = CodeAgent(
@@ -202,6 +207,7 @@ class MultiAgentExecutor:
                 # Use KLEAN base template with agent-specific prompt as custom_instructions
                 from .prompts import KLEAN_SYSTEM_PROMPT
                 from jinja2 import Template
+
                 template = Template(KLEAN_SYSTEM_PROMPT)
                 rendered_prompt = template.render(
                     tools={t.name: t for t in tools},
@@ -228,8 +234,16 @@ class MultiAgentExecutor:
 
             # Safe imports beyond default (manager delegates but may generate code)
             safe_imports = [
-                "json", "typing", "functools", "copy", "string",
-                "decimal", "enum", "dataclasses", "operator", "textwrap",
+                "json",
+                "typing",
+                "functools",
+                "copy",
+                "string",
+                "decimal",
+                "enum",
+                "dataclasses",
+                "operator",
+                "textwrap",
             ]
 
             manager = CodeAgent(
@@ -240,12 +254,16 @@ class MultiAgentExecutor:
                 planning_interval=manager_config.planning_interval,
                 additional_authorized_imports=safe_imports,
                 step_callbacks=[add_step_awareness],  # Warn on low steps
-                final_answer_checks=[validate_citations, validate_file_paths],  # Verify citations + paths exist
+                final_answer_checks=[
+                    validate_citations,
+                    validate_file_paths,
+                ],  # Verify citations + paths exist
             )
 
             # REPLACE default system prompt for manager too
             from .prompts import KLEAN_SYSTEM_PROMPT
             from jinja2 import Template
+
             template = Template(KLEAN_SYSTEM_PROMPT)
             rendered_prompt = template.render(
                 tools={},
@@ -284,9 +302,7 @@ class MultiAgentExecutor:
 
             # Save result
             agents_used = [a.name for a in specialists]
-            output_file = self._save_result(
-                task, variant, output, duration, agents_used
-            )
+            output_file = self._save_result(task, variant, output, duration, agents_used)
 
             return {
                 "output": output,

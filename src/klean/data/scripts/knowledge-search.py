@@ -25,12 +25,15 @@ try:
 except ImportError:
     # Fallback: define minimal find_project_root
     import os
+
     def find_project_root(start_path=None):
         current = Path(start_path or os.getcwd()).resolve()
         while current != current.parent:
-            if (current / ".serena").exists() or \
-               (current / ".claude").exists() or \
-               (current / ".knowledge-db").exists():
+            if (
+                (current / ".serena").exists()
+                or (current / ".claude").exists()
+                or (current / ".knowledge-db").exists()
+            ):
                 return current
             current = current.parent
         return None
@@ -52,9 +55,9 @@ def format_detailed(results):
     for i, r in enumerate(results, 1):
         score = r.get("score", 0)
         title = r.get("title", "Untitled")
-        lines.append(f"\n{'='*60}")
+        lines.append(f"\n{'=' * 60}")
         lines.append(f"[{i}] {title} (score: {score:.2f})")
-        lines.append(f"{'='*60}")
+        lines.append(f"{'=' * 60}")
 
         if r.get("url"):
             lines.append(f"URL: {r['url']}")
@@ -67,11 +70,12 @@ def format_detailed(results):
         if r.get("problem_solved"):
             lines.append(f"\nProblem Solved: {r['problem_solved']}")
         if r.get("key_concepts"):
-            concepts = r['key_concepts']
+            concepts = r["key_concepts"]
             if isinstance(concepts, str):
                 # SQLite stored it as string, try to parse
                 try:
                     import json
+
                     concepts = json.loads(concepts)
                 except (json.JSONDecodeError, TypeError):
                     concepts = [concepts]
@@ -134,22 +138,23 @@ Examples:
   %(prog)s "BLE optimization"           # Basic search
   %(prog)s "auth" --format inject       # For LLM injection
   %(prog)s "React" -n 10 --json         # JSON output, 10 results
-        """
+        """,
     )
 
     parser.add_argument("query", help="Search query (natural language)")
-    parser.add_argument("--limit", "-n", type=int, default=5,
-                        help="Maximum results (default: 5)")
-    parser.add_argument("--format", "-f",
-                        choices=["compact", "detailed", "inject", "json"],
-                        default="detailed",
-                        help="Output format (default: detailed)")
-    parser.add_argument("--project", "-p",
-                        help="Project path (default: auto-detect)")
-    parser.add_argument("--json", action="store_true",
-                        help="Shortcut for --format json")
-    parser.add_argument("--min-score", type=float, default=0.0,
-                        help="Minimum relevance score (0-1)")
+    parser.add_argument("--limit", "-n", type=int, default=5, help="Maximum results (default: 5)")
+    parser.add_argument(
+        "--format",
+        "-f",
+        choices=["compact", "detailed", "inject", "json"],
+        default="detailed",
+        help="Output format (default: detailed)",
+    )
+    parser.add_argument("--project", "-p", help="Project path (default: auto-detect)")
+    parser.add_argument("--json", action="store_true", help="Shortcut for --format json")
+    parser.add_argument(
+        "--min-score", type=float, default=0.0, help="Minimum relevance score (0-1)"
+    )
 
     args = parser.parse_args()
 

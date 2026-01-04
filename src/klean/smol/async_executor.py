@@ -19,10 +19,7 @@ class AsyncExecutor:
     """
 
     def __init__(
-        self,
-        executor=None,
-        poll_interval: float = 2.0,
-        api_base: str = "http://localhost:4000"
+        self, executor=None, poll_interval: float = 2.0, api_base: str = "http://localhost:4000"
     ):
         """Initialize async executor.
 
@@ -44,16 +41,11 @@ class AsyncExecutor:
         """Lazy-load executor."""
         if self._executor is None:
             from .executor import SmolKLNExecutor
+
             self._executor = SmolKLNExecutor(api_base=self._api_base)
         return self._executor
 
-    def submit(
-        self,
-        agent: str,
-        task: str,
-        model: str = None,
-        project_path: str = None
-    ) -> str:
+    def submit(self, agent: str, task: str, model: str = None, project_path: str = None) -> str:
         """Submit a task for async execution.
 
         Args:
@@ -90,7 +82,7 @@ class AsyncExecutor:
             "started_at": task.started_at,
             "completed_at": task.completed_at,
             "result": task.result,
-            "error": task.error
+            "error": task.error,
         }
 
     def wait_for(self, task_id: str, timeout: float = 300) -> Dict[str, Any]:
@@ -110,11 +102,7 @@ class AsyncExecutor:
                 return status
             time.sleep(1)
 
-        return {
-            "error": "Timeout waiting for task",
-            "id": task_id,
-            "state": "timeout"
-        }
+        return {"error": "Timeout waiting for task", "id": task_id, "state": "timeout"}
 
     def list_tasks(self, limit: int = 10) -> List[Dict[str, Any]]:
         """List recent tasks.
@@ -131,7 +119,7 @@ class AsyncExecutor:
                 "state": t.state.value,
                 "agent": t.agent,
                 "created_at": t.created_at,
-                "task": t.task[:100] + "..." if len(t.task) > 100 else t.task
+                "task": t.task[:100] + "..." if len(t.task) > 100 else t.task,
             }
             for t in self.queue.list_recent(limit)
         ]
@@ -165,9 +153,7 @@ class AsyncExecutor:
             if self._worker is None or not self._worker.is_alive():
                 self._stop.clear()
                 self._worker = threading.Thread(
-                    target=self._worker_loop,
-                    daemon=True,
-                    name="SmolKLN-AsyncWorker"
+                    target=self._worker_loop, daemon=True, name="SmolKLN-AsyncWorker"
                 )
                 self._worker.start()
 
@@ -190,18 +176,14 @@ class AsyncExecutor:
                 # Create executor with project path if specified
                 if task.project_path:
                     from .executor import SmolKLNExecutor
+
                     executor = SmolKLNExecutor(
-                        api_base=self._api_base,
-                        project_path=Path(task.project_path)
+                        api_base=self._api_base, project_path=Path(task.project_path)
                     )
                 else:
                     executor = self.executor
 
-                result = executor.execute(
-                    task.agent,
-                    task.task,
-                    model_override=task.model
-                )
+                result = executor.execute(task.agent, task.task, model_override=task.model)
                 self.queue.mark_completed(task.id, result)
 
             except Exception as e:
@@ -252,12 +234,7 @@ def get_async_executor(api_base: str = "http://localhost:4000") -> AsyncExecutor
     return _async_executor
 
 
-def submit_async(
-    agent: str,
-    task: str,
-    model: str = None,
-    project_path: str = None
-) -> str:
+def submit_async(agent: str, task: str, model: str = None, project_path: str = None) -> str:
     """Quick helper to submit async task.
 
     Args:

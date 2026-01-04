@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 # Import smolagents Tool class - required for this module
 try:
     from smolagents import Tool, tool
+
     SMOLAGENTS_AVAILABLE = True
 except ImportError:
     SMOLAGENTS_AVAILABLE = False
@@ -21,6 +22,7 @@ except ImportError:
 # =============================================================================
 # Citation Validation for final_answer_checks
 # =============================================================================
+
 
 def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
     """Verify all file:line citations in final answer exist in tool call history.
@@ -43,7 +45,7 @@ def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
     answer_str = str(final_answer) if not isinstance(final_answer, str) else final_answer
 
     # Extract citations from answer (format: file.ext:123 or path/file.ext:123-456)
-    citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?'
+    citation_pattern = r"([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?"
     citations = re.findall(citation_pattern, answer_str)
 
     if not citations:
@@ -51,20 +53,20 @@ def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
 
     # Collect all valid file:line references from tool outputs
     valid_refs = set()
-    steps = agent_memory.get_full_steps() if hasattr(agent_memory, 'get_full_steps') else []
+    steps = agent_memory.get_full_steps() if hasattr(agent_memory, "get_full_steps") else []
     for step in steps:
         # Handle different memory step formats
         tool_output = None
-        if hasattr(step, 'observations'):
+        if hasattr(step, "observations"):
             tool_output = step.observations
-        elif hasattr(step, 'tool_output'):
+        elif hasattr(step, "tool_output"):
             tool_output = step.tool_output
-        elif isinstance(step, dict) and 'observations' in step:
-            tool_output = step['observations']
+        elif isinstance(step, dict) and "observations" in step:
+            tool_output = step["observations"]
 
         if tool_output:
             # Extract all file:line patterns from tool output
-            refs = re.findall(r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)', str(tool_output))
+            refs = re.findall(r"([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)", str(tool_output))
             for file_path, line_num in refs:
                 valid_refs.add((file_path, int(line_num)))
                 # Also add basename for flexibility
@@ -111,7 +113,7 @@ def validate_file_paths(final_answer: str, agent_memory=None, **kwargs) -> bool:
     answer_str = str(final_answer) if not isinstance(final_answer, str) else final_answer
 
     # Extract file paths from citations (format: file.ext:123 or path/file.ext:123-456)
-    citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)'
+    citation_pattern = r"([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)"
     citations = re.findall(citation_pattern, answer_str)
 
     if not citations:
@@ -119,10 +121,10 @@ def validate_file_paths(final_answer: str, agent_memory=None, **kwargs) -> bool:
 
     # Get project root from context or current directory
     project_root = Path.cwd()
-    if 'agent' in kwargs and hasattr(kwargs['agent'], 'additional_args'):
-        ctx = kwargs['agent'].additional_args.get('context', {})
-        if 'project_root' in ctx:
-            project_root = Path(ctx['project_root'])
+    if "agent" in kwargs and hasattr(kwargs["agent"], "additional_args"):
+        ctx = kwargs["agent"].additional_args.get("context", {})
+        if "project_root" in ctx:
+            project_root = Path(ctx["project_root"])
 
     # Check each cited file exists
     missing_files = []
@@ -152,24 +154,24 @@ def get_citation_stats(final_answer: str, agent_memory=None) -> Dict[str, Any]:
     Returns:
         Dict with citation statistics
     """
-    citation_pattern = r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?'
+    citation_pattern = r"([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)(?:-(\d+))?"
     citations = re.findall(citation_pattern, final_answer or "")
 
     # Collect valid refs
     valid_refs = set()
     if agent_memory:
-        steps = agent_memory.get_full_steps() if hasattr(agent_memory, 'get_full_steps') else []
+        steps = agent_memory.get_full_steps() if hasattr(agent_memory, "get_full_steps") else []
         for step in steps:
             tool_output = None
-            if hasattr(step, 'observations'):
+            if hasattr(step, "observations"):
                 tool_output = step.observations
-            elif hasattr(step, 'tool_output'):
+            elif hasattr(step, "tool_output"):
                 tool_output = step.tool_output
-            elif isinstance(step, dict) and 'observations' in step:
-                tool_output = step['observations']
+            elif isinstance(step, dict) and "observations" in step:
+                tool_output = step["observations"]
 
             if tool_output:
-                refs = re.findall(r'([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)', str(tool_output))
+                refs = re.findall(r"([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+):(\d+)", str(tool_output))
                 for file_path, line_num in refs:
                     valid_refs.add((file_path, int(line_num)))
                     valid_refs.add((Path(file_path).name, int(line_num)))
@@ -195,13 +197,15 @@ def get_citation_stats(final_answer: str, agent_memory=None) -> Dict[str, Any]:
         "invalid": len(invalid_citations),
         "valid_citations": valid_citations,
         "invalid_citations": invalid_citations,
-        "validation_passed": len(invalid_citations) == 0 or len(invalid_citations) / max(len(citations), 1) < 0.2
+        "validation_passed": len(invalid_citations) == 0
+        or len(invalid_citations) / max(len(citations), 1) < 0.2,
     }
 
 
 # =============================================================================
 # Structured Grep Tool with Context
 # =============================================================================
+
 
 class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
     """Enhanced grep tool that returns structured output with context lines.
@@ -217,25 +221,22 @@ class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
         "that need to be cited in the review output."
     )
     inputs = {
-        "pattern": {
-            "type": "string",
-            "description": "Text or regex pattern to search for"
-        },
+        "pattern": {"type": "string", "description": "Text or regex pattern to search for"},
         "path": {
             "type": "string",
             "description": "Directory to search in (default: current directory)",
-            "nullable": True
+            "nullable": True,
         },
         "file_pattern": {
             "type": "string",
             "description": "Glob pattern for files to search (e.g., '*.py', '*.c')",
-            "nullable": True
+            "nullable": True,
         },
         "context_lines": {
             "type": "integer",
             "description": "Number of context lines before and after match (default: 2)",
-            "nullable": True
-        }
+            "nullable": True,
+        },
     }
     output_type = "string"
 
@@ -245,11 +246,7 @@ class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
         self.project_path = project_path or "."
 
     def forward(
-        self,
-        pattern: str,
-        path: str = None,
-        file_pattern: str = None,
-        context_lines: int = None
+        self, pattern: str, path: str = None, file_pattern: str = None, context_lines: int = None
     ) -> str:
         """Execute grep with context and return structured output."""
         search_path = Path(path) if path else Path(self.project_path)
@@ -286,11 +283,11 @@ class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
 
                         context_before = []
                         for j in range(start_ctx, i):
-                            context_before.append(f"  {j+1:4d}| {lines[j]}")
+                            context_before.append(f"  {j + 1:4d}| {lines[j]}")
 
                         context_after = []
                         for j in range(i + 1, end_ctx):
-                            context_after.append(f"  {j+1:4d}| {lines[j]}")
+                            context_after.append(f"  {j + 1:4d}| {lines[j]}")
 
                         # Format result with clear file:line reference
                         result = f"\n### {file_path}:{line_num}\n"
@@ -325,6 +322,7 @@ class GrepWithContextTool(Tool if SMOLAGENTS_AVAILABLE else object):
 # Test Coverage Analysis Tool
 # =============================================================================
 
+
 class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
     """Analyze test coverage by mapping source functions to test functions.
 
@@ -340,13 +338,13 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
     inputs = {
         "source_path": {
             "type": "string",
-            "description": "Path to source file or directory to analyze"
+            "description": "Path to source file or directory to analyze",
         },
         "test_pattern": {
             "type": "string",
             "description": "Glob pattern for test files (default: 'test_*.py' or '*_test.c')",
-            "nullable": True
-        }
+            "nullable": True,
+        },
     }
     output_type = "string"
 
@@ -370,10 +368,12 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
             suffix = src_path.suffix
         else:
             # Get all source files in directory
-            source_files = list(src_path.glob("**/*.py")) + \
-                          list(src_path.glob("**/*.c")) + \
-                          list(src_path.glob("**/*.js")) + \
-                          list(src_path.glob("**/*.ts"))
+            source_files = (
+                list(src_path.glob("**/*.py"))
+                + list(src_path.glob("**/*.c"))
+                + list(src_path.glob("**/*.js"))
+                + list(src_path.glob("**/*.ts"))
+            )
             suffix = ".py"  # Default
 
         # Determine test pattern based on file type
@@ -391,8 +391,8 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
         test_files = list(project_root.glob(f"**/{t_pattern}"))
 
         # Extract function names from source files
-        func_pattern_py = r'^\s*def\s+(\w+)\s*\('
-        func_pattern_c = r'^\s*(?:static\s+)?(?:\w+\s+)+(\w+)\s*\([^)]*\)\s*\{'
+        func_pattern_py = r"^\s*def\s+(\w+)\s*\("
+        func_pattern_c = r"^\s*(?:static\s+)?(?:\w+\s+)+(\w+)\s*\([^)]*\)\s*\{"
 
         source_functions = {}
         for src_file in source_files:
@@ -403,7 +403,7 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
                 else:
                     funcs = re.findall(func_pattern_c, content, re.MULTILINE)
                 # Filter out common non-function matches
-                funcs = [f for f in funcs if not f.startswith('_') or f.startswith('__init')]
+                funcs = [f for f in funcs if not f.startswith("_") or f.startswith("__init")]
                 source_functions[str(src_file)] = funcs
             except Exception:
                 continue
@@ -414,10 +414,10 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
             try:
                 content = test_file.read_text()
                 # Look for test_ prefix functions
-                tests = re.findall(r'def\s+(test_\w+)', content)
+                tests = re.findall(r"def\s+(test_\w+)", content)
                 test_functions.update(tests)
                 # Also look for Test classes
-                tests = re.findall(r'class\s+(Test\w+)', content)
+                tests = re.findall(r"class\s+(Test\w+)", content)
                 test_functions.update(tests)
             except Exception:
                 continue
@@ -441,7 +441,9 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
                 total_funcs += 1
                 # Check if function has a corresponding test
                 test_name = f"test_{func}"
-                if test_name in test_functions or any(func.lower() in t.lower() for t in test_functions):
+                if test_name in test_functions or any(
+                    func.lower() in t.lower() for t in test_functions
+                ):
                     file_tested += 1
                     tested_funcs += 1
                     output += f"  [TESTED] {func}\n"
@@ -456,7 +458,9 @@ class TestCoverageAnalyzerTool(Tool if SMOLAGENTS_AVAILABLE else object):
         # Summary
         overall_coverage = (tested_funcs / total_funcs * 100) if total_funcs > 0 else 0
         output += "## Summary\n"
-        output += f"- **Overall Coverage**: {tested_funcs}/{total_funcs} ({overall_coverage:.0f}%)\n"
+        output += (
+            f"- **Overall Coverage**: {tested_funcs}/{total_funcs} ({overall_coverage:.0f}%)\n"
+        )
         output += f"- **Tested**: {tested_funcs}\n"
         output += f"- **Untested**: {total_funcs - tested_funcs}\n\n"
 
@@ -487,7 +491,7 @@ class KnowledgeRetrieverTool(Tool if SMOLAGENTS_AVAILABLE else object):
     inputs = {
         "query": {
             "type": "string",
-            "description": "Search query - use affirmative statements for best results"
+            "description": "Search query - use affirmative statements for best results",
         }
     }
     output_type = "string"
@@ -507,6 +511,7 @@ class KnowledgeRetrieverTool(Tool if SMOLAGENTS_AVAILABLE else object):
             sys.path.insert(0, str(scripts_dir))
             try:
                 from knowledge_db import KnowledgeDB
+
                 self._db = KnowledgeDB(self.project_path)
             except ImportError:
                 # Knowledge DB not available, return None
@@ -615,10 +620,12 @@ def search_files(pattern: str, path: str = ".", recursive: bool = True) -> str:
         List of matching file paths.
     """
     # Validate pattern
-    if '|' in pattern:
+    if "|" in pattern:
         return f"Invalid pattern '{pattern}'. Use ONE pattern at a time, not '|' separated. Call multiple times for multiple patterns."
-    if pattern == '**':
-        return "Invalid pattern '**'. Use '**/*' to match all files or '**/*.py' for specific types."
+    if pattern == "**":
+        return (
+            "Invalid pattern '**'. Use '**/*' to match all files or '**/*.py' for specific types."
+        )
 
     base = Path(path)
     if not base.exists():
@@ -656,6 +663,7 @@ def grep(pattern: str, path: str = ".", file_pattern: str = "*") -> str:
         Matching lines with file paths.
     """
     import re
+
     base = Path(path)
     if not base.exists():
         return f"Path not found: {path}"
@@ -724,7 +732,7 @@ def git_diff(commits: int = 3, path: str = ".") -> str:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
         )
         if log_result.returncode != 0:
             return f"Git error: {log_result.stderr}"
@@ -737,7 +745,7 @@ def git_diff(commits: int = 3, path: str = ".") -> str:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
         )
 
         # Get detailed diff (limited to avoid huge output)
@@ -746,7 +754,7 @@ def git_diff(commits: int = 3, path: str = ".") -> str:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
 
         output = f"## Recent {commits} Commits\n{commits_list}\n\n"
@@ -791,18 +799,14 @@ def git_status(path: str = ".") -> str:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
         )
         if result.returncode != 0:
             return f"Git error: {result.stderr}"
 
         # Also get branch info
         branch_result = subprocess.run(
-            ["git", "branch", "-v"],
-            cwd=str(repo_path),
-            capture_output=True,
-            text=True,
-            timeout=10
+            ["git", "branch", "-v"], cwd=str(repo_path), capture_output=True, text=True, timeout=10
         )
 
         output = f"## Git Status\n{result.stdout}\n\n"
@@ -841,7 +845,7 @@ def git_log(commits: int = 10, path: str = ".") -> str:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=30,
         )
         if result.returncode != 0:
             return f"Git error: {result.stderr}"
@@ -850,9 +854,9 @@ def git_log(commits: int = 10, path: str = ".") -> str:
         output += "| Hash | Author | Date | Message |\n"
         output += "|------|--------|------|----------|\n"
 
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             if line:
-                parts = line.split('|', 3)
+                parts = line.split("|", 3)
                 if len(parts) == 4:
                     output += f"| {parts[0]} | {parts[1]} | {parts[2]} | {parts[3]} |\n"
 
@@ -890,7 +894,7 @@ def git_show(commit: str = "HEAD", path: str = ".") -> str:
             cwd=str(repo_path),
             capture_output=True,
             text=True,
-            timeout=60
+            timeout=60,
         )
         if result.returncode != 0:
             return f"Git error: {result.stderr}. Try: git_log() first to see valid commit hashes."
@@ -930,22 +934,22 @@ def scan_secrets(path: str = ".", file_pattern: str = "*") -> str:
     # Common secret patterns
     patterns = {
         "API Key": r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?',
-        "AWS Key": r'(?i)(AKIA[0-9A-Z]{16})',
+        "AWS Key": r"(?i)(AKIA[0-9A-Z]{16})",
         "AWS Secret": r'(?i)aws[_-]?secret[_-]?access[_-]?key\s*[=:]\s*["\']?([a-zA-Z0-9/+=]{40})["\']?',
         "Password": r'(?i)(password|passwd|pwd)\s*[=:]\s*["\']([^"\']{8,})["\']',
         "Token": r'(?i)(token|auth[_-]?token|access[_-]?token)\s*[=:]\s*["\']?([a-zA-Z0-9_\-\.]{20,})["\']?',
-        "Private Key": r'-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----',
-        "GitHub Token": r'gh[pousr]_[a-zA-Z0-9]{36,}',
+        "Private Key": r"-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----",
+        "GitHub Token": r"gh[pousr]_[a-zA-Z0-9]{36,}",
         "Generic Secret": r'(?i)secret\s*[=:]\s*["\']([^"\']{8,})["\']',
-        "Bearer Token": r'(?i)bearer\s+[a-zA-Z0-9_\-\.]{20,}',
-        "Basic Auth": r'(?i)basic\s+[a-zA-Z0-9+/=]{20,}',
+        "Bearer Token": r"(?i)bearer\s+[a-zA-Z0-9_\-\.]{20,}",
+        "Basic Auth": r"(?i)basic\s+[a-zA-Z0-9+/=]{20,}",
     }
 
     findings = []
     files_scanned = 0
 
     # Skip common non-code directories
-    skip_dirs = {'.git', 'node_modules', '__pycache__', '.venv', 'venv', '.knowledge-db'}
+    skip_dirs = {".git", "node_modules", "__pycache__", ".venv", "venv", ".knowledge-db"}
 
     for file_path in base.glob(f"**/{file_pattern}"):
         if any(skip in file_path.parts for skip in skip_dirs):
@@ -953,24 +957,28 @@ def scan_secrets(path: str = ".", file_pattern: str = "*") -> str:
         if not file_path.is_file():
             continue
         # Skip binary files
-        if file_path.suffix in ['.pyc', '.so', '.dll', '.exe', '.bin', '.png', '.jpg', '.gif']:
+        if file_path.suffix in [".pyc", ".so", ".dll", ".exe", ".bin", ".png", ".jpg", ".gif"]:
             continue
 
         files_scanned += 1
         try:
-            content = file_path.read_text(errors='ignore')
+            content = file_path.read_text(errors="ignore")
             lines = content.splitlines()
 
             for i, line in enumerate(lines, 1):
                 # Skip comments and obvious test data
-                if 'example' in line.lower() or 'test' in line.lower() or 'xxx' in line.lower():
+                if "example" in line.lower() or "test" in line.lower() or "xxx" in line.lower():
                     continue
 
                 for secret_type, pattern in patterns.items():
                     if re.search(pattern, line):
                         # Mask the actual secret value
-                        masked_line = line.strip()[:80] + "..." if len(line.strip()) > 80 else line.strip()
-                        findings.append(f"**{secret_type}** at `{file_path}:{i}`\n  `{masked_line}`")
+                        masked_line = (
+                            line.strip()[:80] + "..." if len(line.strip()) > 80 else line.strip()
+                        )
+                        findings.append(
+                            f"**{secret_type}** at `{file_path}:{i}`\n  `{masked_line}`"
+                        )
                         break  # One finding per line
 
         except Exception:
@@ -1013,9 +1021,9 @@ def get_complexity(file_path: str) -> str:
     ext = path.suffix.lower()
 
     # Route to appropriate analyzer
-    if ext == '.py':
+    if ext == ".py":
         return _python_complexity(path)
-    elif ext in ['.c', '.cpp', '.cc', '.cxx', '.h', '.hpp']:
+    elif ext in [".c", ".cpp", ".cc", ".cxx", ".h", ".hpp"]:
         return _lizard_complexity(path)
     else:
         return f"Unsupported file type: {ext}. Supported: .py, .c, .cpp, .cc, .cxx, .h, .hpp"
@@ -1126,8 +1134,19 @@ def _python_complexity(path) -> str:
             max_nesting = 0
 
             for child in ast.walk(node):
-                if isinstance(child, (ast.If, ast.For, ast.While, ast.Try, ast.With,
-                                     ast.AsyncFor, ast.AsyncWith, ast.ExceptHandler)):
+                if isinstance(
+                    child,
+                    (
+                        ast.If,
+                        ast.For,
+                        ast.While,
+                        ast.Try,
+                        ast.With,
+                        ast.AsyncFor,
+                        ast.AsyncWith,
+                        ast.ExceptHandler,
+                    ),
+                ):
                     branches += 1
 
             # Simple nesting calculation
@@ -1159,16 +1178,18 @@ def _python_complexity(path) -> str:
             if func_length > 100 or max_nesting > 6 or cognitive > 25:
                 status = "CRITICAL"
 
-            functions.append({
-                'name': func_name,
-                'line': start_line,
-                'length': func_length,
-                'branches': branches,
-                'nesting': max_nesting,
-                'cognitive': cognitive,
-                'status': status,
-                'issues': issues
-            })
+            functions.append(
+                {
+                    "name": func_name,
+                    "line": start_line,
+                    "length": func_length,
+                    "branches": branches,
+                    "nesting": max_nesting,
+                    "cognitive": cognitive,
+                    "status": status,
+                    "issues": issues,
+                }
+            )
 
             self.generic_visit(node)
 
@@ -1191,17 +1212,19 @@ def _python_complexity(path) -> str:
     warn_count = 0
 
     for f in functions:
-        status_icon = "OK" if f['status'] == "OK" else ("WARN" if f['status'] == "WARN" else "CRITICAL")
-        if f['status'] == "CRITICAL":
+        status_icon = (
+            "OK" if f["status"] == "OK" else ("WARN" if f["status"] == "WARN" else "CRITICAL")
+        )
+        if f["status"] == "CRITICAL":
             critical_count += 1
-        elif f['status'] == "WARN":
+        elif f["status"] == "WARN":
             warn_count += 1
         output += f"| {f['name'][:30]} | {f['line']} | {f['length']} | {f['branches']} | {f['nesting']} | {status_icon} |\n"
 
     output += f"\n**Summary**: {critical_count} critical, {warn_count} warnings, {len(functions) - critical_count - warn_count} OK\n"
 
     # Details for problematic functions
-    problem_funcs = [f for f in functions if f['issues']]
+    problem_funcs = [f for f in functions if f["issues"]]
     if problem_funcs:
         output += "\n### Issues Found\n\n"
         for f in problem_funcs:
@@ -1236,7 +1259,7 @@ def list_directory(path: str = ".", recursive: bool = False, max_depth: int = 2)
         indent = "  " * depth
         try:
             for item in sorted(p.iterdir()):
-                if item.name.startswith('.'):
+                if item.name.startswith("."):
                     continue  # Skip hidden files
                 if item.is_dir():
                     items.append(f"{indent}[DIR] {item.name}/")
@@ -1244,7 +1267,7 @@ def list_directory(path: str = ".", recursive: bool = False, max_depth: int = 2)
                         items.extend(list_dir(item, depth + 1))
                 else:
                     size = item.stat().st_size
-                    size_str = f"{size:,} bytes" if size < 1024 else f"{size/1024:.1f} KB"
+                    size_str = f"{size:,} bytes" if size < 1024 else f"{size / 1024:.1f} KB"
                     items.append(f"{indent}[FILE] {item.name} ({size_str})")
         except PermissionError:
             items.append(f"{indent}[ERROR] Permission denied")
@@ -1290,29 +1313,29 @@ def get_file_info(file_path: str) -> str:
         # Determine file type
         suffix = path.suffix.lower()
         type_map = {
-            '.py': 'Python',
-            '.js': 'JavaScript',
-            '.ts': 'TypeScript',
-            '.jsx': 'React JSX',
-            '.tsx': 'React TSX',
-            '.java': 'Java',
-            '.go': 'Go',
-            '.rs': 'Rust',
-            '.c': 'C',
-            '.cpp': 'C++',
-            '.h': 'C Header',
-            '.md': 'Markdown',
-            '.json': 'JSON',
-            '.yaml': 'YAML',
-            '.yml': 'YAML',
-            '.toml': 'TOML',
-            '.xml': 'XML',
-            '.html': 'HTML',
-            '.css': 'CSS',
-            '.sql': 'SQL',
-            '.sh': 'Shell Script',
+            ".py": "Python",
+            ".js": "JavaScript",
+            ".ts": "TypeScript",
+            ".jsx": "React JSX",
+            ".tsx": "React TSX",
+            ".java": "Java",
+            ".go": "Go",
+            ".rs": "Rust",
+            ".c": "C",
+            ".cpp": "C++",
+            ".h": "C Header",
+            ".md": "Markdown",
+            ".json": "JSON",
+            ".yaml": "YAML",
+            ".yml": "YAML",
+            ".toml": "TOML",
+            ".xml": "XML",
+            ".html": "HTML",
+            ".css": "CSS",
+            ".sql": "SQL",
+            ".sh": "Shell Script",
         }
-        file_type = type_map.get(suffix, suffix if suffix else 'Unknown')
+        file_type = type_map.get(suffix, suffix if suffix else "Unknown")
 
         # Count lines if text file
         lines = "N/A"
@@ -1325,9 +1348,9 @@ def get_file_info(file_path: str) -> str:
 
         size_str = f"{size:,} bytes"
         if size > 1024:
-            size_str += f" ({size/1024:.1f} KB)"
+            size_str += f" ({size / 1024:.1f} KB)"
         if size > 1024 * 1024:
-            size_str = f"{size:,} bytes ({size/1024/1024:.1f} MB)"
+            size_str = f"{size:,} bytes ({size / 1024 / 1024:.1f} MB)"
 
         return f"""## File Info: {path.name}
 
@@ -1335,7 +1358,7 @@ def get_file_info(file_path: str) -> str:
 - **Type**: {file_type}
 - **Size**: {size_str}
 - **Lines**: {lines}
-- **Modified**: {modified.strftime('%Y-%m-%d %H:%M:%S')}
+- **Modified**: {modified.strftime("%Y-%m-%d %H:%M:%S")}
 """
 
     except Exception as e:
@@ -1343,9 +1366,7 @@ def get_file_info(file_path: str) -> str:
 
 
 def get_default_tools(
-    project_path: str = None,
-    use_mcp: bool = True,
-    mcp_servers: list = None
+    project_path: str = None, use_mcp: bool = True, mcp_servers: list = None
 ) -> list:
     """Get the default tool set for agents.
 
@@ -1365,6 +1386,7 @@ def get_default_tools(
     # Web research tools (DuckDuckGo search + webpage fetcher)
     try:
         from smolagents import DuckDuckGoSearchTool, VisitWebpageTool
+
         tools.append(DuckDuckGoSearchTool(max_results=5))
         tools.append(VisitWebpageTool(max_output_length=20000))
     except ImportError:
@@ -1374,6 +1396,7 @@ def get_default_tools(
     if use_mcp:
         try:
             from .mcp_tools import get_mcp_tools
+
             mcp_tools = get_mcp_tools(mcp_servers)
             if mcp_tools:
                 tools.extend(mcp_tools)
@@ -1462,6 +1485,7 @@ def get_tools_for_agent(
 
             except Exception as e:
                 return f"Error reading file: {e}"
+
         return project_read_file
 
     def make_search_files(root: str):
@@ -1478,9 +1502,9 @@ def get_tools_for_agent(
                 List of matching file paths.
             """
             # Validate pattern
-            if '|' in pattern:
+            if "|" in pattern:
                 return f"Invalid pattern '{pattern}'. Use ONE pattern, not '|' separated."
-            if pattern == '**':
+            if pattern == "**":
                 return "Invalid pattern '**'. Use '**/*' or '**/*.py'."
 
             base = Path(path)
@@ -1501,6 +1525,7 @@ def get_tools_for_agent(
 
             matches = sorted(matches, key=lambda p: str(p))
             return "\n".join(str(m) for m in matches[:50])
+
         return project_search_files
 
     def make_grep(root: str):
@@ -1517,6 +1542,7 @@ def get_tools_for_agent(
                 Matching lines with file paths.
             """
             import re
+
             base = Path(path)
             if not base.is_absolute():
                 base = Path(root) / base
@@ -1547,6 +1573,7 @@ def get_tools_for_agent(
                 return f"No matches for '{pattern}' in {path}. Try: different keywords, broader file_pattern, or search_files first to find relevant files."
 
             return "\n".join(results)
+
         return project_grep
 
     # Add Knowledge DB if requested
@@ -1557,6 +1584,7 @@ def get_tools_for_agent(
     if "web_search" in tool_names:
         try:
             from smolagents import DuckDuckGoSearchTool
+
             tools.append(DuckDuckGoSearchTool(max_results=5))
         except ImportError:
             pass
@@ -1564,6 +1592,7 @@ def get_tools_for_agent(
     if "visit_webpage" in tool_names:
         try:
             from smolagents import VisitWebpageTool
+
             tools.append(VisitWebpageTool(max_output_length=20000))
         except ImportError:
             pass

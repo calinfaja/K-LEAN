@@ -4,7 +4,6 @@ Model discovery and LiteLLM integration for SmolKLN.
 Uses central discovery module - no hardcoded model names.
 """
 
-
 from klean.discovery import get_model
 
 
@@ -37,9 +36,7 @@ def create_model(
     # Use discovery: explicit model or first available
     resolved_model = get_model(model_id)
     if not resolved_model:
-        raise ValueError(
-            "No models available. Check LiteLLM is running: kln status"
-        )
+        raise ValueError("No models available. Check LiteLLM is running: kln status")
 
     return LiteLLMModel(
         model_id=f"openai/{resolved_model}",

@@ -17,7 +17,7 @@ from typing import Optional
 # Configuration Constants (with environment variable overrides)
 # =============================================================================
 # Python binary - check environment override first
-_kb_python_env = os.environ.get('KB_PYTHON') or os.environ.get('KLEAN_KB_PYTHON')
+_kb_python_env = os.environ.get("KB_PYTHON") or os.environ.get("KLEAN_KB_PYTHON")
 if _kb_python_env:
     PYTHON_BIN = Path(_kb_python_env)
 elif (Path.home() / ".venvs/knowledge-db/bin/python").exists():
@@ -28,14 +28,14 @@ else:
     PYTHON_BIN = Path("python3")  # Fallback to system python
 
 # Scripts directory - check environment override first
-_kb_scripts_env = os.environ.get('KB_SCRIPTS_DIR') or os.environ.get('KLEAN_SCRIPTS_DIR')
+_kb_scripts_env = os.environ.get("KB_SCRIPTS_DIR") or os.environ.get("KLEAN_SCRIPTS_DIR")
 if _kb_scripts_env:
     KB_SCRIPTS_DIR = Path(_kb_scripts_env)
 else:
     KB_SCRIPTS_DIR = Path.home() / ".claude/scripts"
 
 KB_DIR_NAME = ".knowledge-db"
-SOCKET_PREFIX = os.environ.get('KLEAN_SOCKET_DIR', '/tmp') + "/kb-"
+SOCKET_PREFIX = os.environ.get("KLEAN_SOCKET_DIR", "/tmp") + "/kb-"
 
 # Project markers in priority order (matches kb-root.sh)
 PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
@@ -49,12 +49,13 @@ SCHEMA_V2_DEFAULTS = {
     "last_used": None,
     "source_quality": "medium",
     # V2 enhanced fields
-    "atomic_insight": "",        # One-sentence takeaway
-    "key_concepts": [],          # Terms for hybrid search boost
-    "quality": "medium",         # high|medium|low
-    "source": "manual",          # conversation|web|file|manual
-    "source_path": "",           # URL or file path
+    "atomic_insight": "",  # One-sentence takeaway
+    "key_concepts": [],  # Terms for hybrid search boost
+    "quality": "medium",  # high|medium|low
+    "source": "manual",  # conversation|web|file|manual
+    "source_path": "",  # URL or file path
 }
+
 
 # =============================================================================
 # Debug Logging

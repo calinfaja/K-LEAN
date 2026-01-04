@@ -1577,9 +1577,9 @@ def model_test(model: Optional[str], prompt: Optional[str]):
             json={
                 "model": model,
                 "messages": [{"role": "user", "content": test_prompt}],
-                "max_tokens": 100
+                "max_tokens": 100,
             },
-            timeout=30
+            timeout=30,
         )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]

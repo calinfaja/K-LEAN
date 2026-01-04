@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class MemoryEntry:
     """Single memory entry."""
+
     content: str
     timestamp: float
     entry_type: str  # "action", "result", "lesson", "error"
@@ -40,6 +41,7 @@ class MemoryEntry:
 @dataclass
 class SessionMemory:
     """Memory for current session."""
+
     task: str
     entries: List[MemoryEntry] = field(default_factory=list)
     max_entries: int = 50
@@ -47,15 +49,14 @@ class SessionMemory:
 
     def add(self, content: str, entry_type: str, **metadata):
         """Add entry to session memory."""
-        self.entries.append(MemoryEntry(
-            content=content,
-            timestamp=time.time(),
-            entry_type=entry_type,
-            metadata=metadata
-        ))
+        self.entries.append(
+            MemoryEntry(
+                content=content, timestamp=time.time(), entry_type=entry_type, metadata=metadata
+            )
+        )
         # Trim if exceeds max
         if len(self.entries) > self.max_entries:
-            self.entries = self.entries[-self.max_entries:]
+            self.entries = self.entries[-self.max_entries :]
 
     def get_context(self, max_tokens: int = 2000) -> str:
         """Get session context string, limited by token estimate."""
@@ -117,10 +118,12 @@ class AgentMemory:
         if self._knowledge_db is None and self.project_context.has_knowledge_db:
             try:
                 import sys
+
                 scripts_dir = Path.home() / ".claude" / "scripts"
                 if str(scripts_dir) not in sys.path:
                     sys.path.insert(0, str(scripts_dir))
                 from knowledge_db import KnowledgeDB
+
                 self._knowledge_db = KnowledgeDB(str(self.project_context.project_root))
             except ImportError:
                 pass
@@ -167,12 +170,14 @@ class AgentMemory:
         if self.knowledge_db is None:
             return False
         try:
-            self.knowledge_db.add({
-                "content": lesson,
-                "category": category,
-                "source": "smolkln_agent",
-                "timestamp": time.time()
-            })
+            self.knowledge_db.add(
+                {
+                    "content": lesson,
+                    "category": category,
+                    "source": "smolkln_agent",
+                    "timestamp": time.time(),
+                }
+            )
             return True
         except Exception:
             return False
@@ -198,9 +203,9 @@ class AgentMemory:
                 knowledge_items = []
                 for r in results:
                     # Filter by relevance score
-                    if r.get('score', 0) > 0.3:
-                        title = r.get('title', 'Lesson')
-                        content = r.get('content', '')[:200]
+                    if r.get("score", 0) > 0.3:
+                        title = r.get("title", "Lesson")
+                        content = r.get("content", "")[:200]
                         knowledge_items.append(f"- {title}: {content}")
 
                 if knowledge_items:
@@ -238,20 +243,22 @@ class AgentMemory:
 
             try:
                 # Extract a title from the content
-                content_lines = entry.content.strip().split('\n')
+                content_lines = entry.content.strip().split("\n")
                 title = content_lines[0][:100] if content_lines else "Agent finding"
 
-                self.knowledge_db.add_structured({
-                    "title": title,
-                    "summary": entry.content[:500],
-                    "type": "lesson" if entry.entry_type == "lesson" else "solution",
-                    "source": f"agent_{agent_name}",
-                    "tags": [agent_name, "smolkln", entry.entry_type],
-                    "key_concepts": [agent_name],
-                    "quality": "medium",
-                    # Store session metadata
-                    "source_path": session_id,
-                })
+                self.knowledge_db.add_structured(
+                    {
+                        "title": title,
+                        "summary": entry.content[:500],
+                        "type": "lesson" if entry.entry_type == "lesson" else "solution",
+                        "source": f"agent_{agent_name}",
+                        "tags": [agent_name, "smolkln", entry.entry_type],
+                        "key_concepts": [agent_name],
+                        "quality": "medium",
+                        # Store session metadata
+                        "source_path": session_id,
+                    }
+                )
                 persisted += 1
             except Exception:
                 # Don't fail execution if persistence fails
@@ -278,12 +285,12 @@ class AgentMemory:
         current_lesson = {}
         current_content = []
 
-        for line in serena_content.split('\n'):
+        for line in serena_content.split("\n"):
             # Detect lesson headers (### GOTCHA:, ### TIP:, ### PATTERN:, etc.)
-            if line.startswith('### '):
+            if line.startswith("### "):
                 # Save previous lesson if exists
-                if current_lesson.get('title'):
-                    self._save_serena_lesson(current_lesson, '\n'.join(current_content))
+                if current_lesson.get("title"):
+                    self._save_serena_lesson(current_lesson, "\n".join(current_content))
                     synced += 1
 
                 # Parse new lesson header
@@ -300,21 +307,21 @@ class AgentMemory:
                     header = header[8:].strip()
 
                 current_lesson = {
-                    'title': header,
-                    'type': lesson_type,
+                    "title": header,
+                    "type": lesson_type,
                 }
                 current_content = []
 
-            elif line.startswith('**Date**:'):
-                current_lesson['date'] = line.split(':', 1)[1].strip()
-            elif line.startswith('**Context**:'):
-                current_lesson['context'] = line.split(':', 1)[1].strip()
-            elif current_lesson.get('title'):
+            elif line.startswith("**Date**:"):
+                current_lesson["date"] = line.split(":", 1)[1].strip()
+            elif line.startswith("**Context**:"):
+                current_lesson["context"] = line.split(":", 1)[1].strip()
+            elif current_lesson.get("title"):
                 current_content.append(line)
 
         # Save last lesson
-        if current_lesson.get('title'):
-            self._save_serena_lesson(current_lesson, '\n'.join(current_content))
+        if current_lesson.get("title"):
+            self._save_serena_lesson(current_lesson, "\n".join(current_content))
             synced += 1
 
         return synced
@@ -326,21 +333,23 @@ class AgentMemory:
 
         try:
             # Check if already synced (by title + source)
-            existing = self.knowledge_db.search(lesson['title'], limit=1)
+            existing = self.knowledge_db.search(lesson["title"], limit=1)
             for e in existing:
-                if e.get('source') == 'serena' and e.get('title') == lesson['title']:
+                if e.get("source") == "serena" and e.get("title") == lesson["title"]:
                     return False  # Already exists
 
-            self.knowledge_db.add_structured({
-                "title": lesson['title'],
-                "summary": content.strip()[:1000],
-                "type": lesson.get('type', 'lesson'),
-                "source": "serena",
-                "tags": ["serena", "lessons-learned", lesson.get('type', 'lesson')],
-                "key_concepts": [lesson.get('context', '')] if lesson.get('context') else [],
-                "quality": "high",  # Serena lessons are curated
-                "source_path": f"serena:{lesson.get('date', 'unknown')}",
-            })
+            self.knowledge_db.add_structured(
+                {
+                    "title": lesson["title"],
+                    "summary": content.strip()[:1000],
+                    "type": lesson.get("type", "lesson"),
+                    "source": "serena",
+                    "tags": ["serena", "lessons-learned", lesson.get("type", "lesson")],
+                    "key_concepts": [lesson.get("context", "")] if lesson.get("context") else [],
+                    "quality": "high",  # Serena lessons are curated
+                    "source_path": f"serena:{lesson.get('date', 'unknown')}",
+                }
+            )
             return True
         except Exception:
             return False

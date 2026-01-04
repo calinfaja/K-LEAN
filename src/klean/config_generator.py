@@ -219,9 +219,7 @@ def load_env_file(env_path: Path) -> dict[str, str]:
     return env_vars
 
 
-def generate_env_file(
-    providers: dict[str, str], existing_env: Optional[dict] = None
-) -> str:
+def generate_env_file(providers: dict[str, str], existing_env: Optional[dict] = None) -> str:
     """Generate .env file content, preserving existing keys.
 
     Args:
@@ -276,9 +274,7 @@ def load_config_yaml(config_path: Path) -> dict:
         return {"litellm_settings": {"drop_params": True}, "model_list": []}
 
 
-def merge_models_into_config(
-    existing_config: dict, new_models: list[dict]
-) -> dict:
+def merge_models_into_config(existing_config: dict, new_models: list[dict]) -> dict:
     """Merge new models into existing config without duplicates.
 
     Args:
@@ -289,7 +285,8 @@ def merge_models_into_config(
         Updated config dict with merged models
     """
     existing_names: set[str] = {
-        model.get("model_name") for model in existing_config.get("model_list", [])
+        model.get("model_name")
+        for model in existing_config.get("model_list", [])
         if isinstance(model, dict) and "model_name" in model
     }
 
@@ -331,8 +328,7 @@ def add_model_to_config(config_path: Path, full_model_id: str, provider: str) ->
 
     # Check if model already exists
     existing_names = {
-        m.get("model_name") for m in config.get("model_list", [])
-        if isinstance(m, dict)
+        m.get("model_name") for m in config.get("model_list", []) if isinstance(m, dict)
     }
 
     model_name = extract_model_name(validated_id)
@@ -340,10 +336,12 @@ def add_model_to_config(config_path: Path, full_model_id: str, provider: str) ->
         return False  # Already exists
 
     # Create model entry
-    model_entry = _create_model_entry({
-        "model_name": model_name,
-        "model_id": validated_id,
-    })
+    model_entry = _create_model_entry(
+        {
+            "model_name": model_name,
+            "model_id": validated_id,
+        }
+    )
 
     config["model_list"].append(model_entry)
 
@@ -368,7 +366,8 @@ def remove_model_from_config(config_path: Path, model_name: str) -> bool:
 
     # Filter out the model
     config["model_list"] = [
-        m for m in config.get("model_list", [])
+        m
+        for m in config.get("model_list", [])
         if not isinstance(m, dict) or m.get("model_name") != model_name
     ]
 
@@ -395,11 +394,13 @@ def list_models_in_config(config_path: Path) -> list[dict]:
     for model in config.get("model_list", []):
         if isinstance(model, dict) and "model_name" in model:
             model_id = model.get("litellm_params", {}).get("model", "unknown")
-            models.append({
-                "model_name": model["model_name"],
-                "model_id": model_id,
-                "is_thinking": is_thinking_model(model["model_name"]),
-            })
+            models.append(
+                {
+                    "model_name": model["model_name"],
+                    "model_id": model_id,
+                    "is_thinking": is_thinking_model(model["model_name"]),
+                }
+            )
 
     return models
 

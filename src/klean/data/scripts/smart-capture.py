@@ -104,12 +104,9 @@ def fetch_url(url: str, max_chars: int = 15000) -> str:
         return "Error: Invalid URL - no hostname specified."
 
     try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "K-LEAN-SmartCapture/1.0"}
-        )
+        req = urllib.request.Request(url, headers={"User-Agent": "K-LEAN-SmartCapture/1.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            content = resp.read().decode('utf-8', errors='ignore')
+            content = resp.read().decode("utf-8", errors="ignore")
             if len(content) > max_chars:
                 content = content[:max_chars] + "\n... [truncated]"
             return content
@@ -120,7 +117,7 @@ def fetch_url(url: str, max_chars: int = 15000) -> str:
 def read_file(path: str, max_chars: int = 15000) -> str:
     """Read file content."""
     try:
-        with open(path, errors='ignore') as f:
+        with open(path, errors="ignore") as f:
             content = f.read()
             if len(content) > max_chars:
                 content = content[:max_chars] + "\n... [truncated]"
@@ -132,17 +129,19 @@ def read_file(path: str, max_chars: int = 15000) -> str:
 def call_litellm(prompt: str) -> dict:
     """Call LiteLLM API for evaluation."""
     try:
-        data = json.dumps({
-            "model": LITELLM_MODEL,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3,
-            "max_tokens": 1000
-        }).encode('utf-8')
+        data = json.dumps(
+            {
+                "model": LITELLM_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 1000,
+            }
+        ).encode("utf-8")
 
         req = urllib.request.Request(
             f"{LITELLM_URL}/v1/chat/completions",
             data=data,
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         with urllib.request.urlopen(req, timeout=60) as resp:
@@ -186,6 +185,7 @@ def save_to_kb(entry: dict, project_path: Path) -> bool:
 
     # Use KB_SCRIPTS_DIR from environment or kb_utils
     from kb_utils import KB_SCRIPTS_DIR
+
     script = KB_SCRIPTS_DIR / "knowledge-capture.py"
 
     if not script.exists():
@@ -199,7 +199,7 @@ def save_to_kb(entry: dict, project_path: Path) -> bool:
             capture_output=True,
             text=True,
             cwd=str(project_path),
-            env={**os.environ, "CLAUDE_PROJECT_DIR": str(project_path)}
+            env={**os.environ, "CLAUDE_PROJECT_DIR": str(project_path)},
         )
         return result.returncode == 0
     except (subprocess.SubprocessError, OSError):
@@ -211,17 +211,16 @@ def save_to_kb(entry: dict, project_path: Path) -> bool:
 # =============================================================================
 def main():
     parser = argparse.ArgumentParser(
-        description='Smart capture with LLM evaluation',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Smart capture with LLM evaluation",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('url', nargs='?', help='URL to capture')
-    parser.add_argument('--file', '-f', help='File path to capture')
-    parser.add_argument('--search-context', '-c', default='',
-                       help='Search context for relevance evaluation')
-    parser.add_argument('--json', action='store_true',
-                       help='Output as JSON')
-    parser.add_argument('--dry-run', action='store_true',
-                       help='Evaluate but do not save')
+    parser.add_argument("url", nargs="?", help="URL to capture")
+    parser.add_argument("--file", "-f", help="File path to capture")
+    parser.add_argument(
+        "--search-context", "-c", default="", help="Search context for relevance evaluation"
+    )
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--dry-run", action="store_true", help="Evaluate but do not save")
 
     args = parser.parse_args()
 
@@ -259,7 +258,7 @@ def main():
     prompt = EVAL_PROMPT.format(
         source_type=source_type,
         search_context=args.search_context or "(none provided)",
-        content=content[:10000]  # Further limit for prompt
+        content=content[:10000],  # Further limit for prompt
     )
 
     # Call LiteLLM for evaluation
@@ -270,10 +269,7 @@ def main():
 
     if not result.get("save", False):
         if args.json:
-            print(json.dumps({
-                "saved": False,
-                "reason": result.get("reason", "Not worth saving")
-            }))
+            print(json.dumps({"saved": False, "reason": result.get("reason", "Not worth saving")}))
         else:
             print(f"Not saved: {result.get('reason', 'Not worth saving')}")
         return 0
@@ -311,12 +307,16 @@ def main():
     saved = save_to_kb(entry, project_root)
 
     if args.json:
-        print(json.dumps({
-            "saved": saved,
-            "title": entry["title"],
-            "type": entry["type"],
-            "atomic_insight": entry.get("atomic_insight", "")
-        }))
+        print(
+            json.dumps(
+                {
+                    "saved": saved,
+                    "title": entry["title"],
+                    "type": entry["type"],
+                    "atomic_insight": entry.get("atomic_insight", ""),
+                }
+            )
+        )
     else:
         if saved:
             print(f"Saved: {entry['title']}")

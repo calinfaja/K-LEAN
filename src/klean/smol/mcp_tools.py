@@ -53,20 +53,13 @@ BUILTIN_MCP_SERVERS = {
     "filesystem": {
         "command": "npx",
         "args": ["-y", "@anthropic/mcp-server-filesystem", "."],
-        "env": {}
+        "env": {},
     },
-    "git": {
-        "command": "npx",
-        "args": ["-y", "@anthropic/mcp-server-git"],
-        "env": {}
-    }
+    "git": {"command": "npx", "args": ["-y", "@anthropic/mcp-server-git"], "env": {}},
 }
 
 
-def get_mcp_tools(
-    servers: List[str] = None,
-    include_builtin: bool = False
-) -> List:
+def get_mcp_tools(servers: List[str] = None, include_builtin: bool = False) -> List:
     """Load tools from MCP servers.
 
     Uses smolagents ToolCollection.from_mcp() to connect to MCP servers
@@ -105,15 +98,12 @@ def get_mcp_tools(
 
                 if command:
                     # Pass command and args separately
-                    collection = ToolCollection.from_mcp(
-                        command=command,
-                        args=args,
-                        env=env
-                    )
+                    collection = ToolCollection.from_mcp(command=command, args=args, env=env)
                     tools.extend(collection.tools)
             except Exception as e:
                 # Log but don't fail - MCP servers are optional
                 import sys
+
                 print(f"Note: MCP server {server} not loaded: {e}", file=sys.stderr)
 
     # Load builtin servers if requested
@@ -125,14 +115,11 @@ def get_mcp_tools(
                     args = config.get("args", [])
                     env = config.get("env", {})
                     if command:
-                        collection = ToolCollection.from_mcp(
-                            command=command,
-                            args=args,
-                            env=env
-                        )
+                        collection = ToolCollection.from_mcp(command=command, args=args, env=env)
                         tools.extend(collection.tools)
                 except Exception as e:
                     import sys
+
                     print(f"Note: Builtin MCP server {name} not loaded: {e}", file=sys.stderr)
 
     return tools
@@ -177,21 +164,18 @@ def test_mcp_connection(server_name: str) -> Dict[str, Any]:
 
     try:
         from smolagents import ToolCollection
+
         command = config.get("command")
         args = config.get("args", [])
         env = config.get("env", {})
         if not command:
             return {"success": False, "error": "No command in config"}
-        collection = ToolCollection.from_mcp(
-            command=command,
-            args=args,
-            env=env
-        )
+        collection = ToolCollection.from_mcp(command=command, args=args, env=env)
         return {
             "success": True,
             "server": server_name,
             "tools": len(collection.tools),
-            "tool_names": [t.name for t in collection.tools]
+            "tool_names": [t.name for t in collection.tools],
         }
     except Exception as e:
         return {"success": False, "error": str(e)}

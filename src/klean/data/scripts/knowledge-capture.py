@@ -55,6 +55,7 @@ except ImportError:
         is_server_running,
     )
 
+
 # Result of initialization
 class InitResult:
     def __init__(self, path, newly_created=False, server_started=False):
@@ -67,6 +68,7 @@ def start_kb_server(project_path):
     """Start the KB server for a project."""
     # Import KB_SCRIPTS_DIR from kb_utils (set from environment)
     from kb_utils import KB_SCRIPTS_DIR
+
     server_script = KB_SCRIPTS_DIR / "knowledge-server.py"
 
     if not server_script.exists() or not PYTHON_BIN.exists():
@@ -79,11 +81,12 @@ def start_kb_server(project_path):
             [str(PYTHON_BIN), str(server_script), "start", str(project_path)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            start_new_session=True
+            start_new_session=True,
         )
 
         # Wait briefly for server to start
         import time
+
         for _ in range(10):  # Wait up to 5 seconds
             time.sleep(0.5)
             if is_server_running(project_path):
@@ -104,7 +107,7 @@ def get_knowledge_dir():
     - server_started: True if KB server was just started
     """
     # Try CLAUDE_PROJECT_DIR first (set by Claude Code)
-    project_dir = os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
     knowledge_db = Path(project_dir) / ".knowledge-db"
 
     # Check if it already exists
@@ -123,31 +126,22 @@ def get_knowledge_dir():
 
     return InitResult(knowledge_db, newly_created, server_started)
 
+
 def create_entry(content, entry_type="lesson", tags=None, priority="medium", url=None):
     """Create a knowledge database entry (simple mode)."""
     if tags is None:
         tags = []
     elif isinstance(tags, str):
-        tags = [t.strip() for t in tags.split(',') if t.strip()]
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
 
     # Generate a unique ID
     entry_id = f"{entry_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     # Calculate relevance score based on priority
-    priority_scores = {
-        "critical": 1.0,
-        "high": 0.9,
-        "medium": 0.8,
-        "low": 0.7
-    }
+    priority_scores = {"critical": 1.0, "high": 0.9, "medium": 0.8, "low": 0.7}
 
     # Map priority to quality
-    quality_map = {
-        "critical": "high",
-        "high": "high",
-        "medium": "medium",
-        "low": "low"
-    }
+    quality_map = {"critical": "high", "high": "high", "medium": "medium", "low": "low"}
 
     entry = {
         "id": entry_id,
@@ -220,31 +214,34 @@ def create_entry_from_json(data: dict):
 
     return entry
 
+
 def save_entry(entry, knowledge_dir):
     """Save entry to knowledge database."""
     entries_file = knowledge_dir / "entries.jsonl"
 
     # Append entry as JSONL
-    with open(entries_file, 'a') as f:
-        f.write(json.dumps(entry) + '\n')
+    with open(entries_file, "a") as f:
+        f.write(json.dumps(entry) + "\n")
 
     return True
+
 
 def log_to_timeline(content, entry_type, knowledge_dir):
     """Log to timeline for chronological tracking."""
     timeline_file = knowledge_dir / "timeline.txt"
-    timestamp = datetime.now().strftime('%m-%d %H:%M')
+    timestamp = datetime.now().strftime("%m-%d %H:%M")
 
     # Truncate content for timeline
-    short_content = content[:80].replace('\n', ' ')
+    short_content = content[:80].replace("\n", " ")
     timeline_entry = f"{timestamp} | {entry_type} | {short_content}"
 
-    with open(timeline_file, 'a') as f:
-        f.write(timeline_entry + '\n')
+    with open(timeline_file, "a") as f:
+        f.write(timeline_entry + "\n")
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Capture knowledge to K-LEAN database',
+        description="Capture knowledge to K-LEAN database",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -252,23 +249,28 @@ Examples:
   %(prog)s "Memory leak in pools" --type finding --priority high
   %(prog)s "Use async/await" --type best-practice --tags python,async
   %(prog)s --json-input '{"title":"...","summary":"..."}' --json
-        """
+        """,
     )
-    parser.add_argument('content', nargs='?', default='', help='The content to capture')
-    parser.add_argument('--type', dest='entry_type', default='lesson',
-                       choices=['lesson', 'finding', 'solution', 'pattern', 'warning', 'best-practice'],
-                       help='Type of entry (default: lesson)')
-    parser.add_argument('--tags', default='',
-                       help='Comma-separated tags')
-    parser.add_argument('--priority', default='medium',
-                       choices=['low', 'medium', 'high', 'critical'],
-                       help='Priority level (default: medium)')
-    parser.add_argument('--url', default='',
-                       help='URL associated with the entry')
-    parser.add_argument('--json', action='store_true',
-                       help='Output result as JSON')
-    parser.add_argument('--json-input', dest='json_input',
-                       help='Add structured entry from JSON string (V2 schema)')
+    parser.add_argument("content", nargs="?", default="", help="The content to capture")
+    parser.add_argument(
+        "--type",
+        dest="entry_type",
+        default="lesson",
+        choices=["lesson", "finding", "solution", "pattern", "warning", "best-practice"],
+        help="Type of entry (default: lesson)",
+    )
+    parser.add_argument("--tags", default="", help="Comma-separated tags")
+    parser.add_argument(
+        "--priority",
+        default="medium",
+        choices=["low", "medium", "high", "critical"],
+        help="Priority level (default: medium)",
+    )
+    parser.add_argument("--url", default="", help="URL associated with the entry")
+    parser.add_argument("--json", action="store_true", help="Output result as JSON")
+    parser.add_argument(
+        "--json-input", dest="json_input", help="Add structured entry from JSON string (V2 schema)"
+    )
 
     args = parser.parse_args()
 
@@ -306,7 +308,7 @@ Examples:
                 entry_type=args.entry_type,
                 tags=args.tags,
                 priority=args.priority,
-                url=args.url if args.url else None
+                url=args.url if args.url else None,
             )
             content_display = args.content[:60]
             entry_type = args.entry_type
@@ -319,15 +321,21 @@ Examples:
 
         # Output based on mode
         if args.json:
-            print(json.dumps({
-                "status": "success",
-                "id": entry["id"],
-                "title": entry["title"],
-                "type": entry_type,
-                "path": str(knowledge_dir / "entries.jsonl")
-            }))
+            print(
+                json.dumps(
+                    {
+                        "status": "success",
+                        "id": entry["id"],
+                        "title": entry["title"],
+                        "type": entry_type,
+                        "path": str(knowledge_dir / "entries.jsonl"),
+                    }
+                )
+            )
         else:
-            print(f"[OK] Captured {entry_type}: {content_display}{'...' if len(content_display) >= 60 else ''}")
+            print(
+                f"[OK] Captured {entry_type}: {content_display}{'...' if len(content_display) >= 60 else ''}"
+            )
             print(f" Saved to: {knowledge_dir}/entries.jsonl")
             if entry.get("tags"):
                 print(f"  Tags: {', '.join(entry['tags'])}")
@@ -343,5 +351,6 @@ Examples:
             print(f"[ERROR] Error capturing knowledge: {e}", file=sys.stderr)
         return 1
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())

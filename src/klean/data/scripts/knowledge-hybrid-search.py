@@ -82,7 +82,9 @@ class BM25:
         # Calculate IDF
         n_docs = len(self.documents)
         for token, doc_ids in self.index.items():
-            self.idf[token] = 1.0 + __import__("math").log((n_docs - len(doc_ids) + 0.5) / (len(doc_ids) + 0.5))
+            self.idf[token] = 1.0 + __import__("math").log(
+                (n_docs - len(doc_ids) + 0.5) / (len(doc_ids) + 0.5)
+            )
 
     def score(self, query: str, doc_id: int) -> float:
         """
@@ -180,9 +182,7 @@ class HybridSearch:
 
         # Filter by tags if specified
         if tags:
-            results = [
-                r for r in results if any(t in r.get("tags", []) for t in tags)
-            ]
+            results = [r for r in results if any(t in r.get("tags", []) for t in tags)]
 
         # Sort by semantic score and return
         results.sort(key=lambda x: x.get("score", 0), reverse=True)
@@ -210,9 +210,7 @@ class HybridSearch:
 
         # Filter by tags if specified
         if tags:
-            entries = [
-                e for e in entries if any(t in e.get("tags", []) for t in tags)
-            ]
+            entries = [e for e in entries if any(t in e.get("tags", []) for t in tags)]
 
         # Build BM25 index and score
         bm25 = BM25(entries)
@@ -373,10 +371,9 @@ class HybridSearch:
             # Hybrid ranking formula
             # 40% semantic + 30% keyword + 15% tag + 10% usage + 5% confidence
             hybrid_score = (
-                0.40 * semantic
-                + 0.30 * keyword
-                + 0.15 * tag_score
-                + 0.10 * min(usage / 10, 1.0) if usage else 0  # Cap usage at 10
+                0.40 * semantic + 0.30 * keyword + 0.15 * tag_score + 0.10 * min(usage / 10, 1.0)
+                if usage
+                else 0  # Cap usage at 10
                 + 0.05 * confidence
             )
 
@@ -408,21 +405,11 @@ if __name__ == "__main__":
         default="hybrid",
         help="Search strategy (default: hybrid)",
     )
-    parser.add_argument(
-        "--tags", help="Comma-separated tags to filter by"
-    )
-    parser.add_argument(
-        "--limit", "-n", type=int, default=5, help="Result limit"
-    )
-    parser.add_argument(
-        "--project", "-p", help="Project path"
-    )
-    parser.add_argument(
-        "--json", action="store_true", help="Output as JSON"
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Show detailed scores"
-    )
+    parser.add_argument("--tags", help="Comma-separated tags to filter by")
+    parser.add_argument("--limit", "-n", type=int, default=5, help="Result limit")
+    parser.add_argument("--project", "-p", help="Project path")
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Show detailed scores")
 
     args = parser.parse_args()
 
@@ -462,5 +449,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

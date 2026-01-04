@@ -27,15 +27,19 @@ Examples:
   %(prog)s security-auditor "audit auth module"
   %(prog)s code-reviewer "review main.py" --model qwen3-coder
   %(prog)s --list
-        """
+        """,
     )
     parser.add_argument("agent", nargs="?", help="Agent name (e.g., security-auditor)")
     parser.add_argument("task", nargs="?", help="Task description")
     parser.add_argument("--model", "-m", help="Override model")
     parser.add_argument("--list", "-l", action="store_true", help="List available agents")
     parser.add_argument("--api-base", default="http://localhost:4000", help="LiteLLM API base URL")
-    parser.add_argument("--telemetry", "-t", action="store_true",
-                        help="Enable Phoenix telemetry (view at localhost:6006)")
+    parser.add_argument(
+        "--telemetry",
+        "-t",
+        action="store_true",
+        help="Enable Phoenix telemetry (view at localhost:6006)",
+    )
 
     args = parser.parse_args()
 
@@ -94,11 +98,7 @@ Examples:
         print(f"Project: {executor.project_root}")
         print("-" * 60)
 
-        result = executor.execute(
-            args.agent,
-            args.task,
-            model_override=args.model
-        )
+        result = executor.execute(args.agent, args.task, model_override=args.model)
 
         if result["success"]:
             print(result["output"])

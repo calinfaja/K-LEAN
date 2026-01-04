@@ -76,12 +76,14 @@ def list_running_servers():
                 # Get project info via socket
                 info = send_command_to_socket(str(f), {"cmd": "status"})
                 if info and "project" in info:
-                    servers.append({
-                        "socket": str(f),
-                        "pid": pid,
-                        "project": info.get("project", "unknown"),
-                        "load_time": info.get("load_time", 0)
-                    })
+                    servers.append(
+                        {
+                            "socket": str(f),
+                            "pid": pid,
+                            "project": info.get("project", "unknown"),
+                            "load_time": info.get("load_time", 0),
+                        }
+                    )
             except (ProcessLookupError, ValueError, FileNotFoundError):
                 # Stale socket/pid, clean up
                 try:
@@ -129,7 +131,7 @@ class KnowledgeServer:
         self.embeddings = self.db  # Alias for compatibility
 
         self.load_time = time.time() - start
-        count = self.db.count() if hasattr(self.db, 'count') else len(self.db._id_to_row)
+        count = self.db.count() if hasattr(self.db, "count") else len(self.db._id_to_row)
         print(f"Index loaded in {self.load_time:.2f}s ({count} entries)")
         return True
 
@@ -145,17 +147,13 @@ class KnowledgeServer:
         results = self.db.search(query, limit)
         search_time = time.time() - start
 
-        return {
-            "results": results,
-            "search_time_ms": round(search_time * 1000, 2),
-            "query": query
-        }
+        return {"results": results, "search_time_ms": round(search_time * 1000, 2), "query": query}
 
     def handle_client(self, conn):
         """Handle a client connection."""
         self.last_activity = time.time()
         try:
-            data = conn.recv(4096).decode('utf-8')
+            data = conn.recv(4096).decode("utf-8")
             if not data:
                 return
 
@@ -175,17 +173,17 @@ class KnowledgeServer:
                     "index_loaded": self.db is not None,
                     "idle_seconds": int(idle_time),
                     "entries": self.db.count() if self.db else 0,
-                    "backend": "fastembed"
+                    "backend": "fastembed",
                 }
             elif cmd == "ping":
                 response = {"pong": True, "project": str(self.project_root)}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 
-            conn.sendall(json.dumps(response).encode('utf-8'))
+            conn.sendall(json.dumps(response).encode("utf-8"))
         except Exception as e:
             try:
-                conn.sendall(json.dumps({"error": str(e)}).encode('utf-8'))
+                conn.sendall(json.dumps({"error": str(e)}).encode("utf-8"))
             except OSError:
                 pass
         finally:
@@ -218,7 +216,7 @@ class KnowledgeServer:
         os.chmod(self.socket_path, 0o666)
 
         # Write PID file
-        with open(self.pid_path, 'w') as f:
+        with open(self.pid_path, "w") as f:
             f.write(str(os.getpid()))
 
         print("Knowledge server started")
@@ -267,8 +265,8 @@ def send_command_to_socket(socket_path: str, cmd_data: dict):
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.settimeout(5.0)
         client.connect(socket_path)
-        client.sendall(json.dumps(cmd_data).encode('utf-8'))
-        response = client.recv(65536).decode('utf-8')
+        client.sendall(json.dumps(cmd_data).encode("utf-8"))
+        response = client.recv(65536).decode("utf-8")
         client.close()
         return json.loads(response)
     except Exception as e:

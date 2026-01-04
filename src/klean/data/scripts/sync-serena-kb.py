@@ -25,15 +25,12 @@ def parse_serena_lessons(content: str) -> list:
     current_lesson = {}
     current_content = []
 
-    for line in content.split('\n'):
+    for line in content.split("\n"):
         # Detect lesson headers (### GOTCHA:, ### TIP:, ### PATTERN:, etc.)
-        if line.startswith('### '):
+        if line.startswith("### "):
             # Save previous lesson if exists
-            if current_lesson.get('title'):
-                lessons.append({
-                    **current_lesson,
-                    'content': '\n'.join(current_content).strip()
-                })
+            if current_lesson.get("title"):
+                lessons.append({**current_lesson, "content": "\n".join(current_content).strip()})
 
             # Parse new lesson header
             header = line[4:].strip()
@@ -52,26 +49,23 @@ def parse_serena_lessons(content: str) -> list:
                 header = header[9:].strip()
 
             current_lesson = {
-                'title': header,
-                'type': lesson_type,
+                "title": header,
+                "type": lesson_type,
             }
             current_content = []
 
-        elif line.startswith('**Date**:'):
-            current_lesson['date'] = line.split(':', 1)[1].strip()
-        elif line.startswith('**Context**:'):
-            current_lesson['context'] = line.split(':', 1)[1].strip()
-        elif line.startswith('**Topics**:'):
-            current_lesson['topics'] = line.split(':', 1)[1].strip()
-        elif current_lesson.get('title'):
+        elif line.startswith("**Date**:"):
+            current_lesson["date"] = line.split(":", 1)[1].strip()
+        elif line.startswith("**Context**:"):
+            current_lesson["context"] = line.split(":", 1)[1].strip()
+        elif line.startswith("**Topics**:"):
+            current_lesson["topics"] = line.split(":", 1)[1].strip()
+        elif current_lesson.get("title"):
             current_content.append(line)
 
     # Save last lesson
-    if current_lesson.get('title'):
-        lessons.append({
-            **current_lesson,
-            'content': '\n'.join(current_content).strip()
-        })
+    if current_lesson.get("title"):
+        lessons.append({**current_lesson, "content": "\n".join(current_content).strip()})
 
     return lessons
 
@@ -82,14 +76,14 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
 
     for lesson in lessons:
         # Skip "Remember:" summaries - they're just indexes
-        if lesson.get('type') == 'summary':
+        if lesson.get("type") == "summary":
             continue
 
         # Skip if already exists
         try:
-            existing = db.search(lesson['title'], limit=1)
+            existing = db.search(lesson["title"], limit=1)
             for e in existing:
-                if e.get('source') == 'serena' and e.get('title') == lesson['title']:
+                if e.get("source") == "serena" and e.get("title") == lesson["title"]:
                     continue  # Already synced
         except Exception:
             pass
@@ -100,16 +94,18 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
             continue
 
         try:
-            db.add_structured({
-                "title": lesson['title'],
-                "summary": lesson['content'][:1000],
-                "type": lesson.get('type', 'lesson'),
-                "source": "serena",
-                "tags": ["serena", "lessons-learned", lesson.get('type', 'lesson')],
-                "key_concepts": [lesson.get('context', '')] if lesson.get('context') else [],
-                "quality": "high",
-                "source_path": f"serena:{lesson.get('date', 'unknown')}",
-            })
+            db.add_structured(
+                {
+                    "title": lesson["title"],
+                    "summary": lesson["content"][:1000],
+                    "type": lesson.get("type", "lesson"),
+                    "source": "serena",
+                    "tags": ["serena", "lessons-learned", lesson.get("type", "lesson")],
+                    "key_concepts": [lesson.get("context", "")] if lesson.get("context") else [],
+                    "quality": "high",
+                    "source_path": f"serena:{lesson.get('date', 'unknown')}",
+                }
+            )
             synced += 1
             print(f"  [OK] [{lesson['type']}] {lesson['title'][:60]}")
         except Exception as e:
@@ -160,6 +156,7 @@ def main():
     if not args.dry_run:
         try:
             from knowledge_db import KnowledgeDB
+
             db = KnowledgeDB(args.project)
             print(f"📚 Knowledge DB: {db.db_path}")
         except ImportError:

@@ -13,6 +13,7 @@ from klean.discovery import get_model
 
 class CritiqueVerdict(Enum):
     """Verdict from critique evaluation."""
+
     PASS = "pass"
     RETRY = "retry"
     FAIL = "fail"
@@ -21,6 +22,7 @@ class CritiqueVerdict(Enum):
 @dataclass
 class Critique:
     """Result of critiquing agent output."""
+
     verdict: CritiqueVerdict
     feedback: str
     issues: List[str]
@@ -64,7 +66,7 @@ class ReflectionEngine:
         self,
         model_factory: Callable[[str], Any],
         max_retries: int = 2,
-        critic_model: str = ""  # Empty = use first available from LiteLLM
+        critic_model: str = "",  # Empty = use first available from LiteLLM
     ):
         """Initialize reflection engine.
 
@@ -99,7 +101,7 @@ class ReflectionEngine:
                 feedback=f"Critique error: {e}",
                 issues=[],
                 suggestions=[],
-                confidence=0.5
+                confidence=0.5,
             )
 
     def _parse_critique(self, response: str) -> Critique:
@@ -142,15 +144,11 @@ class ReflectionEngine:
             feedback=feedback,
             issues=issues,
             suggestions=suggestions,
-            confidence=confidence
+            confidence=confidence,
         )
 
     def execute_with_reflection(
-        self,
-        executor,
-        agent_name: str,
-        task: str,
-        **kwargs
+        self, executor, agent_name: str, task: str, **kwargs
     ) -> Dict[str, Any]:
         """Execute agent with reflection loop.
 
@@ -181,7 +179,7 @@ class ReflectionEngine:
 
             if critique.verdict == CritiqueVerdict.PASS:
                 # Output is good, save any suggestions as lessons
-                if hasattr(executor, 'memory') and executor.memory and critique.suggestions:
+                if hasattr(executor, "memory") and executor.memory and critique.suggestions:
                     lesson = f"Task: {task[:100]}\nLearning: {'; '.join(critique.suggestions)}"
                     executor.memory.save_lesson(lesson)
                 break
@@ -210,7 +208,7 @@ Please address these issues and provide improved output."""
             result["final_critique"] = {
                 "verdict": critique.verdict.value,
                 "confidence": critique.confidence,
-                "issues": critique.issues
+                "issues": critique.issues,
             }
 
         return result

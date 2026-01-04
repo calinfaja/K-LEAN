@@ -26,8 +26,8 @@ import sys
 from pathlib import Path
 
 # Pre-compiled regexes for git diff parsing
-RE_INSERTIONS = re.compile(r'(\d+) insertion')
-RE_DELETIONS = re.compile(r'(\d+) deletion')
+RE_INSERTIONS = re.compile(r"(\d+) insertion")
+RE_DELETIONS = re.compile(r"(\d+) deletion")
 
 # Import shared utilities
 try:
@@ -37,6 +37,7 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
     from kb_utils import clean_stale_socket, is_kb_initialized, is_server_running
     from kb_utils import find_project_root as _find_project_root
+
 
 # ============================================================================
 # ANSI Colors
@@ -58,7 +59,9 @@ class C:
     BRIGHT_YELLOW = "\033[93m"
     BRIGHT_WHITE = "\033[97m"
 
+
 SEP = f" {C.DIM}│{C.RESET} "
+
 
 # ============================================================================
 # Field 1: Model
@@ -79,14 +82,15 @@ def get_model(data: dict) -> str:
         color = C.WHITE
 
     # Shorten display name - handle both "claude " and "claude-" prefixes
-    short = re.sub(r'^claude[\s-]*', '', name_lower)
+    short = re.sub(r"^claude[\s-]*", "", name_lower)
     # Replace dashes with spaces, collapse multiple spaces
-    short = re.sub(r'[-\s]+', ' ', short).strip()
+    short = re.sub(r"[-\s]+", " ", short).strip()
     # Keep up to 10 chars to preserve versions like "sonnet 4.5"
     if len(short) > 10:
         short = short[:10]
 
     return f"{color}[{short}]{C.RESET}"
+
 
 # ============================================================================
 # Field 2: Project + Current Directory
@@ -108,6 +112,7 @@ def get_project(data: dict) -> str:
 
     return f"{C.BRIGHT_WHITE}{project}{C.RESET}"
 
+
 # ============================================================================
 # Field 5: Git (Branch + Dirty + Lines Changed)
 # ============================================================================
@@ -126,7 +131,10 @@ def get_git(data: dict) -> str:
         # Get branch (--no-optional-locks prevents creating index.lock)
         branch_result = subprocess.run(
             ["git", "--no-optional-locks", "branch", "--show-current"],
-            capture_output=True, text=True, timeout=2, cwd=cwd
+            capture_output=True,
+            text=True,
+            timeout=2,
+            cwd=cwd,
         )
         if branch_result.returncode != 0:
             return f"{C.DIM}no-git{C.RESET}"
@@ -140,14 +148,20 @@ def get_git(data: dict) -> str:
         # Check dirty state (--no-optional-locks prevents lock conflicts)
         status_result = subprocess.run(
             ["git", "--no-optional-locks", "status", "--porcelain"],
-            capture_output=True, text=True, timeout=2, cwd=cwd
+            capture_output=True,
+            text=True,
+            timeout=2,
+            cwd=cwd,
         )
         dirty = "●" if status_result.stdout.strip() else ""
 
         # Get lines added/removed (staged + unstaged)
         diff_result = subprocess.run(
             ["git", "--no-optional-locks", "diff", "--shortstat", "HEAD"],
-            capture_output=True, text=True, timeout=2, cwd=cwd
+            capture_output=True,
+            text=True,
+            timeout=2,
+            cwd=cwd,
         )
 
         added, removed = 0, 0
@@ -175,6 +189,7 @@ def get_git(data: dict) -> str:
     except Exception:
         return f"{C.DIM}no-git{C.RESET}"
 
+
 # ============================================================================
 # Field 6: Services (LiteLLM + Knowledge DB)
 # ============================================================================
@@ -182,15 +197,16 @@ def check_litellm() -> tuple[int, bool]:
     """Check LiteLLM proxy health."""
     try:
         import urllib.request
+
         req = urllib.request.Request(
-            "http://localhost:4000/models",
-            headers={"Content-Type": "application/json"}
+            "http://localhost:4000/models", headers={"Content-Type": "application/json"}
         )
         with urllib.request.urlopen(req, timeout=0.5) as resp:
             data = json.loads(resp.read().decode())
             return len(data.get("data", [])), True
     except Exception:
         return 0, False
+
 
 def check_knowledge_db(workspace: dict) -> str:
     """Check knowledge DB status for the project.
@@ -219,6 +235,7 @@ def check_knowledge_db(workspace: dict) -> str:
     clean_stale_socket(project_root_str)
     return "stopped"
 
+
 def get_services(data: dict) -> str:
     """Get K-LEAN services status."""
     llm_count, llm_running = check_litellm()
@@ -245,6 +262,7 @@ def get_services(data: dict) -> str:
 
     return f"{C.DIM}llm:{llm} kb:{kb}{C.RESET}"
 
+
 # ============================================================================
 # Main
 # ============================================================================
@@ -265,6 +283,7 @@ def main():
     line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}"
 
     print(line)
+
 
 if __name__ == "__main__":
     main()

@@ -37,8 +37,7 @@ def add_step_awareness(memory_step, agent) -> None:
     if remaining <= 2:
         warning = f"\n[Step {memory_step.step_number}/{agent.max_steps}] Only {remaining} step(s) left - call final_answer() now!"
         memory_step.observations = (
-            warning if memory_step.observations is None
-            else memory_step.observations + warning
+            warning if memory_step.observations is None else memory_step.observations + warning
         )
 
 
@@ -102,20 +101,20 @@ class SmolKLNExecutor:
         """
         if isinstance(result, dict):
             # Extract code (main content) if present
-            if 'code' in result:
-                content = result['code']
+            if "code" in result:
+                content = result["code"]
                 # Handle escaped newlines from JSON serialization
-                if isinstance(content, str) and '\\n' in content:
-                    content = content.replace('\\n', '\n')
+                if isinstance(content, str) and "\\n" in content:
+                    content = content.replace("\\n", "\n")
                 return content
             # Fallback: format dict as readable markdown
             parts = []
-            if 'thought' in result:
+            if "thought" in result:
                 parts.append(f"## Analysis Summary\n\n{result['thought']}")
             for key, value in result.items():
-                if key not in ('thought', 'code'):
+                if key not in ("thought", "code"):
                     parts.append(f"## {key.title()}\n\n{value}")
-            return '\n\n'.join(parts) if parts else str(result)
+            return "\n\n".join(parts) if parts else str(result)
         return str(result)
 
     def _save_result(
@@ -237,10 +236,14 @@ class SmolKLNExecutor:
         # Combine provided context with memory context
         combined_context = context or ""
         if memory_context:
-            combined_context = memory_context + "\n\n" + combined_context if combined_context else memory_context
+            combined_context = (
+                memory_context + "\n\n" + combined_context if combined_context else memory_context
+            )
 
         # Build full prompt with project context and memory
-        full_prompt = self._build_prompt(agent, task, combined_context if combined_context else None)
+        full_prompt = self._build_prompt(
+            agent, task, combined_context if combined_context else None
+        )
 
         # Get tools for this agent - use agent-specific tools if defined
         if agent.config.tools:
@@ -254,8 +257,16 @@ class SmolKLNExecutor:
         # queue, random, re, stat, statistics, time, unicodedata are default)
         # Avoid: os, subprocess, sys, socket, pathlib, shutil, io
         safe_imports = [
-            "json", "typing", "functools", "copy", "string",
-            "decimal", "enum", "dataclasses", "operator", "textwrap",
+            "json",
+            "typing",
+            "functools",
+            "copy",
+            "string",
+            "decimal",
+            "enum",
+            "dataclasses",
+            "operator",
+            "textwrap",
         ]
 
         # Build custom instructions from agent definition
@@ -270,12 +281,16 @@ class SmolKLNExecutor:
             planning_interval=3,  # Plan every 3 steps to stay on track
             additional_authorized_imports=safe_imports,
             step_callbacks=[add_step_awareness],  # Warn on low steps
-            final_answer_checks=[validate_citations, validate_file_paths],  # Verify citations + paths exist
+            final_answer_checks=[
+                validate_citations,
+                validate_file_paths,
+            ],  # Verify citations + paths exist
         )
 
         # REPLACE default system prompt to remove John Doe/Ulam examples
         # KLEAN_SYSTEM_PROMPT uses Jinja2 placeholders for tools/managed_agents
         from jinja2 import Template
+
         template = Template(KLEAN_SYSTEM_PROMPT)
         rendered_prompt = template.render(
             tools={t.name: t for t in tools},
@@ -301,7 +316,7 @@ class SmolKLNExecutor:
                 "result",
                 agent=agent_name,
                 model=model_name,
-                duration=duration
+                duration=duration,
             )
 
             # Persist session memory to Knowledge DB for future agents
@@ -328,10 +343,7 @@ class SmolKLNExecutor:
 
             # Record error to memory
             self.memory.record(
-                f"Agent {agent_name} failed: {str(e)}",
-                "error",
-                agent=agent_name,
-                model=model_name
+                f"Agent {agent_name} failed: {str(e)}", "error", agent=agent_name, model=model_name
             )
 
             # Save error result to file

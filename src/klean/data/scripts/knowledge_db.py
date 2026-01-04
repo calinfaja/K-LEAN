@@ -90,6 +90,7 @@ def get_sparse_model():
         if SparseTextEmbedding is None:
             try:
                 from fastembed import SparseTextEmbedding as STE
+
                 SparseTextEmbedding = STE
             except ImportError:
                 debug_log("SparseTextEmbedding not available, falling back to dense-only")
@@ -106,6 +107,7 @@ def get_reranker():
         if TextCrossEncoder is None:
             try:
                 from fastembed.rerank.cross_encoder import TextCrossEncoder as TCE
+
                 TextCrossEncoder = TCE
             except ImportError:
                 debug_log("Cross-encoder reranker not available")
@@ -251,7 +253,9 @@ class KnowledgeDB:
 
                 # Validate consistency
                 if len(self._embeddings) != len(self._entries):
-                    debug_log(f"WARNING: Index/entries mismatch ({len(self._embeddings)} vs {len(self._entries)})")
+                    debug_log(
+                        f"WARNING: Index/entries mismatch ({len(self._embeddings)} vs {len(self._entries)})"
+                    )
 
                 debug_log(f"Loaded {len(self._id_to_row)} embeddings from disk")
             except Exception as e:
@@ -623,9 +627,7 @@ class KnowledgeDB:
 
         # Last modified
         if self.embeddings_path.exists():
-            last_updated = datetime.fromtimestamp(
-                self.embeddings_path.stat().st_mtime
-            ).isoformat()
+            last_updated = datetime.fromtimestamp(self.embeddings_path.stat().st_mtime).isoformat()
 
         return {
             "count": count,
@@ -694,7 +696,9 @@ class KnowledgeDB:
         if dense_only:
             debug_log("Skipping sparse embeddings (--dense-only mode)")
         elif self.sparse_model is not None:
-            debug_log(f"Generating sparse embeddings for {len(texts)} entries (batch_size={batch_size})...")
+            debug_log(
+                f"Generating sparse embeddings for {len(texts)} entries (batch_size={batch_size})..."
+            )
             try:
                 # Process in batches to avoid memory exhaustion
                 for batch_start in range(0, len(texts), batch_size):
@@ -734,6 +738,7 @@ class KnowledgeDB:
         # Remove old txtai index if present
         if self.old_txtai_path.exists():
             import shutil
+
             shutil.rmtree(self.old_txtai_path)
             debug_log("Removed old txtai index")
 
@@ -854,6 +859,7 @@ class KnowledgeDB:
         if rewrite and migrated_count > 0:
             backup_path = self.jsonl_path.with_suffix(".jsonl.bak")
             import shutil
+
             shutil.copy(self.jsonl_path, backup_path)
 
             with open(self.jsonl_path, "w") as f:
@@ -875,8 +881,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Knowledge Database CLI (fastembed)")
-    parser.add_argument("command", choices=["stats", "search", "recent", "add", "rebuild", "migrate"],
-                        help="Command to run")
+    parser.add_argument(
+        "command",
+        choices=["stats", "search", "recent", "add", "rebuild", "migrate"],
+        help="Command to run",
+    )
     parser.add_argument("query", nargs="?", help="Search query or entry data")
     parser.add_argument("summary", nargs="?", help="Summary text (for simple add)")
     parser.add_argument("--limit", "-n", type=int, default=5, help="Result limit")
@@ -884,8 +893,12 @@ if __name__ == "__main__":
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--json-input", dest="json_input", help="Add structured entry from JSON")
     parser.add_argument("--check", action="store_true", help="Check migration status only")
-    parser.add_argument("--dense-only", action="store_true", help="Skip sparse embeddings (faster, less memory)")
-    parser.add_argument("--batch-size", type=int, default=50, help="Batch size for sparse embeddings")
+    parser.add_argument(
+        "--dense-only", action="store_true", help="Skip sparse embeddings (faster, less memory)"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=50, help="Batch size for sparse embeddings"
+    )
     parser.add_argument("--title", "-t", help="Entry title")
     parser.add_argument("--tags", help="Comma-separated tags")
     parser.add_argument("--source", "-s", help="Source identifier")
@@ -977,7 +990,7 @@ if __name__ == "__main__":
 
             if not title:
                 print("ERROR: Add requires title")
-                print("Usage: knowledge_db_fastembed.py add \"Title\" \"Summary\" [--tags t1,t2]")
+                print('Usage: knowledge_db_fastembed.py add "Title" "Summary" [--tags t1,t2]')
                 sys.exit(1)
 
             entry = {

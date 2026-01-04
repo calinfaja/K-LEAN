@@ -59,7 +59,7 @@ def detect_project_root(start_path: Path = None) -> Path:
             cwd=str(start),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
         )
         if result.returncode == 0:
             return Path(result.stdout.strip())
@@ -88,7 +88,7 @@ def get_git_info(project_root: Path) -> Dict[str, str]:
             cwd=str(project_root),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
         )
         if result.returncode == 0:
             info["branch"] = result.stdout.strip()
@@ -99,7 +99,7 @@ def get_git_info(project_root: Path) -> Dict[str, str]:
             cwd=str(project_root),
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=5,
         )
         if result.returncode == 0:
             lines = result.stdout.strip().split("\n")

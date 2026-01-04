@@ -64,7 +64,7 @@ async def read_file(
         # Apply line limits if requested
         if offset or lines:
             content_lines = content.split("\n")
-            start = (offset or 0)
+            start = offset or 0
             end = start + (lines or len(content_lines))
             content_lines = content_lines[start:end]
             truncated = end < len(content.split("\n"))

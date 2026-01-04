@@ -16,10 +16,13 @@ from klean.discovery import get_model
 @dataclass
 class AgentConfig:
     """Parsed agent configuration from YAML frontmatter."""
+
     name: str
     description: str
     model: str = ""  # Empty = use first available from LiteLLM
-    tools: List[str] = field(default_factory=lambda: ["knowledge_search", "read_file", "search_files"])
+    tools: List[str] = field(
+        default_factory=lambda: ["knowledge_search", "read_file", "search_files"]
+    )
 
     def __post_init__(self):
         if self.tools is None:
@@ -29,6 +32,7 @@ class AgentConfig:
 @dataclass
 class Agent:
     """Complete agent with config and system prompt."""
+
     config: AgentConfig
     system_prompt: str
     source_path: Path
@@ -51,7 +55,7 @@ def parse_agent_file(path: Path) -> Agent:
     content = path.read_text()
 
     # Split on YAML frontmatter delimiters
-    pattern = r'^---\s*\n(.*?)\n---\s*\n(.*)$'
+    pattern = r"^---\s*\n(.*?)\n---\s*\n(.*)$"
     match = re.match(pattern, content, re.DOTALL)
 
     if match:

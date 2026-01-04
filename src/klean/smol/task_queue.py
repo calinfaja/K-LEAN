@@ -14,6 +14,7 @@ from typing import Dict, List, Optional
 
 class TaskState(Enum):
     """State of a queued task."""
+
     QUEUED = "queued"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -23,6 +24,7 @@ class TaskState(Enum):
 @dataclass
 class QueuedTask:
     """A task in the queue."""
+
     id: str
     agent: str
     task: str
@@ -81,13 +83,7 @@ class TaskQueue:
         d["state"] = TaskState(d["state"])
         return QueuedTask(**d)
 
-    def enqueue(
-        self,
-        agent: str,
-        task: str,
-        model: str = None,
-        project_path: str = None
-    ) -> str:
+    def enqueue(self, agent: str, task: str, model: str = None, project_path: str = None) -> str:
         """Add task to queue.
 
         Args:
@@ -107,7 +103,7 @@ class TaskQueue:
             model=model,
             state=TaskState.QUEUED,
             created_at=time.time(),
-            project_path=project_path
+            project_path=project_path,
         )
         self._save()
         return task_id
@@ -149,11 +145,7 @@ class TaskQueue:
 
     def list_recent(self, limit: int = 10) -> List[QueuedTask]:
         """List most recent tasks."""
-        sorted_tasks = sorted(
-            self.tasks.values(),
-            key=lambda t: t.created_at,
-            reverse=True
-        )
+        sorted_tasks = sorted(self.tasks.values(), key=lambda t: t.created_at, reverse=True)
         return sorted_tasks[:limit]
 
     def list_by_state(self, state: TaskState) -> List[QueuedTask]:

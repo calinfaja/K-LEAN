@@ -13,6 +13,7 @@ from klean.discovery import get_model
 @dataclass
 class AgentConfig:
     """Configuration for a single agent in the multi-agent system."""
+
     name: str
     model: str
     tools: List[str]
@@ -60,7 +61,16 @@ def get_3_agent_config() -> Dict[str, AgentConfig]:
         "file_scout": AgentConfig(
             name="file_scout",
             model=models["file-scout"],
-            tools=["read_file", "search_files", "grep", "knowledge_search", "git_diff", "git_status", "git_log", "list_directory"],
+            tools=[
+                "read_file",
+                "search_files",
+                "grep",
+                "knowledge_search",
+                "git_diff",
+                "git_status",
+                "git_log",
+                "list_directory",
+            ],
             max_steps=6,
             description="Fast file discovery. Give it paths, patterns, or topics to find and read files. Can also get git diff, status, log, and list directories.",
         ),
@@ -92,7 +102,16 @@ def get_4_agent_config() -> Dict[str, AgentConfig]:
         "file_scout": AgentConfig(
             name="file_scout",
             model=models["file-scout"],
-            tools=["read_file", "search_files", "grep", "knowledge_search", "git_diff", "git_status", "git_log", "list_directory"],
+            tools=[
+                "read_file",
+                "search_files",
+                "grep",
+                "knowledge_search",
+                "git_diff",
+                "git_status",
+                "git_log",
+                "list_directory",
+            ],
             max_steps=6,
             description="Fast file discovery, git operations, and knowledge lookup.",
         ),

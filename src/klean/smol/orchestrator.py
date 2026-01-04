@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 
 class TaskStatus(Enum):
     """Status of a subtask."""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -23,6 +24,7 @@ class TaskStatus(Enum):
 @dataclass
 class SubTask:
     """A single subtask in a plan."""
+
     id: str
     description: str
     agent: str
@@ -34,6 +36,7 @@ class SubTask:
 @dataclass
 class TaskPlan:
     """Plan for executing a complex task."""
+
     goal: str
     subtasks: List[SubTask] = field(default_factory=list)
     parallel_groups: List[List[str]] = field(default_factory=list)
@@ -76,12 +79,7 @@ class SmolKLNOrchestrator:
     3. Synthesizing - Combining results
     """
 
-    def __init__(
-        self,
-        executor,
-        max_parallel: int = 3,
-        planner_model: str = None
-    ):
+    def __init__(self, executor, max_parallel: int = 3, planner_model: str = None):
         """Initialize orchestrator.
 
         Args:
@@ -94,10 +92,7 @@ class SmolKLNOrchestrator:
         self.planner_model = planner_model
 
     def execute(
-        self,
-        task: str,
-        agents: List[str] = None,
-        synthesize: bool = True
+        self, task: str, agents: List[str] = None, synthesize: bool = True
     ) -> Dict[str, Any]:
         """Execute a complex task with multiple agents.
 
@@ -117,7 +112,7 @@ class SmolKLNOrchestrator:
                 "output": "Failed to create execution plan",
                 "plan": None,
                 "results": {},
-                "success": False
+                "success": False,
             }
 
         # 2. Execute with dependencies
@@ -137,10 +132,10 @@ class SmolKLNOrchestrator:
                     {"id": st.id, "description": st.description, "agent": st.agent}
                     for st in plan.subtasks
                 ],
-                "parallel_groups": plan.parallel_groups
+                "parallel_groups": plan.parallel_groups,
             },
             "results": {tid: r for tid, r in results.items()},
-            "success": all(r.get("success", False) for r in results.values())
+            "success": all(r.get("success", False) for r in results.values()),
         }
 
     def _create_plan(self, task: str, agents: List[str] = None) -> TaskPlan:
@@ -158,17 +153,14 @@ class SmolKLNOrchestrator:
         prompt = PLANNER_PROMPT.format(
             task=task,
             agents=", ".join(available),
-            agent_info="\n".join(agent_info) if agent_info else "No descriptions available"
+            agent_info="\n".join(agent_info) if agent_info else "No descriptions available",
         )
 
         # Use code-reviewer or first available agent for planning
         planner_agent = "code-reviewer" if "code-reviewer" in available else available[0]
 
         result = self.executor.execute(
-            planner_agent,
-            prompt,
-            model_override=self.planner_model,
-            max_steps=5
+            planner_agent, prompt, model_override=self.planner_model, max_steps=5
         )
 
         return self._parse_plan(result["output"], task)
@@ -176,33 +168,33 @@ class SmolKLNOrchestrator:
     def _parse_plan(self, output: str, task: str) -> TaskPlan:
         """Parse planner output into TaskPlan."""
         # Find JSON in output
-        match = re.search(r'\{[\s\S]*\}', output)
+        match = re.search(r"\{[\s\S]*\}", output)
         if match:
             try:
                 data = json.loads(match.group())
                 subtasks = []
                 for st in data.get("subtasks", []):
-                    subtasks.append(SubTask(
-                        id=str(st.get("id", len(subtasks) + 1)),
-                        description=st.get("description", ""),
-                        agent=st.get("agent", "code-reviewer"),
-                        dependencies=st.get("dependencies", [])
-                    ))
+                    subtasks.append(
+                        SubTask(
+                            id=str(st.get("id", len(subtasks) + 1)),
+                            description=st.get("description", ""),
+                            agent=st.get("agent", "code-reviewer"),
+                            dependencies=st.get("dependencies", []),
+                        )
+                    )
 
                 if subtasks:
                     return TaskPlan(
                         goal=task,
                         subtasks=subtasks,
-                        parallel_groups=data.get("parallel_groups", [[st.id for st in subtasks]])
+                        parallel_groups=data.get("parallel_groups", [[st.id for st in subtasks]]),
                     )
             except json.JSONDecodeError:
                 pass
 
         # Fallback: single task plan
         return TaskPlan(
-            goal=task,
-            subtasks=[SubTask("1", task, "code-reviewer", [])],
-            parallel_groups=[["1"]]
+            goal=task, subtasks=[SubTask("1", task, "code-reviewer", [])], parallel_groups=[["1"]]
         )
 
     def _execute_plan(self, plan: TaskPlan) -> Dict[str, Dict]:
@@ -214,33 +206,35 @@ class SmolKLNOrchestrator:
             tasks = [st for st in plan.subtasks if st.id in group]
 
             # Check dependencies are satisfied
-            tasks = [st for st in tasks if all(
-                dep in results and results[dep].get("success", False)
-                for dep in st.dependencies
-            )]
+            tasks = [
+                st
+                for st in tasks
+                if all(
+                    dep in results and results[dep].get("success", False) for dep in st.dependencies
+                )
+            ]
 
             if not tasks:
                 continue
 
             # Execute in parallel
             with ThreadPoolExecutor(max_workers=self.max_parallel) as pool:
-                futures = {
-                    pool.submit(self._execute_subtask, st, results): st
-                    for st in tasks
-                }
+                futures = {pool.submit(self._execute_subtask, st, results): st for st in tasks}
 
                 for future in as_completed(futures, timeout=300):
                     subtask = futures[future]
                     try:
                         result = future.result(timeout=120)
                         results[subtask.id] = result
-                        subtask.status = TaskStatus.COMPLETED if result.get("success") else TaskStatus.FAILED
+                        subtask.status = (
+                            TaskStatus.COMPLETED if result.get("success") else TaskStatus.FAILED
+                        )
                         subtask.result = result
                     except Exception as e:
                         results[subtask.id] = {
                             "success": False,
                             "output": f"Execution error: {str(e)}",
-                            "agent": subtask.agent
+                            "agent": subtask.agent,
                         }
                         subtask.status = TaskStatus.FAILED
 
@@ -259,9 +253,7 @@ class SmolKLNOrchestrator:
                 context += f"\n## From task {dep_id}:\n{dep_output[:800]}"
 
         return self.executor.execute(
-            subtask.agent,
-            subtask.description,
-            context=context.strip() or None
+            subtask.agent, subtask.description, context=context.strip() or None
         )
 
     def _synthesize(self, task: str, results: Dict) -> str:
@@ -295,11 +287,7 @@ class SmolKLNOrchestrator:
 4. Use severity levels: CRITICAL | WARNING | INFO
 """
 
-        result = self.executor.execute(
-            "code-reviewer",
-            synthesis_prompt,
-            max_steps=5
-        )
+        result = self.executor.execute("code-reviewer", synthesis_prompt, max_steps=5)
 
         return result["output"]
 
@@ -316,9 +304,7 @@ class SmolKLNOrchestrator:
 
 
 def quick_orchestrate(
-    task: str,
-    agents: List[str] = None,
-    api_base: str = "http://localhost:4000"
+    task: str, agents: List[str] = None, api_base: str = "http://localhost:4000"
 ) -> Dict[str, Any]:
     """Quick helper to run orchestrated task.
 

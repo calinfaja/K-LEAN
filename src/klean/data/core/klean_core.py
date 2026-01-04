@@ -23,17 +23,19 @@ import yaml
 # Claude Agent SDK
 try:
     from claude_agent_sdk import ClaudeSDKClient, query  # noqa: F401
+
     SDK_AVAILABLE = True
 except ImportError:
     SDK_AVAILABLE = False
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Configuration
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 CONFIG_PATH = Path.home() / ".claude" / "kln" / "config.yaml"
 CACHE_DIR = Path.home() / ".claude" / "kln" / "cache"
 PROMPTS_DIR = Path.home() / ".claude" / "kln" / "prompts"
+
 
 def load_config() -> dict:
     """Load K-LEAN configuration"""
@@ -44,14 +46,16 @@ def load_config() -> dict:
         "litellm": {"endpoint": "http://localhost:4000", "timeout": 120},
         "models": {"default_single": "auto", "default_multi": 3},
         "routing": {},
-        "cache": {"latency_file": str(CACHE_DIR / "latency.json"), "max_age_hours": 24}
+        "cache": {"latency_file": str(CACHE_DIR / "latency.json"), "max_age_hours": 24},
     }
+
 
 CONFIG = load_config()
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # LLM Client (litellm-based, replaces httpx)
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
 
 class LLMClient:
     """Unified LLM client using litellm for full telemetry support.
@@ -86,8 +90,7 @@ class LLMClient:
         """Discover available models from LiteLLM proxy."""
         try:
             req = urllib.request.Request(
-                f"{self.endpoint}/models",
-                headers={"Content-Type": "application/json"}
+                f"{self.endpoint}/models", headers={"Content-Type": "application/json"}
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
@@ -114,16 +117,16 @@ class LLMClient:
             max_tokens=kwargs.get("max_tokens", 4000),
             temperature=kwargs.get("temperature", 0.7),
             timeout=kwargs.get("timeout", self.timeout),
-            api_key="not-needed"  # Proxy handles auth
+            api_key="not-needed",  # Proxy handles auth
         )
 
         message = response.choices[0].message
         return {
             "content": message.content or "",
-            "reasoning_content": getattr(message, 'reasoning_content', None),
-            "thinking_blocks": getattr(message, 'thinking_blocks', None),
+            "reasoning_content": getattr(message, "reasoning_content", None),
+            "thinking_blocks": getattr(message, "thinking_blocks", None),
             "usage": dict(response.usage) if response.usage else {},
-            "model": response.model
+            "model": response.model,
         }
 
     async def acompletion(self, model: str, messages: list, **kwargs) -> dict:
@@ -136,38 +139,42 @@ class LLMClient:
             max_tokens=kwargs.get("max_tokens", 4000),
             temperature=kwargs.get("temperature", 0.7),
             timeout=kwargs.get("timeout", self.timeout),
-            api_key="not-needed"
+            api_key="not-needed",
         )
 
         message = response.choices[0].message
         return {
             "content": message.content or "",
-            "reasoning_content": getattr(message, 'reasoning_content', None),
-            "thinking_blocks": getattr(message, 'thinking_blocks', None),
+            "reasoning_content": getattr(message, "reasoning_content", None),
+            "thinking_blocks": getattr(message, "thinking_blocks", None),
             "usage": dict(response.usage) if response.usage else {},
-            "model": response.model
+            "model": response.model,
         }
 
-#------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 # Model Discovery & Resolution
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
 
 @dataclass
 class ModelInfo:
     """Model information from discovery"""
+
     id: str
     latency_ms: Optional[float] = None
     available: bool = True
     last_tested: Optional[datetime] = None
+
 
 class ModelResolver:
     """Dynamic model discovery and selection"""
 
     def __init__(self):
         self.endpoint = CONFIG["litellm"]["endpoint"]
-        self.cache_file = Path(os.path.expanduser(
-            CONFIG["cache"].get("latency_file", str(CACHE_DIR / "latency.json"))
-        ))
+        self.cache_file = Path(
+            os.path.expanduser(CONFIG["cache"].get("latency_file", str(CACHE_DIR / "latency.json")))
+        )
         self.cache_max_age = timedelta(hours=CONFIG["cache"].get("max_age_hours", 24))
         self._models: dict[str, ModelInfo] = {}
         self._llm_client = LLMClient(self.endpoint)
@@ -184,7 +191,9 @@ class ModelResolver:
                         id=model_id,
                         latency_ms=info.get("latency_ms"),
                         available=info.get("available", True),
-                        last_tested=datetime.fromisoformat(info["last_tested"]) if info.get("last_tested") else None
+                        last_tested=datetime.fromisoformat(info["last_tested"])
+                        if info.get("last_tested")
+                        else None,
                     )
             except Exception:
                 pass
@@ -198,10 +207,10 @@ class ModelResolver:
                 m.id: {
                     "latency_ms": m.latency_ms,
                     "available": m.available,
-                    "last_tested": m.last_tested.isoformat() if m.last_tested else None
+                    "last_tested": m.last_tested.isoformat() if m.last_tested else None,
                 }
                 for m in self._models.values()
-            }
+            },
         }
         with open(self.cache_file, "w") as f:
             json.dump(data, f, indent=2)
@@ -227,10 +236,7 @@ class ModelResolver:
         try:
             start = time.time()
             self._llm_client.completion(
-                model_id,
-                [{"role": "user", "content": "Hi"}],
-                max_tokens=5,
-                timeout=30
+                model_id, [{"role": "user", "content": "Hi"}], max_tokens=5, timeout=30
             )
             latency = (time.time() - start) * 1000
 
@@ -248,16 +254,19 @@ class ModelResolver:
     def get_fastest(self, count: int = 1, exclude: list[str] = None) -> list[str]:
         """Get fastest models by cached latency"""
         exclude = exclude or []
-        available = [m for m in self._models.values()
-                     if m.available and m.latency_ms and m.id not in exclude]
-        sorted_models = sorted(available, key=lambda m: m.latency_ms or float('inf'))
+        available = [
+            m for m in self._models.values() if m.available and m.latency_ms and m.id not in exclude
+        ]
+        sorted_models = sorted(available, key=lambda m: m.latency_ms or float("inf"))
         return [m.id for m in sorted_models[:count]]
 
-    def select_models(self,
-                      count: int = 1,
-                      task: str = "",
-                      prefer_fastest: bool = True,
-                      ensure_diversity: bool = True) -> list[str]:
+    def select_models(
+        self,
+        count: int = 1,
+        task: str = "",
+        prefer_fastest: bool = True,
+        ensure_diversity: bool = True,
+    ) -> list[str]:
         """Smart model selection based on task and latency"""
         available = self.discover_models()
         if not available:
@@ -313,9 +322,11 @@ class ModelResolver:
 
         return sorted_models[:count]
 
-#------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 # Review Execution
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
 
 class ReviewEngine:
     """Execute reviews via LiteLLM or Claude SDK"""
@@ -376,7 +387,9 @@ class ReviewEngine:
         if prompt_file.exists():
             template = prompt_file.read_text()
         else:
-            template = "Review the code with focus on: {{FOCUS}}\n\n{{OUTPUT_FORMAT}}\n\n{{CONTEXT}}"
+            template = (
+                "Review the code with focus on: {{FOCUS}}\n\n{{OUTPUT_FORMAT}}\n\n{{CONTEXT}}"
+            )
 
         # Load format template
         format_file = PROMPTS_DIR / f"format-{output_format}.md"
@@ -385,15 +398,13 @@ class ReviewEngine:
         else:
             format_template = "Respond with GRADE, RISK, and findings."
 
-        return (template
-                .replace("{{FOCUS}}", focus)
-                .replace("{{OUTPUT_FORMAT}}", format_template)
-                .replace("{{CONTEXT}}", context))
+        return (
+            template.replace("{{FOCUS}}", focus)
+            .replace("{{OUTPUT_FORMAT}}", format_template)
+            .replace("{{CONTEXT}}", context)
+        )
 
-    def quick_review(self,
-                     focus: str,
-                     context: str = "",
-                     model: str = "auto") -> dict:
+    def quick_review(self, focus: str, context: str = "", model: str = "auto") -> dict:
         """Quick review via LiteLLM API (single model)"""
 
         # Resolve model
@@ -406,10 +417,7 @@ class ReviewEngine:
         try:
             start = time.time()
             result = self._llm_client.completion(
-                model,
-                [{"role": "user", "content": prompt}],
-                max_tokens=4000,
-                timeout=self.timeout
+                model, [{"role": "user", "content": prompt}], max_tokens=4000, timeout=self.timeout
             )
             latency = (time.time() - start) * 1000
 
@@ -422,29 +430,25 @@ class ReviewEngine:
                 "latency_ms": latency,
                 "content": content,
                 "reasoning_content": result.get("reasoning_content"),
-                "usage": result.get("usage", {})
+                "usage": result.get("usage", {}),
             }
         except Exception as e:
-            return {
-                "success": False,
-                "model": model,
-                "error": str(e)
-            }
+            return {"success": False, "model": model, "error": str(e)}
 
-    async def multi_review(self,
-                           focus: str,
-                           context: str = "",
-                           model_count: int = 3,
-                           models: list[str] = None,
-                           output_format: str = "json") -> dict:
+    async def multi_review(
+        self,
+        focus: str,
+        context: str = "",
+        model_count: int = 3,
+        models: list[str] = None,
+        output_format: str = "json",
+    ) -> dict:
         """Multi-model review with parallel execution"""
 
         # Resolve models
         if not models:
             models = self.resolver.select_models(
-                count=model_count,
-                task=focus,
-                ensure_diversity=True
+                count=model_count, task=focus, ensure_diversity=True
             )
 
         # Use JSON format for multi-model to enable proper consensus
@@ -458,7 +462,7 @@ class ReviewEngine:
                     model,
                     [{"role": "user", "content": prompt}],
                     max_tokens=4000,
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
                 latency = (time.time() - start) * 1000
 
@@ -470,14 +474,10 @@ class ReviewEngine:
                     "model": model,
                     "latency_ms": latency,
                     "content": content,
-                    "reasoning_content": result.get("reasoning_content")
+                    "reasoning_content": result.get("reasoning_content"),
                 }
             except Exception as e:
-                return {
-                    "success": False,
-                    "model": model,
-                    "error": str(e)
-                }
+                return {"success": False, "model": model, "error": str(e)}
 
         # Run all models in parallel
         start_total = time.time()
@@ -502,7 +502,7 @@ class ReviewEngine:
             "models_failed": [r["model"] for r in failed],
             "total_time_ms": total_time,
             "individual_results": results,
-            "consensus": self._find_consensus(successful)
+            "consensus": self._find_consensus(successful),
         }
 
     def _parse_json_review(self, content: str) -> Optional[Dict[str, Any]]:
@@ -514,7 +514,7 @@ class ReviewEngine:
             pass
 
         # Try to find JSON block in markdown
-        json_match = re.search(r'```json?\s*([\s\S]*?)\s*```', content)
+        json_match = re.search(r"```json?\s*([\s\S]*?)\s*```", content)
         if json_match:
             try:
                 return json.loads(json_match.group(1))
@@ -522,7 +522,7 @@ class ReviewEngine:
                 pass
 
         # Try to find raw JSON object
-        brace_match = re.search(r'\{[\s\S]*\}', content)
+        brace_match = re.search(r"\{[\s\S]*\}", content)
         if brace_match:
             try:
                 return json.loads(brace_match.group(0))
@@ -613,26 +613,32 @@ class ReviewEngine:
             representative = group["findings"][0]  # Use first as representative
 
             if models_found == total_models:
-                high_confidence.append({
-                    "issue": representative.get("issue", ""),
-                    "location": representative.get("location", ""),
-                    "severity": representative.get("severity", ""),
-                    "models": [f.get("_model") for f in group["findings"]]
-                })
+                high_confidence.append(
+                    {
+                        "issue": representative.get("issue", ""),
+                        "location": representative.get("location", ""),
+                        "severity": representative.get("severity", ""),
+                        "models": [f.get("_model") for f in group["findings"]],
+                    }
+                )
             elif models_found >= 2:
-                medium_confidence.append({
-                    "issue": representative.get("issue", ""),
-                    "location": representative.get("location", ""),
-                    "severity": representative.get("severity", ""),
-                    "models": [f.get("_model") for f in group["findings"]]
-                })
+                medium_confidence.append(
+                    {
+                        "issue": representative.get("issue", ""),
+                        "location": representative.get("location", ""),
+                        "severity": representative.get("severity", ""),
+                        "models": [f.get("_model") for f in group["findings"]],
+                    }
+                )
             else:
-                low_confidence.append({
-                    "issue": representative.get("issue", ""),
-                    "location": representative.get("location", ""),
-                    "severity": representative.get("severity", ""),
-                    "models": [f.get("_model") for f in group["findings"]]
-                })
+                low_confidence.append(
+                    {
+                        "issue": representative.get("issue", ""),
+                        "location": representative.get("location", ""),
+                        "severity": representative.get("severity", ""),
+                        "models": [f.get("_model") for f in group["findings"]],
+                    }
+                )
 
         return {
             "grades": grades,
@@ -645,7 +651,7 @@ class ReviewEngine:
             "medium_confidence": medium_confidence,
             "low_confidence": low_confidence,
             "total_findings": len(all_findings),
-            "parsed_results": parsed_results
+            "parsed_results": parsed_results,
         }
 
     def _group_similar_findings(self, findings: List[Dict]) -> List[Dict]:
@@ -681,17 +687,19 @@ class ReviewEngine:
                             break
 
             if not matched:
-                groups.append({
-                    "location": finding.get("location", ""),
-                    "issue": finding.get("issue", ""),
-                    "findings": [finding]
-                })
+                groups.append(
+                    {
+                        "location": finding.get("location", ""),
+                        "issue": finding.get("issue", ""),
+                        "findings": [finding],
+                    }
+                )
 
         return groups
 
-    #--------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # Rethink - Fresh Perspective on Stuck Debugging
-    #--------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
 
     def _load_rethink_prompt(self) -> str:
         """Load the rethink/contrarian system prompt"""
@@ -714,11 +722,11 @@ and give a concrete first step. NEVER suggest things already tried."""
                 model,
                 [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": context}
+                    {"role": "user", "content": context},
                 ],
                 max_tokens=4000,
                 temperature=0.7,  # Higher temp for more creative ideas
-                timeout=self.timeout
+                timeout=self.timeout,
             )
             latency = (time.time() - start) * 1000
 
@@ -731,17 +739,14 @@ and give a concrete first step. NEVER suggest things already tried."""
                 "latency_ms": latency,
                 "content": content,
                 "reasoning_content": result.get("reasoning_content"),
-                "ideas": self._parse_rethink_ideas(content)
+                "ideas": self._parse_rethink_ideas(content),
             }
         except Exception as e:
-            return {
-                "success": False,
-                "model": model,
-                "error": str(e)
-            }
+            return {"success": False, "model": model, "error": str(e)}
 
-    async def rethink_multi(self, context: str, model_count: int = 5,
-                           models: list[str] = None) -> dict:
+    async def rethink_multi(
+        self, context: str, model_count: int = 5, models: list[str] = None
+    ) -> dict:
         """Get fresh perspectives from multiple models in parallel"""
 
         # Resolve models
@@ -753,6 +758,7 @@ and give a concrete first step. NEVER suggest things already tried."""
             if len(available) >= model_count:
                 # Prefer diversity - mix of thinking and fast models
                 import random
+
                 random.shuffle(available)
                 models = available[:model_count]
             else:
@@ -768,11 +774,11 @@ and give a concrete first step. NEVER suggest things already tried."""
                     model,
                     [
                         {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": context}
+                        {"role": "user", "content": context},
                     ],
                     max_tokens=4000,
                     temperature=0.7,
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
                 latency = (time.time() - start) * 1000
 
@@ -784,14 +790,10 @@ and give a concrete first step. NEVER suggest things already tried."""
                     "latency_ms": latency,
                     "content": content,
                     "reasoning_content": result.get("reasoning_content"),
-                    "ideas": self._parse_rethink_ideas(content)
+                    "ideas": self._parse_rethink_ideas(content),
                 }
             except Exception as e:
-                return {
-                    "success": False,
-                    "model": model,
-                    "error": str(e)
-                }
+                return {"success": False, "model": model, "error": str(e)}
 
         # Run all models in parallel
         start_total = time.time()
@@ -818,7 +820,7 @@ and give a concrete first step. NEVER suggest things already tried."""
             "total_time_ms": total_time,
             "individual_results": results,
             "all_ideas": all_ideas,
-            "ranked_ideas": ranked_ideas
+            "ranked_ideas": ranked_ideas,
         }
 
     def _parse_rethink_ideas(self, content: str) -> list[dict]:
@@ -827,28 +829,41 @@ and give a concrete first step. NEVER suggest things already tried."""
 
         # Look for numbered or headed sections
         # Pattern: ### Approach N: or **Approach N**: or just numbered
-        sections = re.split(r'(?:###\s*Approach\s*\d+[:\s]|(?:\*\*)?Approach\s*\d+[:\s*]|\n\d+\.\s+(?=\*\*|[A-Z]))', content)
+        sections = re.split(
+            r"(?:###\s*Approach\s*\d+[:\s]|(?:\*\*)?Approach\s*\d+[:\s*]|\n\d+\.\s+(?=\*\*|[A-Z]))",
+            content,
+        )
 
         for i, section in enumerate(sections[1:], 1):  # Skip first empty section
             idea = {"id": i, "raw": section.strip()}
 
             # Extract "Why Untried"
-            untried_match = re.search(r'\*\*Why\s+(?:Untried|You\s+Probably|Not\s+Tried)[:\*]*\s*([^\n*]+(?:\n(?!\*\*)[^\n]+)*)', section, re.I)
+            untried_match = re.search(
+                r"\*\*Why\s+(?:Untried|You\s+Probably|Not\s+Tried)[:\*]*\s*([^\n*]+(?:\n(?!\*\*)[^\n]+)*)",
+                section,
+                re.I,
+            )
             if untried_match:
                 idea["why_untried"] = untried_match.group(1).strip()
 
             # Extract "Why It Might Work"
-            work_match = re.search(r'\*\*Why\s+(?:It\s+)?Might\s+Work[:\*]*\s*([^\n*]+(?:\n(?!\*\*)[^\n]+)*)', section, re.I)
+            work_match = re.search(
+                r"\*\*Why\s+(?:It\s+)?Might\s+Work[:\*]*\s*([^\n*]+(?:\n(?!\*\*)[^\n]+)*)",
+                section,
+                re.I,
+            )
             if work_match:
                 idea["why_might_work"] = work_match.group(1).strip()
 
             # Extract "First Step"
-            step_match = re.search(r'\*\*First\s+Step[:\*]*\s*([^\n*]+(?:\n(?!\*\*)[^\n]+)*)', section, re.I)
+            step_match = re.search(
+                r"\*\*First\s+Step[:\*]*\s*([^\n*]+(?:\n(?!\*\*)[^\n]+)*)", section, re.I
+            )
             if step_match:
                 idea["first_step"] = step_match.group(1).strip()
 
             # Extract approach title (first line or bold text)
-            title_match = re.search(r'^[:\s]*\**([^\n*]+)', section)
+            title_match = re.search(r"^[:\s]*\**([^\n*]+)", section)
             if title_match:
                 idea["approach"] = title_match.group(1).strip()
 
@@ -870,7 +885,10 @@ and give a concrete first step. NEVER suggest things already tried."""
             if idea.get("first_step"):
                 step = idea["first_step"].lower()
                 # Bonus for specific commands/actions
-                if any(x in step for x in ["run", "check", "look", "grep", "cat", "echo", "print", "log"]):
+                if any(
+                    x in step
+                    for x in ["run", "check", "look", "grep", "cat", "echo", "print", "log"]
+                ):
                     score += 3
                 else:
                     score += 1
@@ -912,9 +930,10 @@ and give a concrete first step. NEVER suggest things already tried."""
         return unique_ideas[:10]  # Top 10 unique ideas
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Deep Review with Claude SDK
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
 
 async def deep_review_sdk(focus: str, cwd: str = None) -> dict:
     """Deep review using Claude Agent SDK with full tools"""
@@ -945,28 +964,24 @@ Provide a comprehensive review with:
             options={
                 "cwd": cwd,
                 "allowed_tools": ["Read", "Grep", "Glob", "Bash"],
-                "max_turns": 20
-            }
+                "max_turns": 20,
+            },
         )
 
-        return {
-            "success": True,
-            "method": "sdk",
-            "result": result
-        }
+        return {"success": True, "method": "sdk", "result": result}
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
-#------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
 # CLI Entry Points
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+
 
 def cli_quick(args):
     """CLI entry for quick review"""
     import argparse
+
     parser = argparse.ArgumentParser(description="Quick code review")
     parser.add_argument("focus", nargs="*", help="Review focus")
     parser.add_argument("-m", "--model", default="auto", help="Model to use")
@@ -993,13 +1008,19 @@ def cli_quick(args):
         else:
             print(f"Error: {result.get('error')}")
 
+
 def cli_multi(args):
     """CLI entry for multi-model review"""
     import argparse
+
     parser = argparse.ArgumentParser(description="Multi-model review")
     parser.add_argument("focus", nargs="*", help="Review focus")
-    parser.add_argument("-n", "--models", default="3", help="Number of models OR comma-separated list")
-    parser.add_argument("-m", "--model", action="append", help="Specific models (deprecated, use --models)")
+    parser.add_argument(
+        "-n", "--models", default="3", help="Number of models OR comma-separated list"
+    )
+    parser.add_argument(
+        "-m", "--model", action="append", help="Specific models (deprecated, use --models)"
+    )
     parser.add_argument("-o", "--output", choices=["text", "json", "markdown"], default="text")
     parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
@@ -1029,33 +1050,37 @@ def cli_multi(args):
                 specific_models = [parsed.models]
                 model_count = 1
 
-    result = asyncio.run(engine.multi_review(
-        focus,
-        model_count=model_count,
-        models=specific_models if specific_models else None
-    ))
+    result = asyncio.run(
+        engine.multi_review(
+            focus, model_count=model_count, models=specific_models if specific_models else None
+        )
+    )
 
     if parsed.output == "json":
         print(json.dumps(result, indent=2))
     else:
         # Header
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"MULTI-MODEL REVIEW ({len(result['models_used'])} models)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Focus: {focus}")
         print(f"Models: {', '.join(result['models_used'])}")
         print(f"Total time: {result['total_time_ms']:.0f}ms")
 
         # Consensus summary
         consensus = result.get("consensus", {})
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("CONSENSUS ANALYSIS")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Grade consensus
         grades = consensus.get("grades", [])
         consensus_grade = consensus.get("consensus_grade", "N/A")
-        grade_agree = "unanimous" if consensus.get("grade_agreement") else f"{grades.count(consensus_grade)}/{len(grades)}"
+        grade_agree = (
+            "unanimous"
+            if consensus.get("grade_agreement")
+            else f"{grades.count(consensus_grade)}/{len(grades)}"
+        )
         print(f"\nGrade: {consensus_grade} ({grade_agree})")
         if grades:
             print(f"  Individual: {', '.join(grades)}")
@@ -1063,7 +1088,11 @@ def cli_multi(args):
         # Risk consensus
         risks = consensus.get("risks", [])
         consensus_risk = consensus.get("consensus_risk", "N/A")
-        risk_agree = "unanimous" if consensus.get("risk_agreement") else f"{risks.count(consensus_risk)}/{len(risks)}"
+        risk_agree = (
+            "unanimous"
+            if consensus.get("risk_agreement")
+            else f"{risks.count(consensus_risk)}/{len(risks)}"
+        )
         print(f"\nRisk: {consensus_risk} ({risk_agree})")
         if risks:
             print(f"  Individual: {', '.join(risks)}")
@@ -1073,15 +1102,19 @@ def cli_multi(args):
         if high_conf:
             print(f"\nHIGH CONFIDENCE (all {len(result['models_used'])} models agree):")
             for f in high_conf:
-                print(f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}")
+                print(
+                    f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}"
+                )
 
         # Medium confidence findings
         med_conf = consensus.get("medium_confidence", [])
         if med_conf:
             print("\nMEDIUM CONFIDENCE (2+ models agree):")
             for f in med_conf:
-                models = ', '.join(f.get('models', []))
-                print(f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}")
+                models = ", ".join(f.get("models", []))
+                print(
+                    f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}"
+                )
                 print(f"    Found by: {models}")
 
         # Low confidence findings
@@ -1089,32 +1122,40 @@ def cli_multi(args):
         if low_conf:
             print("\nLOW CONFIDENCE (single model - investigate):")
             for f in low_conf[:5]:  # Limit to 5
-                models = ', '.join(f.get('models', []))
-                print(f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}")
+                models = ", ".join(f.get("models", []))
+                print(
+                    f"  [{f.get('severity', '?')}] {f.get('location', '?')}: {f.get('issue', '')[:60]}"
+                )
                 print(f"    Found by: {models}")
             if len(low_conf) > 5:
                 print(f"  ... and {len(low_conf) - 5} more")
 
         # Individual reviews (collapsed)
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print("INDIVIDUAL REVIEWS (use -o json for full details)")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         for r in result["individual_results"]:
             if r["success"]:
-                latency = r.get('latency_ms', 0)
+                latency = r.get("latency_ms", 0)
                 # Try to get grade from parsed result
                 parsed = engine._parse_json_review(r.get("content", ""))
                 grade = parsed.get("grade", "?") if parsed else "?"
                 risk = parsed.get("risk", "?") if parsed else "?"
                 findings_count = len(parsed.get("findings", [])) if parsed else "?"
-                print(f"  {r['model']:30} Grade:{grade} Risk:{risk} Findings:{findings_count} ({latency:.0f}ms)")
+                print(
+                    f"  {r['model']:30} Grade:{grade} Risk:{risk} Findings:{findings_count} ({latency:.0f}ms)"
+                )
+
 
 def cli_rethink(args):
     """CLI entry for rethink - fresh perspective on stuck debugging"""
     import argparse
+
     parser = argparse.ArgumentParser(description="Get fresh debugging perspectives")
     parser.add_argument("focus", nargs="*", help="Optional focus/hint about the problem")
-    parser.add_argument("-n", "--models", default="5", help="Number of models OR specific model name")
+    parser.add_argument(
+        "-n", "--models", default="5", help="Number of models OR specific model name"
+    )
     parser.add_argument("-c", "--context-file", help="File containing debugging context")
     parser.add_argument("-o", "--output", choices=["text", "json"], default="text")
     parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
@@ -1138,6 +1179,7 @@ def cli_rethink(args):
     else:
         # Read from stdin if available
         import select
+
         if select.select([sys.stdin], [], [], 0.0)[0]:
             context = sys.stdin.read()
 
@@ -1179,9 +1221,9 @@ def _print_rethink_single_results(result):
         print(f"Error: {result.get('error')}", file=sys.stderr)
         return
 
-    print(f"\n{'='*65}")
+    print(f"\n{'=' * 65}")
     print(f"FRESH PERSPECTIVES from {result['model']}")
-    print(f"{'='*65}")
+    print(f"{'=' * 65}")
     print(f"Response time: {result['latency_ms']:.0f}ms\n")
 
     # Print raw content if no structured ideas parsed
@@ -1191,9 +1233,9 @@ def _print_rethink_single_results(result):
         return
 
     for i, idea in enumerate(ideas, 1):
-        print(f"\n{'─'*65}")
+        print(f"\n{'─' * 65}")
         print(f"IDEA #{i}: {idea.get('approach', 'Untitled')}")
-        print(f"{'─'*65}")
+        print(f"{'─' * 65}")
 
         if idea.get("why_untried"):
             print("\n**Why You Probably Didn't Try This**:")
@@ -1207,7 +1249,7 @@ def _print_rethink_single_results(result):
             print("\n**First Step**:")
             print(f"  {idea['first_step']}")
 
-    print(f"\n{'='*65}")
+    print(f"\n{'=' * 65}")
 
 
 def _print_rethink_multi_results(result):
@@ -1219,9 +1261,9 @@ def _print_rethink_multi_results(result):
                 print(f"  {r['model']}: {r.get('error')}", file=sys.stderr)
         return
 
-    print(f"\n{'='*65}")
+    print(f"\n{'=' * 65}")
     print(f"FRESH PERSPECTIVES from {len(result['models_used'])} MODELS")
-    print(f"{'='*65}")
+    print(f"{'=' * 65}")
     print(f"Models: {', '.join(result['models_used'])}")
     print(f"Total time: {result['total_time_ms']:.0f}ms")
 
@@ -1231,14 +1273,14 @@ def _print_rethink_multi_results(result):
     # Print ranked ideas
     ranked = result.get("ranked_ideas", [])
     if ranked:
-        print(f"\n{'='*65}")
+        print(f"\n{'=' * 65}")
         print("TOP RANKED IDEAS (by novelty + actionability)")
-        print(f"{'='*65}")
+        print(f"{'=' * 65}")
 
         for i, idea in enumerate(ranked[:7], 1):  # Top 7
-            print(f"\n{'─'*65}")
+            print(f"\n{'─' * 65}")
             print(f"#{i} [{idea.get('_model', '?')}]: {idea.get('approach', 'Untitled')}")
-            print(f"{'─'*65}")
+            print(f"{'─' * 65}")
 
             if idea.get("why_untried"):
                 print(f"  Why untried: {idea['why_untried'][:100]}...")
@@ -1247,9 +1289,9 @@ def _print_rethink_multi_results(result):
                 print(f"  First step: {idea['first_step']}")
 
     # Individual model summaries
-    print(f"\n{'='*65}")
+    print(f"\n{'=' * 65}")
     print("PER-MODEL SUMMARY")
-    print(f"{'='*65}")
+    print(f"{'=' * 65}")
     for r in result.get("individual_results", []):
         if r.get("success"):
             ideas_count = len(r.get("ideas", []))
@@ -1257,7 +1299,7 @@ def _print_rethink_multi_results(result):
         else:
             print(f"  {r['model']:30} FAILED: {r.get('error', '?')[:30]}")
 
-    print(f"\n{'='*65}")
+    print(f"\n{'=' * 65}")
 
 
 def cli_status(args):
@@ -1270,6 +1312,7 @@ def cli_status(args):
         info = resolver._models.get(model_id)
         latency = f"{info.latency_ms:.0f}ms" if info and info.latency_ms else "untested"
         print(f"  {model_id:30} {latency}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
