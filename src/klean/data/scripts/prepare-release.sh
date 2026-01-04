@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# prepare-release.sh - Prepare K-LEAN for PyPI release
+# prepare-release.sh - Verify K-LEAN is ready for PyPI release
 #
-# This script populates src/klean/data/ with all required files for
-# a production pip/pipx install (non-editable).
+# Validates version consistency and data directory contents.
+# All source files already live in src/klean/data/ (no copying needed).
 #
 # Usage:
-#   ./scripts/prepare-release.sh          # Prepare for release
-#   ./scripts/prepare-release.sh --clean  # Clean data directory
-#   ./scripts/prepare-release.sh --check  # Verify release is ready
+#   ./src/klean/data/scripts/prepare-release.sh         # Verify release
+#   ./src/klean/data/scripts/prepare-release.sh --help  # Show help
 
 set -euo pipefail
 
@@ -32,72 +31,6 @@ get_version() {
     grep '^version' "$REPO_ROOT/pyproject.toml" | head -1 | cut -d'"' -f2
 }
 
-# Clean data directory
-clean_data() {
-    log_info "Cleaning $DATA_DIR..."
-    rm -rf "$DATA_DIR"
-    mkdir -p "$DATA_DIR"
-    log_success "Data directory cleaned"
-}
-
-# Copy files to data directory
-populate_data() {
-    log_info "Populating data directory for release..."
-
-    mkdir -p "$DATA_DIR"
-
-    # Scripts
-    log_info "Copying scripts..."
-    mkdir -p "$DATA_DIR/scripts"
-    cp "$REPO_ROOT/scripts"/*.sh "$DATA_DIR/scripts/" 2>/dev/null || true
-    cp "$REPO_ROOT/scripts"/*.py "$DATA_DIR/scripts/" 2>/dev/null || true
-    local script_count=$(ls -1 "$DATA_DIR/scripts" 2>/dev/null | wc -l)
-    log_success "Copied $script_count scripts"
-
-    # Commands (kln) - canonical source is commands/kln/
-    log_info "Copying commands..."
-    mkdir -p "$DATA_DIR/commands/kln"
-    cp "$REPO_ROOT/commands/kln"/*.md "$DATA_DIR/commands/kln/" 2>/dev/null || true
-    local cmd_count=$(ls -1 "$DATA_DIR/commands/kln" 2>/dev/null | wc -l)
-    log_success "Copied $cmd_count commands"
-
-    # Hooks
-    log_info "Copying hooks..."
-    mkdir -p "$DATA_DIR/hooks"
-    cp "$REPO_ROOT/hooks"/*.sh "$DATA_DIR/hooks/" 2>/dev/null || true
-    local hook_count=$(ls -1 "$DATA_DIR/hooks" 2>/dev/null | wc -l)
-    log_success "Copied $hook_count hooks"
-
-    # SmolKLN Agents
-    log_info "Copying SmolKLN agents..."
-    mkdir -p "$DATA_DIR/agents"
-    cp "$REPO_ROOT/src/klean/data/agents"/*.md "$DATA_DIR/agents/" 2>/dev/null || true
-    local agent_count=$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)
-    log_success "Copied $agent_count SmolKLN agents"
-
-    # Config
-    log_info "Copying configuration..."
-    mkdir -p "$DATA_DIR/config/litellm"
-    cp "$REPO_ROOT/config/CLAUDE.md" "$DATA_DIR/config/" 2>/dev/null || true
-    cp "$REPO_ROOT/config/litellm"/*.yaml "$DATA_DIR/config/litellm/" 2>/dev/null || true
-    cp "$REPO_ROOT/config/litellm/.env.example" "$DATA_DIR/config/litellm/" 2>/dev/null || true
-    log_success "Copied configuration files"
-
-    # Lib
-    log_info "Copying lib..."
-    mkdir -p "$DATA_DIR/lib"
-    cp "$REPO_ROOT/lib"/*.sh "$DATA_DIR/lib/" 2>/dev/null || true
-    log_success "Copied lib files"
-
-    # Make scripts executable
-    chmod +x "$DATA_DIR/scripts"/*.sh 2>/dev/null || true
-    chmod +x "$DATA_DIR/scripts"/*.py 2>/dev/null || true
-    chmod +x "$DATA_DIR/hooks"/*.sh 2>/dev/null || true
-
-    echo ""
-    log_success "Data directory ready for release!"
-}
-
 # Verify release is ready
 check_release() {
     log_info "Checking release readiness..."
@@ -107,61 +40,32 @@ check_release() {
 
     # Check VERSION
     local version=$(get_version)
-    if [[ "$version" == "0.0.0" ]]; then
-        log_error "VERSION file missing or invalid"
+    if [[ -z "$version" || "$version" == "0.0.0" ]]; then
+        log_error "Version not found in pyproject.toml"
         ((errors++))
     else
         log_success "VERSION: $version"
     fi
 
-    # Check pyproject.toml version matches
-    local pyproject_version=$(grep '^version = ' "$REPO_ROOT/pyproject.toml" | head -1 | cut -d'"' -f2)
-    if [[ "$pyproject_version" != "$version" ]]; then
-        log_warn "pyproject.toml version ($pyproject_version) != VERSION ($version)"
-    else
-        log_success "pyproject.toml version matches"
-    fi
-
     # Check __init__.py version matches
     local init_version=$(grep '__version__ = ' "$REPO_ROOT/src/klean/__init__.py" | head -1 | cut -d'"' -f2)
     if [[ "$init_version" != "$version" ]]; then
-        log_warn "__init__.py version ($init_version) != VERSION ($version)"
+        log_error "__init__.py version ($init_version) != pyproject.toml ($version)"
+        ((errors++))
     else
         log_success "__init__.py version matches"
     fi
 
-    # Check data directory
-    if [ -d "$DATA_DIR/scripts" ] && [ "$(ls -1 "$DATA_DIR/scripts" 2>/dev/null | wc -l)" -gt 0 ]; then
-        local count=$(ls -1 "$DATA_DIR/scripts" 2>/dev/null | wc -l)
-        log_success "Data/scripts: $count files"
-    else
-        log_error "Data/scripts empty or missing"
-        ((errors++))
-    fi
-
-    if [ -d "$DATA_DIR/commands/kln" ] && [ "$(ls -1 "$DATA_DIR/commands/kln" 2>/dev/null | wc -l)" -gt 0 ]; then
-        local count=$(ls -1 "$DATA_DIR/commands/kln" 2>/dev/null | wc -l)
-        log_success "Data/commands/kln: $count files"
-    else
-        log_error "Data/commands/kln empty or missing"
-        ((errors++))
-    fi
-
-    if [ -d "$DATA_DIR/hooks" ] && [ "$(ls -1 "$DATA_DIR/hooks" 2>/dev/null | wc -l)" -gt 0 ]; then
-        local count=$(ls -1 "$DATA_DIR/hooks" 2>/dev/null | wc -l)
-        log_success "Data/hooks: $count files"
-    else
-        log_error "Data/hooks empty or missing"
-        ((errors++))
-    fi
-
-    if [ -d "$DATA_DIR/agents" ] && [ "$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)" -gt 0 ]; then
-        local count=$(ls -1 "$DATA_DIR/agents" 2>/dev/null | wc -l)
-        log_success "Data/agents: $count files"
-    else
-        log_error "Data/agents empty or missing"
-        ((errors++))
-    fi
+    # Check data directories have content
+    for dir in scripts commands/kln hooks agents; do
+        if [ -d "$DATA_DIR/$dir" ] && [ "$(ls -1 "$DATA_DIR/$dir" 2>/dev/null | wc -l)" -gt 0 ]; then
+            local count=$(ls -1 "$DATA_DIR/$dir" 2>/dev/null | wc -l)
+            log_success "data/$dir: $count files"
+        else
+            log_error "data/$dir empty or missing"
+            ((errors++))
+        fi
+    done
 
     # Check MANIFEST.in
     if [ -f "$REPO_ROOT/MANIFEST.in" ]; then
@@ -183,12 +87,11 @@ check_release() {
         log_success "Release is ready!"
         echo ""
         echo "Build commands:"
-        echo "  pip install build"
         echo "  python -m build"
+        echo "  twine check dist/*"
         echo ""
-        echo "Upload to PyPI:"
-        echo "  pip install twine"
-        echo "  twine upload dist/*"
+        echo "Or use GitHub Actions:"
+        echo "  Actions > Publish to PyPI > Run workflow"
         return 0
     else
         log_error "Release has $errors error(s) - fix before building"
@@ -198,36 +101,26 @@ check_release() {
 
 # Print usage
 usage() {
-    echo "Usage: $0 [OPTIONS]"
+    echo "Usage: $0 [--help]"
     echo ""
-    echo "Prepare K-LEAN for PyPI release by populating src/klean/data/"
+    echo "Verify K-LEAN is ready for PyPI release."
     echo ""
-    echo "Options:"
-    echo "  (no args)   Populate data directory"
-    echo "  --clean     Remove data directory contents"
-    echo "  --check     Verify release is ready"
-    echo "  --help      Show this help"
+    echo "Checks:"
+    echo "  - Version in pyproject.toml and __init__.py match"
+    echo "  - Required data directories have content"
+    echo "  - MANIFEST.in and README.md exist"
     echo ""
-    echo "Workflow:"
-    echo "  1. ./scripts/prepare-release.sh        # Populate data/"
-    echo "  2. ./scripts/prepare-release.sh --check # Verify"
-    echo "  3. python -m build                      # Build package"
-    echo "  4. twine upload dist/*                  # Upload to PyPI"
+    echo "Note: All source files already live in src/klean/data/"
+    echo "      No copying is needed - just run this to validate."
 }
 
 # Main
 case "${1:-}" in
-    --clean)
-        clean_data
-        ;;
-    --check)
-        check_release
-        ;;
     --help|-h)
         usage
         ;;
-    "")
-        populate_data
+    ""|--check)
+        check_release
         ;;
     *)
         log_error "Unknown option: $1"
