@@ -98,8 +98,8 @@ jobs:
       # ----------------------------------------
       - name: Wait for PyPI to index
         run: |
-          echo "Waiting 30s for PyPI to index the package..."
-          sleep 30
+          echo "Waiting 60s for PyPI to index the package..."
+          sleep 60
 
       - name: Verify package on PyPI API
         run: |

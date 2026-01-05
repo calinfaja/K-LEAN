@@ -7,7 +7,7 @@ This package provides:
 - Integration with Claude Code slash commands and hooks
 """
 
-__version__ = "1.0.0b4"
+__version__ = "1.0.0b5"
 __author__ = "Calin Faja"
 
 from pathlib import Path

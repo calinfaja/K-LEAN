@@ -2839,6 +2839,11 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
                 "[yellow]Telemetry not installed. Run: pipx inject kln-ai arize-phoenix openinference-instrumentation-smolagents[/yellow]"
             )
 
+    # Suppress Pydantic serialization warnings from smolagents/LiteLLM
+    import warnings
+
+    warnings.filterwarnings("ignore", message="Pydantic serializer warnings")
+
     try:
         from klean.smol.multi_agent import MultiAgentExecutor
     except ImportError:

@@ -4,7 +4,18 @@ Model discovery and LiteLLM integration for SmolKLN.
 Uses central discovery module - no hardcoded model names.
 """
 
-from klean.discovery import get_model
+import warnings
+
+# Suppress Pydantic serialization warnings from smolagents/LiteLLM
+# These occur when LiteLLM response fields don't match smolagents' Pydantic models
+warnings.filterwarnings(
+    "ignore",
+    message="Pydantic serializer warnings",
+    category=UserWarning,
+    module="pydantic",
+)
+
+from klean.discovery import get_model  # noqa: E402
 
 
 def create_model(
