@@ -4,7 +4,7 @@ This module provides a framework for defining custom tools that can be used
 by SmolKLN agents for enhanced code analysis capabilities.
 """
 
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 
 def tool(
