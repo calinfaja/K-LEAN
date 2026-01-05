@@ -1084,7 +1084,10 @@ def cli_multi(args):
 
     result = asyncio.run(
         engine.multi_review(
-            focus, context=context, model_count=model_count, models=specific_models if specific_models else None
+            focus,
+            context=context,
+            model_count=model_count,
+            models=specific_models if specific_models else None,
         )
     )
 

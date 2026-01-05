@@ -16,6 +16,7 @@ try:
 except ImportError:
     SMOLAGENTS_AVAILABLE = False
     Tool = object  # Fallback for type hints
+
     def tool(f):
         return f  # No-op decorator
 
