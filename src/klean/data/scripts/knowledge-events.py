@@ -28,7 +28,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 LOG_PATH = Path(os.environ.get("KLEAN_SOCKET_DIR", "/tmp")) / "knowledge-events.log"
 
@@ -42,7 +42,7 @@ class KnowledgeEventLog:
         # Create log file if doesn't exist
         self.log_path.touch(exist_ok=True)
 
-    def emit(self, event_type: str, data: Dict[str, Any]) -> None:
+    def emit(self, event_type: str, data: dict[str, Any]) -> None:
         """
         Emit an event.
 

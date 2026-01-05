@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional
 def tool(
     name: str,
     description: str,
-    schema: Optional[Dict[str, Any]] = None,
+    schema: Optional[dict[str, Any]] = None,
 ):
     """Decorator for defining Agent SDK tools.
 

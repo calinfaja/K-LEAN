@@ -40,7 +40,7 @@ import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -170,12 +170,12 @@ class KnowledgeDB:
 
         # In-memory index (dense)
         self._embeddings: Optional[np.ndarray] = None
-        self._id_to_row: Dict[str, int] = {}
-        self._row_to_id: Dict[int, str] = {}
-        self._entries: List[Dict[str, Any]] = []  # Cached entries
+        self._id_to_row: dict[str, int] = {}
+        self._row_to_id: dict[int, str] = {}
+        self._entries: list[dict[str, Any]] = []  # Cached entries
 
         # In-memory sparse index: {row_idx: {token: weight, ...}}
-        self._sparse_vectors: Dict[int, Dict[str, float]] = {}
+        self._sparse_vectors: dict[int, dict[str, float]] = {}
 
         # Load existing index if present
         self._load_index()
@@ -283,7 +283,7 @@ class KnowledgeDB:
 
             debug_log(f"Saved {len(self._id_to_row)} embeddings to disk")
 
-    def _build_searchable_text(self, entry: Dict[str, Any]) -> str:
+    def _build_searchable_text(self, entry: dict[str, Any]) -> str:
         """Build searchable text from entry fields."""
         searchable_parts = [
             entry.get("title", ""),
@@ -297,7 +297,7 @@ class KnowledgeDB:
         return " ".join(filter(None, searchable_parts))
 
     @staticmethod
-    def rrf_score(ranks: List[int], k: int = 60) -> float:
+    def rrf_score(ranks: list[int], k: int = 60) -> float:
         """
         Calculate Reciprocal Rank Fusion score.
 
@@ -313,7 +313,7 @@ class KnowledgeDB:
         """
         return sum(1.0 / (k + rank) for rank in ranks if rank > 0)
 
-    def _generate_sparse_embedding(self, text: str) -> Dict[str, float]:
+    def _generate_sparse_embedding(self, text: str) -> dict[str, float]:
         """
         Generate sparse embedding using BM42.
 
@@ -341,7 +341,7 @@ class KnowledgeDB:
             debug_log(f"Sparse embedding failed: {e}")
             return {}
 
-    def _dense_search(self, query: str, limit: int) -> List[tuple]:
+    def _dense_search(self, query: str, limit: int) -> list[tuple]:
         """
         Dense (semantic) search using cosine similarity.
 
@@ -366,7 +366,7 @@ class KnowledgeDB:
 
         return [(int(idx), float(scores[idx])) for idx in top_indices]
 
-    def _sparse_search(self, query: str, limit: int) -> List[tuple]:
+    def _sparse_search(self, query: str, limit: int) -> list[tuple]:
         """
         Sparse (keyword) search using BM42.
 
@@ -399,8 +399,8 @@ class KnowledgeDB:
         return scores[:limit]
 
     def _rerank_results(
-        self, query: str, results: List[Dict[str, Any]], limit: int
-    ) -> List[Dict[str, Any]]:
+        self, query: str, results: list[dict[str, Any]], limit: int
+    ) -> list[dict[str, Any]]:
         """
         Rerank results using cross-encoder.
 
@@ -437,7 +437,7 @@ class KnowledgeDB:
             debug_log(f"Reranking failed: {e}")
             return results[:limit]
 
-    def add(self, entry: Dict[str, Any]) -> str:
+    def add(self, entry: dict[str, Any]) -> str:
         """
         Add a knowledge entry to the database.
 
@@ -513,7 +513,7 @@ class KnowledgeDB:
         query: str,
         limit: int = 5,
         rerank: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Hybrid search combining dense and sparse retrieval with RRF fusion.
 
@@ -585,7 +585,7 @@ class KnowledgeDB:
 
         return results
 
-    def get(self, entry_id: str) -> Optional[Dict[str, Any]]:
+    def get(self, entry_id: str) -> Optional[dict[str, Any]]:
         """
         Get a specific entry by ID.
 
@@ -609,7 +609,7 @@ class KnowledgeDB:
                         pass
         return None
 
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """
         Get database statistics.
 
@@ -745,7 +745,7 @@ class KnowledgeDB:
         debug_log(f"Rebuilt index with {len(entries)} entries (hybrid search enabled)")
         return len(entries)
 
-    def list_recent(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def list_recent(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         List most recent entries.
 

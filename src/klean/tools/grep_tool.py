@@ -3,7 +3,7 @@
 This tool allows droids to search for patterns in code using ripgrep.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from ..tools import tool
 
@@ -15,7 +15,7 @@ async def grep_codebase(
     glob_pattern: Optional[str] = None,
     file_type: Optional[str] = None,
     context_lines: int = 0,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Search code for pattern using ripgrep.
 
     This tool enables droids to search the codebase efficiently for patterns,

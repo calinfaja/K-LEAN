@@ -6,7 +6,7 @@ This tool allows droids to query the knowledge database in real-time during anal
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from ..tools import tool
 
@@ -16,7 +16,7 @@ async def search_knowledge(
     query: str,
     limit: int = 5,
     min_score: float = 0.3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Search knowledge database for relevant information.
 
     This tool enables droids to integrate knowledge from the project's

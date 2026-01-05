@@ -12,7 +12,7 @@ Usage:
 """
 
 import time
-from typing import List, Optional
+from typing import Optional
 
 import httpx
 
@@ -24,7 +24,7 @@ _cache: dict = {"models": [], "timestamp": 0}
 CACHE_TTL = 300  # 5 minutes
 
 
-def list_models(force_refresh: bool = False) -> List[str]:
+def list_models(force_refresh: bool = False) -> list[str]:
     """Get all available models from LiteLLM.
 
     Uses TTL cache (5 min) for performance. Auto-refreshes when stale.

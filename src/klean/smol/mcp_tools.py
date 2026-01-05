@@ -6,10 +6,10 @@ to integrate with MCP servers like Serena, filesystem, etc.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
-def load_mcp_config() -> Dict[str, Any]:
+def load_mcp_config() -> dict[str, Any]:
     """Load MCP config from Claude settings.
 
     Searches for MCP server configuration in common locations.
@@ -35,7 +35,7 @@ def load_mcp_config() -> Dict[str, Any]:
     return {}
 
 
-def get_mcp_server_config(server_name: str) -> Optional[Dict]:
+def get_mcp_server_config(server_name: str) -> Optional[dict]:
     """Get config for a specific MCP server.
 
     Args:
@@ -59,7 +59,7 @@ BUILTIN_MCP_SERVERS = {
 }
 
 
-def get_mcp_tools(servers: List[str] = None, include_builtin: bool = False) -> List:
+def get_mcp_tools(servers: list[str] = None, include_builtin: bool = False) -> list:
     """Load tools from MCP servers.
 
     Uses smolagents ToolCollection.from_mcp() to connect to MCP servers
@@ -125,7 +125,7 @@ def get_mcp_tools(servers: List[str] = None, include_builtin: bool = False) -> L
     return tools
 
 
-def list_available_mcp_servers() -> Dict[str, str]:
+def list_available_mcp_servers() -> dict[str, str]:
     """List available MCP servers.
 
     Returns:
@@ -146,7 +146,7 @@ def list_available_mcp_servers() -> Dict[str, str]:
     return result
 
 
-def test_mcp_connection(server_name: str) -> Dict[str, Any]:
+def test_mcp_connection(server_name: str) -> dict[str, Any]:
     """Test connection to an MCP server.
 
     Args:

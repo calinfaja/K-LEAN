@@ -6,7 +6,6 @@ Agent prompt loader for SmolKLN.
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -20,7 +19,7 @@ class AgentConfig:
     name: str
     description: str
     model: str = ""  # Empty = use first available from LiteLLM
-    tools: List[str] = field(
+    tools: list[str] = field(
         default_factory=lambda: ["knowledge_search", "read_file", "search_files"]
     )
 
@@ -85,7 +84,7 @@ def parse_agent_file(path: Path) -> Agent:
     )
 
 
-def list_available_agents(agents_dir: Path = None) -> List[str]:
+def list_available_agents(agents_dir: Path = None) -> list[str]:
     """List all available agent names.
 
     Filters out template files (TEMPLATE.md) from the listing.

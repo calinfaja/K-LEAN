@@ -34,7 +34,7 @@ Usage:
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -45,7 +45,7 @@ from knowledge_db import KnowledgeDB
 class BM25:
     """Simple BM25 keyword scoring (Okapi BM25 variant)"""
 
-    def __init__(self, documents: List[Dict[str, Any]]):
+    def __init__(self, documents: list[dict[str, Any]]):
         """
         Initialize BM25 with documents.
 
@@ -147,9 +147,9 @@ class HybridSearch:
         self,
         query: str,
         strategy: str = "hybrid",
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         limit: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search using specified strategy.
 
@@ -174,9 +174,9 @@ class HybridSearch:
     def _semantic_search(
         self,
         query: str,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         limit: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Semantic search via txtai embeddings"""
         results = self.db.search(query, limit=limit * 2)  # Get extra to filter
 
@@ -191,9 +191,9 @@ class HybridSearch:
     def _keyword_search(
         self,
         query: str,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         limit: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Keyword search via BM25"""
         # Load all entries from JSONL for keyword indexing
         if not self.db.jsonl_path.exists():
@@ -223,7 +223,7 @@ class HybridSearch:
         # Sort by score and return
         scores.sort(key=lambda x: x[1], reverse=True)
         results = []
-        for entry_id, score, entry in scores[:limit]:
+        for _entry_id, score, entry in scores[:limit]:
             # Enrich with txtai result format
             result = {
                 "score": score,
@@ -250,9 +250,9 @@ class HybridSearch:
 
     def _tag_search(
         self,
-        tags: List[str],
+        tags: list[str],
         limit: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Tag-based search"""
         if not self.db.jsonl_path.exists():
             return []
@@ -296,9 +296,9 @@ class HybridSearch:
     def _hybrid_search(
         self,
         query: str,
-        tags: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
         limit: int = 5,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Hybrid search with intelligent fallback and reranking.
 

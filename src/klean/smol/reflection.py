@@ -6,7 +6,7 @@ and retry with feedback if quality is insufficient.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 
 from klean.discovery import get_model
 
@@ -25,8 +25,8 @@ class Critique:
 
     verdict: CritiqueVerdict
     feedback: str
-    issues: List[str]
-    suggestions: List[str]
+    issues: list[str]
+    suggestions: list[str]
     confidence: float
 
 
@@ -149,7 +149,7 @@ class ReflectionEngine:
 
     def execute_with_reflection(
         self, executor, agent_name: str, task: str, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute agent with reflection loop.
 
         Runs agent, critiques output, and retries with feedback if needed.

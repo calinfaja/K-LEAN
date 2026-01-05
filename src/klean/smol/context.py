@@ -13,7 +13,7 @@ import json
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -33,7 +33,7 @@ class ProjectContext:
 
     # Serena integration
     serena_available: bool = False
-    serena_memories: Dict[str, str] = field(default_factory=dict)
+    serena_memories: dict[str, str] = field(default_factory=dict)
 
     # .claude folder
     claude_dir: Path = field(default_factory=lambda: Path.home() / ".claude")
@@ -77,7 +77,7 @@ def detect_project_root(start_path: Path = None) -> Path:
     return Path.cwd().resolve()
 
 
-def get_git_info(project_root: Path) -> Dict[str, str]:
+def get_git_info(project_root: Path) -> dict[str, str]:
     """Get current git branch and status summary."""
     info = {}
 
@@ -145,7 +145,7 @@ def find_knowledge_db(project_root: Path) -> Optional[Path]:
     return None
 
 
-def load_mcp_config() -> Dict[str, Any]:
+def load_mcp_config() -> dict[str, Any]:
     """Load MCP server configuration from Claude settings."""
     config_paths = [
         Path.home() / ".claude.json",
@@ -165,7 +165,7 @@ def load_mcp_config() -> Dict[str, Any]:
     return {}
 
 
-def get_serena_config() -> Optional[Dict[str, Any]]:
+def get_serena_config() -> Optional[dict[str, Any]]:
     """Get Serena MCP server configuration if available."""
     mcp_config = load_mcp_config()
     return mcp_config.get("serena")
@@ -176,7 +176,7 @@ def check_serena_available() -> bool:
     return get_serena_config() is not None
 
 
-def get_claude_scripts() -> List[Path]:
+def get_claude_scripts() -> list[Path]:
     """Get list of available K-LEAN scripts."""
     scripts_dir = Path.home() / ".claude" / "scripts"
 

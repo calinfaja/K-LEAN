@@ -9,7 +9,7 @@ import uuid
 from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 class TaskState(Enum):
@@ -53,7 +53,7 @@ class TaskQueue:
         """
         self.db_path = db_path or (Path.home() / ".klean" / "task_queue.json")
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.tasks: Dict[str, QueuedTask] = {}
+        self.tasks: dict[str, QueuedTask] = {}
         self._load()
 
     def _load(self):
@@ -108,11 +108,11 @@ class TaskQueue:
         self._save()
         return task_id
 
-    def get_pending(self) -> List[QueuedTask]:
+    def get_pending(self) -> list[QueuedTask]:
         """Get all pending (queued) tasks."""
         return [t for t in self.tasks.values() if t.state == TaskState.QUEUED]
 
-    def get_running(self) -> List[QueuedTask]:
+    def get_running(self) -> list[QueuedTask]:
         """Get all currently running tasks."""
         return [t for t in self.tasks.values() if t.state == TaskState.RUNNING]
 
@@ -143,12 +143,12 @@ class TaskQueue:
         """Get task by ID."""
         return self.tasks.get(task_id)
 
-    def list_recent(self, limit: int = 10) -> List[QueuedTask]:
+    def list_recent(self, limit: int = 10) -> list[QueuedTask]:
         """List most recent tasks."""
         sorted_tasks = sorted(self.tasks.values(), key=lambda t: t.created_at, reverse=True)
         return sorted_tasks[:limit]
 
-    def list_by_state(self, state: TaskState) -> List[QueuedTask]:
+    def list_by_state(self, state: TaskState) -> list[QueuedTask]:
         """List tasks with specific state."""
         return [t for t in self.tasks.values() if t.state == state]
 

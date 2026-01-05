@@ -1581,6 +1581,7 @@ def model_test(model: Optional[str], prompt: Optional[str]):
 
     try:
         import httpx
+
         from klean.discovery import LITELLM_ENDPOINT
 
         resp = httpx.post(

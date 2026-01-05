@@ -6,7 +6,7 @@ Primary agent execution engine for K-LEAN.
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from klean.discovery import get_model
 
@@ -165,7 +165,7 @@ class SmolKLNExecutor:
         model_override: str = None,
         context: str = None,
         max_steps: int = 10,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute an agent with the given task.
 
         Args:
@@ -394,11 +394,11 @@ Provide specific file:line references for findings.
 
         return "\n".join(prompt_parts)
 
-    def list_agents(self) -> List[str]:
+    def list_agents(self) -> list[str]:
         """List available agents."""
         return list_available_agents(self.agents_dir)
 
-    def get_agent_info(self, agent_name: str) -> Dict[str, Any]:
+    def get_agent_info(self, agent_name: str) -> dict[str, Any]:
         """Get information about an agent."""
         try:
             agent = load_agent(agent_name, self.agents_dir)

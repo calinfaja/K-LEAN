@@ -6,7 +6,7 @@ Provides a worker thread that processes queued tasks in the background.
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from .task_queue import TaskQueue
 
@@ -61,7 +61,7 @@ class AsyncExecutor:
         self._ensure_worker()
         return task_id
 
-    def get_status(self, task_id: str) -> Dict[str, Any]:
+    def get_status(self, task_id: str) -> dict[str, Any]:
         """Get status of a task.
 
         Args:
@@ -85,7 +85,7 @@ class AsyncExecutor:
             "error": task.error,
         }
 
-    def wait_for(self, task_id: str, timeout: float = 300) -> Dict[str, Any]:
+    def wait_for(self, task_id: str, timeout: float = 300) -> dict[str, Any]:
         """Wait for task to complete.
 
         Args:
@@ -104,7 +104,7 @@ class AsyncExecutor:
 
         return {"error": "Timeout waiting for task", "id": task_id, "state": "timeout"}
 
-    def list_tasks(self, limit: int = 10) -> List[Dict[str, Any]]:
+    def list_tasks(self, limit: int = 10) -> list[dict[str, Any]]:
         """List recent tasks.
 
         Args:
@@ -250,7 +250,7 @@ def submit_async(agent: str, task: str, model: str = None, project_path: str = N
     return executor.submit(agent, task, model, project_path)
 
 
-def get_task_status(task_id: str) -> Dict[str, Any]:
+def get_task_status(task_id: str) -> dict[str, Any]:
     """Quick helper to get task status.
 
     Args:

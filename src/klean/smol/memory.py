@@ -6,7 +6,7 @@ Provides session memory and Knowledge DB integration for agent execution.
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 @dataclass
@@ -16,9 +16,9 @@ class MemoryEntry:
     content: str
     timestamp: float
     entry_type: str  # "action", "result", "lesson", "error"
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize entry to dictionary."""
         return {
             "content": self.content,
@@ -28,7 +28,7 @@ class MemoryEntry:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MemoryEntry":
+    def from_dict(cls, data: dict[str, Any]) -> "MemoryEntry":
         """Deserialize entry from dictionary."""
         return cls(
             content=data["content"],
@@ -43,7 +43,7 @@ class SessionMemory:
     """Memory for current session."""
 
     task: str
-    entries: List[MemoryEntry] = field(default_factory=list)
+    entries: list[MemoryEntry] = field(default_factory=list)
     max_entries: int = 50
     start_time: float = field(default_factory=time.time)
 
@@ -71,11 +71,11 @@ class SessionMemory:
             tokens += entry_tokens
         return "\n".join(parts)
 
-    def get_history(self) -> List[Dict[str, Any]]:
+    def get_history(self) -> list[dict[str, Any]]:
         """Get full history as list of dicts (for inspection/debugging)."""
         return [entry.to_dict() for entry in self.entries]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize session to dictionary."""
         return {
             "task": self.task,
@@ -84,7 +84,7 @@ class SessionMemory:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SessionMemory":
+    def from_dict(cls, data: dict[str, Any]) -> "SessionMemory":
         """Deserialize session from dictionary."""
         session = cls(
             task=data["task"],
@@ -140,7 +140,7 @@ class AgentMemory:
         if self.session:
             self.session.add(content, entry_type, **metadata)
 
-    def query_knowledge(self, query: str, limit: int = 5) -> List[Dict]:
+    def query_knowledge(self, query: str, limit: int = 5) -> list[dict]:
         """Query Knowledge DB for relevant information.
 
         Args:
@@ -326,7 +326,7 @@ class AgentMemory:
 
         return synced
 
-    def _save_serena_lesson(self, lesson: Dict, content: str) -> bool:
+    def _save_serena_lesson(self, lesson: dict, content: str) -> bool:
         """Save a single Serena lesson to KB."""
         if self.knowledge_db is None:
             return False

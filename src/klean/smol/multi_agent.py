@@ -6,7 +6,7 @@ Uses smolagents managed_agents for orchestrated multi-model reviews.
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from .context import format_context_for_prompt, gather_project_context
 from .executor import add_step_awareness
@@ -100,7 +100,7 @@ class MultiAgentExecutor:
         variant: str,
         output: str,
         duration: float,
-        agents_used: List[str],
+        agents_used: list[str],
     ) -> Path:
         """Save multi-agent result to markdown file."""
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -130,7 +130,7 @@ class MultiAgentExecutor:
         task: str,
         thorough: bool = False,
         manager_model: str = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Execute multi-agent review.
 
         Args:
@@ -205,8 +205,9 @@ class MultiAgentExecutor:
 
                 # REPLACE default system prompt (removes John Doe/Ulam examples)
                 # Use KLEAN base template with agent-specific prompt as custom_instructions
-                from .prompts import KLEAN_SYSTEM_PROMPT
                 from jinja2 import Template
+
+                from .prompts import KLEAN_SYSTEM_PROMPT
 
                 template = Template(KLEAN_SYSTEM_PROMPT)
                 rendered_prompt = template.render(
@@ -261,8 +262,9 @@ class MultiAgentExecutor:
             )
 
             # REPLACE default system prompt for manager too
-            from .prompts import KLEAN_SYSTEM_PROMPT
             from jinja2 import Template
+
+            from .prompts import KLEAN_SYSTEM_PROMPT
 
             template = Template(KLEAN_SYSTEM_PROMPT)
             rendered_prompt = template.render(

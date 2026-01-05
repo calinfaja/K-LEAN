@@ -4,7 +4,7 @@ This tool allows droids to read file contents for analysis.
 """
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from ..tools import tool
 
@@ -14,7 +14,7 @@ async def read_file(
     path: str,
     lines: Optional[int] = None,
     offset: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Read file contents for code analysis.
 
     This tool enables droids to read files for deeper analysis, code inspection,

@@ -31,7 +31,12 @@ RE_DELETIONS = re.compile(r"(\d+) deletion")
 
 # Import shared utilities
 try:
-    from kb_utils import clean_stale_socket, get_socket_path, is_kb_initialized, is_server_running  # noqa: F401
+    from kb_utils import (  # noqa: F401
+        clean_stale_socket,
+        get_socket_path,
+        is_kb_initialized,
+        is_server_running,
+    )
     from kb_utils import find_project_root as _find_project_root
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))

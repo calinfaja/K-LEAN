@@ -5,7 +5,6 @@ Uses dynamic model discovery - all agents use first available model from LiteLLM
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
 
 from klean.discovery import get_model
 
@@ -16,7 +15,7 @@ class AgentConfig:
 
     name: str
     model: str
-    tools: List[str]
+    tools: list[str]
     max_steps: int
     description: str
     planning_interval: int = 3  # Plan every N steps to stay on track
@@ -27,7 +26,7 @@ def get_default_model() -> str:
     return get_model() or "auto"
 
 
-def get_models() -> Dict[str, str]:
+def get_models() -> dict[str, str]:
     """Get model assignments - all use first available from LiteLLM.
 
     User controls model priority via their LiteLLM config order.
@@ -43,7 +42,7 @@ def get_models() -> Dict[str, str]:
     }
 
 
-def get_3_agent_config() -> Dict[str, AgentConfig]:
+def get_3_agent_config() -> dict[str, AgentConfig]:
     """Return 3-agent configuration (default).
 
     Manager orchestrates file_scout and analyzer.
@@ -84,7 +83,7 @@ def get_3_agent_config() -> Dict[str, AgentConfig]:
     }
 
 
-def get_4_agent_config() -> Dict[str, AgentConfig]:
+def get_4_agent_config() -> dict[str, AgentConfig]:
     """Return 4-agent configuration (--thorough flag).
 
     Manager orchestrates file_scout, code_analyzer, security_auditor, and synthesizer.

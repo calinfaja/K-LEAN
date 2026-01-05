@@ -28,9 +28,22 @@ $ARGUMENTS
 
 ## Flags
 
-- `--models, -n` - Number of models (default: 3) OR comma-separated model names
+- `-n, --models` - Number of models (default: 3) OR comma-separated model names
+- `-c, --context-file` - File containing code to review (alternative to stdin)
+- `-o, --output` - Output format: text (default), json, markdown
 - `--telemetry` - Enable Phoenix telemetry tracing
-- `--output, -o` - Output format: text (default), json, markdown
+
+## Your Job
+
+Understand what user wants reviewed and gather the relevant code:
+
+| User wants | You gather |
+|------------|------------|
+| "current changes" / "my changes" | `git diff` (unstaged) + `git diff --cached` (staged) |
+| "last commit" | `git diff HEAD~1..HEAD` |
+| "feature X" / "the auth module" | Read relevant files, get recent changes |
+| "this file" / "file.py" | Read the file content |
+| "PR" / "branch changes" | `git diff main..HEAD` |
 
 ## Execution
 
@@ -38,8 +51,14 @@ $ARGUMENTS
 PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
 CORE=~/.claude/kln/klean_core.py
 
-# Run multi-model review
-$PYTHON $CORE multi $ARGUMENTS
+# 1. Gather code into temp file
+git diff HEAD~1..HEAD | head -500 > /tmp/kln-review.txt
+
+# 2. Run multi-model review (Option A: stdin)
+cat /tmp/kln-review.txt | $PYTHON $CORE multi -n 3 "FOCUS"
+
+# 2. Or use --context-file (Option B)
+$PYTHON $CORE multi -n 3 -c /tmp/kln-review.txt "FOCUS"
 ```
 
 Execute the command above and display the aggregated results showing:

@@ -6,7 +6,7 @@ Provides file operations and knowledge search tools.
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 # Import smolagents Tool class - required for this module
 try:
@@ -16,7 +16,8 @@ try:
 except ImportError:
     SMOLAGENTS_AVAILABLE = False
     Tool = object  # Fallback for type hints
-    tool = lambda f: f  # No-op decorator
+    def tool(f):
+        return f  # No-op decorator
 
 
 # =============================================================================
@@ -75,7 +76,7 @@ def validate_citations(final_answer: str, agent_memory=None, **kwargs) -> bool:
 
     # Verify each citation
     invalid_count = 0
-    for file_path, line_start, line_end in citations:
+    for file_path, line_start, _line_end in citations:
         line_num = int(line_start)
         basename = Path(file_path).name
 
@@ -142,7 +143,7 @@ def validate_file_paths(final_answer: str, agent_memory=None, **kwargs) -> bool:
     return True
 
 
-def get_citation_stats(final_answer: str, agent_memory=None) -> Dict[str, Any]:
+def get_citation_stats(final_answer: str, agent_memory=None) -> dict[str, Any]:
     """Get statistics about citations in the final answer.
 
     Useful for debugging and reporting on citation quality.
@@ -1413,7 +1414,7 @@ def get_default_tools(
 
 
 def get_tools_for_agent(
-    tool_names: List[str],
+    tool_names: list[str],
     project_path: str = None,
 ) -> list:
     """Get specific tools by name for multi-agent system.

@@ -14,7 +14,7 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 # LiteLLM for LLM calls (replaces httpx for better telemetry)
 import litellm
@@ -505,7 +505,7 @@ class ReviewEngine:
             "consensus": self._find_consensus(successful),
         }
 
-    def _parse_json_review(self, content: str) -> Optional[Dict[str, Any]]:
+    def _parse_json_review(self, content: str) -> Optional[dict[str, Any]]:
         """Extract and parse JSON from model response"""
         # Try direct JSON parse first
         try:
@@ -531,7 +531,7 @@ class ReviewEngine:
 
         return None
 
-    def _extract_text_review(self, content: str) -> Dict[str, Any]:
+    def _extract_text_review(self, content: str) -> dict[str, Any]:
         """Fallback: extract review data from text format"""
         result = {"grade": None, "risk": None, "findings": [], "summary": ""}
 
@@ -548,7 +548,7 @@ class ReviewEngine:
 
         return result
 
-    def _find_consensus(self, results: List[Dict]) -> Dict[str, Any]:
+    def _find_consensus(self, results: list[dict]) -> dict[str, Any]:
         """Find consensus across multiple model reviews with JSON support"""
         parsed_results = []
         grades = []
@@ -609,7 +609,7 @@ class ReviewEngine:
         low_confidence = []  # Only 1 model found
 
         for group in finding_groups:
-            models_found = len(set(f.get("_model") for f in group["findings"]))
+            models_found = len({f.get("_model") for f in group["findings"]})
             representative = group["findings"][0]  # Use first as representative
 
             if models_found == total_models:
@@ -654,7 +654,7 @@ class ReviewEngine:
             "parsed_results": parsed_results,
         }
 
-    def _group_similar_findings(self, findings: List[Dict]) -> List[Dict]:
+    def _group_similar_findings(self, findings: list[dict]) -> list[dict]:
         """Group findings by location and issue similarity"""
         groups = []
 
@@ -981,15 +981,31 @@ Provide a comprehensive review with:
 def cli_quick(args):
     """CLI entry for quick review"""
     import argparse
+    import select
 
     parser = argparse.ArgumentParser(description="Quick code review")
     parser.add_argument("focus", nargs="*", help="Review focus")
     parser.add_argument("-m", "--model", default="auto", help="Model to use")
     parser.add_argument("-o", "--output", choices=["text", "json", "markdown"], default="text")
+    parser.add_argument("-c", "--context-file", help="File containing code to review")
     parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
 
     focus = " ".join(parsed.focus) or "general code review"
+
+    # Get context from file or stdin
+    context = ""
+    if parsed.context_file:
+        try:
+            with open(parsed.context_file) as f:
+                context = f.read()
+        except Exception as e:
+            print(f"Error reading context file: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Read from stdin if available
+        if select.select([sys.stdin], [], [], 0.0)[0]:
+            context = sys.stdin.read()
 
     engine = ReviewEngine()
 
@@ -997,7 +1013,7 @@ def cli_quick(args):
     if parsed.telemetry:
         engine._llm_client.enable_telemetry("kln-quick")
 
-    result = engine.quick_review(focus, model=parsed.model)
+    result = engine.quick_review(focus, context=context, model=parsed.model)
 
     if parsed.output == "json":
         print(json.dumps(result, indent=2))
@@ -1012,6 +1028,7 @@ def cli_quick(args):
 def cli_multi(args):
     """CLI entry for multi-model review"""
     import argparse
+    import select
 
     parser = argparse.ArgumentParser(description="Multi-model review")
     parser.add_argument("focus", nargs="*", help="Review focus")
@@ -1022,10 +1039,25 @@ def cli_multi(args):
         "-m", "--model", action="append", help="Specific models (deprecated, use --models)"
     )
     parser.add_argument("-o", "--output", choices=["text", "json", "markdown"], default="text")
+    parser.add_argument("-c", "--context-file", help="File containing code to review")
     parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
 
     focus = " ".join(parsed.focus) or "general code review"
+
+    # Get context from file or stdin
+    context = ""
+    if parsed.context_file:
+        try:
+            with open(parsed.context_file) as f:
+                context = f.read()
+        except Exception as e:
+            print(f"Error reading context file: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        # Read from stdin if available
+        if select.select([sys.stdin], [], [], 0.0)[0]:
+            context = sys.stdin.read()
 
     engine = ReviewEngine()
 
@@ -1052,7 +1084,7 @@ def cli_multi(args):
 
     result = asyncio.run(
         engine.multi_review(
-            focus, model_count=model_count, models=specific_models if specific_models else None
+            focus, context=context, model_count=model_count, models=specific_models if specific_models else None
         )
     )
 

@@ -9,7 +9,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 
 class TaskStatus(Enum):
@@ -28,9 +28,9 @@ class SubTask:
     id: str
     description: str
     agent: str
-    dependencies: List[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
     status: TaskStatus = TaskStatus.PENDING
-    result: Optional[Dict] = None
+    result: Optional[dict] = None
 
 
 @dataclass
@@ -38,8 +38,8 @@ class TaskPlan:
     """Plan for executing a complex task."""
 
     goal: str
-    subtasks: List[SubTask] = field(default_factory=list)
-    parallel_groups: List[List[str]] = field(default_factory=list)
+    subtasks: list[SubTask] = field(default_factory=list)
+    parallel_groups: list[list[str]] = field(default_factory=list)
 
 
 PLANNER_PROMPT = """Create an execution plan for this task.
@@ -92,8 +92,8 @@ class SmolKLNOrchestrator:
         self.planner_model = planner_model
 
     def execute(
-        self, task: str, agents: List[str] = None, synthesize: bool = True
-    ) -> Dict[str, Any]:
+        self, task: str, agents: list[str] = None, synthesize: bool = True
+    ) -> dict[str, Any]:
         """Execute a complex task with multiple agents.
 
         Args:
@@ -134,11 +134,11 @@ class SmolKLNOrchestrator:
                 ],
                 "parallel_groups": plan.parallel_groups,
             },
-            "results": {tid: r for tid, r in results.items()},
+            "results": dict(results.items()),
             "success": all(r.get("success", False) for r in results.values()),
         }
 
-    def _create_plan(self, task: str, agents: List[str] = None) -> TaskPlan:
+    def _create_plan(self, task: str, agents: list[str] = None) -> TaskPlan:
         """Create execution plan using planner agent."""
         available = agents or self.executor.list_agents()
 
@@ -197,7 +197,7 @@ class SmolKLNOrchestrator:
             goal=task, subtasks=[SubTask("1", task, "code-reviewer", [])], parallel_groups=[["1"]]
         )
 
-    def _execute_plan(self, plan: TaskPlan) -> Dict[str, Dict]:
+    def _execute_plan(self, plan: TaskPlan) -> dict[str, dict]:
         """Execute plan with dependency-aware scheduling."""
         results = {}
 
@@ -240,7 +240,7 @@ class SmolKLNOrchestrator:
 
         return results
 
-    def _execute_subtask(self, subtask: SubTask, prior_results: Dict) -> Dict:
+    def _execute_subtask(self, subtask: SubTask, prior_results: dict) -> dict:
         """Execute a single subtask with context from dependencies."""
         subtask.status = TaskStatus.RUNNING
 
@@ -256,7 +256,7 @@ class SmolKLNOrchestrator:
             subtask.agent, subtask.description, context=context.strip() or None
         )
 
-    def _synthesize(self, task: str, results: Dict) -> str:
+    def _synthesize(self, task: str, results: dict) -> str:
         """Synthesize results from multiple agents into cohesive output."""
         if len(results) == 1:
             # Single result, no synthesis needed
@@ -291,7 +291,7 @@ class SmolKLNOrchestrator:
 
         return result["output"]
 
-    def _format_results(self, results: Dict) -> str:
+    def _format_results(self, results: dict) -> str:
         """Format results without synthesis."""
         parts = []
         for tid, r in results.items():
@@ -304,8 +304,8 @@ class SmolKLNOrchestrator:
 
 
 def quick_orchestrate(
-    task: str, agents: List[str] = None, api_base: str = "http://localhost:4000"
-) -> Dict[str, Any]:
+    task: str, agents: list[str] = None, api_base: str = "http://localhost:4000"
+) -> dict[str, Any]:
     """Quick helper to run orchestrated task.
 
     Args:

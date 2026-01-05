@@ -4,7 +4,7 @@ This tool allows droids to execute test suites and analyze results.
 """
 
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from ..tools import tool
 
@@ -14,7 +14,7 @@ async def run_tests(
     path: str = "tests",
     pattern: Optional[str] = None,
     verbose: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Execute tests and return structured results.
 
     This tool enables droids to run test suites during analysis,

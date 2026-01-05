@@ -27,15 +27,25 @@ Be smart - if user says "review the auth changes", find auth-related files and t
 ## Execute
 
 ```bash
-# 1. Gather code into temp file (adapt based on what user wants)
-git diff HEAD~1..HEAD | head -500 > /tmp/kln-review.txt
+PYTHON=~/.local/share/pipx/venvs/kln-ai/bin/python
+CORE=~/.claude/kln/klean_core.py
 
-# 2. Send to review
-cat /tmp/kln-review.txt | ~/.local/share/pipx/venvs/kln-ai/bin/python \
-    ~/.claude/kln/klean_core.py quick -m "MODEL" "FOCUS"
+# Option A: Pipe via stdin
+git diff HEAD~1..HEAD | head -500 > /tmp/kln-review.txt
+cat /tmp/kln-review.txt | $PYTHON $CORE quick -m "MODEL" "FOCUS"
+
+# Option B: Use --context-file flag
+$PYTHON $CORE quick -m "MODEL" -c /tmp/kln-review.txt "FOCUS"
 ```
 
 **MODEL**: `--model` flag or "auto"
 **FOCUS**: Extract from user request (e.g., "security", "performance") or "code quality"
 
 **Model names:** If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
+
+## Flags
+
+- `-m, --model` - Model to use (default: "auto")
+- `-c, --context-file` - File containing code to review (alternative to stdin)
+- `-o, --output` - Output format: text (default), json, markdown
+- `--telemetry` - Enable Phoenix telemetry tracing

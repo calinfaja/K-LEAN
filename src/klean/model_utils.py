@@ -4,7 +4,6 @@ Utilities for model name generation, parsing, and validation.
 """
 
 import re
-from typing import Tuple
 
 
 def extract_model_name(full_model_id: str) -> str:
@@ -53,7 +52,7 @@ def extract_model_name(full_model_id: str) -> str:
     return model_name
 
 
-def parse_model_id(full_model_id: str) -> Tuple[str, str]:
+def parse_model_id(full_model_id: str) -> tuple[str, str]:
     """Parse full model ID to determine provider.
 
     Args:
