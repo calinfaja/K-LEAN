@@ -40,6 +40,17 @@ Benchmarking SmolKLN agents against industry-standard evaluations.
   - Multi-agent strategies (consensus, routing)
   - Cost tracking per benchmark run
 
+### [Memvid Integration](memvid-integration.md)
+Replace file-based Knowledge DB with Memvid's single-file format.
+- **Status**: Research Complete
+- **Effort**: 4-5 days
+- **Features**:
+  - Single .mv2 file storage (portable, git-friendly)
+  - Sub-5ms search (Rust core)
+  - Keep K-LEAN's RRF fusion + cross-encoder reranking
+  - Migration tool for existing knowledge bases
+- **Alternatives Analyzed**: Memvid, Claude-Brain, Mem0
+
 ## Completed
 
 - ~~Mem0 Foundation (A+B)~~ → Session persistence + Serena sync (Dec 2024)
