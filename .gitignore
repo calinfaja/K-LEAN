@@ -89,3 +89,6 @@ config-local.yaml
 *.bak
 *.log
 backups/
+
+# Local-only documents (not for repo)
+docs/contributions/
