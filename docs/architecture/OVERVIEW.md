@@ -2,7 +2,7 @@
 
 > **Multi-Model Code Reviews & Persistent Knowledge for Claude Code**
 
-**Version:** 1.0.0b3 | **License:** Apache 2.0
+**Version:** 1.0.0b6 | **License:** Apache 2.0
 
 ---
 
@@ -15,7 +15,7 @@ K-LEAN (Knowledge-Lean) is an addon for Claude Code that provides:
 - **Persistent Knowledge DB** with semantic search (per-project)
 - **8 SmolKLN agents** for domain-specific analysis
 - **9 slash commands** for reviews, debugging, and documentation
-- **4 hooks** for automatic knowledge capture
+- **4 hooks** for automatic knowledge capture (Python entry points)
 
 ### The Problem
 
@@ -28,43 +28,51 @@ Claude Code uses a single AI model. K-LEAN adds:
 
 **K-LEAN is an ADDON, not a replacement.** Works alongside Claude Code and other extensions (SuperClaude, Serena MCP, Context7).
 
+### Cross-Platform Support
+
+K-LEAN works natively on **Windows, Linux, and macOS**:
+- No shell scripts required for core functionality
+- TCP localhost for IPC (not Unix sockets)
+- Python entry points for hooks (not bash scripts)
+- platformdirs for cross-platform paths
+
 ---
 
 ## Architecture
 
 ```
                           Claude Code
-   ┌─────────────────────────────────────────────────────────────┐
-   │  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐  │
-   │  │    Hooks     │  │  /kln:*     │  │   SmolKLN Agents   │  │
-   │  │  (5 total)   │  │  Commands   │  │  (8 specialists)   │  │
-   │  └──────┬───────┘  └──────┬──────┘  └─────────┬──────────┘  │
-   └─────────┼─────────────────┼───────────────────┼─────────────┘
-             │                 │                   │
-             ▼                 ▼                   ▼
-   ┌─────────────────────────────────────────────────────────────┐
-   │                      K-LEAN Layer                            │
-   │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐   │
-   │  │   Review     │  │  Knowledge   │  │    Agent         │   │
-   │  │   Engine     │  │  Capture     │  │  Orchestration   │   │
-   │  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘   │
-   └─────────┼─────────────────┼───────────────────┼─────────────┘
-             │                 │                   │
-             ▼                 ▼                   ▼
-   ┌─────────────────────┐  ┌──────────────────────────────────┐
-   │  LiteLLM Proxy      │  │  Knowledge DB (fastembed)        │
-   │  localhost:4000     │  │  .knowledge-db/ per project      │
-   │  Dynamic discovery  │  │  TCP localhost for fast queries  │
-   └──────────┬──────────┘  └──────────────────────────────────┘
-              │
-              ▼
-   ┌─────────────────────────────────────────────────────────────┐
-   │                    LLM Providers                             │
-   │  ┌─────────────────┐  ┌─────────────────────────────────┐   │
-   │  │  NanoGPT        │  │  OpenRouter                     │   │
-   │  │  $15/mo flat    │  │  Pay-per-use                    │   │
-   │  └─────────────────┘  └─────────────────────────────────┘   │
-   └─────────────────────────────────────────────────────────────┘
+   +-----------------------------------------------------------------+
+   |  +----------------+  +-------------+  +----------------------+  |
+   |  |  Python Hooks  |  |  /kln:*     |  |   SmolKLN Agents     |  |
+   |  |  (4 entry pts) |  |  Commands   |  |   (8 specialists)    |  |
+   |  +-------+--------+  +------+------+  +-----------+----------+  |
+   +---------|--------------------|----------------------|-----------+
+             |                    |                      |
+             v                    v                      v
+   +-----------------------------------------------------------------+
+   |                       K-LEAN Layer                               |
+   |  +----------------+  +----------------+  +-------------------+   |
+   |  |   reviews.py   |  |   Knowledge    |  |      Agent        |   |
+   |  |   (async)      |  |   Capture      |  |  Orchestration    |   |
+   |  +-------+--------+  +-------+--------+  +--------+----------+   |
+   +---------|--------------------|----------------------|------------+
+             |                    |                      |
+             v                    v                      v
+   +----------------------+  +----------------------------------+
+   |  LiteLLM Proxy       |  |  Knowledge DB (fastembed)        |
+   |  localhost:4000      |  |  .knowledge-db/ per project      |
+   |  Dynamic discovery   |  |  TCP localhost for fast queries  |
+   +----------+-----------+  +----------------------------------+
+              |
+              v
+   +-----------------------------------------------------------------+
+   |                     LLM Providers                                |
+   |  +------------------+  +-------------------------------------+   |
+   |  |  NanoGPT         |  |  OpenRouter                         |   |
+   |  |  $15/mo flat     |  |  Pay-per-use                        |   |
+   |  +------------------+  +-------------------------------------+   |
+   +-----------------------------------------------------------------+
 ```
 
 ### Component Summary
@@ -74,7 +82,7 @@ Claude Code uses a single AI model. K-LEAN adds:
 | Models | Dynamic | Via LiteLLM (auto-discovered) |
 | Slash Commands | 9 | /kln:quick, multi, agent, rethink, doc, learn, remember, status, help |
 | SmolKLN Agents | 8 | code-reviewer, security-auditor, debugger, performance-engineer, rust-expert, c-pro, arm-cortex-expert, orchestrator |
-| Hooks | 5 | FindKnowledge, SaveInfo, async reviews, session-start, post-tool |
+| Hooks | 4 | Python entry points (session, prompt, bash, web) |
 | Rules | 1 | ~/.claude/rules/kln.md |
 
 ---
@@ -114,16 +122,26 @@ Domain experts powered by [smolagents](https://github.com/huggingface/smolagents
 
 ---
 
-## Hook Keywords
+## Hook System (Python Entry Points)
 
-Type directly in Claude Code:
+K-LEAN hooks are Python entry points that work cross-platform:
+
+| Entry Point | Hook Type | Purpose |
+|-------------|-----------|---------|
+| `kln-hook-session` | SessionStart | Auto-start LiteLLM + per-project KB |
+| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (FindKnowledge, SaveInfo, etc.) |
+| `kln-hook-bash` | PostToolUse (Bash) | Git events -> timeline |
+| `kln-hook-web` | PostToolUse (Web*) | Auto-capture web content to KB |
+
+**Keywords detected by prompt handler:**
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Semantic search knowledge DB |
+| `FindKnowledge <query>` | Search KB |
 | `SaveInfo <url>` | Smart save URL with LLM evaluation |
-| `asyncReview <focus>` | Background quick review |
-| `asyncConsensus <focus>` | Background multi-model review |
+| `InitKB` | Initialize project KB |
+| `asyncReview` | Background quick review |
+| `asyncConsensus` | Background multi-model review |
 
 **Note:** For context-aware knowledge capture, use `/kln:learn` (slash command) instead of hook keywords.
 
@@ -134,14 +152,12 @@ Type directly in Claude Code:
 ### Installation
 
 ```bash
-# Clone and install
-git clone https://github.com/calinfaja/k-lean.git
-cd k-lean
-pipx install .
+# Install via pipx (recommended)
+pipx install kln-ai
 
 # Setup
-kln install          # Deploy to ~/.claude/
-kln setup            # Configure API (interactive)
+kln init             # Configure provider + install
+kln start            # Start services
 kln doctor           # Verify everything works
 ```
 
@@ -158,8 +174,8 @@ kln doctor           # Verify everything works
 
 ```bash
 # Core
+kln init             # Interactive setup (provider + install)
 kln install          # Install to ~/.claude/
-kln setup            # Configure API provider
 kln uninstall        # Remove components
 
 # Services
@@ -172,9 +188,15 @@ kln status           # Component status
 kln doctor [-f]      # Diagnose (auto-fix)
 kln model list [--health]  # List models
 
-# Development
-kln test             # Run test suite
-kln debug            # Live monitoring
+# Model management
+kln model add        # Add model
+kln model remove     # Remove model
+kln model test       # Test model
+
+# Provider management
+kln provider list    # List providers
+kln provider add     # Add provider
+kln provider set-key # Update API key
 ```
 
 ---
@@ -186,13 +208,15 @@ k-lean/
 ├── src/klean/              # Main package
 │   ├── __init__.py         # Version
 │   ├── cli.py              # CLI entry point (kln command)
+│   ├── platform.py         # Cross-platform utilities (psutil, platformdirs)
+│   ├── reviews.py          # Async review engine (httpx)
+│   ├── hooks.py            # Hook entry points
 │   ├── smol/               # SmolKLN agent system
 │   └── data/               # Installable assets
-│       ├── scripts/        # Shell & Python scripts
+│       ├── scripts/        # Python scripts for knowledge DB
 │       ├── commands/kln/   # Slash commands
-│       ├── hooks/          # Claude Code hooks
 │       ├── agents/         # SmolKLN agent definitions
-│       └── core/           # Review engine & prompts
+│       └── config/         # LiteLLM config templates
 ├── docs/                   # Documentation
 │   └── architecture/       # Technical docs
 ├── CLAUDE.md               # Claude Code instructions
@@ -207,7 +231,6 @@ After `kln install`, ~/.claude/ contains:
 ~/.claude/
 ├── scripts/        -> src/klean/data/scripts (Python scripts)
 ├── commands/kln/   -> src/klean/data/commands/kln
-├── lib/            -> src/klean/data/lib
 └── rules/          -> src/klean/data/rules
 
 # Hooks are Python entry points (cross-platform):
@@ -224,7 +247,8 @@ Each git repository gets its own:
 ```
 .knowledge-db/              # Knowledge DB (in .gitignore)
 ├── entries.jsonl           # V2 schema entries
-└── index/                  # Semantic embeddings
+├── embeddings.npy          # Dense embeddings
+└── entries.pkl             # Entry metadata
 
 .claude/kln/                # K-LEAN outputs (in .gitignore)
 ├── agentExecute/           # SmolKLN agent reports
@@ -246,8 +270,8 @@ Each git repository gets its own:
 ### Knowledge Capture Flow
 ```
 /kln:learn "topic" -> Claude extracts from context
-  -> knowledge-capture.py -> V2 schema -> entries.jsonl
-  -> fastembed re-index (on next query)
+  -> knowledge-capture.py -> V2 schema
+  -> TCP to KB server (immediate index) OR direct to entries.jsonl
 ```
 
 ### Consensus Flow

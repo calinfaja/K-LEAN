@@ -18,31 +18,30 @@
 
 ## 1. CLI Commands
 
-The K-LEAN CLI provides 17 commands for managing the system.
+The K-LEAN CLI provides commands for managing the system.
 
 ### Command Overview
 
 | Command | Purpose | Speed |
 |---------|---------|-------|
-| `kln init` | Initialize with provider selection (new) | ~10s |
+| `kln init` | Initialize with provider selection | ~10s |
 | `kln install` | Install components | Varies |
-| `kln setup` | Configure API provider (interactive) | ~30s |
 | `kln uninstall` | Remove components | ~5s |
 | `kln doctor` | Validate config (.env, subscription, services) | ~3s |
 | `kln doctor -f` | Auto-fix issues | ~5s |
 | `kln status` | Show installed components and services | ~2s |
-| `kln add-model` | Add individual model (new) | ~1s |
-| `kln remove-model` | Remove model (new) | ~1s |
 | `kln model list` | List available models | ~1s |
 | `kln model list --health` | Check model health | ~60s |
-| `kln model list --test` | Test each model with latency | Slow |
+| `kln model add` | Add individual model | ~1s |
+| `kln model remove` | Remove model | ~1s |
+| `kln model test` | Test specific model | ~5s |
+| `kln provider list` | List providers | ~1s |
+| `kln provider add` | Add provider | ~5s |
+| `kln provider set-key` | Update API key | ~1s |
 | `kln start` | Start LiteLLM proxy | ~3s |
 | `kln stop` | Stop services | ~1s |
-| `kln sync` | Sync package data (dev) | ~2s |
-| `kln test` | Run test suite | ~10s |
-| `kln test-model` | Test specific model | ~5s |
-| `kln version` | Show version info | Instant |
-| `kln debug` | Live monitoring dashboard | Continuous |
+| `kln admin sync` | Sync package data (dev) | ~2s |
+| `kln admin debug` | Live monitoring dashboard | Continuous |
 
 ### User Mental Model
 
@@ -54,7 +53,26 @@ The K-LEAN CLI provides 17 commands for managing the system.
 
 ---
 
-### 1.1 doctor
+### 1.1 init
+
+Interactive setup combining provider configuration and installation.
+
+```bash
+kln init                        # Interactive wizard
+kln init --provider nanogpt     # Direct setup
+kln init --provider nanogpt --api-key $KEY  # Non-interactive
+```
+
+**Steps:**
+1. Provider selection (NanoGPT/OpenRouter)
+2. API key input (secure hidden)
+3. Auto-detect subscription status
+4. Install components
+5. Start services
+
+---
+
+### 1.2 doctor
 
 Validates configuration and services.
 
@@ -70,11 +88,11 @@ kln doctor -f          # Short form
 - NanoGPT subscription status + remaining quota
 - LiteLLM proxy running
 - Knowledge server running
-- Hardcoded API keys (security check)
+- Hook entry points exist
 
 ---
 
-### 1.2 status
+### 1.3 status
 
 Shows installed components and running services.
 
@@ -86,7 +104,7 @@ kln status
 - Scripts count (symlinked status)
 - KLN commands (9)
 - SuperClaude availability (optional)
-- Hooks (5)
+- Hook entry points (4)
 - SmolKLN Agents (8)
 - Knowledge DB (per-project status + entry count)
 - LiteLLM Proxy (model count + provider)
@@ -94,21 +112,20 @@ kln status
 
 ---
 
-### 1.3 models
+### 1.4 model list
 
 Lists and tests available LLM models.
 
 ```bash
 kln model list           # List all models
 kln model list --health  # Check health (calls each model)
-kln model list --test    # Full latency test
 ```
 
 **Dynamic Discovery:** Models are discovered from LiteLLM at runtime, not hardcoded.
 
 ---
 
-### 1.4 start / stop
+### 1.5 start / stop
 
 Controls K-LEAN services.
 
@@ -124,7 +141,7 @@ kln stop -s litellm          # Stop specific service
 
 ---
 
-### 1.5 install / uninstall
+### 1.6 install / uninstall
 
 Manages K-LEAN components.
 
@@ -137,76 +154,11 @@ kln uninstall                    # Remove all
 kln uninstall --yes              # Skip confirmation
 ```
 
-**Components:** all, scripts, commands, hooks, smolkln, config, core, knowledge
+**Components:** all, scripts, commands, hooks, smolkln, config, knowledge
 
 ---
 
-### 1.6 setup
-
-Configures LiteLLM API provider (interactive wizard).
-
-```bash
-kln setup                # Interactive menu
-kln setup -p nanogpt     # Direct NanoGPT setup
-kln setup -p openrouter  # Direct OpenRouter setup
-```
-
-**Features:**
-- Provider selection (NanoGPT/OpenRouter)
-- Secure API key input (hidden)
-- Auto-detects NanoGPT subscription endpoint
-- Backs up existing config before overwriting
-- Creates `~/.config/litellm/.env` (chmod 600)
-- Copies appropriate config.yaml template
-
----
-
-### 1.7 sync
-
-Syncs data files (development tool).
-
-```bash
-kln sync           # Sync all data
-kln sync --check   # Verify sync status (CI mode)
-kln sync --clean   # Remove stale files
-```
-
----
-
-### 1.8 test
-
-Runs comprehensive test suite.
-
-```bash
-kln test
-```
-
-**Tests across 8 categories:**
-1. Installation Structure
-2. Scripts Executable
-3. KLN Commands
-4. Hooks
-5. LiteLLM Service
-6. Knowledge System
-7. Nano Profile
-8. SmolKLN Agents
-
-**Exit code:** 0 = all pass, 1 = failures (CI-friendly)
-
----
-
-### 1.9 debug
-
-Live monitoring dashboard.
-
-```bash
-kln debug              # Full dashboard
-kln debug --compact    # Minimal output (for hooks)
-```
-
----
-
-### 1.10 Exit Codes
+### 1.7 Exit Codes
 
 | Code | Meaning |
 |------|---------|
@@ -216,45 +168,45 @@ kln debug --compact    # Minimal output (for hooks)
 
 ---
 
-### 1.11 Environment Variables
+### 1.8 Environment Variables
 
 | Variable | Purpose |
 |----------|---------|
+| `KLEAN_KB_PORT` | Override KB server port (default: 14000) |
 | `KLEAN_KB_PYTHON` | Override Python path |
 | `KLEAN_SCRIPTS_DIR` | Override scripts location |
-| `KLEAN_SOCKET_DIR` | Override socket directory |
-| `KLEAN_CONFIG_DIR` | Override config directory |
 
 ---
 
-### 1.12 Implementation
+### 1.9 Implementation
 
-Main CLI: `src/klean/cli.py` (~2766 lines)
+Main CLI: `src/klean/cli.py`
 
 Uses:
 - `click` for CLI framework
 - `rich` for terminal output
 - `httpx` for async HTTP
+- `psutil` for process management
+- `platformdirs` for cross-platform paths
 
 ---
 
 ## 2. Hooks System
 
-K-LEAN integrates with Claude Code via **4 hooks** that trigger on specific events.
+K-LEAN integrates with Claude Code via **4 Python entry points** that trigger on specific events.
 
 ### Hook Overview
 
-| Hook | Trigger | Purpose |
-|------|---------|---------|
-| `session-start.sh` | SessionStart | Auto-start LiteLLM + per-project KB |
-| `user-prompt-handler.sh` | UserPromptSubmit | Keyword detection (7 keywords) |
-| `post-bash-handler.sh` | PostToolUse (Bash) | Git events -> timeline + fact extraction |
-| `post-web-handler.sh` | PostToolUse (Web*) | Auto-capture web content to KB |
-| `async-review.sh` | UserPromptSubmit | Background async reviews |
+| Entry Point | Trigger | Purpose |
+|-------------|---------|---------|
+| `kln-hook-session` | SessionStart | Auto-start LiteLLM + per-project KB |
+| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (7 keywords) |
+| `kln-hook-bash` | PostToolUse (Bash) | Git events -> timeline |
+| `kln-hook-web` | PostToolUse (Web*) | Auto-capture web content to KB |
 
 ---
 
-### 2.1 session-start.sh
+### 2.1 kln-hook-session
 
 **Trigger:** Claude Code session starts
 
@@ -263,9 +215,11 @@ K-LEAN integrates with Claude Code via **4 hooks** that trigger on specific even
 2. Start per-project KB server
 3. Show configuration warnings
 
+**Implementation:** `src/klean/hooks.py:session_start()`
+
 ---
 
-### 2.2 user-prompt-handler.sh
+### 2.2 kln-hook-prompt
 
 **Trigger:** User submits a prompt
 
@@ -281,65 +235,36 @@ K-LEAN integrates with Claude Code via **4 hooks** that trigger on specific even
 
 **Note:** `SaveThis` was replaced by `/kln:learn` for context-aware capture.
 
+**Implementation:** `src/klean/hooks.py:prompt_handler()`
+
 ---
 
-### 2.3 post-bash-handler.sh
+### 2.3 kln-hook-bash
 
 **Trigger:** After any Bash command
 
 **Detects:**
-- `git commit` -> Log to timeline + extract facts
+- `git commit` -> Log to timeline
 - `git push` -> Log to timeline
 - Other git operations
 
+**Implementation:** `src/klean/hooks.py:post_bash()`
+
 ---
 
-### 2.4 post-web-handler.sh
+### 2.4 kln-hook-web
 
 **Trigger:** After WebFetch/WebSearch/Tavily tools
 
 **Action:** Smart capture of web content to KB
 
----
-
-### 2.5 Hook File Location
-
-```
-src/klean/data/hooks/
-|-- session-start.sh
-|-- user-prompt-handler.sh
-|-- post-bash-handler.sh
-|-- post-web-handler.sh
-`-- async-review.sh
-```
+**Implementation:** `src/klean/hooks.py:post_web()`
 
 ---
 
-### 2.6 Hook Structure
+### 2.5 Hook Registration
 
-```bash
-#!/usr/bin/env bash
-
-# Source path utilities (with fallback)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../scripts/kb-root.sh" 2>/dev/null || {
-    # Inline fallbacks if kb-root.sh not found
-    KB_PYTHON="${KLEAN_KB_PYTHON:-$HOME/.venvs/knowledge-db/bin/python}"
-}
-
-# Hook logic here...
-
-# Exit codes:
-# 0 = success, continue
-# 1 = error (logged)
-# 2 = block operation (with stderr message to Claude)
-```
-
----
-
-### 2.7 Hook Registration
-
-Hooks are registered in `~/.claude/settings.json`:
+Hooks are registered in `~/.claude/settings.json` as Python entry points:
 
 ```json
 {
@@ -347,72 +272,68 @@ Hooks are registered in `~/.claude/settings.json`:
     "SessionStart": [
       {
         "matcher": "",
-        "hooks": ["~/.claude/hooks/session-start.sh"]
+        "hooks": [{"type": "command", "command": "kln-hook-session", "timeout": 10}]
       }
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "",
-        "hooks": ["~/.claude/hooks/user-prompt-handler.sh"]
+        "hooks": [{"type": "command", "command": "kln-hook-prompt", "timeout": 30}]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Bash",
-        "hooks": ["~/.claude/hooks/post-bash-handler.sh"]
+        "hooks": [{"type": "command", "command": "kln-hook-bash", "timeout": 15}]
       },
       {
-        "matcher": "^(WebFetch|WebSearch|mcp__tavily)",
-        "hooks": ["~/.claude/hooks/post-web-handler.sh"]
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}]
       }
     ]
   }
 }
 ```
 
+**Note:** Entry points work cross-platform - pip creates appropriate wrappers on Windows.
+
 ---
 
-### 2.8 Exit Code Behavior
+### 2.6 Hook I/O Protocol
+
+Hooks read JSON from stdin and output JSON to stdout:
+
+**Input:**
+```json
+{"source": "startup", "prompt": "user text", "tool_name": "Bash", ...}
+```
+
+**Output:**
+```json
+{"decision": "allow", "additionalContext": "..."}
+```
+or
+```json
+{"decision": "block", "reason": "..."}
+```
+
+---
+
+### 2.7 Exit Code Behavior
 
 | Code | Behavior |
 |------|----------|
 | 0 | Success, continue |
 | 1 | Error (logged, operation continues) |
-| 2 | **Block operation** (stderr shown to Claude) |
-
-**Blocking Example:**
-
-```bash
-# Block dangerous commands
-if [[ "$command" =~ "rm -rf /" ]]; then
-    echo "Blocked: Dangerous command" >&2
-    exit 2
-fi
-```
+| 2 | **Block operation** (reason shown to Claude) |
 
 ---
 
-### 2.9 Important Rules
-
-1. **No blocking operations** - Hooks run synchronously
-2. **Handle errors gracefully** - Hooks run silently
-3. **Use inline fallbacks** - In case kb-root.sh missing
-4. **Check exit codes** - For proper error reporting
-
----
-
-### 2.10 Debugging Hooks
+### 2.8 Debugging Hooks
 
 ```bash
-# Live monitoring
-kln debug
-
-# Compact mode (shows hook output)
-kln debug --compact
-
-# Manual test
-~/.claude/hooks/session-start.sh
-echo $?  # Check exit code
+# Test hooks manually
+echo '{"source":"startup"}' | kln-hook-session
+echo '{"prompt":"FindKnowledge test"}' | kln-hook-prompt
 ```
 
 ---
@@ -425,8 +346,9 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
 
 - **Per-project isolation**: Each git repo gets its own KB
 - **Semantic search**: Find related knowledge by meaning, not just keywords
-- **Fast queries**: Unix socket server with 1hr idle timeout (~30ms latency)
+- **Fast queries**: TCP server with 1hr idle timeout (~30ms latency)
 - **V2 schema**: Rich metadata for quality and provenance
+- **Immediate indexing**: Server-owned writes for instant searchability
 
 ---
 
@@ -441,20 +363,21 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
                       v
 +-----------------------------------------------------+
 |               knowledge-capture.py                   |
-|  Parse -> V2 Schema -> Append to entries.jsonl      |
+|  Parse -> V2 Schema -> TCP to server OR direct file |
 +---------------------+-------------------------------+
                       |
                       v
 +-----------------------------------------------------+
 |                 .knowledge-db/                       |
 |  |-- entries.jsonl     # All captured knowledge     |
-|  `-- index/            # Semantic embeddings        |
+|  |-- embeddings.npy    # Dense vectors              |
+|  `-- entries.pkl       # Entry metadata             |
 +-----------------------------------------------------+
                       ^
-                      | Unix socket query
+                      | TCP query (localhost)
 +---------------------+-------------------------------+
 |              knowledge-server.py                     |
-|  Socket: /tmp/kb-{md5_hash}.sock                    |
+|  Port: 14000 + hash offset                          |
 |  Idle timeout: 1 hour                               |
 +-----------------------------------------------------+
 ```
@@ -498,38 +421,46 @@ Each knowledge entry contains:
 
 | Script | Purpose |
 |--------|---------|
-| `knowledge-server.py` | Socket server (per-project daemon) |
-| `knowledge-query.sh` | Query via socket (auto-starts server) |
-| `knowledge-capture.py` | Add entries with V2 schema |
-| `knowledge-search.py` | CLI search with 4 output formats |
-| `kb-doctor.sh` | Diagnose and repair KB |
-| `kb-init.sh` | Initialize new project KB |
-| `kb-root.sh` | Path detection utilities |
+| `knowledge-server.py` | TCP server (per-project daemon) |
+| `knowledge-capture.py` | Add entries via server or direct |
+| `knowledge_db.py` | Core fastembed-based DB |
+| `kb_utils.py` | Cross-platform utilities |
 
 ---
 
-### 3.4 Query Formats
+### 3.4 Server-Owned Writes
 
-```bash
-# Compact (default) - ~30ms via server
-~/.claude/scripts/knowledge-query.sh "search term"
+Entries added via the server are immediately searchable:
 
-# Detailed
-~/.claude/scripts/knowledge-search.py --format detailed "search"
+```python
+# Via TCP (preferred - immediate index update)
+sock.sendall(json.dumps({
+    "cmd": "add",
+    "entry": {"title": "...", "summary": "...", ...}
+}).encode())
 
-# For LLM injection
-~/.claude/scripts/knowledge-search.py --format inject "search"
-
-# JSON output
-~/.claude/scripts/knowledge-search.py --format json "search"
-
-# Direct query (slower, ~17s cold start)
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
+# Via capture script (uses TCP internally)
+knowledge-capture.py "lesson text" --type lesson --tags tag1,tag2
 ```
 
 ---
 
-### 3.5 Knowledge Capture Methods
+### 3.5 Query Methods
+
+```bash
+# Via server (~30ms)
+echo '{"cmd":"search","query":"auth bug","limit":5}' | nc localhost 14XXX
+
+# Via capture script
+~/.claude/scripts/knowledge-query.sh "search term"
+
+# Direct Python (slower, ~17s cold start)
+~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge_db.py search "query"
+```
+
+---
+
+### 3.6 Knowledge Capture Methods
 
 | Method | Type | Context-Aware | Description |
 |--------|------|---------------|-------------|
@@ -539,109 +470,47 @@ Each knowledge entry contains:
 | `FindKnowledge <query>` | Hook | N/A | Search KB |
 | `SaveInfo <url>` | Hook | Partial | LLM evaluates URL content |
 
-**Note:** Use `kb-init.sh` or `kln install` to initialize KB for a project.
+---
+
+### 3.7 TCP Protocol
+
+| Command | Request | Response |
+|---------|---------|----------|
+| search | `{"cmd":"search","query":"...","limit":5}` | `{"results":[...],"search_time_ms":...}` |
+| add | `{"cmd":"add","entry":{...}}` | `{"status":"ok","id":"..."}` |
+| status | `{"cmd":"status"}` | `{"status":"running","entries":...}` |
+| ping | `{"cmd":"ping"}` | `{"pong":true}` |
 
 ---
 
-### 3.6 Unified Memory System
+### 3.8 Port Management
 
-Knowledge DB integrates with multiple sources:
+Each project gets a unique port based on path hash:
 
 ```
-+---------------------------------------------------------------+
-|                     KNOWLEDGE DB SOURCES                       |
-+---------------------------------------------------------------+
-|  source: "manual"        <-- /kln:learn (context-aware)        |
-|  source: "web"           <-- GoodJob auto-capture              |
-|  source: "agent_*"       <-- SmolKLN session memory (auto)     |
-|  source: "serena"        <-- Synced from Serena (/kln:remember)|
-+---------------------------------------------------------------+
+Base port: 14000 (or KLEAN_KB_PORT env var)
+Project offset: MD5(project_path)[:2] % 256
+Final port: base + offset
 ```
+
+Port and PID files stored in runtime directory:
+- Linux/macOS: `/tmp/klean-{username}/kb-{hash}.port`
+- Windows: `%TEMP%\klean-{username}\kb-{hash}.port`
 
 ---
 
-### 3.7 SmolKLN Agent Integration
-
-Agents automatically persist learnings to KB after execution:
-
-```python
-# In executor.py - happens automatically
-result = executor.execute("security-auditor", "audit auth")
-# Session memory saved to KB with source="agent_security-auditor"
-# result["memory_persisted"] shows count of entries saved
-```
-
-Future agents can search these learnings:
-```python
-# Agent's knowledge_search tool finds prior agent insights
-results = knowledge_search("SQL injection auth")
-# Returns: entries from security-auditor's prior runs
-```
-
----
-
-### 3.8 Serena Sync
-
-Curated Serena lessons can be synced to KB for agent access:
-
-```bash
-# Manual sync
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/sync-serena-kb.py
-
-# Dry run (see what would sync)
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/sync-serena-kb.py --dry-run
-```
-
-Or via `/kln:remember` command at session end.
-
-**Result**: SmolKLN agents can search all your Serena lessons via `knowledge_search`.
-
----
-
-### 3.9 Socket Architecture
-
-Each project gets a unique socket:
-```
-/tmp/kb-{md5_hash}.sock
-```
-
-Benefits:
-- Fast queries (no process startup)
-- Project isolation
-- Auto-cleanup after 1hr idle
-
----
-
-### 3.10 Troubleshooting
+### 3.9 Troubleshooting
 
 **KB Not Starting:**
 ```bash
 kln doctor --auto-fix    # Auto-repair
-~/.claude/scripts/kb-doctor.sh --fix  # Manual repair
-```
-
-**Corrupted Entries:**
-```bash
-~/.claude/scripts/kb-doctor.sh  # Diagnose
-# Shows: X corrupted entries, Y valid
-~/.claude/scripts/kb-doctor.sh --fix  # Rebuild index
+kln start -s knowledge   # Manual start
 ```
 
 **Check Status:**
 ```bash
 kln status  # Shows KB status per project
 ```
-
----
-
-### 3.11 Implementation Files
-
-- Server: `src/klean/data/scripts/knowledge-server.py`
-- Capture: `src/klean/data/scripts/knowledge-capture.py`
-- Query: `src/klean/data/scripts/knowledge-query.sh`
-- Search: `src/klean/data/scripts/knowledge-search.py`
-- Doctor: `src/klean/data/scripts/kb-doctor.sh`
-- Utils: `src/klean/data/scripts/kb_utils.py`
 
 ---
 
@@ -655,7 +524,7 @@ K-LEAN uses **LiteLLM proxy** to route requests to multiple LLM providers.
 +-------------+    +------------------+    +-----------------+
 |   Claude    |    |     LiteLLM      |    |    NanoGPT      |
 |   Code      |<-->|  localhost:4000  |<-->|   (dynamic)     |
-|  (scripts)  |    |                  |    +-----------------+
+|  (reviews)  |    |                  |    +-----------------+
 +-------------+    |  /chat/completions|    |   OpenRouter    |
                    |  /v1/models       |    |   (dynamic)     |
                    +------------------+    +-----------------+
@@ -672,29 +541,7 @@ K-LEAN uses **LiteLLM proxy** to route requests to multiple LLM providers.
 
 ---
 
-### 4.2 NanoGPT Models (Sample)
-
-Models are dynamically discovered from LiteLLM:
-
-```yaml
-# Sample models (via subscription)
-- qwen3-coder           # Qwen 2.5 Coder
-- deepseek-r1           # DeepSeek R1 (thinking)
-- deepseek-v3-thinking  # DeepSeek V3 (thinking)
-- glm-4.6-thinking      # GLM-4.6 (thinking)
-- kimi-k2               # Kimi K2
-- kimi-k2-thinking      # Kimi K2 (thinking)
-- minimax-m2            # MiniMax M2 (thinking)
-- llama-4-scout         # Llama 4 Scout
-- llama-4-maverick      # Llama 4 Maverick
-- hermes-4-70b          # Hermes 4 70B
-- devstral-2            # Devstral 2
-- qwen3-235b            # Qwen 3 235B
-```
-
----
-
-### 4.3 Thinking Models
+### 4.2 Thinking Models
 
 These models return `reasoning_content` instead of `content`:
 - DeepSeek R1, DeepSeek V3
@@ -702,9 +549,11 @@ These models return `reasoning_content` instead of `content`:
 - Kimi K2
 - MiniMax M2
 
+The `reviews.py` module handles this automatically.
+
 ---
 
-### 4.4 Configuration
+### 4.3 Configuration
 
 **File Locations:**
 ```
@@ -721,13 +570,11 @@ NANOGPT_API_KEY=your-api-key
 
 # Auto-detected (subscription vs pay-per-use)
 NANOGPT_API_BASE=https://nano-gpt.com/api/subscription/v1
-# or
-NANOGPT_API_BASE=https://nano-gpt.com/api/v1
 ```
 
 ---
 
-### 4.5 Config Syntax
+### 4.4 Config Syntax
 
 ```yaml
 model_list:
@@ -738,114 +585,23 @@ model_list:
       api_base: os.environ/NANOGPT_API_BASE
 ```
 
-**Critical:** `os.environ/KEY` must NOT be quoted. Common mistake:
-```yaml
-# Wrong - breaks env var substitution
-api_key: "os.environ/NANOGPT_API_KEY"
-
-# Correct
-api_key: os.environ/NANOGPT_API_KEY
-```
+**Critical:** `os.environ/KEY` must NOT be quoted.
 
 ---
 
-### 4.6 Setup
-
-**Initial Setup:**
-```bash
-kln setup
-```
-
-**Wizard steps:**
-1. Choose provider (NanoGPT/OpenRouter)
-2. Enter API key (secure hidden input)
-3. Auto-detect subscription status
-4. Generate config files
-
-**Starting LiteLLM:**
-```bash
-kln start              # Start proxy (foreground)
-kln start -s all       # Start proxy + KB server
-```
-
-**Checking Status:**
-```bash
-kln doctor       # Validate config + subscription
-kln model list       # List available models
-kln model list --health  # Check model health
-```
-
----
-
-### 4.7 Scripts Reference
-
-| Script | Purpose |
-|--------|---------|
-| `kln setup` | Interactive setup wizard (CLI) |
-| `setup-litellm.sh` | Shell script setup (alternative) |
-| `start-litellm.sh` | Start proxy with validation |
-| `health-check.sh` | Full health check |
-| `health-check-model.sh` | Single model health |
-| `get-models.sh` | List models from /v1/models |
-| `get-healthy-models.sh` | Filter healthy models |
-| `validate-model.sh` | Verify model exists |
-
----
-
-### 4.8 Dynamic Model Discovery
-
-Scripts use dynamic discovery, not hardcoded lists:
+### 4.5 Setup
 
 ```bash
-# Get available models
-models=$(curl -s http://localhost:4000/v1/models | jq -r '.data[].id')
-
-# Filter healthy
-healthy=$(~/.claude/scripts/get-healthy-models.sh)
+kln init                # Interactive setup
+kln start               # Start proxy
+kln model list --health # Check models
 ```
-
----
-
-### 4.9 Troubleshooting
-
-**"Invalid session" Error:**
-```bash
-kln doctor --auto-fix
-# Auto-detects subscription vs pay-per-use endpoint
-```
-
-**Proxy Not Starting:**
-```bash
-# Check if already running
-lsof -i :4000
-
-# Check logs
-cat ~/.klean/logs/litellm.log
-```
-
-**Models Unhealthy:**
-```bash
-kln model list --health
-# Shows which models are down
-
-# Common causes:
-# - NanoGPT subscription expired
-# - Model temporarily unavailable
-# - Rate limiting
-```
-
-**Config Validation:**
-`kln doctor` checks for:
-- Missing .env file
-- Quoted `os.environ/` (breaks substitution)
-- Missing NANOGPT_API_BASE
-- Invalid subscription
 
 ---
 
 ## 5. Review System
 
-K-LEAN provides **multi-model code reviews** with consensus building across 3-5 LLMs.
+K-LEAN provides **multi-model code reviews** with consensus building.
 
 ### Review Types
 
@@ -858,33 +614,37 @@ K-LEAN provides **multi-model code reviews** with consensus building across 3-5 
 
 ---
 
-### 5.1 Quick Review
+### 5.1 Implementation
 
-Single model review via LiteLLM.
+Main module: `src/klean/reviews.py`
 
-```bash
-# Script: src/klean/data/scripts/quick-review.sh
-quick-review.sh "review this function for security"
-```
+**Key Functions:**
+- `quick_review()` - Single model async review
+- `consensus_review()` - Parallel multi-model review
+- `second_opinion()` - Alternative perspective
 
 **Features:**
-- Dynamic model discovery from LiteLLM
-- Health fallback (if model unhealthy, try next)
-- Thinking model support
+- Async httpx for parallel execution
+- Automatic thinking model handling
+- JSON parsing with fallbacks
 
 ---
 
-### 5.2 Consensus Review
+### 5.2 Thinking Model Support
 
-Parallel review across 5 models with agreement scoring.
+Models may return content in different fields:
 
-```bash
-# Script: src/klean/data/scripts/consensus-review.sh
-consensus-review.sh "review authentication logic"
+```python
+# reviews.py handles this automatically
+content = response.get("content") or response.get("reasoning_content")
+# Also strips <think> tags from thinking models
 ```
 
-**Consensus Algorithm:**
-1. Query 5 models in parallel (curl)
+---
+
+### 5.3 Consensus Algorithm
+
+1. Query 5 models in parallel (httpx async)
 2. Parse JSON responses (with fallback to text)
 3. Group findings by location similarity (>50% word overlap)
 4. Classify by agreement:
@@ -894,14 +654,7 @@ consensus-review.sh "review authentication logic"
 
 ---
 
-### 5.3 Rethink (Contrarian Debugging)
-
-**Unique K-LEAN feature**: Challenges assumptions.
-
-```bash
-# Via command
-/kln:rethink
-```
+### 5.4 Rethink (Contrarian Debugging)
 
 **4 Contrarian Techniques:**
 1. **Inversion**: Look at NOT-X if others looked at X
@@ -911,47 +664,7 @@ consensus-review.sh "review authentication logic"
 
 ---
 
-### 5.5 Thinking Model Support
-
-Some models (DeepSeek, GLM, Kimi, Minimax) return responses in `reasoning_content` instead of `content`.
-
-**All scripts check both:**
-```bash
-content=$(echo "$response" | jq -r '.choices[0].message.content // empty')
-if [ -z "$content" ]; then
-    content=$(echo "$response" | jq -r '.choices[0].message.reasoning_content // empty')
-fi
-```
-
----
-
-### 5.6 Review Prompts
-
-Located in `src/klean/data/core/prompts/`:
-
-| Prompt | Lines | Purpose |
-|--------|-------|---------|
-| `review.md` | 86 | 7-area review checklist |
-| `rethink.md` | 92 | Contrarian debugging |
-| `format-json.md` | 28 | Structured JSON output |
-| `format-text.md` | 27 | Human-readable output |
-| `agent-base.md` | 54 | SmolKLN agent template |
-
----
-
-### 5.7 Review Areas (review.md)
-
-1. CORRECTNESS
-2. MEMORY SAFETY
-3. ERROR HANDLING
-4. CONCURRENCY
-5. ARCHITECTURE
-6. SECURITY
-7. STANDARDS
-
----
-
-### 5.8 Output Format
+### 5.5 Output Format
 
 ```json
 {
@@ -971,27 +684,9 @@ Located in `src/klean/data/core/prompts/`:
 
 ---
 
-### 5.9 Core Engine
+### 5.6 Persistent Output
 
-Main implementation: `src/klean/data/core/klean_core.py` (1190 lines)
-
-**Key Classes:**
-- `ModelResolver`: Auto-discovery from LiteLLM, latency caching
-- `ReviewEngine`: Quick + multi-model execution
-
-**Features:**
-- Async parallel execution via `asyncio.gather`
-- 24h latency caching (disk-based)
-- Model diversity (limits thinking models to 50%)
-- Robust JSON parsing (direct -> markdown -> raw braces)
-
----
-
-### 5.10 Persistent Output
-
-Reviews are saved to the project's `.claude/kln/` directory.
-
-**Implementation:** `src/klean/data/scripts/session-helper.sh`
+Reviews are saved to `.claude/kln/`:
 
 ```
 <project_root>/.claude/kln/
@@ -1003,161 +698,13 @@ Reviews are saved to the project's `.claude/kln/` directory.
     `-- 2024-12-09_18-00-00_security-auditor.md
 ```
 
-**Filename format:** `YYYY-MM-DD_HH-MM-SS_model_focus.md`
-
-**Fallback:** `/tmp/claude-reviews/` if project directory not writable.
-
----
-
-### 5.11 SmolKLN Agents
-
-SmolKLN agents use smolagents framework for tool-equipped analysis.
-
-**Features:**
-- Agent-based execution with tool access
-- Read/search/knowledge tools available
-- Structured output with citations
-
----
-
-### 5.12 Knowledge Integration
-
-Reviews automatically extract and store reusable knowledge.
-
-**Implementation:** `src/klean/data/scripts/fact-extract.sh`
-
-**Flow:**
-1. Review completes -> `fact-extract.sh` called with output
-2. Claude Haiku extracts lessons (types: gotcha, pattern, solution, insight)
-3. Stores in `.knowledge-db/` if `relevance_score >= 0.6`
-4. Logs to `.knowledge-db/timeline.txt`
-
-**Called from review scripts:**
-```bash
-"$KB_SCRIPTS_DIR/fact-extract.sh" "$REVIEW_OUTPUT" "review" "$PROMPT" "$WORK_DIR"
-```
-
-**Extraction Types:**
-- `gotcha` - Pitfalls to avoid
-- `pattern` - Reusable approaches
-- `solution` - Fixes that worked
-- `insight` - Architectural observations
-
----
-
-### 5.13 Scripts Reference
-
-| Script | Purpose |
-|--------|---------|
-| `quick-review.sh` | Single model review |
-| `consensus-review.sh` | 5-model parallel review |
-| `smolkln-agent.sh` | SmolKLN agent execution |
-| `second-opinion.sh` | Alternative perspective |
-| `fact-extract.sh` | Extract knowledge from reviews |
-| `session-helper.sh` | Output directory management |
-
 ---
 
 ## 6. SmolKLN Agents
 
-SmolKLN is a production-grade SWE agent system using Smolagents + LiteLLM with memory, reflection, multi-agent orchestration, MCP integration, and async execution.
+SmolKLN is a production-grade SWE agent system using Smolagents + LiteLLM.
 
-### 6.1 System Architecture
-
-```
-+----------------------------------------------------------------------+
-|                           SmolKLN System                              |
-+----------------------------------------------------------------------+
-|                                                                       |
-|  +-----------------+     +-----------------+     +-----------------+  |
-|  |  Orchestrator   |---->|     Planner     |---->|    Executor     |  |
-|  |  (multi-agent)  |     |  (task decomp)  |     |   (enhanced)    |  |
-|  +-----------------+     +-----------------+     +-----------------+  |
-|          |                       |                       |            |
-|          v                       v                       v            |
-|  +-------------------------------------------------------------------+|
-|  |                    Project Context Layer                          ||
-|  |  +----------+  +----------+  +----------+  +----------+          ||
-|  |  | Project  |  |CLAUDE.md |  | Knowledge|  |  Serena  |          ||
-|  |  |   Root   |  |  Loader  |  |    DB    |  |   Ready  |          ||
-|  |  +----------+  +----------+  +----------+  +----------+          ||
-|  +-------------------------------------------------------------------+|
-|          |                                                            |
-|          v                                                            |
-|  +-------------------------------------------------------------------+|
-|  |                       Memory Layer                                ||
-|  |  +----------+  +----------+  +----------+  +----------+          ||
-|  |  | Working  |  | Session  |  |Long-term |  | Artifact |          ||
-|  |  | Context  |  |  Memory  |  |(Know.DB) |  |  Store   |          ||
-|  |  +----------+  +----------+  +----------+  +----------+          ||
-|  +-------------------------------------------------------------------+|
-|          |                                                            |
-|          v                                                            |
-|  +-------------------------------------------------------------------+|
-|  |                    Reflection Engine                              ||
-|  |  +----------+  +----------+  +----------+                        ||
-|  |  |  Critic  |  |  Retry   |  |  Lesson  |                        ||
-|  |  |  Agent   |  | Manager  |  | Capture  |                        ||
-|  |  +----------+  +----------+  +----------+                        ||
-|  +-------------------------------------------------------------------+|
-|          |                                                            |
-|          v                                                            |
-|  +-------------------------------------------------------------------+|
-|  |                    MCP Tools Layer                                ||
-|  |  +----------+  +----------+  +----------+  +----------+          ||
-|  |  |filesystem|  |  serena  |  |   git    |  | knowledge|          ||
-|  |  |   MCP    |  |   MCP    |  |   MCP    |  |   tool   |          ||
-|  |  +----------+  +----------+  +----------+  +----------+          ||
-|  +-------------------------------------------------------------------+|
-|          |                                                            |
-|          v                                                            |
-|  +-------------------------------------------------------------------+|
-|  |                    Async Execution Layer                          ||
-|  |  +----------+  +----------+  +----------+                        ||
-|  |  |  Task    |  | Worker   |  |  Status  |                        ||
-|  |  |  Queue   |  |  Thread  |  | Tracker  |                        ||
-|  |  +----------+  +----------+  +----------+                        ||
-|  +-------------------------------------------------------------------+|
-|                                                                       |
-+----------------------------------------------------------------------+
-```
-
----
-
-### 6.2 Implementation Summary
-
-| Phase | Component | File(s) | Status |
-|-------|-----------|---------|--------|
-| 0 | Project Awareness | `context.py` | Complete |
-| 1 | Memory Integration | `memory.py`, `executor.py` | Complete |
-| 2 | Reflection Loop | `reflection.py` | Complete |
-| 3 | MCP Tools | `mcp_tools.py`, `tools.py` | Complete |
-| 4 | Multi-Agent Orchestrator | `orchestrator.py` | Complete |
-| 5 | Async Execution | `task_queue.py`, `async_executor.py` | Complete |
-
----
-
-### 6.3 File Structure
-
-```
-src/klean/smol/
-|-- __init__.py          # All exports (33 symbols)
-|-- executor.py          # Main entry point - SmolKLNExecutor
-|-- loader.py            # Agent .md file parser
-|-- models.py            # LiteLLM model factory
-|-- context.py           # Project awareness (git, CLAUDE.md, KB)
-|-- memory.py            # Session + Knowledge DB memory
-|-- reflection.py        # Self-critique and retry engine
-|-- tools.py             # Tool definitions + MCP integration
-|-- mcp_tools.py         # MCP server loading utilities
-|-- orchestrator.py      # Multi-agent coordination
-|-- task_queue.py        # Persistent file-based queue
-`-- async_executor.py    # Background worker thread
-```
-
----
-
-### 6.4 Available Agents (8)
+### 6.1 Available Agents (8)
 
 | Agent | Purpose |
 |-------|---------|
@@ -1172,399 +719,56 @@ src/klean/smol/
 
 ---
 
-### 6.5 Phase 0: Project Awareness
+### 6.2 File Structure
 
-**Purpose**: Agents automatically know about the current project context.
-
-**What agents receive:**
 ```
-## Project: my-project
-Root: `/path/to/my-project`
-Branch: `main` (9 files changed)
-
-## Project Instructions (CLAUDE.md)
-[Full CLAUDE.md content injected]
-
-## Knowledge DB: Available at `.knowledge-db/`
-Use `knowledge_search` tool to query prior solutions and lessons.
-
-## Serena Memory: Available
-Project memories and lessons-learned are accessible.
-```
-
-**Key Functions:**
-- `detect_project_root()` - Git-aware project detection
-- `gather_project_context()` - Collects all context (git, CLAUDE.md, KB, Serena)
-- `format_context_for_prompt()` - Formats context for agent prompts
-
----
-
-### 6.6 Phase 1: Memory Integration
-
-**Purpose**: Agents maintain session memory and can query/save to Knowledge DB.
-
-**Components:**
-- `MemoryEntry` - Single memory item with timestamp and type (serializable)
-- `SessionMemory` - Working memory for current task (max 50 entries, serializable)
-- `AgentMemory` - Full memory system with KB integration
-
-**Features:**
-- Auto-starts session on each `execute()` call
-- Records actions, results, and errors
-- Queries prior knowledge from Knowledge DB
-- Saves lessons learned back to Knowledge DB
-- Token-limited context retrieval
-- **Auto-persistence**: Session memory saved to KB after execution
-- **Serena sync**: Bridge function to import Serena lessons to KB
-
-**New Functions:**
-- `persist_session_to_kb()` - Auto-saves meaningful entries after agent completes
-- `sync_serena_to_kb()` - Imports Serena lessons-learned for agent access
-- `to_dict()`/`from_dict()` - Serialization for future persistence
-- `get_history()` - Inspect session memory entries
-
-**Usage:**
-```python
-executor = SmolKLNExecutor()
-result = executor.execute("code-reviewer", "review main.py")
-
-# Memory automatically persisted to KB
-print(f"Persisted: {result['memory_persisted']} entries")
-print(f"History: {result['memory_history']}")
-
-# Future agents find these learnings via knowledge_search
+src/klean/smol/
+|-- __init__.py          # All exports
+|-- executor.py          # Main entry point - SmolKLNExecutor
+|-- loader.py            # Agent .md file parser
+|-- models.py            # LiteLLM model factory
+|-- context.py           # Project awareness
+|-- memory.py            # Session + KB memory
+|-- reflection.py        # Self-critique and retry
+|-- tools.py             # Tool definitions
+|-- mcp_tools.py         # MCP server loading
+|-- orchestrator.py      # Multi-agent coordination
+|-- task_queue.py        # Persistent queue
+`-- async_executor.py    # Background worker
 ```
 
 ---
 
-### 6.7 Phase 2: Reflection Loop
+### 6.3 Default Tool Set
 
-**Purpose**: Agents critique their own output and retry with feedback.
-
-**Components:**
-- `CritiqueVerdict` - PASS, RETRY, or FAIL
-- `Critique` - Structured feedback with issues and suggestions
-- `ReflectionEngine` - Critique and retry orchestration
-
-**Critique Criteria:**
-1. Did agent examine actual files?
-2. Are findings specific with file:line references?
-3. Are recommendations actionable?
-4. Is output complete and well-structured?
-
-**Flow:**
-```
-Execute -> Critique -> PASS? Done
-                    -> RETRY? Execute with feedback
-                    -> FAIL? Return with note
-```
-
-**Usage:**
-```python
-from klean.smol import create_reflection_engine, SmolKLNExecutor
-
-executor = SmolKLNExecutor()
-engine = create_reflection_engine()
-
-result = engine.execute_with_reflection(
-    executor,
-    "security-auditor",
-    "audit authentication"
-)
-print(f"Attempts: {result['attempts']}, Reflected: {result['reflected']}")
-```
+| Tool | Purpose |
+|------|---------|
+| `knowledge_search` | Query project Knowledge DB |
+| `web_search` | Search web (DuckDuckGo) |
+| `visit_webpage` | Fetch webpage content |
+| `read_file` | Read file from project |
+| `search_files` | Find files by glob |
+| `grep` | Search text patterns |
 
 ---
 
-### 6.8 Phase 3: MCP Tools Integration
+### 6.4 Usage
 
-**Purpose**: Use MCP servers (Serena, filesystem, git) instead of custom tools.
-
-**Key Insight**: Smolagents has native MCP support via `ToolCollection.from_mcp()`.
-
-**Supported Servers:**
-- `serena` - Project memory and context (auto-detected from `~/.claude.json`)
-- `filesystem` - File operations (builtin)
-- `git` - Git operations (builtin)
-
-**Features:**
-- Auto-loads MCP config from Claude settings
-- Falls back to basic tools if MCP unavailable
-- Supports custom server configuration
-
-**Usage:**
-```python
-from klean.smol import get_mcp_tools, list_available_mcp_servers
-
-# List available
-servers = list_available_mcp_servers()
-# {'serena': 'configured', 'filesystem': 'builtin', 'git': 'builtin'}
-
-# Load tools
-tools = get_mcp_tools(["serena"])
-```
-
----
-
-### 6.9 Default Tool Set
-
-SmolKLN provides a comprehensive default tool set for all agents:
-
-| Tool | Type | Purpose |
-|------|------|---------|
-| `knowledge_search` | Custom | Query project Knowledge DB for prior solutions |
-| `web_search` | DuckDuckGo | Search web for documentation and articles |
-| `visit_webpage` | Smolagents | Fetch and parse webpage content |
-| `read_file` | Custom | Read file contents from project |
-| `search_files` | Custom | Find files by glob pattern |
-| `grep` | Custom | Search text patterns in files |
-
-**Tool Loading** (from `tools.py`):
-```python
-from klean.smol import get_default_tools
-
-tools = get_default_tools(project_path)
-# Returns: [KnowledgeRetrieverTool, DuckDuckGoSearchTool,
-#           VisitWebpageTool, read_file, search_files, grep]
-```
-
----
-
-### 6.10 Phase 4: Multi-Agent Orchestrator
-
-**Purpose**: Coordinate multiple agents for complex tasks.
-
-**Components:**
-- `SubTask` - Single subtask with agent assignment
-- `TaskPlan` - Full plan with parallel groups
-- `SmolKLNOrchestrator` - Planning and execution engine
-
-**Flow:**
-```
-Task -> Planner -> [Subtasks] -> Parallel Execution -> Synthesis -> Result
-```
-
-**Features:**
-- Automatic task decomposition
-- Dependency-aware scheduling
-- Parallel execution (configurable workers)
-- Result synthesis into cohesive output
-
-**Usage:**
-```python
-from klean.smol import SmolKLNExecutor, SmolKLNOrchestrator
-
-executor = SmolKLNExecutor()
-orchestrator = SmolKLNOrchestrator(executor, max_parallel=3)
-
-result = orchestrator.execute(
-    "Full security and code quality audit",
-    agents=["security-auditor", "code-reviewer", "performance-reviewer"]
-)
-
-print(f"Plan: {result['plan']}")
-print(f"Success: {result['success']}")
-print(f"Output:\n{result['output']}")
-```
-
----
-
-### 6.11 Phase 5: Async Execution
-
-**Purpose**: Background task queue for non-blocking agent execution.
-
-**Components:**
-- `TaskState` - QUEUED, RUNNING, COMPLETED, FAILED
-- `QueuedTask` - Task with full lifecycle tracking
-- `TaskQueue` - Persistent file-based queue (`~/.klean/task_queue.json`)
-- `AsyncExecutor` - Background worker thread
-
-**Features:**
-- Persistent queue survives restarts
-- Automatic worker thread management
-- Status polling and blocking wait
-- Task cancellation (for queued tasks)
-- Cleanup of old completed tasks
-
-**Usage:**
-```python
-from klean.smol import submit_async, get_task_status, get_async_executor
-
-# Submit task
-task_id = submit_async("code-reviewer", "review main.py")
-print(f"Submitted: {task_id}")
-
-# Check status
-status = get_task_status(task_id)
-print(f"State: {status['state']}")
-
-# Wait for completion
-executor = get_async_executor()
-result = executor.wait_for(task_id, timeout=120)
-print(f"Result: {result}")
-
-# List recent tasks
-tasks = executor.list_tasks(limit=5)
-```
-
----
-
-### 6.12 Complete API Reference
-
-**Core:**
-```python
-from klean.smol import (
-    # Executor
-    SmolKLNExecutor,
-
-    # Agent loading
-    load_agent,
-    list_available_agents,
-    Agent,
-    AgentConfig,
-
-    # Models
-    create_model,
-    get_model_for_role,
-)
-```
-
-**Context:**
-```python
-from klean.smol import (
-    ProjectContext,
-    gather_project_context,
-    format_context_for_prompt,
-    detect_project_root,
-)
-```
-
-**Memory:**
-```python
-from klean.smol import (
-    AgentMemory,
-    SessionMemory,
-    MemoryEntry,
-)
-```
-
-**Reflection:**
-```python
-from klean.smol import (
-    ReflectionEngine,
-    Critique,
-    CritiqueVerdict,
-    create_reflection_engine,
-)
-```
-
-**MCP Tools:**
-```python
-from klean.smol import (
-    get_mcp_tools,
-    get_mcp_server_config,
-    list_available_mcp_servers,
-    load_mcp_config,
-    KnowledgeRetrieverTool,
-    get_default_tools,
-)
-```
-
-**Orchestration:**
-```python
-from klean.smol import (
-    SmolKLNOrchestrator,
-    quick_orchestrate,
-)
-```
-
-**Async Execution:**
-```python
-from klean.smol import (
-    TaskQueue,
-    QueuedTask,
-    TaskState,
-    AsyncExecutor,
-    get_async_executor,
-    submit_async,
-    get_task_status,
-)
-```
-
----
-
-### 6.13 Quick Start Examples
-
-**Basic Execution:**
-```python
-from klean.smol import SmolKLNExecutor
-
-executor = SmolKLNExecutor()
-print(f"Project: {executor.project_root}")
-
-result = executor.execute("security-auditor", "audit auth module")
-print(result["output"])
-```
-
-**With Reflection:**
-```python
-from klean.smol import SmolKLNExecutor, create_reflection_engine
-
-executor = SmolKLNExecutor()
-engine = create_reflection_engine()
-
-result = engine.execute_with_reflection(
-    executor,
-    "code-reviewer",
-    "review error handling in api/"
-)
-print(f"Attempts: {result['attempts']}")
-```
-
-**Multi-Agent:**
-```python
-from klean.smol import SmolKLNExecutor, SmolKLNOrchestrator
-
-executor = SmolKLNExecutor()
-orchestrator = SmolKLNOrchestrator(executor)
-
-result = orchestrator.execute("Complete codebase audit")
-```
-
-**Async Background:**
-```python
-from klean.smol import submit_async, get_async_executor
-
-# Fire and forget
-task_id = submit_async("code-reviewer", "review main.py")
-
-# Later...
-executor = get_async_executor()
-result = executor.wait_for(task_id)
-```
-
----
-
-### 6.14 CLI Usage
-
+**CLI:**
 ```bash
 kln-smol <agent> <task> [--model MODEL] [--telemetry]
 kln-smol security-auditor "audit auth module"
 kln-smol --list   # List available agents
 ```
 
-**Output:** `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
+**Python:**
+```python
+from klean.smol import SmolKLNExecutor
 
----
-
-### 6.15 Dependencies
-
-- `smolagents[litellm]>=1.17.0` - Core agent framework
-- `fastembed>=0.3.0` - Knowledge DB embeddings (ONNX-based)
-- `numpy>=1.24.0` - Vector operations
-- `ddgs>=6.0.0` - DuckDuckGo web search tool
-- `markdownify>=0.11.0` - HTML to markdown for VisitWebpageTool
-- LiteLLM proxy at `localhost:4000` (configurable)
+executor = SmolKLNExecutor()
+result = executor.execute("security-auditor", "audit auth module")
+print(result["output"])
+```
 
 ---
 
@@ -1574,125 +778,53 @@ kln-smol --list   # List available agents
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `/kln:quick` | Fast review - single model (~30s) | `/kln:quick security` |
-| `/kln:multi` | Consensus review - 3-5 models (~60s) | `/kln:multi --models 5 arch` |
-| `/kln:agent` | SmolKLN - specialist agents (~2min) | `/kln:agent --role security` |
-| `/kln:rethink` | Fresh perspectives - debugging help | `/kln:rethink bug` |
-| `/kln:doc` | Documentation - session notes | `/kln:doc "Sprint Review"` |
-| `/kln:learn` | Extract learnings from context | `/kln:learn "auth bug"` |
-| `/kln:remember` | Knowledge capture - end of session | `/kln:remember` |
-| `/kln:status` | System status - models, health | `/kln:status` |
+| `/kln:quick` | Fast review - single model | `/kln:quick security` |
+| `/kln:multi` | Consensus review - 3-5 models | `/kln:multi --models 5 arch` |
+| `/kln:agent` | SmolKLN - specialist agents | `/kln:agent --role security` |
+| `/kln:rethink` | Fresh perspectives | `/kln:rethink bug` |
+| `/kln:learn` | Extract learnings | `/kln:learn "auth bug"` |
+| `/kln:remember` | End of session capture | `/kln:remember` |
+| `/kln:status` | System status | `/kln:status` |
 | `/kln:help` | Command reference | `/kln:help` |
 
-**Flags:** `--async` (background), `--models N` (count), `--output json/text`
-
 ---
 
-### 7.2 Quick Commands (Type directly)
+### 7.2 Hook Keywords (Type directly)
 
-| Shortcut | Action |
-|----------|--------|
+| Keyword | Action |
+|---------|--------|
 | `FindKnowledge <query>` | Search knowledge DB |
-| `SaveInfo <url>` | Smart save URL with LLM evaluation |
+| `SaveInfo <url>` | Smart save URL |
 
 ---
 
-### 7.3 Knowledge Database Quick Reference
+### 7.3 CLI Quick Reference
 
 ```bash
-# Query via server (~30ms)
-~/.claude/scripts/knowledge-query.sh "<topic>"
-
-# Direct query (~17s cold)
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
-```
-
-**Storage:** `.knowledge-db/` per project
-**Server:** Auto-starts on first use
-
----
-
-### 7.4 K-LEAN CLI Quick Reference
-
-```bash
+kln init       # Interactive setup
 kln install    # Install components
-kln setup      # Configure API provider
 kln status     # Component status
 kln doctor -f  # Diagnose + auto-fix
 kln start      # Start services
-kln model list # List available models
-kln test       # Run test suite
+kln model list # List models
 ```
 
 ---
 
-### 7.5 SmolKLN CLI Quick Reference
-
-```bash
-kln-smol <agent> <task> [--model MODEL] [--telemetry]
-kln-smol security-auditor "audit auth module"
-kln-smol --list   # List available agents
-```
-
-**Output:** `.claude/kln/agentExecute/<timestamp>_<agent>_<task>.md`
-
----
-
-### 7.6 Available Models
-
-Auto-discovered from LiteLLM. Use `kln model list` to see current list.
-
-**Common:** `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
-
----
-
-### 7.7 File Locations
+### 7.4 File Locations
 
 | Type | Location |
 |------|----------|
 | CLI | `src/klean/cli.py` |
+| Hooks | `src/klean/hooks.py` |
+| Reviews | `src/klean/reviews.py` |
+| Platform | `src/klean/platform.py` |
 | Rules | `~/.claude/rules/kln.md` |
-| Hooks | `~/.claude/hooks/` |
 | Scripts | `~/.claude/scripts/` |
 | Knowledge DB | `.knowledge-db/` (per project) |
 | LiteLLM Config | `~/.config/litellm/` |
-| SmolKLN Agents | `src/klean/smol/` |
+| SmolKLN | `src/klean/smol/` |
 | Review Output | `.claude/kln/` (per project) |
-
----
-
-### 7.8 Serena Memories
-
-Curated insights via `mcp__serena__*_memory` tools:
-- `lessons-learned` - Gotchas, patterns
-- `architecture-review-system` - System docs
-
----
-
-### 7.9 Hooks Summary
-
-| Hook | Trigger | Purpose |
-|------|---------|---------|
-| `session-start.sh` | SessionStart | Auto-start services |
-| `user-prompt-handler.sh` | UserPromptSubmit | 7 keyword handlers |
-| `post-bash-handler.sh` | PostToolUse (Bash) | Git timeline + facts |
-| `post-web-handler.sh` | PostToolUse (Web*) | Auto-capture to KB |
-| `async-review.sh` | UserPromptSubmit | Background reviews |
-
----
-
-### 7.10 Research Foundation
-
-SmolKLN implementation based on analysis of top SWE agents:
-- **SWE-agent** - ACI (Agent-Computer Interface) design principles
-- **OpenHands** - Multi-agent orchestration patterns
-- **Aider** - Git-aware context and memory
-- **Reflexion** - Self-critique and retry loops
-- **MemGPT** - Tiered memory architecture
-
-Key papers:
-- "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering"
-- "Reflexion: Language Agents with Verbal Reinforcement Learning"
 
 ---
 

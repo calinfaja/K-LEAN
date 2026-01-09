@@ -27,13 +27,11 @@ Complete reference for developing, testing, and troubleshooting K-LEAN.
 | Python | 3.9+ | Runtime |
 | pipx | Latest | Isolated installation |
 | Git | 2.x | Version control |
-| curl | Any | Health checks |
 
 ### Optional
 
 | Tool | Purpose |
 |------|---------|
-| ShellCheck | Shell script linting |
 | Black | Python formatting |
 | Ruff | Python linting |
 
@@ -43,7 +41,6 @@ Complete reference for developing, testing, and troubleshooting K-LEAN.
 python3 --version    # Python 3.9+
 pipx --version       # pipx installed
 git --version        # Git available
-curl --version       # curl available
 ```
 
 ---
@@ -61,12 +58,22 @@ cd k-lean
 pipx install -e .
 
 # Verify installation
-kln --version       # Should show 1.0.0b3
+kln --version       # Should show 1.0.0b6
 kln doctor          # Check configuration
-kln test            # Run test suite
 ```
 
-### Development Install
+### Development Install with Symlinks
+
+```bash
+# Install editable + dev mode (symlinks data files)
+pipx install -e . --force
+kln install --dev
+
+# This creates symlinks from ~/.claude/ to src/klean/data/
+# Changes to data files are immediately reflected
+```
+
+### Development Install (pip)
 
 ```bash
 # Install with dev tools
@@ -85,13 +92,14 @@ k-lean/
 ├── src/klean/              # Main package
 │   ├── __init__.py         # Version
 │   ├── cli.py              # CLI entry point (kln command)
+│   ├── platform.py         # Cross-platform utilities (psutil, platformdirs)
+│   ├── reviews.py          # Async review engine (httpx)
+│   ├── hooks.py            # Hook entry points (4 functions)
 │   ├── smol/               # SmolKLN agent framework
 │   └── data/               # Installable assets
-│       ├── scripts/        # Shell & Python scripts
+│       ├── scripts/        # Python scripts for knowledge DB
 │       ├── commands/kln/   # Slash commands (.md)
-│       ├── hooks/          # Claude Code hooks
 │       ├── agents/         # SmolKLN agent definitions
-│       ├── core/           # Review engine & prompts
 │       └── config/         # Config templates
 ├── docs/                   # Documentation
 │   └── architecture/       # Technical docs (this folder)
@@ -113,41 +121,34 @@ vim src/klean/cli.py
 # 2. Lint your changes
 ruff check src/
 
-# 3. Run tests
-kln test
+# 3. If editing data/ files and NOT using --dev mode, sync
+kln admin sync
 
-# 4. If editing data/ files, sync
-kln sync
-
-# 5. Validate everything
+# 4. Validate everything
 kln doctor -f
 
-# 6. Commit with conventional commit message
+# 5. Commit with conventional commit message
 git add -A
 git commit -m "feat: add new review mode"
 ```
 
-### Sync Command (Important!)
+### Sync Command (For non-dev installs)
 
 After editing files in `src/klean/data/`, sync updates to installation:
 
 ```bash
-kln sync           # Sync data files to ~/.claude/
-kln sync --check   # Check without syncing (CI mode)
-kln sync --clean   # Remove stale files
+kln admin sync           # Sync data files to ~/.claude/
+kln admin sync --check   # Check without syncing (CI mode)
+kln admin sync --clean   # Remove stale files
 ```
 
-**When to sync:**
-- Added/modified scripts in `data/scripts/`
-- Added/modified commands in `data/commands/`
-- Added/modified hooks in `data/hooks/`
-- Added/modified agents in `data/agents/`
+**Note:** If you installed with `kln install --dev`, syncing is not needed - symlinks update automatically.
 
 ### Live Debugging
 
 ```bash
-kln debug              # Full dashboard
-kln debug --compact    # Minimal (for hooks)
+kln admin debug            # Full dashboard
+kln admin debug --compact  # Minimal output (for hooks)
 ```
 
 ---
@@ -226,80 +227,43 @@ def validate_model(model_name: str, timeout: int = 5) -> bool:
         raise ConnectionError("LiteLLM proxy not running")
 ```
 
-### Shell Style
+### Cross-Platform Considerations
 
-#### General Rules
+#### Use platform.py for paths
 
-| Rule | Value |
-|------|-------|
-| Linter | ShellCheck |
-| Shebang | `#!/usr/bin/env bash` |
-| Safety | `set -euo pipefail` (scripts only, not hooks) |
+```python
+from klean.platform import get_config_dir, get_runtime_dir
 
-#### Naming Conventions
-
-```bash
-# Scripts: kebab-case
-quick-review.sh
-knowledge-query.sh
-
-# Functions: snake_case
-get_agent_system_prompt() {
-    # ...
-}
-
-# Exported variables: UPPER_SNAKE_CASE
-export KB_PYTHON="..."
-
-# Local variables: lower_snake_case
-local model_name="$1"
-```
-
-#### Path Handling (Critical!)
-
-**Always use kb-root.sh for paths:**
-
-```bash
-#!/usr/bin/env bash
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
-
-# Good - uses variables from kb-root.sh
-"$KB_PYTHON" "$KB_SCRIPTS_DIR/knowledge_db.py"
+# Good - cross-platform
+config_dir = get_config_dir()  # Windows: %APPDATA%\klean
+runtime_dir = get_runtime_dir()  # Windows: %TEMP%\klean-{user}
 
 # Bad - hardcoded paths (NEVER DO THIS)
-/home/user/.venvs/knowledge-db/bin/python
-~/.claude/scripts/knowledge_db.py
+config_dir = Path("/home/user/.config/litellm")
 ```
 
-#### Thinking Model Response Handling
+#### Use platform.py for process management
 
-Models may return content in different fields:
+```python
+from klean.platform import is_process_running, kill_process_tree, spawn_background
 
-```bash
+# Good - cross-platform
+if is_process_running(pid):
+    kill_process_tree(pid)
+
+# Bad - Unix-only
+os.kill(pid, 0)  # Doesn't work on Windows
+```
+
+### Thinking Model Response Handling
+
+Some models return content in different fields:
+
+```python
 # Always check both response formats
-content=$(echo "$response" | jq -r '.choices[0].message.content // empty')
-if [ -z "$content" ]; then
-    content=$(echo "$response" | jq -r '.choices[0].message.reasoning_content // empty')
-fi
-```
+content = response.get("content") or response.get("reasoning_content")
 
-#### Error Handling
-
-```bash
-# Check command exists
-if ! command -v curl &>/dev/null; then
-    echo "Error: curl required" >&2
-    exit 1
-fi
-
-# Check file exists
-if [ ! -f "$config_file" ]; then
-    log_debug "Config not found, using defaults"
-fi
-
-# Use log_debug for debugging
-log_debug "Processing model: $model_name"
+# The reviews.py module handles this automatically via _extract_content()
 ```
 
 ### Commit Messages
@@ -310,7 +274,7 @@ Follow conventional commits:
 feat: add new droid for database review
 fix: handle empty response from thinking models
 docs: update architecture diagram
-refactor: extract common path logic to kb-root.sh
+refactor: extract common path logic to platform.py
 test: add integration test for KB server
 chore: update dependencies
 ```
@@ -321,10 +285,10 @@ Before committing:
 
 - [ ] No hardcoded paths (`grep -r "/home/" src/`)
 - [ ] No embedded secrets (`grep -r "api_key" src/`)
-- [ ] Shell scripts source kb-root.sh
+- [ ] Cross-platform path handling (use platform.py)
 - [ ] Thinking model responses handled (both formats)
 - [ ] Error handling present
-- [ ] `kln test` passes
+- [ ] `kln doctor` passes
 - [ ] `ruff check src/` passes
 
 ---
@@ -334,41 +298,22 @@ Before committing:
 ### Running Tests
 
 ```bash
-kln test              # Run full test suite (27 tests)
+python -m pytest tests/ -v
 kln doctor            # Validate configuration
 kln model list --health  # Check model availability
 ```
 
-### Test Categories
-
-| Category | Tests | Description |
-|----------|-------|-------------|
-| Installation Structure | 4 | Directory structure, files exist |
-| Scripts Executable | 4 | Scripts have +x permission |
-| KLN Commands | 9 | Slash commands work |
-| Hooks | 3 | Hook scripts execute |
-| LiteLLM Service | 1 | Proxy responds |
-| Knowledge System | 2 | KB operations work |
-| Nano Profile | 3 | Claude-nano works |
-| SmolKLN Agents | 1 | Agent framework |
-
-### Test Output Example
+### Test Structure
 
 ```
-K-LEAN Test Suite
-=================
-Running 27 tests...
-
-[OK] Installation structure valid
-[OK] Scripts executable
-[OK] KLN commands installed
-[OK] Hooks configured
-[OK] LiteLLM proxy responding
-[OK] Knowledge DB operational
-[OK] Nano profile functional
-[OK] SmolKLN agents available
-
-27/27 tests passed
+tests/
+├── unit/
+│   ├── test_platform.py        # Cross-platform utilities
+│   ├── test_hooks.py           # Hook entry points
+│   ├── test_reviews.py         # Review engine
+│   ├── test_knowledge_server.py # KB server
+│   └── test_cli_integration.py # CLI commands
+└── conftest.py                 # Shared fixtures
 ```
 
 ---
@@ -379,30 +324,31 @@ Running 27 tests...
 
 1. Create script in `src/klean/data/scripts/`:
 
-```bash
-#!/usr/bin/env bash
-# my-new-script.sh - Description of what it does
+```python
+#!/usr/bin/env python3
+"""my-new-script.py - Description of what it does"""
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/kb-root.sh" 2>/dev/null || true
+import sys
+from pathlib import Path
 
-set -euo pipefail
+# Add scripts dir to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
 
-# Your script logic here
-echo "Hello from my-new-script"
+from kb_utils import find_project_root, get_server_port
+
+def main():
+    project = find_project_root()
+    print(f"Project: {project}")
+
+if __name__ == "__main__":
+    main()
 ```
 
 2. Make executable and sync:
 
 ```bash
-chmod +x src/klean/data/scripts/my-new-script.sh
-kln sync
-```
-
-3. Test:
-
-```bash
-~/.claude/scripts/my-new-script.sh
+chmod +x src/klean/data/scripts/my-new-script.py
+kln admin sync  # If not using --dev mode
 ```
 
 ### Adding a New Command
@@ -426,32 +372,33 @@ Short description of what this command does.
 2. Sync:
 
 ```bash
-kln sync
+kln admin sync
 ```
 
-### Adding a New Hook
+### Adding Hook Functionality
 
-1. Create `src/klean/data/hooks/my-hook.sh`:
+Hooks are Python entry points in `src/klean/hooks.py`. To add new functionality:
+
+1. Edit `src/klean/hooks.py`:
+
+```python
+def prompt_handler() -> None:
+    """Handle user prompts - add new keyword detection here."""
+    data = _read_input()
+    prompt = data.get("prompt", "")
+
+    # Add your new keyword
+    if "MyNewKeyword" in prompt:
+        # Handle it
+        result = handle_my_keyword(prompt)
+        _output({"additionalContext": result})
+        return
+```
+
+2. Test:
 
 ```bash
-#!/usr/bin/env bash
-# Hook: Runs on specific events
-# Note: Do NOT use set -euo pipefail in hooks
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../scripts/kb-root.sh" 2>/dev/null || true
-
-# Hook logic here (must be non-blocking)
-```
-
-2. Register in `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": ["~/.claude/hooks/my-hook.sh"]
-  }
-}
+echo '{"prompt":"MyNewKeyword test"}' | kln-hook-prompt
 ```
 
 ### Adding a New SmolKLN Agent
@@ -467,7 +414,7 @@ cp src/klean/data/agents/TEMPLATE.md src/klean/data/agents/my-agent.md
 3. Sync and test:
 
 ```bash
-kln sync
+kln admin sync
 kln-smol my-agent "test task"
 ```
 
@@ -493,13 +440,11 @@ kln-smol my-agent "test task"
 **Diagnosis:**
 ```bash
 curl -s http://localhost:4000/models
-lsof -i :4000
 ```
 
 **Fixes:**
 ```bash
-kln start                           # Start proxy
-~/.claude/scripts/start-litellm.sh     # Direct script
+kln start                # Start proxy
 ```
 
 ### Issue: No Healthy Models
@@ -508,19 +453,13 @@ kln start                           # Start proxy
 - `ERROR: No healthy models available`
 - All models fail health check
 
-**Diagnosis:**
-```bash
-~/.claude/scripts/health-check.sh
-~/.claude/scripts/get-models.sh
-```
-
 **Fixes:**
 ```bash
 # Check API key
 cat ~/.config/litellm/.env
 
 # Re-run setup wizard
-kln setup
+kln init
 
 # Verify NanoGPT subscription
 kln doctor
@@ -534,16 +473,12 @@ kln doctor
 
 **Diagnosis:**
 ```bash
-ls -la /tmp/kb-*.sock              # Check socket exists
-source ~/.claude/scripts/kb-root.sh
-is_kb_server_running               # Check server status
+kln status  # Check KB status
 ```
 
 **Fixes:**
 ```bash
-kln start -s knowledge          # Start KB server
-rm /tmp/kb-*.sock                  # Clean stale socket
-~/.claude/scripts/knowledge-server.py start
+kln start -s knowledge   # Start KB server
 ```
 
 ### Issue: Python Environment Problems
@@ -551,12 +486,6 @@ rm /tmp/kb-*.sock                  # Clean stale socket
 **Symptoms:**
 - `ERROR: K-LEAN Python not executable`
 - Knowledge DB operations fail
-
-**Diagnosis:**
-```bash
-ls -la ~/.venvs/knowledge-db/bin/python
-~/.venvs/knowledge-db/bin/python --version
-```
 
 **Fixes:**
 ```bash
@@ -572,12 +501,6 @@ python3 -m venv ~/.venvs/knowledge-db
 - `os.environ` not substituting
 - API key not found
 
-**Diagnosis:**
-```bash
-kln doctor
-cat ~/.config/litellm/config.yaml | grep os.environ
-```
-
 **Fix:** Remove quotes from `os.environ/KEY`:
 
 ```yaml
@@ -586,32 +509,6 @@ api_key: "os.environ/NANOGPT_API_KEY"
 
 # Correct
 api_key: os.environ/NANOGPT_API_KEY
-```
-
-### Issue: Review Output Not Saved
-
-**Symptoms:**
-- Reviews complete but no file saved
-- Can't find review history
-
-**Diagnosis:**
-```bash
-ls -la .claude/kln/
-ls -la /tmp/claude-reviews/
-```
-
-**Fix:** Ensure you're in a git repository (required for `find_project_root`).
-
-### Issue: Symlinks Broken
-
-**Symptoms:**
-- Commands not found
-- Scripts point to wrong locations
-
-**Fix:**
-```bash
-pipx install -e . --force
-kln sync --clean
 ```
 
 ### Log Locations
@@ -666,7 +563,7 @@ No separate VERSION file - `prepare-release.sh` reads from pyproject.toml.
 
 ```bash
 # 1. Run tests
-pytest tests/ -v --ignore=tests/core/
+python -m pytest tests/ -v
 
 # 2. Check configuration
 kln doctor
@@ -675,7 +572,7 @@ kln doctor
 ruff check src/ --select=F,E722
 
 # 4. Verify sync
-kln sync --check
+kln admin sync --check
 
 # 5. Verify release readiness
 ./src/klean/data/scripts/prepare-release.sh --check
@@ -687,15 +584,15 @@ kln sync --check
 
 ```bash
 # Edit both files with new version
-vim pyproject.toml                    # version = "1.0.0b2"
-vim src/klean/__init__.py             # __version__ = "1.0.0b2"
+vim pyproject.toml                    # version = "1.0.0b7"
+vim src/klean/__init__.py             # __version__ = "1.0.0b7"
 
 # Verify they match
 ./src/klean/data/scripts/prepare-release.sh --check
 
 # Commit
 git add -A
-git commit -m "chore: bump version to 1.0.0b2"
+git commit -m "chore: bump version to 1.0.0b7"
 git push
 ```
 
@@ -720,7 +617,7 @@ verify   -> Check version matches pyproject.toml and __init__.py
 test     -> Lint, pytest, sync check
 publish  -> Build, twine check, upload to PyPI
 verify   -> Check PyPI API, test install in fresh venv
-tag      -> Create git tag (v1.0.0b2)
+tag      -> Create git tag (v1.0.0b7)
 ```
 
 #### Step 4: Create GitHub Release
@@ -760,6 +657,7 @@ kln --version
 |---------|---------|
 | click, rich | CLI framework |
 | pyyaml, httpx | Config & HTTP |
+| psutil, platformdirs | Cross-platform utilities |
 | fastembed, numpy | Knowledge DB |
 | smolagents[litellm] | SmolKLN agents |
 | ddgs, markdownify, lizard | Agent tools |
