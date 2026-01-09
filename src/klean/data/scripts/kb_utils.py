@@ -4,36 +4,280 @@ K-LEAN Knowledge Base Utilities
 ===============================
 Shared utilities for the knowledge database system.
 Cross-platform support for Windows, Linux, and macOS using TCP sockets.
+
+This module is self-contained and does NOT depend on the klean package,
+so it can be run with system Python outside the pipx venv.
 """
 
+import getpass
+import hashlib
 import json
 import os
 import socket
 import sys
+import tempfile
 from pathlib import Path
 
-# Add parent directory to path for platform imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+# =============================================================================
+# Platform Utilities (copied from klean.platform to be self-contained)
+# =============================================================================
 
-from klean.platform import (  # noqa: F401 - re-exported for other scripts
-    find_project_root,
-    get_kb_pid_file,
-    get_kb_port_file,
-    get_project_hash,
-    get_runtime_dir,
-    is_process_running,
-    read_pid_file,
-)
+DEFAULT_KB_PORT = 14000
 
-# Explicitly declare re-exports
+# Windows process constants (for is_process_running)
+_WIN_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+_WIN_STILL_ACTIVE = 259
+
+
+def get_runtime_dir() -> Path:
+    """Get the K-LEAN runtime directory for temporary files like sockets and PIDs.
+
+    Returns:
+        Linux/macOS: /tmp/klean-{username}
+        Windows: %TEMP%/klean-{username}
+
+    The directory is created if it doesn't exist.
+    """
+    username = getpass.getuser()
+    runtime_dir = Path(tempfile.gettempdir()) / f"klean-{username}"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    return runtime_dir
+
+
+def get_project_hash(project_path: Path) -> str:
+    """Generate a short hash for a project path.
+
+    Args:
+        project_path: Path to the project root.
+
+    Returns:
+        8-character hex hash of the project path.
+    """
+    path_str = str(project_path.resolve())
+    return hashlib.md5(path_str.encode()).hexdigest()[:8]
+
+
+def get_kb_port_file(project_path: Path) -> Path:
+    """Get the path to the knowledge server port file for a project.
+
+    Args:
+        project_path: Path to the project root.
+
+    Returns:
+        Path to the .port file in runtime directory.
+    """
+    project_hash = get_project_hash(project_path)
+    return get_runtime_dir() / f"kb-{project_hash}.port"
+
+
+def get_kb_pid_file(project_path: Path) -> Path:
+    """Get the path to the knowledge server PID file for a project.
+
+    Args:
+        project_path: Path to the project root.
+
+    Returns:
+        Path to the .pid file in runtime directory.
+    """
+    project_hash = get_project_hash(project_path)
+    return get_runtime_dir() / f"kb-{project_hash}.pid"
+
+
+def find_project_root(start_path: Path | None = None) -> Path | None:
+    """Find the project root by looking for markers.
+
+    Searches upward from start_path (or cwd) for:
+    1. CLAUDE_PROJECT_DIR environment variable
+    2. .knowledge-db directory
+    3. .serena directory
+    4. .claude directory
+    5. .git directory
+
+    Args:
+        start_path: Starting directory (defaults to cwd).
+
+    Returns:
+        Project root path, or None if not found.
+    """
+    # Check environment variable first
+    if env_dir := os.environ.get("CLAUDE_PROJECT_DIR"):
+        return Path(env_dir)
+
+    current = Path(start_path or Path.cwd()).resolve()
+    markers = [".knowledge-db", ".serena", ".claude", ".git"]
+
+    while current != current.parent:
+        for marker in markers:
+            if (current / marker).exists():
+                return current
+        current = current.parent
+
+    return None
+
+
+def is_process_running(pid: int) -> bool:
+    """Check if a process with the given PID is running.
+
+    Cross-platform: Uses os.kill on Unix, ctypes on Windows.
+
+    Args:
+        pid: Process ID to check.
+
+    Returns:
+        True if process exists and is running, False otherwise.
+    """
+    if sys.platform == "win32":
+        # Windows: Use ctypes to call OpenProcess
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(_WIN_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if handle == 0:
+            return False
+        try:
+            exit_code = ctypes.c_ulong()
+            if kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                return exit_code.value == _WIN_STILL_ACTIVE
+            return False
+        finally:
+            kernel32.CloseHandle(handle)
+    else:
+        # Unix: os.kill with signal 0 checks existence without killing
+        try:
+            os.kill(pid, 0)
+            return True
+        except (OSError, ProcessLookupError, PermissionError):
+            # PermissionError means process exists but we can't signal it
+            # For our purposes (checking if server is running), this is fine
+            return False
+
+
+def read_pid_file(pid_file: Path) -> int | None:
+    """Read a PID from a file.
+
+    Args:
+        pid_file: Path to the PID file.
+
+    Returns:
+        PID as integer, or None if file doesn't exist or is invalid.
+    """
+    try:
+        if pid_file.exists():
+            content = pid_file.read_text().strip()
+            return int(content)
+    except (ValueError, OSError):
+        pass
+    return None
+
+
+def get_kb_port() -> int:
+    """Get the knowledge server base port from environment or default.
+
+    Returns:
+        Port number from KLEAN_KB_PORT env var, or DEFAULT_KB_PORT (14000).
+    """
+    return int(os.environ.get("KLEAN_KB_PORT", str(DEFAULT_KB_PORT)))
+
+
+def write_pid_file(pid_file: Path, pid: int) -> None:
+    """Write a PID to a file.
+
+    Args:
+        pid_file: Path to the PID file.
+        pid: Process ID to write.
+    """
+    pid_file.parent.mkdir(parents=True, exist_ok=True)
+    pid_file.write_text(str(pid))
+
+
+def kill_process_tree(pid: int, timeout: float = 5.0) -> bool:
+    """Kill a process and all its children.
+
+    Uses graceful termination first, then force kill after timeout.
+    Cross-platform: works on Windows, Linux, and macOS.
+
+    Args:
+        pid: Process ID to kill.
+        timeout: Seconds to wait for graceful termination.
+
+    Returns:
+        True if process was killed, False if it didn't exist.
+    """
+    import signal
+
+    if not is_process_running(pid):
+        return False
+
+    try:
+        if sys.platform == "win32":
+            # Windows: use taskkill to kill process tree
+            import subprocess
+
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                capture_output=True,
+                timeout=timeout,
+            )
+        else:
+            # Unix: send SIGTERM, wait, then SIGKILL if needed
+            os.kill(pid, signal.SIGTERM)
+            # Wait for process to terminate
+            import time
+
+            start = time.time()
+            while time.time() - start < timeout:
+                if not is_process_running(pid):
+                    return True
+                time.sleep(0.1)
+            # Force kill if still running
+            if is_process_running(pid):
+                os.kill(pid, signal.SIGKILL)
+        return True
+    except (OSError, ProcessLookupError, PermissionError):
+        return False
+
+
+def cleanup_stale_files(project_path: Path) -> None:
+    """Remove stale PID and port files for a project.
+
+    Checks if the PID in the file is still running, and removes
+    the files if not.
+
+    Args:
+        project_path: Path to the project root.
+    """
+    pid_file = get_kb_pid_file(project_path)
+    port_file = get_kb_port_file(project_path)
+
+    pid = read_pid_file(pid_file)
+    if pid and not is_process_running(pid):
+        # Process is dead, clean up files
+        try:
+            pid_file.unlink(missing_ok=True)
+        except OSError:
+            pass
+        try:
+            port_file.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+# =============================================================================
+# Exports
+# =============================================================================
+
 __all__ = [
     "find_project_root",
     "get_kb_pid_file",
+    "get_kb_port",
     "get_kb_port_file",
     "get_project_hash",
     "get_runtime_dir",
     "is_process_running",
     "read_pid_file",
+    "write_pid_file",
+    "kill_process_tree",
+    "cleanup_stale_files",
     "HOST",
     "KB_DIR_NAME",
     "PROJECT_MARKERS",
@@ -70,7 +314,7 @@ else:
 KB_DIR_NAME = ".knowledge-db"
 HOST = "127.0.0.1"
 
-# Project markers in priority order (matches platform.py)
+# Project markers in priority order
 PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
 
 # V2 Schema defaults for migration

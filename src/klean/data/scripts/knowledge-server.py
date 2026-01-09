@@ -26,10 +26,10 @@ import threading
 import time
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+# Import from kb_utils (self-contained, no external dependencies)
+sys.path.insert(0, str(Path(__file__).parent))
 
-from klean.platform import (
+from kb_utils import (
     cleanup_stale_files,
     find_project_root,
     get_kb_pid_file,
@@ -252,6 +252,19 @@ class KnowledgeServer:
                 }
             elif cmd == "ping":
                 response = {"pong": True, "project": str(self.project_root), "port": self.port}
+            elif cmd == "add":
+                # Add entry via server (ensures index stays in sync)
+                entry = request.get("entry")
+                if not entry:
+                    response = {"error": "No entry provided"}
+                elif not self.db:
+                    response = {"error": "No index loaded"}
+                else:
+                    try:
+                        entry_id = self.db.add(entry)
+                        response = {"status": "ok", "id": entry_id}
+                    except Exception as e:
+                        response = {"error": f"Failed to add entry: {e}"}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 

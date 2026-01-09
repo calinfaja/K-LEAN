@@ -449,6 +449,50 @@ def start_phoenix(background: bool = True) -> bool:
         return False
 
 
+def _ensure_kb_initialized(project_path: Path) -> bool:
+    """Ensure knowledge DB is initialized for project.
+
+    Creates empty index if .knowledge-db doesn't exist or has no index.
+
+    Args:
+        project_path: Project root directory
+
+    Returns:
+        True if KB is initialized (or was just initialized), False on error.
+    """
+    kb_dir = project_path / ".knowledge-db"
+    entries_file = kb_dir / "entries.jsonl"
+    embeddings_file = kb_dir / "embeddings.npy"
+
+    # Already initialized?
+    if embeddings_file.exists() or entries_file.exists():
+        return True
+
+    # Create .knowledge-db directory
+    kb_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create empty entries file (server needs at least this to start)
+    if not entries_file.exists():
+        entries_file.write_text("")
+
+    # Run rebuild to create empty index
+    try:
+        rebuild_script = CLAUDE_DIR / "scripts" / "knowledge_db.py"
+        if rebuild_script.exists():
+            venv_python = VENV_DIR / "bin" / "python"
+            python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+            result = subprocess.run(
+                [python_cmd, str(rebuild_script), "rebuild", str(project_path)],
+                capture_output=True,
+                timeout=60,
+            )
+            return result.returncode == 0
+    except Exception:
+        pass
+
+    return True  # Directory exists, server can try to start
+
+
 def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool:
     """Start knowledge server for a project in background (cross-platform).
 
@@ -465,6 +509,9 @@ def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool
 
     if check_knowledge_server(project_path):
         return True  # Already running
+
+    # Ensure KB is initialized (creates empty index if needed)
+    _ensure_kb_initialized(project_path)
 
     try:
         knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
@@ -580,8 +627,27 @@ KLEAN_HOOKS_CONFIG = {
 }
 
 
+def _is_old_klean_hook(hook_entry: dict) -> bool:
+    """Check if a hook entry is an old K-LEAN shell script hook."""
+    if "hooks" not in hook_entry:
+        return False
+    for h in hook_entry["hooks"]:
+        cmd = h.get("command", "")
+        # Old shell script hooks referenced ~/.claude/hooks/*.sh
+        if "~/.claude/hooks/" in cmd and cmd.endswith(".sh"):
+            return True
+        # Also check for old user-prompt-handler.sh pattern
+        if "user-prompt-handler.sh" in cmd or "session-start.sh" in cmd:
+            return True
+        if "post-bash-handler.sh" in cmd or "post-web-handler.sh" in cmd:
+            return True
+    return False
+
+
 def merge_klean_hooks(existing_settings: dict) -> tuple[dict, list[str]]:
     """Merge K-LEAN hooks into existing settings.json, preserving user hooks.
+
+    Also removes old K-LEAN shell script hooks that are no longer used.
 
     Returns:
         tuple: (updated_settings, list of hooks added)
@@ -593,6 +659,11 @@ def merge_klean_hooks(existing_settings: dict) -> tuple[dict, list[str]]:
 
     hooks = existing_settings["hooks"]
 
+    # First pass: remove old K-LEAN shell script hooks
+    for hook_type in list(hooks.keys()):
+        hooks[hook_type] = [h for h in hooks[hook_type] if not _is_old_klean_hook(h)]
+
+    # Second pass: add new K-LEAN hooks
     for hook_type, klean_hook_list in KLEAN_HOOKS_CONFIG.items():
         if hook_type not in hooks:
             # No hooks of this type exist - add all K-LEAN hooks
@@ -2185,28 +2256,24 @@ def doctor(auto_fix: bool):
     if not CLAUDE_DIR.exists():
         issues.append(("CRITICAL", "~/.claude directory does not exist"))
 
-    # Check scripts
+    # Check scripts directory exists
     scripts_dir = CLAUDE_DIR / "scripts"
-    if scripts_dir.exists():
-        # Check key scripts
-        key_scripts = ["quick-review.sh"]
-        for script in key_scripts:
-            script_path = scripts_dir / script
-            if not script_path.exists():
-                issues.append(("WARNING", f"Missing script: {script}"))
-            elif not os.access(script_path, os.X_OK):
-                issues.append(("WARNING", f"Script not executable: {script}"))
-    else:
+    if not scripts_dir.exists():
         issues.append(("ERROR", "Scripts directory not found"))
 
     # Check kln-smol command (installed via pipx as part of k-lean)
     if not shutil.which("kln-smol"):
         issues.append(("WARNING", "kln-smol command not found - SmolKLN agents won't work"))
 
-    # Check lib/common.sh
-    common_sh = CLAUDE_DIR / "lib" / "common.sh"
-    if not common_sh.exists():
-        issues.append(("WARNING", "lib/common.sh not found - scripts may fail"))
+    # Check key Python scripts exist
+    key_scripts = ["kb_utils.py", "knowledge_db.py", "knowledge-server.py"]
+    for script in key_scripts:
+        script_path = scripts_dir / script
+        if scripts_dir.exists() and not script_path.exists():
+            issues.append(("WARNING", f"Missing script: {script}"))
+
+    # Note: lib/common.sh and shell scripts were removed in cross-platform migration
+    # All functionality now uses Python scripts and entry points
 
     # Check LiteLLM config
     if CONFIG_DIR.exists():
@@ -2979,6 +3046,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
             console.print(f"  {key}) {desc}")
 
         # Multi-provider selection loop
+        available_providers = ["nanogpt", "openrouter"]
         while True:
             choice = click.prompt("\nChoose", type=click.Choice(choices.keys()))
             provider_choice = choices[choice][0]
@@ -2990,6 +3058,11 @@ def init(provider: Optional[str], api_key: Optional[str]):
             if provider_choice not in selected_providers:
                 selected_providers.append(provider_choice)
                 console.print(f"  [green]✓[/green] Added {provider_choice.upper()}")
+
+            # Check if all providers are selected - no need to ask
+            remaining = [p for p in available_providers if p not in selected_providers]
+            if not remaining:
+                break
 
             if not click.confirm("Add another provider?", default=False):
                 break

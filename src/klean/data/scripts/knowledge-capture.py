@@ -215,28 +215,91 @@ def create_entry_from_json(data: dict):
     return entry
 
 
+def send_entry_to_server(entry: dict, project_path: str) -> bool:
+    """Send entry to running KB server via TCP.
+
+    This is the preferred method - ensures entry is immediately searchable
+    because the server's in-memory index is updated atomically.
+
+    Args:
+        entry: Knowledge entry dictionary.
+        project_path: Path to project root.
+
+    Returns:
+        True if entry was added via server, False otherwise.
+    """
+    import socket
+
+    try:
+        from kb_utils import get_kb_port_file
+    except ImportError:
+        return False
+
+    # Get server port
+    port_file = get_kb_port_file(Path(project_path))
+    if not port_file.exists():
+        debug_log("KB server not running (no port file)")
+        return False
+
+    try:
+        port = int(port_file.read_text().strip())
+    except (ValueError, OSError):
+        debug_log("Invalid port file")
+        return False
+
+    # Send to server
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode("utf-8"))
+        response = sock.recv(65536).decode("utf-8")
+        sock.close()
+
+        result = json.loads(response)
+        if result.get("status") == "ok":
+            debug_log(f"Entry added via server: {result.get('id')}")
+            return True
+        else:
+            debug_log(f"Server rejected entry: {result.get('error')}")
+            return False
+    except Exception as e:
+        debug_log(f"Failed to send to server: {e}")
+        return False
+
+
 def save_entry(entry, knowledge_dir):
     """Save entry to knowledge database with proper indexing.
 
-    Uses KnowledgeDB.add() to ensure the entry is immediately searchable.
-    Falls back to JSONL-only append if KnowledgeDB is unavailable.
+    Preferred flow (txtai/Mem0 pattern):
+    1. Try TCP to running server (immediate index sync)
+    2. Fall back to direct KnowledgeDB.add() (new process, writes to file)
+    3. Fall back to JSONL-only (searchable after server restart)
     """
+    project_path = str(knowledge_dir.parent)
+
+    # Method 1: Try server (best - immediate sync)
+    if send_entry_to_server(entry, project_path):
+        return True
+
+    # Method 2: Direct KnowledgeDB (writes to file, but server has stale index)
     try:
         from knowledge_db import KnowledgeDB
 
-        # Use KnowledgeDB to add with proper indexing
-        db = KnowledgeDB(str(knowledge_dir.parent))
+        db = KnowledgeDB(project_path)
         db.add(entry)
+        debug_log("Entry added via direct KnowledgeDB (server index may be stale)")
         return True
     except ImportError:
         debug_log("KnowledgeDB not available, falling back to JSONL-only")
     except Exception as e:
         debug_log(f"KnowledgeDB.add() failed: {e}, falling back to JSONL-only")
 
-    # Fallback: append to JSONL only (entry won't be searchable until index rebuild)
+    # Method 3: JSONL-only fallback (searchable after server restart)
     entries_file = knowledge_dir / "entries.jsonl"
     with open(entries_file, "a") as f:
         f.write(json.dumps(entry) + "\n")
+    debug_log("Entry appended to JSONL (searchable after server restart)")
 
     return True
 
