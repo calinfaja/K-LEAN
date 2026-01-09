@@ -60,7 +60,7 @@ kln install            # Install components
 kln setup              # Configure API provider
 kln doctor -f          # Diagnose and auto-fix
 kln start              # Start services
-kln models             # List available models
+kln model list         # List available models
 ```
 
 ### Keywords

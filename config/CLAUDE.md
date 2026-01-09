@@ -42,7 +42,7 @@ Per-project semantic search. **Auto-initializes on first SaveThis.**
 kln status     # Component status
 kln doctor -f  # Diagnose + auto-fix
 kln start      # Start services
-kln models     # List with health
+kln model list # List available models
 kln test       # Run test suite
 ```
 
@@ -51,8 +51,8 @@ kln test       # Run test suite
 **Dynamic discovery** from LiteLLM proxy. Models depend on your configuration.
 
 ```bash
-kln models          # List all available models
-kln models --first  # Show default model
+kln model list          # List all available models
+kln model list --first  # Show default model
 ```
 
 Configure in `~/.config/litellm/config.yaml`. Supports NanoGPT, OpenRouter, Ollama, etc.

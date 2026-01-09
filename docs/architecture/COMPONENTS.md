@@ -33,9 +33,9 @@ The K-LEAN CLI provides 17 commands for managing the system.
 | `kln status` | Show installed components and services | ~2s |
 | `kln add-model` | Add individual model (new) | ~1s |
 | `kln remove-model` | Remove model (new) | ~1s |
-| `kln models` | List available models | ~1s |
-| `kln models --health` | Check model health | ~60s |
-| `kln models --test` | Test each model with latency | Slow |
+| `kln model list` | List available models | ~1s |
+| `kln model list --health` | Check model health | ~60s |
+| `kln model list --test` | Test each model with latency | Slow |
 | `kln start` | Start LiteLLM proxy | ~3s |
 | `kln stop` | Stop services | ~1s |
 | `kln sync` | Sync package data (dev) | ~2s |
@@ -49,7 +49,7 @@ The K-LEAN CLI provides 17 commands for managing the system.
 ```
 "Is my SYSTEM configured?" --> kln doctor
 "What's RUNNING now?"      --> kln status
-"Are my MODELS working?"   --> kln models --health
+"Are my MODELS working?"   --> kln model list --health
 ```
 
 ---
@@ -99,9 +99,9 @@ kln status
 Lists and tests available LLM models.
 
 ```bash
-kln models           # List all models
-kln models --health  # Check health (calls each model)
-kln models --test    # Full latency test
+kln model list           # List all models
+kln model list --health  # Check health (calls each model)
+kln model list --test    # Full latency test
 ```
 
 **Dynamic Discovery:** Models are discovered from LiteLLM at runtime, not hardcoded.
@@ -771,8 +771,8 @@ kln start -s all       # Start proxy + KB server
 **Checking Status:**
 ```bash
 kln doctor       # Validate config + subscription
-kln models       # List available models
-kln models --health  # Check model health
+kln model list       # List available models
+kln model list --health  # Check model health
 ```
 
 ---
@@ -825,7 +825,7 @@ cat ~/.klean/logs/litellm.log
 
 **Models Unhealthy:**
 ```bash
-kln models --health
+kln model list --health
 # Shows which models are down
 
 # Common causes:
@@ -1620,7 +1620,7 @@ kln setup      # Configure API provider
 kln status     # Component status
 kln doctor -f  # Diagnose + auto-fix
 kln start      # Start services
-kln models     # List with health
+kln model list # List available models
 kln test       # Run test suite
 ```
 
@@ -1640,7 +1640,7 @@ kln-smol --list   # List available agents
 
 ### 7.6 Available Models
 
-Auto-discovered from LiteLLM. Use `kln models` to see current list.
+Auto-discovered from LiteLLM. Use `kln model list` to see current list.
 
 **Common:** `qwen3-coder`, `deepseek-v3-thinking`, `glm-4.6-thinking`, `kimi-k2-thinking`, `minimax-m2`
 

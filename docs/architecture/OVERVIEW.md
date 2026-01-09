@@ -170,7 +170,7 @@ kln stop             # Stop all services
 # Status
 kln status           # Component status
 kln doctor [-f]      # Diagnose (auto-fix)
-kln models [--health]# List models
+kln model list [--health]  # List models
 
 # Development
 kln test             # Run test suite

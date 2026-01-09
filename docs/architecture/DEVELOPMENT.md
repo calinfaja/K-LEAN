@@ -336,7 +336,7 @@ Before committing:
 ```bash
 kln test              # Run full test suite (27 tests)
 kln doctor            # Validate configuration
-kln models --health   # Check model availability
+kln model list --health  # Check model availability
 ```
 
 ### Test Categories
@@ -482,7 +482,7 @@ kln-smol my-agent "test task"
 | `kln doctor` | Full system diagnostics |
 | `kln doctor -f` | Diagnose + auto-fix |
 | `kln status` | Component status |
-| `kln models --health` | Check model health |
+| `kln model list --health` | Check model health |
 
 ### Issue: LiteLLM Proxy Not Running
 

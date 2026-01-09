@@ -2151,7 +2151,7 @@ def doctor(auto_fix: bool):
     """Validate K-LEAN configuration and services (fast).
 
     Checks: config files, .env, API keys, subscription status, hooks, services.
-    Does NOT check individual model health (use 'kln models --health' for that).
+    Does NOT check individual model health (use 'kln model list --health' for that).
 
     Use --auto-fix (-f) to automatically:
     - Configure Claude Code hooks in settings.json
@@ -2448,8 +2448,8 @@ def doctor(auto_fix: bool):
             f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)"
         )
 
-        # Note: Model health moved to 'kln models --health' for faster doctor execution
-        console.print("  [dim]○[/dim] Model Health: Use [cyan]kln models --health[/cyan]")
+        # Note: Model health moved to 'kln model list --health' for faster doctor execution
+        console.print("  [dim]○[/dim] Model Health: Use [cyan]kln model list --health[/cyan]")
     else:
         if auto_fix:
             console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
