@@ -54,7 +54,7 @@ Claude Code uses a single AI model. K-LEAN adds:
    ┌─────────────────────┐  ┌──────────────────────────────────┐
    │  LiteLLM Proxy      │  │  Knowledge DB (fastembed)        │
    │  localhost:4000     │  │  .knowledge-db/ per project      │
-   │  Dynamic discovery  │  │  Unix socket for fast queries    │
+   │  Dynamic discovery  │  │  TCP localhost for fast queries  │
    └──────────┬──────────┘  └──────────────────────────────────┘
               │
               ▼
@@ -199,17 +199,22 @@ k-lean/
 └── pyproject.toml          # Package metadata
 ```
 
-### Symlink Architecture
+### Installation Architecture
 
 After `kln install`, ~/.claude/ contains:
 
 ```
 ~/.claude/
-├── scripts/        -> src/klean/data/scripts
+├── scripts/        -> src/klean/data/scripts (Python scripts)
 ├── commands/kln/   -> src/klean/data/commands/kln
-├── hooks/          -> src/klean/data/hooks
 ├── lib/            -> src/klean/data/lib
 └── rules/          -> src/klean/data/rules
+
+# Hooks are Python entry points (cross-platform):
+kln-hook-session    -> klean.hooks:session_start
+kln-hook-prompt     -> klean.hooks:prompt_handler
+kln-hook-bash       -> klean.hooks:post_bash
+kln-hook-web        -> klean.hooks:post_web
 ```
 
 ### Per-Project Isolation
@@ -233,8 +238,8 @@ Each git repository gets its own:
 
 ### Review Flow
 ```
-/kln:quick -> hooks -> quick-review.sh
-  -> LiteLLM /chat/completions -> Provider -> response
+/kln:quick -> reviews.quick_review()
+  -> httpx async to LiteLLM /chat/completions -> Provider -> response
   -> parse (content || reasoning_content) -> display
 ```
 
@@ -247,8 +252,8 @@ Each git repository gets its own:
 
 ### Consensus Flow
 ```
-/kln:multi -> consensus-review.sh
-  -> parallel curl to 5 models
+/kln:multi -> reviews.consensus_review()
+  -> httpx async parallel to 5 models
   -> collect responses -> parse JSON
   -> group by location similarity
   -> classify by agreement (HIGH/MEDIUM/LOW)

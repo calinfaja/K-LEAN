@@ -30,9 +30,8 @@ k-lean/
 │   │   └── loader.py       # Agent .md file parser
 │   ├── tools/              # Agent tools (grep, read, search)
 │   └── data/               # Installable assets
-│       ├── scripts/        # 39 shell & Python scripts
+│       ├── scripts/        # Python scripts (shell scripts removed)
 │       ├── commands/kln/   # 9 slash commands
-│       ├── hooks/          # 4 Claude Code hooks
 │       ├── agents/         # 8 SmolKLN agent definitions
 │       └── config/         # LiteLLM & provider templates
 ├── tests/                  # 13 test files
@@ -146,14 +145,18 @@ SmolAgents-based agent system:
 
 ---
 
-## Hooks
+## Hooks (Python Entry Points)
 
-| Hook | File | Trigger |
-|------|------|---------|
-| SessionStart | hooks/session-start.sh | Auto-start LiteLLM + Knowledge Server |
-| UserPromptSubmit | hooks/user-prompt-handler.sh | FindKnowledge, SaveInfo, async reviews |
-| PostToolUse (Bash) | hooks/post-bash-handler.sh | Post-commit docs, timeline |
-| PostToolUse (Web*) | hooks/post-web-handler.sh | Auto-capture URLs |
+Hooks are now cross-platform Python entry points (not shell scripts):
+
+| Hook | Entry Point | Trigger |
+|------|-------------|---------|
+| SessionStart | `kln-hook-session` | Auto-start LiteLLM + Knowledge Server |
+| UserPromptSubmit | `kln-hook-prompt` | FindKnowledge, SaveInfo, async reviews |
+| PostToolUse (Bash) | `kln-hook-bash` | Post-commit docs, timeline |
+| PostToolUse (Web*) | `kln-hook-web` | Auto-capture URLs |
+
+**Source**: `src/klean/hooks.py`
 
 ---
 
@@ -179,37 +182,35 @@ SmolAgents-based agent system:
 **Storage**: `.knowledge-db/` per project
 **Backend**: fastembed-hybrid (ONNX-based, ~313MB models)
 **Search**: RRF fusion (dense BGE + sparse BM42 + cross-encoder reranking)
-**Server**: Unix socket, auto-starts on first use
+**Server**: TCP localhost (cross-platform), auto-starts on first use
 
 | Script | Purpose |
 |--------|---------|
-| knowledge-server.py | Persistent server daemon |
-| knowledge_db.py | Core hybrid search implementation (dense + sparse + reranking) |
-| knowledge-search.py | Semantic search |
+| knowledge-server.py | Persistent TCP server daemon |
+| knowledge_db.py | Core hybrid search (dense + sparse + reranking) |
 | knowledge-capture.py | Entry creation |
-| knowledge-query.sh | CLI query interface |
-| kb-init.sh | Initialize project KB |
+| kb_utils.py | TCP client utilities |
 
 ---
 
-## Key Scripts (35 total)
+## Cross-Platform Modules
 
-### Review Scripts
-- `quick-review.sh` - Single model quick review
-- `consensus-review.sh` - Multi-model consensus
-- `second-opinion.sh` - Alternative perspective
+| Module | Purpose |
+|--------|---------|
+| `src/klean/platform.py` | Paths (platformdirs) + process management (psutil) |
+| `src/klean/reviews.py` | Async code review (quick, consensus, second-opinion) |
+| `src/klean/hooks.py` | Hook handlers (session, prompt, bash, web) |
 
-### Service Scripts
-- `setup-litellm.sh` - LiteLLM proxy setup
-- `start-litellm.sh` - Start proxy
-- `health-check.sh` - Service health
-- `session-helper.sh` - Session management
+### Review Functions (reviews.py)
+- `quick_review()` - Single model async review
+- `consensus_review()` - Multi-model parallel consensus
+- `second_opinion()` - Alternative perspective with fallback
 
-### Utility Scripts
-- `timeline-query.sh` - Query timeline log
-- `smart-capture.sh` - Smart URL capture
-- `fact-extract.sh` - Extract facts from text
-- `async-dispatch.sh` - Async task dispatch
+### Platform Functions (platform.py)
+- `spawn_background()` - Cross-platform background process
+- `kill_process_tree()` - Graceful termination via psutil
+- `get_config_dir()`, `get_runtime_dir()` - platformdirs paths
+- `cleanup_stale_files()` - Remove orphaned port/pid files
 
 ---
 
@@ -230,7 +231,9 @@ SmolAgents-based agent system:
 - click>=8.0.0 - CLI framework
 - rich>=13.0.0 - Terminal formatting
 - pyyaml>=6.0.0 - YAML parsing
-- httpx>=0.27.0 - HTTP client
+- httpx>=0.27.0 - HTTP client (async reviews)
+- psutil>=5.9.0 - Cross-platform process management
+- platformdirs>=4.0.0 - Cross-platform paths
 - fastembed>=0.3.0 - Semantic embeddings (ONNX-based)
 - numpy>=1.24.0 - Numerical operations
 - smolagents[litellm]>=1.17.0 - Agent framework

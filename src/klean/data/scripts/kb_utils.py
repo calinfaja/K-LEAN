@@ -3,15 +3,48 @@
 K-LEAN Knowledge Base Utilities
 ===============================
 Shared utilities for the knowledge database system.
-Single source of truth for project detection, socket management, and configuration.
+Cross-platform support for Windows, Linux, and macOS using TCP sockets.
 """
 
-import hashlib
+import json
 import os
 import socket
 import sys
 from pathlib import Path
-from typing import Optional
+
+# Add parent directory to path for platform imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+
+from klean.platform import (  # noqa: F401 - re-exported for other scripts
+    find_project_root,
+    get_kb_pid_file,
+    get_kb_port_file,
+    get_project_hash,
+    get_runtime_dir,
+    is_process_running,
+    read_pid_file,
+)
+
+# Explicitly declare re-exports
+__all__ = [
+    "find_project_root",
+    "get_kb_pid_file",
+    "get_kb_port_file",
+    "get_project_hash",
+    "get_runtime_dir",
+    "is_process_running",
+    "read_pid_file",
+    "HOST",
+    "KB_DIR_NAME",
+    "PROJECT_MARKERS",
+    "get_server_port",
+    "get_pid_path",
+    "is_kb_initialized",
+    "is_server_running",
+    "clean_stale_socket",
+    "send_command",
+    "search",
+]
 
 # =============================================================================
 # Configuration Constants (with environment variable overrides)
@@ -35,9 +68,9 @@ else:
     KB_SCRIPTS_DIR = Path.home() / ".claude/scripts"
 
 KB_DIR_NAME = ".knowledge-db"
-SOCKET_PREFIX = os.environ.get("KLEAN_SOCKET_DIR", "/tmp") + "/kb-"
+HOST = "127.0.0.1"
 
-# Project markers in priority order (matches kb-root.sh)
+# Project markers in priority order (matches platform.py)
 PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
 
 # V2 Schema defaults for migration
@@ -67,58 +100,26 @@ def debug_log(msg: str, category: str = "kb") -> None:
 
 
 # =============================================================================
-# Project Root Detection
+# Port File Management (TCP-based, cross-platform)
 # =============================================================================
-def find_project_root(start_dir: Optional[str] = None) -> Optional[Path]:
-    """Find project root by walking up looking for project markers.
+def get_server_port(project_path: str | Path) -> int | None:
+    """Get KB server port for a project.
 
-    Priority order (matches kb-root.sh):
-    1. CLAUDE_PROJECT_DIR environment variable
-    2. .knowledge-db directory
-    3. .serena directory
-    4. .claude directory
-    5. .git directory
-
-    Args:
-        start_dir: Starting directory (defaults to cwd)
-
-    Returns:
-        Path to project root or None if not found
-    """
-    # Priority 1: Environment variable
-    env_dir = os.environ.get("CLAUDE_PROJECT_DIR")
-    if env_dir:
-        env_path = Path(env_dir)
-        if env_path.is_dir():
-            return env_path
-
-    # Priority 2-5: Walk up looking for markers
-    current = Path(start_dir) if start_dir else Path.cwd()
-    while current != current.parent:
-        for marker in PROJECT_MARKERS:
-            if (current / marker).is_dir():
-                return current
-        current = current.parent
-    return None
-
-
-# =============================================================================
-# Socket Path Management
-# =============================================================================
-def get_socket_path(project_path: str | Path) -> str:
-    """Get KB server socket path for a project.
-
-    Uses MD5 hash of absolute project path for unique socket name.
+    Reads port from the port file in runtime directory.
 
     Args:
         project_path: Project root directory
 
     Returns:
-        Socket path like /tmp/kb-a1b2c3d4.sock
+        Port number or None if not running
     """
-    path_str = str(Path(project_path).resolve())
-    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
-    return f"{SOCKET_PREFIX}{hash_val}.sock"
+    port_file = get_kb_port_file(Path(project_path))
+    try:
+        if port_file.exists():
+            return int(port_file.read_text().strip())
+    except (ValueError, OSError):
+        pass
+    return None
 
 
 def get_pid_path(project_path: str | Path) -> str:
@@ -128,11 +129,19 @@ def get_pid_path(project_path: str | Path) -> str:
         project_path: Project root directory
 
     Returns:
-        PID file path like /tmp/kb-a1b2c3d4.pid
+        PID file path in runtime directory
     """
-    path_str = str(Path(project_path).resolve())
-    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
-    return f"{SOCKET_PREFIX}{hash_val}.pid"
+    return str(get_kb_pid_file(Path(project_path)))
+
+
+# Legacy aliases for backward compatibility
+def get_socket_path(project_path: str | Path) -> str:
+    """DEPRECATED: Use get_server_port() instead.
+
+    Returns port as string for backward compatibility.
+    """
+    port = get_server_port(project_path)
+    return str(port) if port else ""
 
 
 # =============================================================================
@@ -162,14 +171,14 @@ def is_server_running(project_path: str | Path, timeout: float = 0.5) -> bool:
     Returns:
         True if server responds to ping
     """
-    sock_path = get_socket_path(project_path)
-    if not os.path.exists(sock_path):
+    port = get_server_port(project_path)
+    if not port:
         return False
 
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
-        sock.connect(sock_path)
+        sock.connect((HOST, port))
         sock.sendall(b'{"cmd":"ping"}')
         response = sock.recv(1024).decode()
         sock.close()
@@ -179,26 +188,75 @@ def is_server_running(project_path: str | Path, timeout: float = 0.5) -> bool:
 
 
 def clean_stale_socket(project_path: str | Path) -> bool:
-    """Remove stale socket file if server not responding.
+    """Remove stale port/pid files if server not responding.
 
     Args:
         project_path: Project root directory
 
     Returns:
-        True if socket was cleaned up
+        True if files were cleaned up
     """
-    sock_path = get_socket_path(project_path)
-    if not os.path.exists(sock_path):
+    project = Path(project_path)
+    port_file = get_kb_port_file(project)
+    pid_file = get_kb_pid_file(project)
+
+    if not port_file.exists():
         return False
 
     if not is_server_running(project_path):
         try:
-            os.unlink(sock_path)
-            debug_log(f"Cleaned stale socket: {sock_path}")
+            port_file.unlink(missing_ok=True)
+            pid_file.unlink(missing_ok=True)
+            debug_log(f"Cleaned stale files for: {project_path}")
             return True
         except Exception as e:
-            debug_log(f"Failed to clean socket: {e}")
+            debug_log(f"Failed to clean files: {e}")
     return False
+
+
+# =============================================================================
+# TCP Communication
+# =============================================================================
+def send_command(project_path: str | Path, cmd_data: dict, timeout: float = 5.0) -> dict | None:
+    """Send command to KB server for a project.
+
+    Args:
+        project_path: Project root directory
+        cmd_data: Command dict to send
+        timeout: Socket timeout in seconds
+
+    Returns:
+        Response dict or None if server not running
+    """
+    port = get_server_port(project_path)
+    if not port:
+        return None
+
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        sock.connect((HOST, port))
+        sock.sendall(json.dumps(cmd_data).encode("utf-8"))
+        response = sock.recv(65536).decode("utf-8")
+        sock.close()
+        return json.loads(response)
+    except Exception as e:
+        debug_log(f"Send command failed: {e}")
+        return {"error": str(e)}
+
+
+def search(project_path: str | Path, query: str, limit: int = 5) -> dict | None:
+    """Perform semantic search via KB server.
+
+    Args:
+        project_path: Project root directory
+        query: Search query string
+        limit: Maximum results
+
+    Returns:
+        Search results dict or None if server not running
+    """
+    return send_command(project_path, {"cmd": "search", "query": query, "limit": limit})
 
 
 # =============================================================================

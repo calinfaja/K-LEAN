@@ -11,7 +11,11 @@
   },
   "entry_points": {
     "kln": "src/klean/cli.py:main",
-    "kln-smol": "src/klean/smol/cli.py:main"
+    "kln-smol": "src/klean/smol/cli.py:main",
+    "kln-hook-session": "src/klean/hooks.py:session_start",
+    "kln-hook-prompt": "src/klean/hooks.py:prompt_handler",
+    "kln-hook-bash": "src/klean/hooks.py:post_bash",
+    "kln-hook-web": "src/klean/hooks.py:post_web"
   },
   "core_modules": {
     "cli": {
@@ -82,6 +86,21 @@
     "context": {
       "path": "src/klean/smol/context.py",
       "purpose": "Git context extraction (status, diff, log)"
+    },
+    "platform": {
+      "path": "src/klean/platform.py",
+      "exports": ["spawn_background", "kill_process_tree", "is_process_running", "get_config_dir", "get_runtime_dir", "get_kb_port_file", "cleanup_stale_files"],
+      "purpose": "Cross-platform paths (platformdirs) and process management (psutil)"
+    },
+    "reviews": {
+      "path": "src/klean/reviews.py",
+      "exports": ["quick_review", "consensus_review", "second_opinion", "ReviewResult", "ConsensusResult"],
+      "purpose": "Async code review via httpx (replaces shell scripts)"
+    },
+    "hooks": {
+      "path": "src/klean/hooks.py",
+      "exports": ["session_start", "prompt_handler", "post_bash", "post_web"],
+      "purpose": "Claude Code hook handlers (cross-platform entry points)"
     }
   },
   "slash_commands": {
@@ -95,11 +114,12 @@
     "kln:status": {"file": "data/commands/kln/status.md", "purpose": "System status"},
     "kln:help": {"file": "data/commands/kln/help.md", "purpose": "Command reference"}
   },
-  "hooks": {
-    "session-start": {"file": "data/hooks/session-start.sh", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + Knowledge Server"},
-    "user-prompt-handler": {"file": "data/hooks/user-prompt-handler.sh", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "SaveInfo", "asyncReview", "asyncConsensus"]},
-    "post-bash-handler": {"file": "data/hooks/post-bash-handler.sh", "trigger": "PostToolUse:Bash", "purpose": "Post-commit docs, timeline"},
-    "post-web-handler": {"file": "data/hooks/post-web-handler.sh", "trigger": "PostToolUse:Web*", "purpose": "Auto-capture URLs"}
+  "hooks_config": {
+    "note": "Hooks are Python entry points (cross-platform), not shell scripts",
+    "session-start": {"entry_point": "kln-hook-session", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + Knowledge Server"},
+    "user-prompt-handler": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "SaveInfo", "asyncReview", "asyncConsensus"]},
+    "post-bash-handler": {"entry_point": "kln-hook-bash", "trigger": "PostToolUse:Bash", "purpose": "Post-commit docs, timeline"},
+    "post-web-handler": {"entry_point": "kln-hook-web", "trigger": "PostToolUse:Web*", "purpose": "Auto-capture URLs"}
   },
   "agents": {
     "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "OWASP, SOLID, code quality"},
@@ -121,27 +141,19 @@
       "reranker": "Xenova/ms-marco-MiniLM-L-6-v2"
     },
     "search_pipeline": ["dense", "sparse", "rrf_fusion", "reranking"],
-    "server_type": "unix_socket",
+    "server_type": "tcp_localhost",
     "scripts": {
       "core": "data/scripts/knowledge_db.py",
       "server": "data/scripts/knowledge-server.py",
-      "search": "data/scripts/knowledge-search.py",
       "capture": "data/scripts/knowledge-capture.py",
-      "query_cli": "data/scripts/knowledge-query.sh",
-      "init": "data/scripts/kb-init.sh",
-      "hybrid_search": "data/scripts/knowledge-hybrid-search.py",
-      "events": "data/scripts/knowledge-events.py",
-      "extract": "data/scripts/knowledge-extract.sh",
-      "utils": "data/scripts/kb_utils.py",
-      "doctor": "data/scripts/kb-doctor.sh",
-      "root": "data/scripts/kb-root.sh"
+      "utils": "data/scripts/kb_utils.py"
     }
   },
-  "scripts": {
-    "count": 39,
-    "review": ["quick-review.sh", "consensus-review.sh", "second-opinion.sh"],
-    "service": ["setup-litellm.sh", "start-litellm.sh", "health-check.sh", "session-helper.sh"],
-    "utility": ["timeline-query.sh", "smart-capture.sh", "fact-extract.sh", "async-dispatch.sh"]
+  "cross_platform_modules": {
+    "note": "Shell scripts replaced with Python modules for Windows/Linux/macOS support",
+    "platform": "src/klean/platform.py",
+    "reviews": "src/klean/reviews.py",
+    "hooks": "src/klean/hooks.py"
   },
   "config_files": {
     "pyproject": "pyproject.toml",
@@ -150,7 +162,7 @@
     "serena": ".serena/project.yml"
   },
   "dependencies": {
-    "core": ["click>=8.0.0", "rich>=13.0.0", "pyyaml>=6.0.0", "httpx>=0.27.0"],
+    "core": ["click>=8.0.0", "rich>=13.0.0", "pyyaml>=6.0.0", "httpx>=0.27.0", "psutil>=5.9.0", "platformdirs>=4.0.0"],
     "knowledge": ["fastembed>=0.3.0", "numpy>=1.24.0"],
     "agents": ["smolagents[litellm]>=1.17.0", "ddgs>=6.0.0", "markdownify>=0.11.0", "lizard>=1.17.0"],
     "optional": {
@@ -166,29 +178,32 @@
     "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py", "test_init_command.py", "test_model_management.py", "test_provider_management.py", "test_knowledge_db.py"]
   },
   "file_counts": {
-    "python": 39,
-    "shell": 29,
+    "python": 42,
+    "shell": 16,
     "markdown": 50,
     "yaml_toml": 12,
-    "tests": 13
+    "tests": 13,
+    "note": "Shell scripts reduced from 29 to 16 via Python migration"
   },
   "directories": {
     "installed": {
       "scripts": "~/.claude/scripts/",
       "commands": "~/.claude/commands/kln/",
-      "hooks": "~/.claude/hooks/",
       "config": "~/.config/litellm/",
-      "runtime": "~/.klean/"
+      "runtime": "platformdirs.user_runtime_dir()"
     },
+    "note": "Hooks are Python entry points, not deployed files",
     "per_project": {
       "knowledge_db": ".knowledge-db/"
     }
   },
   "key_patterns": [
+    "Cross-platform support: Windows, Linux, macOS (no shell scripts required)",
     "Dynamic model discovery from LiteLLM",
     "First-available model (user controls priority via config order)",
     "Agent definitions: YAML frontmatter + markdown system prompt",
     "Per-project knowledge DB in .knowledge-db/",
-    "Hook system for Claude Code integration"
+    "TCP localhost IPC (cross-platform alternative to Unix sockets)",
+    "Hook system via Python entry points for Claude Code integration"
   ]
 }

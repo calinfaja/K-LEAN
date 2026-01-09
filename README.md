@@ -28,6 +28,8 @@ One model's confidence isn't proof. K-LEAN brings in **OpenAI, Gemini, DeepSeek,
 
 Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
 
+**Works on Windows, Linux, and macOS** — native cross-platform support, no shell scripts required.
+
 ---
 
 ## Quick Start
@@ -40,12 +42,23 @@ Choose one provider and get your API key:
 
 ### 2. Install
 
+**Linux / macOS:**
 ```bash
 # Install pipx if you don't have it
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
 # Install K-LEAN
+pipx install kln-ai
+```
+
+**Windows (PowerShell):**
+```powershell
+# Install pipx if you don't have it
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Restart PowerShell, then install K-LEAN
 pipx install kln-ai
 ```
 

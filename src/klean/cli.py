@@ -15,7 +15,6 @@ Usage:
 import json
 import os
 import shutil
-import signal
 import subprocess
 import sys
 import time
@@ -38,6 +37,15 @@ from klean import (
     SMOL_AGENTS_DIR,
     VENV_DIR,
     __version__,
+)
+from klean.platform import (
+    cleanup_stale_files,
+    get_kb_pid_file,
+    get_kb_port_file,
+    get_runtime_dir,
+    is_process_running,
+    kill_process_tree,
+    spawn_background,
 )
 
 console = Console()
@@ -149,7 +157,7 @@ def get_kb_project_status() -> tuple:
 
         from kb_utils import (
             find_project_root,
-            get_socket_path,
+            get_server_port,
             is_kb_initialized,
             is_server_running,
         )
@@ -161,8 +169,9 @@ def get_kb_project_status() -> tuple:
         project_name = project.name
 
         if is_server_running(project):
-            # Query server for entry count
-            entries = _query_kb_entries(get_socket_path(project))
+            # Query server for entry count via TCP
+            port = get_server_port(project)
+            entries = _query_kb_entries(port) if port else "?"
             return ("RUNNING", f"({entries} entries)", project_name)
 
         if is_kb_initialized(project):
@@ -176,11 +185,11 @@ def get_kb_project_status() -> tuple:
         return ("ERROR", str(e)[:25], "")
 
 
-def _query_kb_entries(socket_path: str) -> str:
-    """Query KB server for entry count via status command.
+def _query_kb_entries(port: int) -> str:
+    """Query KB server for entry count via TCP status command.
 
     Args:
-        socket_path: Unix socket path
+        port: TCP port number
 
     Returns:
         Entry count as string, or "?" on failure
@@ -188,9 +197,9 @@ def _query_kb_entries(socket_path: str) -> str:
     import socket
 
     try:
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(1.0)
-        sock.connect(socket_path)
+        sock.connect(("127.0.0.1", port))
         sock.sendall(b'{"cmd":"status"}')
         response = sock.recv(4096).decode()
         sock.close()
@@ -308,16 +317,16 @@ def check_command_exists(cmd: str) -> bool:
 
 
 def get_project_socket_path(project_path: Path = None) -> Path:
-    """Get per-project socket path using same hash as knowledge-server.py."""
-    import hashlib
+    """Get per-project port file path (for TCP-based knowledge server).
 
+    Returns the port file path, not a socket path. This is for backwards
+    compatibility - callers should check for port file existence.
+    """
     if project_path is None:
         project_path = find_project_root()
     if not project_path:
         return None
-    path_str = str(project_path.resolve())
-    hash_val = hashlib.md5(path_str.encode()).hexdigest()[:8]
-    return Path(f"/tmp/kb-{hash_val}.sock")
+    return get_kb_port_file(project_path)
 
 
 def find_project_root(start_path: Path = None) -> Path:
@@ -331,52 +340,63 @@ def find_project_root(start_path: Path = None) -> Path:
 
 
 def check_knowledge_server(project_path: Path = None) -> bool:
-    """Check if knowledge server is running for a project via socket."""
+    """Check if knowledge server is running for a project via TCP."""
     import socket as sock
 
-    socket_path = get_project_socket_path(project_path)
-    if not socket_path or not socket_path.exists():
+    if project_path is None:
+        project_path = find_project_root()
+    if not project_path:
         return False
 
-    # Try to actually connect to verify it's alive
+    port_file = get_kb_port_file(project_path)
+    if not port_file.exists():
+        return False
+
     try:
-        client = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
+        port = int(port_file.read_text().strip())
+        client = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
         client.settimeout(1)
-        client.connect(str(socket_path))
+        client.connect(("127.0.0.1", port))
+        client.sendall(b'{"cmd":"ping"}')
+        response = client.recv(1024).decode()
         client.close()
-        return True
-    except OSError:
-        # Socket exists but no server - clean up stale socket
-        try:
-            socket_path.unlink()
-        except Exception:
-            pass
+        return '"pong"' in response
+    except (OSError, ValueError):
+        # Port file exists but no server - clean up stale files
+        cleanup_stale_files(project_path)
         return False
 
 
 def list_knowledge_servers() -> list:
-    """List all running knowledge servers."""
+    """List all running knowledge servers (using TCP)."""
     import json
     import socket as sock
 
     servers = []
-    for socket_file in Path("/tmp").glob("kb-*.sock"):
-        pid_file = socket_file.with_suffix(".pid")
+    runtime_dir = get_runtime_dir()
+
+    # Find all port files in runtime directory
+    for port_file in runtime_dir.glob("kb-*.port"):
+        pid_file = port_file.with_suffix(".pid")
         if pid_file.exists():
             try:
                 pid = int(pid_file.read_text().strip())
+                port = int(port_file.read_text().strip())
+
                 # Check if process is running
-                os.kill(pid, 0)
-                # Get project info via socket
-                client = sock.socket(sock.AF_UNIX, sock.SOCK_STREAM)
+                if not is_process_running(pid):
+                    continue
+
+                # Get project info via TCP
+                client = sock.socket(sock.AF_INET, sock.SOCK_STREAM)
                 client.settimeout(2)
-                client.connect(str(socket_file))
+                client.connect(("127.0.0.1", port))
                 client.sendall(b'{"cmd":"status"}')
                 response = json.loads(client.recv(65536).decode())
                 client.close()
                 servers.append(
                     {
-                        "socket": str(socket_file),
+                        "port": port,
                         "pid": pid,
                         "project": response.get("project", "unknown"),
                         "entries": response.get("entries", 0),
@@ -430,7 +450,7 @@ def start_phoenix(background: bool = True) -> bool:
 
 
 def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool:
-    """Start knowledge server for a project in background if not running.
+    """Start knowledge server for a project in background (cross-platform).
 
     Args:
         project_path: Project root (auto-detected from CWD if None)
@@ -455,32 +475,29 @@ def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool
         venv_python = VENV_DIR / "bin" / "python"
         python_cmd = str(venv_python) if venv_python.exists() else sys.executable
 
+        # Clean up stale files first
+        cleanup_stale_files(project_path)
+
         # Start server in background with log capture
         ensure_klean_dirs()
         log_file = LOGS_DIR / "knowledge-server.log"
 
-        with open(log_file, "a") as log:
-            process = subprocess.Popen(
-                [python_cmd, str(knowledge_script), "start", str(project_path)],
-                stdout=log,
-                stderr=log,
-                cwd=str(project_path),
-                start_new_session=True,  # Detach from parent process
-            )
+        cmd = [python_cmd, str(knowledge_script), "start", str(project_path)]
+        pid = spawn_background(cmd, cwd=project_path, log_file=log_file)
 
         if not wait:
             return True  # Started, but not confirmed
 
-        # Wait for socket (up to 60s for index loading)
-        socket_path = get_project_socket_path(project_path)
+        # Wait for TCP port (up to 60s for index loading)
+        port_file = get_kb_port_file(project_path)
         for _ in range(600):  # 60 seconds
             time.sleep(0.1)
-            if socket_path and socket_path.exists():
+            if port_file.exists():
                 if check_knowledge_server(project_path):
                     return True
 
-        # Process still running but socket not ready = OK, initializing
-        if process.poll() is None:
+        # Process still running but not ready = OK, initializing
+        if is_process_running(pid):
             return True  # Started, will be ready soon
 
         return False  # Process exited = real failure
@@ -531,54 +548,33 @@ def check_litellm_detailed() -> dict[str, Any]:
 
 
 # K-LEAN hooks configuration for Claude Code settings.json
+# Uses Python entry points (cross-platform) instead of shell scripts
 KLEAN_HOOKS_CONFIG = {
     "SessionStart": [
         {
             "matcher": "startup",
-            "hooks": [
-                {"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}
-            ],
+            "hooks": [{"type": "command", "command": "kln-hook-session", "timeout": 10}],
         },
         {
             "matcher": "resume",
-            "hooks": [
-                {"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}
-            ],
+            "hooks": [{"type": "command", "command": "kln-hook-session", "timeout": 10}],
         },
     ],
     "UserPromptSubmit": [
-        {
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/.claude/hooks/user-prompt-handler.sh",
-                    "timeout": 30,
-                }
-            ]
-        }
+        {"hooks": [{"type": "command", "command": "kln-hook-prompt", "timeout": 30}]}
     ],
     "PostToolUse": [
         {
             "matcher": "Bash",
-            "hooks": [
-                {
-                    "type": "command",
-                    "command": "~/.claude/hooks/post-bash-handler.sh",
-                    "timeout": 15,
-                }
-            ],
+            "hooks": [{"type": "command", "command": "kln-hook-bash", "timeout": 15}],
         },
         {
             "matcher": "WebFetch|WebSearch",
-            "hooks": [
-                {"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}
-            ],
+            "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}],
         },
         {
             "matcher": "mcp__tavily__.*",
-            "hooks": [
-                {"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}
-            ],
+            "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}],
         },
     ],
 }
@@ -628,18 +624,17 @@ def merge_klean_hooks(existing_settings: dict) -> tuple[dict, list[str]]:
 
 
 def start_litellm(background: bool = True, port: int = 4000) -> bool:
-    """Start LiteLLM proxy server."""
+    """Start LiteLLM proxy server (cross-platform, no shell scripts)."""
     ensure_klean_dirs()
 
     # Check if already running
     if check_litellm():
         return True
 
-    # Find start script (consolidated to single script)
-    start_script = CLAUDE_DIR / "scripts" / "start-litellm.sh"
-
-    if not start_script.exists():
-        console.print("[red]Error: start-litellm.sh not found[/red]")
+    # Check config exists
+    config_file = CONFIG_DIR / "config.yaml"
+    if not config_file.exists():
+        console.print("[red]Error: ~/.config/litellm/config.yaml not found[/red]")
         console.print("   Run: kln install")
         return False
 
@@ -651,42 +646,52 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
         return False
 
     # Check for litellm binary (in pipx venv or system PATH)
-    if not get_litellm_binary():
+    litellm_bin = get_litellm_binary()
+    if not litellm_bin:
         console.print("[red]Error: litellm not installed. Run: pip install litellm[/red]")
         return False
 
     log_file = LOGS_DIR / "litellm.log"
     pid_file = get_litellm_pid_file()
 
+    # Build command - use litellm binary directly
+    cmd = [
+        str(litellm_bin),
+        "--config",
+        str(config_file),
+        "--port",
+        str(port),
+    ]
+
+    # Load environment from .env file
+    env = os.environ.copy()
+    if env_file.exists():
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                env[key.strip()] = value.strip().strip('"').strip("'")
+
     try:
         if background:
-            # Start in background with nohup
-            with open(log_file, "a") as log:
-                process = subprocess.Popen(
-                    ["bash", str(start_script), str(port)],
-                    stdout=log,
-                    stderr=log,
-                    start_new_session=True,
-                )
-                pid_file.write_text(str(process.pid))
+            # Start in background using platform.spawn_background
+            pid = spawn_background(cmd, cwd=CONFIG_DIR, env=env, log_file=log_file)
+            pid_file.write_text(str(pid))
 
-            # Wait for proxy to be ready
-            # LiteLLM can take 15-30s on cold start, but we don't block forever
-            # Quick check (5s) to catch immediate failures, then trust it's starting
-            for _i in range(50):  # 5 seconds quick check
+            # Wait for proxy to be ready (5s quick check)
+            for _i in range(50):
                 time.sleep(0.1)
                 if check_litellm():
                     return True
 
-            # Process is running but not yet responding - that's OK
-            # LiteLLM takes time to initialize, return success
-            if process.poll() is None:  # Process still running
+            # Process started but not yet responding - check if still running
+            if is_process_running(pid):
                 return True  # Started, will be ready soon
 
             return False  # Process exited = real failure
         else:
             # Run in foreground
-            subprocess.run(["bash", str(start_script), str(port)])
+            subprocess.run(cmd, env=env, cwd=CONFIG_DIR)
             return True
     except Exception as e:
         console.print(f"[red]Error starting LiteLLM: {e}[/red]")
@@ -694,41 +699,50 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
 
 
 def stop_litellm() -> bool:
-    """Stop LiteLLM proxy server."""
+    """Stop LiteLLM proxy server (cross-platform)."""
     pid_file = get_litellm_pid_file()
+    stopped = False
 
     # Try to kill by PID file
     if pid_file.exists():
         try:
             pid = int(pid_file.read_text().strip())
-            os.kill(pid, signal.SIGTERM)
-            pid_file.unlink()
-            time.sleep(0.5)
-            return True
-        except (ProcessLookupError, ValueError):
-            pid_file.unlink()
+            if is_process_running(pid):
+                kill_process_tree(pid, timeout=5.0)
+                stopped = True
+            pid_file.unlink(missing_ok=True)
+        except (ValueError, OSError):
+            pid_file.unlink(missing_ok=True)
 
-    # Try to find and kill litellm process
-    try:
-        result = subprocess.run(["pkill", "-f", "litellm.*--port"], capture_output=True)
-        return result.returncode == 0
-    except Exception:
-        return False
+    # Fallback: find litellm process by pattern (cross-platform via psutil)
+    if not stopped:
+        try:
+            import psutil
+
+            for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+                try:
+                    cmdline = proc.info.get("cmdline") or []
+                    cmdline_str = " ".join(cmdline)
+                    if "litellm" in cmdline_str and "--port" in cmdline_str:
+                        kill_process_tree(proc.info["pid"], timeout=5.0)
+                        stopped = True
+                        break
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except Exception:
+            pass
+
+    return stopped
 
 
 def stop_knowledge_server(project_path: Path = None, stop_all: bool = False) -> bool:
-    """Stop knowledge server(s).
+    """Stop knowledge server(s) (cross-platform).
 
     Args:
         project_path: Stop server for specific project (auto-detect from CWD if None)
         stop_all: If True, stop ALL running knowledge servers
     """
-    knowledge_script = CLAUDE_DIR / "scripts" / "knowledge-server.py"
-    if not knowledge_script.exists():
-        return False
-
-    venv_python = VENV_DIR / "bin" / "python"
-    python_cmd = str(venv_python) if venv_python.exists() else sys.executable
+    runtime_dir = get_runtime_dir()
 
     if stop_all:
         # Stop all running servers
@@ -738,19 +752,19 @@ def stop_knowledge_server(project_path: Path = None, stop_all: bool = False) -> 
 
         for server in servers:
             try:
-                os.kill(server["pid"], signal.SIGTERM)
+                kill_process_tree(server["pid"], timeout=5.0)
             except Exception:
                 pass
 
-        # Clean up all sockets
-        for socket_file in Path("/tmp").glob("kb-*.sock"):
+        # Clean up all port and pid files
+        for port_file in runtime_dir.glob("kb-*.port"):
             try:
-                socket_file.unlink()
+                port_file.unlink(missing_ok=True)
             except Exception:
                 pass
-        for pid_file in Path("/tmp").glob("kb-*.pid"):
+        for pid_file in runtime_dir.glob("kb-*.pid"):
             try:
-                pid_file.unlink()
+                pid_file.unlink(missing_ok=True)
             except Exception:
                 pass
         return True
@@ -762,19 +776,24 @@ def stop_knowledge_server(project_path: Path = None, stop_all: bool = False) -> 
     if not project_path:
         return False  # No project found
 
-    socket_path = get_project_socket_path(project_path)
-    if not socket_path or not socket_path.exists():
+    # Check if running via PID file
+    pid_file = get_kb_pid_file(project_path)
+    port_file = get_kb_port_file(project_path)
+
+    if not pid_file.exists() and not port_file.exists():
         return True  # Not running
 
-    try:
-        subprocess.run(
-            [python_cmd, str(knowledge_script), "stop", str(project_path)],
-            capture_output=True,
-            timeout=5,
-        )
-        time.sleep(0.5)
-    except Exception:
-        pass
+    # Kill by PID
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text().strip())
+            if is_process_running(pid):
+                kill_process_tree(pid, timeout=5.0)
+        except (ValueError, OSError):
+            pass
+
+    # Clean up files
+    cleanup_stale_files(project_path)
 
     # Verify stopped
     return not check_knowledge_server(project_path)
@@ -1721,7 +1740,7 @@ def install(dev: bool, component: str, yes: bool):
     source_base = DATA_DIR
     source_scripts = source_base / "scripts"
     source_commands_kln = source_base / "commands" / "kln"
-    source_hooks = source_base / "hooks"
+    # Note: Hooks are now Python entry points, not shell scripts
     source_config = source_base / "config"
     source_lib = source_base / "lib"
     source_core = source_base / "core"
@@ -1768,17 +1787,14 @@ def install(dev: bool, component: str, yes: bool):
         # SC commands are optional and from external system - skip by default
         # Users can manage SC commands separately
 
-    # Install hooks
+    # Install hooks - hooks are now Python entry points (cross-platform)
     if component in ["all", "hooks"]:
         console.print("[bold]Installing hooks...[/bold]")
-        hooks_dst = CLAUDE_DIR / "hooks"
-        if source_hooks.exists():
-            count = copy_files(source_hooks, hooks_dst, "*.sh", symlink=dev)
-            make_executable(hooks_dst)
-            installed["hooks"] = count
-            console.print(f"  [green]Installed {count} hooks[/green]")
-        else:
-            console.print("  [yellow]Hooks source not found[/yellow]")
+        # Hooks are Python entry points installed via pip/pipx (kln-hook-*)
+        # They don't need to be copied - just configured in settings.json
+        console.print("  [dim]Hooks are Python entry points (kln-hook-*)[/dim]")
+        console.print("  [dim]Configured in settings.json (see below)[/dim]")
+        installed["hooks"] = 4  # session, prompt, bash, web
 
     # Install SmolKLN agents
     if component in ["all", "smolkln"]:
