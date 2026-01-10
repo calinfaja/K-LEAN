@@ -2101,8 +2101,10 @@ def uninstall(yes: bool):
     stop_litellm()
     stop_knowledge_server(stop_all=True)
 
-    # Create backup directory
+    # Create backup directory (remove old backup if exists)
     backup_dir = CLAUDE_DIR / "backups" / f"kln-{__version__}"
+    if backup_dir.exists():
+        shutil.rmtree(backup_dir)
     ensure_dir(backup_dir)
 
     # Backup and remove
