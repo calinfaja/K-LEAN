@@ -41,7 +41,7 @@ $PYTHON $CORE quick -m "MODEL" -c /tmp/kln-review.txt "FOCUS"
 **MODEL**: `--model` flag or "auto"
 **FOCUS**: Extract from user request (e.g., "security", "performance") or "code quality"
 
-**Model names:** If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
+**Model names:** If user gives partial name (e.g. "qwen"), run `$PYTHON $CORE status` to list available models and find full match. The core module handles partial name resolution automatically.
 
 ## Flags
 
@@ -49,3 +49,13 @@ $PYTHON $CORE quick -m "MODEL" -c /tmp/kln-review.txt "FOCUS"
 - `-c, --context-file` - File containing code to review (alternative to stdin)
 - `-o, --output` - Output format: text (default), json, markdown
 - `--telemetry` - Enable Phoenix telemetry tracing
+- `--async, -a` - Run in background (continue working, check results later)
+
+## Background Execution
+
+To run reviews in background:
+- Add `--async` flag: `/kln:quick --async "security review"`
+- Or say: "run this in background"
+- Press `Ctrl+B` while command is running to background it
+
+Background tasks return immediately with a task ID. Check status with `/tasks` or ask "what's the review status?"

@@ -18,7 +18,7 @@ Comprehensive extraction and saving of session learnings before clearing context
 
 **NOT for:**
 - Mid-session (wait until ready to clear context)
-- Quick notes → use `SaveThis` keyword instead
+- Mid-session learnings → use `/kln:learn` instead
 - Code review → use `/kln:quick`, `/kln:multi`, or `/kln:agent`
 
 **Use this command at the END of a productive session, before running `/clear` or `/compact`.**
@@ -70,13 +70,9 @@ Review the session and identify learnings in these categories:
 
 For each significant learning, save using knowledge-capture.py:
 
-```bash
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-capture.py \
-    "<concise description of the learning>" \
-    --type <type> \
-    --tags "<tag1>,<tag2>" \
-    --priority <priority>
-```
+The knowledge-capture.py script saves entries via TCP to the KB server.
+
+**Format**: `"<concise description>" --type <type> --tags "<tags>" --priority <priority>`
 
 **Types:** `lesson`, `finding`, `solution`, `pattern`, `warning`, `best-practice`
 
@@ -269,14 +265,14 @@ Recent commits: "Fix SessionStart for resume", "Add kb-doctor.sh"
 
 **Warnings (2):**
 - SessionStart hook needs BOTH startup+resume matchers
-- JSONL corruption from bash heredocs - use jq -nc
+- Cross-platform paths differ between Windows/Linux/macOS
 
 **Patterns (2):**
-- Per-project KB servers with socket /tmp/kb-{hash}.sock
-- Socket communication fallback: nc → socat → Python
+- Per-project KB servers with TCP port (14000 + hash offset)
+- Python entry points work cross-platform via pipx
 
 **Solutions (1):**
-- kb-doctor.sh diagnoses and auto-repairs KB issues
+- `kln doctor -f` diagnoses and auto-repairs KB issues
 
  Saving to Knowledge DB...
 

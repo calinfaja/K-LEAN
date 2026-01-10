@@ -15,26 +15,20 @@
 
 **Flags**: `--async` (background), `--models N` (count), `--output json/text`
 
-## Quick Commands (Type directly)
+## Hook Keywords (Type directly)
 
-| Shortcut | Action |
-|----------|--------|
-| `SaveThis <lesson>` | Save a lesson learned |
+| Keyword | Action |
+|---------|--------|
 | `FindKnowledge <query>` | Search knowledge DB |
+| `SaveInfo <url>` | Evaluate URL with LLM and save if relevant |
 
 ## Knowledge Database
 
-Per-project semantic search. **Auto-initializes on first SaveThis.**
+Per-project semantic search. **Auto-initializes on first use.**
 
-```bash
-# Query via server (~30ms)
-~/.claude/scripts/knowledge-query.sh "<topic>"
+Queries go through the TCP server (~30ms) which auto-starts on session begin.
 
-# Direct query (~17s cold)
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-search.py "<query>"
-```
-
-**Storage**: `.knowledge-db/` per project | **Server**: Auto-starts on first use
+**Storage**: `.knowledge-db/` per project | **Server**: TCP on port 14000+hash
 
 ## K-LEAN CLI
 
@@ -68,9 +62,7 @@ Configure in `~/.config/litellm/config.yaml`. Supports NanoGPT, OpenRouter, Olla
 
 Chronological log at `.knowledge-db/timeline.txt`
 
-```bash
-~/.claude/scripts/timeline-query.sh [today|week|commits|reviews|<search>]
-```
+Events logged automatically by hooks. Query via Knowledge DB search.
 
 ## LiteLLM Setup
 

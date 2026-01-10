@@ -18,7 +18,7 @@ Create comprehensive session documentation and persist to Serena memories.
 
 **NOT for:**
 - End-of-session knowledge capture with KB → use `/kln:remember`
-- Quick notes → use `SaveThis` keyword
+- Mid-session learnings → use `/kln:learn`
 - Code review documentation → use `/kln:agent` for detailed review
 
 ## Arguments
@@ -67,7 +67,7 @@ Extract and save lessons learned:
 3. Patterns discovered
 4. Gotchas encountered
 
-Use SaveThis keyword format for knowledge DB integration.
+Use `/kln:learn` for knowledge DB integration.
 
 ## Output
 

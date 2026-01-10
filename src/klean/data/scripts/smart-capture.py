@@ -6,7 +6,7 @@ Evaluates external content (URLs, files) using LiteLLM to determine
 if it's worth saving to the knowledge database.
 
 This is the "SaveInfo" command - for capturing external content.
-For saving insights from conversation, use SaveThis (knowledge-capture.py).
+For saving insights from conversation, use /kln:learn (context-aware extraction).
 
 Usage:
   smart-capture.py <url> [--search-context "query"]

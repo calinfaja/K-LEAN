@@ -53,6 +53,8 @@ Found N learnings to save:
 
 1. [type] Title
    Description of the insight
+   Atomic insight: One-sentence takeaway
+   Source: file.py:42 (if from a specific file)
    Tags: tag1, tag2
 
 2. [type] Title
@@ -61,14 +63,26 @@ Found N learnings to save:
 
 2. **Ask for confirmation**: "Save all? [Y/n/edit]"
 
-3. **Save each** using knowledge-capture.py:
+3. **Save each** using knowledge-capture.py with V2 schema (JSON input):
 ```bash
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-capture.py \
-    "<insight text - be specific and actionable>" \
-    --type <type> \
-    --tags <tag1,tag2,tag3> \
-    --priority <priority>
+    --json-input '{
+      "title": "Short descriptive title",
+      "summary": "Detailed description of the insight",
+      "atomic_insight": "One-sentence actionable takeaway",
+      "type": "solution|warning|pattern|finding|lesson|best-practice",
+      "priority": "critical|high|medium|low",
+      "tags": ["tag1", "tag2"],
+      "key_concepts": ["searchable", "terms"],
+      "source": "conversation",
+      "source_path": "path/to/file.py:42"
+    }' --json
 ```
+
+**IMPORTANT - Include These Fields:**
+- `atomic_insight`: Always generate a single-sentence, actionable takeaway
+- `source_path`: Include `file:line` if the learning came from a specific file
+- `key_concepts`: Extract 3-5 searchable terms for better retrieval
 
 4. **Confirm** what was saved with total count.
 

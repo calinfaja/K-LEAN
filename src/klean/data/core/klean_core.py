@@ -11,6 +11,7 @@ import re
 import sys
 import time
 import urllib.request
+import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -27,6 +28,10 @@ try:
     SDK_AVAILABLE = True
 except ImportError:
     SDK_AVAILABLE = False
+
+# Suppress Pydantic serialization warnings from LiteLLM
+# These occur when response fields don't match Pydantic models exactly
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 
 # ------------------------------------------------------------------------------
 # Configuration

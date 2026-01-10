@@ -32,6 +32,16 @@ $ARGUMENTS
 - `-c, --context-file` - File containing code to review (alternative to stdin)
 - `-o, --output` - Output format: text (default), json, markdown
 - `--telemetry` - Enable Phoenix telemetry tracing
+- `--async, -a` - Run in background (continue working, check results later)
+
+## Background Execution
+
+To run multi-model reviews in background:
+- Add `--async` flag: `/kln:multi --async "security audit"`
+- Or say: "run this in background"
+- Press `Ctrl+B` while command is running to background it
+
+Background tasks return immediately with a task ID. Check status with `/tasks` or ask "what's the review status?"
 
 ## Your Job
 
@@ -68,7 +78,7 @@ Execute the command above and display the aggregated results showing:
 
 ## Model Discovery
 
-Models are **dynamically discovered** from LiteLLM proxy. If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
+Models are **dynamically discovered** from LiteLLM proxy. If user gives partial name (e.g. "qwen"), run `$PYTHON $CORE status` to list available models. The core module handles partial name resolution automatically.
 
 The system automatically:
 1. Queries LiteLLM for available models at runtime

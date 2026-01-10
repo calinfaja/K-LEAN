@@ -32,7 +32,6 @@ from klean.platform import (
     spawn_background,
 )
 
-
 # =============================================================================
 # Hook I/O Helpers
 # =============================================================================
@@ -48,7 +47,7 @@ def _read_input() -> dict[str, Any]:
         data = sys.stdin.read()
         if data:
             return json.loads(data)
-    except (json.JSONDecodeError, IOError):
+    except (json.JSONDecodeError, OSError):
         pass
     return {}
 
@@ -217,7 +216,7 @@ def _start_kb_server(project_path: Path) -> bool:
 
 
 def session_start() -> None:
-    """SessionStart hook - auto-start LiteLLM + KB server.
+    """SessionStart hook - auto-start LiteLLM + KB server + inject context.
 
     Input: {"source": "startup"|"resume"|"clear"|"compact", ...}
     Output: Plain text context or JSON with additionalContext
@@ -251,11 +250,60 @@ def session_start() -> None:
                 if _start_kb_server(project_root):
                     messages.append(f"Knowledge server started for {project_root.name}")
 
+            # Inject recent/important KB entries as context (only on startup/resume)
+            if source in ("startup", "resume"):
+                context = _get_kb_context(project_root)
+                if context:
+                    messages.append(context)
+
     # Output status
     if messages:
         _output_text("K-LEAN: " + "; ".join(messages))
 
     sys.exit(0)
+
+
+def _get_kb_context(project_root: Path) -> str:
+    """Get recent/important KB entries for context injection.
+
+    Args:
+        project_root: Project root path.
+
+    Returns:
+        Formatted context string or empty string.
+    """
+    import socket
+
+    if not _is_kb_server_running(project_root):
+        return ""
+
+    try:
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "recent", "limit": 3}).encode())
+        response = sock.recv(65536).decode()
+        sock.close()
+
+        data = json.loads(response)
+        entries = data.get("entries", [])
+
+        if not entries:
+            return ""
+
+        # Format as brief context
+        lines = ["Recent learnings:"]
+        for e in entries:
+            title = e.get("title", "")[:60]
+            entry_type = e.get("type", "lesson")
+            lines.append(f"  [{entry_type}] {title}")
+
+        return "\n".join(lines)
+    except Exception:
+        return ""
 
 
 def prompt_handler() -> None:
@@ -320,12 +368,12 @@ def prompt_handler() -> None:
 
 
 def post_bash() -> None:
-    """PostToolUse (Bash) hook - git commit detection.
+    """PostToolUse (Bash) hook - git commit detection and capture.
 
     Input: {"tool_name": "Bash", "tool_input": {"command": "..."}, ...}
     Output: {"systemMessage": "..."} for notifications
 
-    Detects git commits and logs to timeline.
+    Detects git commits and saves them to KB.
 
     Exit code: 0 always
     """
@@ -339,11 +387,119 @@ def post_bash() -> None:
 
     _debug_log(f"post_bash: {command[:50]}...")
 
-    # Detect git commit
+    # Detect git commit and capture to KB
     if "git commit" in command and "-m" in command:
-        _log_to_timeline("commit", f"Git commit: {command[:100]}")
+        _capture_git_commit()
 
     sys.exit(0)
+
+
+def _capture_git_commit() -> None:
+    """Capture the latest git commit to Knowledge DB.
+
+    Extracts commit hash, message, and changed files.
+    Saves as a 'commit' type entry.
+    """
+    import subprocess
+
+    project_root = find_project_root()
+    if not project_root:
+        return
+
+    try:
+        # Get commit info: hash|subject|author
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%H|%s|%an"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode != 0:
+            return
+
+        parts = result.stdout.strip().split("|", 2)
+        if len(parts) < 2:
+            return
+
+        commit_hash = parts[0][:8]  # Short hash
+        commit_msg = parts[1] if len(parts) > 1 else ""
+        author = parts[2] if len(parts) > 2 else ""
+
+        # Get changed files
+        result = subprocess.run(
+            ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        changed_files = result.stdout.strip().split("\n") if result.returncode == 0 else []
+        changed_files = [f for f in changed_files if f][:10]  # Limit to 10 files
+
+        # Log to timeline
+        _log_to_timeline("commit", f"[{commit_hash}] {commit_msg[:60]}")
+
+        # Save to KB if server is running
+        if not _is_kb_server_running(project_root):
+            return
+
+        import socket
+
+        entry = {
+            "title": f"Commit: {commit_msg[:80]}",
+            "summary": f"Git commit {commit_hash} by {author}: {commit_msg}",
+            "type": "commit",
+            "source": "git",
+            "source_path": f"git:{commit_hash}",
+            "tags": ["git", "commit"] + _extract_commit_tags(commit_msg),
+            "key_concepts": changed_files[:5],
+            "priority": "low",
+            "quality": "medium",
+        }
+
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
+        sock.recv(1024)
+        sock.close()
+
+        _debug_log(f"Captured commit {commit_hash} to KB")
+    except Exception as e:
+        _debug_log(f"Failed to capture commit: {e}")
+
+
+def _extract_commit_tags(commit_msg: str) -> list[str]:
+    """Extract tags from conventional commit message.
+
+    Args:
+        commit_msg: Git commit message.
+
+    Returns:
+        List of tags extracted from commit type/scope.
+    """
+    tags = []
+    # Match conventional commit: type(scope)!: message
+    if ":" in commit_msg:
+        prefix = commit_msg.split(":")[0].lower()
+        # Strip breaking change indicator "!" before parsing
+        prefix = prefix.rstrip("!")
+        # Extract type and scope
+        if "(" in prefix:
+            commit_type = prefix.split("(")[0]
+            scope = prefix.split("(")[1].rstrip(")").rstrip("!")
+            if commit_type:
+                tags.append(commit_type)
+            if scope:
+                tags.append(scope)
+        else:
+            if prefix:
+                tags.append(prefix)
+    return tags[:3]  # Limit tags
 
 
 def post_web() -> None:
@@ -417,14 +573,19 @@ def _handle_find_knowledge(query: str) -> str:
             if not results:
                 return f"No results found for: {query}"
 
+            # Track usage for returned results
+            result_ids = [r.get("id") for r in results if r.get("id")]
+            if result_ids:
+                _update_usage(project_root, result_ids)
+
             output = [f"Found {len(results)} results for '{query}':\n"]
             for r in results:
                 score = r.get("score", 0)
                 title = r.get("title", r.get("id", "?"))
-                content = r.get("content", "")[:200]
+                summary = r.get("summary", "")[:200]
                 output.append(f"  [{score:.2f}] {title}")
-                if content:
-                    output.append(f"    {content}...")
+                if summary:
+                    output.append(f"    {summary}...")
 
             return "\n".join(output)
         except Exception as e:
@@ -433,11 +594,38 @@ def _handle_find_knowledge(query: str) -> str:
     return "Knowledge server not running. Start it with: kln start"
 
 
-def _handle_save_info(content: str) -> str:
-    """Handle SaveInfo keyword.
+def _update_usage(project_root: Path, entry_ids: list[str]) -> None:
+    """Update usage stats for retrieved entries.
 
     Args:
-        content: URL or text to save.
+        project_root: Project root path.
+        entry_ids: List of entry IDs to update.
+    """
+    import socket
+
+    try:
+        port_file = get_kb_port_file(project_root)
+        if not port_file.exists():
+            return
+
+        port = int(port_file.read_text().strip())
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "update_usage", "ids": entry_ids}).encode())
+        sock.recv(1024)  # Discard response
+        sock.close()
+    except Exception:
+        pass  # Non-critical, fail silently
+
+
+def _handle_save_info(content: str) -> str:
+    """Handle SaveInfo keyword - extract and save knowledge from URL.
+
+    Uses LiteLLM with dynamic model discovery to extract key points.
+
+    Args:
+        content: URL to fetch and process.
 
     Returns:
         Result message.
@@ -447,11 +635,210 @@ def _handle_save_info(content: str) -> str:
         return "No project found"
 
     # Check if it's a URL
-    if content.startswith(("http://", "https://")):
-        # Would trigger smart capture here
-        return f"SaveInfo: URL capture not yet implemented in Python hooks. URL: {content}"
+    if not content.startswith(("http://", "https://")):
+        return "SaveInfo: Expected a URL"
 
-    return "SaveInfo: Expected a URL"
+    url = content.strip()
+
+    # Check if KB server is running
+    if not _is_kb_server_running(project_root):
+        return "SaveInfo: Knowledge server not running. Start with: kln start"
+
+    try:
+        # Fetch URL content
+        import httpx
+
+        _debug_log(f"SaveInfo: Fetching {url}")
+        resp = httpx.get(url, timeout=15, follow_redirects=True)
+        resp.raise_for_status()
+
+        # Get text content (strip HTML if needed)
+        content_type = resp.headers.get("content-type", "")
+        if "html" in content_type:
+            # Simple HTML stripping - just get text
+            import re
+
+            text = re.sub(r"<[^>]+>", " ", resp.text)
+            text = re.sub(r"\s+", " ", text).strip()
+        else:
+            text = resp.text
+
+        # Truncate for LLM
+        text = text[:8000]
+
+        # Get model from discovery
+        model = _get_first_healthy_model()
+        if not model:
+            # Fallback: save raw URL without extraction
+            return _save_url_raw(project_root, url)
+
+        # Extract knowledge using LLM
+        _debug_log(f"SaveInfo: Extracting with model {model}")
+        extracted = _extract_from_url(url, text, model)
+
+        if not extracted:
+            return _save_url_raw(project_root, url)
+
+        # Save to KB
+        import socket
+
+        entry = {
+            "title": extracted.get("title", url[:60]),
+            "summary": extracted.get("summary", text[:500]),
+            "atomic_insight": extracted.get("atomic_insight", ""),
+            "type": "web",
+            "source": "web",
+            "source_path": url,
+            "tags": extracted.get("tags", ["web"]),
+            "key_concepts": extracted.get("key_concepts", []),
+            "priority": "medium",
+            "quality": "medium",
+        }
+
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
+        response = sock.recv(1024).decode()
+        sock.close()
+
+        result = json.loads(response)
+        if result.get("status") == "ok":
+            title = entry["title"][:50]
+            return f"SaveInfo: Saved '{title}' from {url}"
+        else:
+            return f"SaveInfo: Failed to save - {result.get('error', 'unknown')}"
+
+    except httpx.HTTPError as e:
+        return f"SaveInfo: Failed to fetch URL - {e}"
+    except Exception as e:
+        _debug_log(f"SaveInfo error: {e}")
+        return f"SaveInfo: Error processing URL - {e}"
+
+
+def _get_first_healthy_model() -> str | None:
+    """Get first available model from LiteLLM using dynamic discovery.
+
+    Returns:
+        Model name or None if LiteLLM not available.
+    """
+    try:
+        import httpx
+
+        resp = httpx.get("http://localhost:4000/v1/models", timeout=3)
+        if resp.status_code == 200:
+            models = [m["id"] for m in resp.json().get("data", [])]
+            return models[0] if models else None
+    except Exception:
+        pass
+    return None
+
+
+def _extract_from_url(url: str, text: str, model: str) -> dict | None:
+    """Extract knowledge from URL content using LLM.
+
+    Args:
+        url: Source URL.
+        text: Page content.
+        model: LiteLLM model to use.
+
+    Returns:
+        Dict with title, summary, atomic_insight, key_concepts, tags.
+    """
+    try:
+        import httpx
+
+        prompt = f"""Extract knowledge from this web page content. Return JSON only.
+
+URL: {url}
+
+Content:
+{text[:6000]}
+
+Return this exact JSON structure:
+{{
+  "title": "Short descriptive title (max 80 chars)",
+  "summary": "2-3 sentence summary of key information",
+  "atomic_insight": "Single sentence actionable takeaway",
+  "key_concepts": ["concept1", "concept2", "concept3"],
+  "tags": ["tag1", "tag2"]
+}}
+
+JSON:"""
+
+        resp = httpx.post(
+            "http://localhost:4000/v1/chat/completions",
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 500,
+            },
+            timeout=30,
+        )
+
+        if resp.status_code != 200:
+            return None
+
+        content = resp.json()["choices"][0]["message"]["content"]
+
+        # Handle thinking models that return in reasoning_content
+        if not content:
+            content = resp.json()["choices"][0]["message"].get("reasoning_content", "")
+
+        # Extract JSON from response
+        import re
+
+        json_match = re.search(r"\{[^{}]*\}", content, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group())
+
+    except Exception as e:
+        _debug_log(f"LLM extraction failed: {e}")
+
+    return None
+
+
+def _save_url_raw(project_root: Path, url: str) -> str:
+    """Save URL without LLM extraction (fallback).
+
+    Args:
+        project_root: Project root path.
+        url: URL to save.
+
+    Returns:
+        Result message.
+    """
+    import socket
+
+    try:
+        entry = {
+            "title": f"Web: {url[:60]}",
+            "summary": f"URL saved for reference: {url}",
+            "type": "web",
+            "source": "web",
+            "source_path": url,
+            "tags": ["web", "url"],
+            "priority": "low",
+            "quality": "low",
+        }
+
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
+        sock.recv(1024)
+        sock.close()
+
+        return f"SaveInfo: Saved URL (no LLM extraction): {url}"
+    except Exception as e:
+        return f"SaveInfo: Failed to save URL - {e}"
 
 
 def _handle_init_kb() -> str:

@@ -276,8 +276,8 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
 
 
 def make_executable(path: Path) -> None:
-    """Make shell and Python scripts executable."""
-    for pattern in ["*.sh", "*.py"]:
+    """Make Python scripts executable."""
+    for pattern in ["*.py"]:
         for script in path.glob(pattern):
             if script.exists():
                 script.chmod(script.stat().st_mode | 0o111)
@@ -309,6 +309,29 @@ def _check_smolagents_installed() -> bool:
         return True
     except ImportError:
         return False
+
+
+def _count_configured_hooks() -> int:
+    """Count kln-hook-* entry points configured in settings.json."""
+    settings_path = CLAUDE_DIR / "settings.json"
+    if not settings_path.exists():
+        return 0
+
+    try:
+        import json
+
+        settings = json.loads(settings_path.read_text())
+        hooks = settings.get("hooks", {})
+        count = 0
+        for _event, hook_list in hooks.items():
+            for hook_config in hook_list:
+                hook_entries = hook_config.get("hooks", [])
+                for entry in hook_entries:
+                    if isinstance(entry, dict) and "kln-hook-" in entry.get("command", ""):
+                        count += 1
+        return count
+    except Exception:
+        return 0
 
 
 def check_command_exists(cmd: str) -> bool:
@@ -1042,21 +1065,26 @@ def query_phoenix_traces(limit: int = 500) -> Optional[dict]:
 
 
 def get_model_health() -> dict[str, str]:
-    """Check health of each model."""
+    """Check health of each model via LiteLLM API."""
     health = {}
-    health_script = CLAUDE_DIR / "scripts" / "health-check-model.sh"
-
     models = discover_models()
+
     for model in models:
         try:
-            if health_script.exists():
-                result = subprocess.run(
-                    ["bash", str(health_script), model], capture_output=True, text=True, timeout=10
-                )
-                health[model] = "OK" if result.returncode == 0 else "FAIL"
-            else:
-                health[model] = "UNKNOWN"
-        except subprocess.TimeoutExpired:
+            # Quick health check via LiteLLM completion with minimal tokens
+            import httpx
+
+            response = httpx.post(
+                "http://localhost:4000/v1/chat/completions",
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": "Hi"}],
+                    "max_tokens": 5,
+                },
+                timeout=15.0,
+            )
+            health[model] = "OK" if response.status_code == 200 else "FAIL"
+        except httpx.TimeoutException:
             health[model] = "TIMEOUT"
         except Exception:
             health[model] = "ERROR"
@@ -1648,7 +1676,8 @@ def model_remove(model_name: str):
 @model.command(name="test")
 @click.argument("model", required=False)
 @click.option("--prompt", "-p", help="Custom prompt to test with")
-def model_test(model: Optional[str], prompt: Optional[str]):
+@click.option("--timeout", "-t", default=30, help="Request timeout in seconds (default: 30)")
+def model_test(model: Optional[str], prompt: Optional[str], timeout: int):
     """Test a specific model with a quick prompt."""
     print_banner()
 
@@ -1681,7 +1710,7 @@ def model_test(model: Optional[str], prompt: Optional[str]):
                 "messages": [{"role": "user", "content": test_prompt}],
                 "max_tokens": 100,
             },
-            timeout=30,
+            timeout=timeout,
         )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
@@ -1824,23 +1853,16 @@ def install(dev: bool, component: str, yes: bool):
 
     installed = {}
 
-    # Install scripts
+    # Install scripts (Python only - cross-platform)
     if component in ["all", "scripts"]:
         console.print("[bold]Installing scripts...[/bold]")
         scripts_dst = CLAUDE_DIR / "scripts"
 
-        # Also copy lib/ for common.sh dependency
-        if source_lib.exists():
-            lib_dst = CLAUDE_DIR / "lib"
-            count = copy_files(source_lib, lib_dst, "*.sh", symlink=dev)
-            make_executable(lib_dst)
-
         if source_scripts.exists():
-            count = copy_files(source_scripts, scripts_dst, "*.sh", symlink=dev)
-            count += copy_files(source_scripts, scripts_dst, "*.py", symlink=dev)
+            count = copy_files(source_scripts, scripts_dst, "*.py", symlink=dev)
             make_executable(scripts_dst)
             installed["scripts"] = count
-            console.print(f"  [green]Installed {count} scripts[/green]")
+            console.print(f"  [green]Installed {count} Python scripts[/green]")
         else:
             console.print(f"  [yellow]Scripts source not found: {source_scripts}[/yellow]")
 
@@ -2117,13 +2139,12 @@ def status():
     table.add_column("Status", style="green")
     table.add_column("Details", style="dim")
 
-    # Scripts
+    # Scripts (Python only - cross-platform)
     scripts_dir = CLAUDE_DIR / "scripts"
     if scripts_dir.exists():
-        sh_scripts = list(scripts_dir.glob("*.sh"))
         py_scripts = list(scripts_dir.glob("*.py"))
-        count = len(sh_scripts) + len(py_scripts)
-        is_symlink = any(f.is_symlink() for f in sh_scripts + py_scripts)
+        count = len(py_scripts)
+        is_symlink = any(f.is_symlink() for f in py_scripts)
         mode = "(symlinked)" if is_symlink else "(copied)"
         table.add_row("Scripts", f"OK ({count})", mode)
     else:
@@ -2137,13 +2158,13 @@ def status():
     else:
         table.add_row("KLN Commands", "[red]NOT INSTALLED[/red]", "")
 
-    # Hooks
-    hooks_dir = CLAUDE_DIR / "hooks"
-    if hooks_dir.exists():
-        count = len(list(hooks_dir.glob("*.sh")))
-        table.add_row("Hooks", f"OK ({count})", "")
+    # Hooks (Python entry points - registered in settings.json)
+    # Hooks are now kln-hook-* entry points, not shell scripts
+    hooks_configured = _count_configured_hooks()
+    if hooks_configured > 0:
+        table.add_row("Hooks", f"OK ({hooks_configured})", "entry points")
     else:
-        table.add_row("Hooks", "[yellow]NOT INSTALLED[/yellow]", "optional")
+        table.add_row("Hooks", "[yellow]NOT CONFIGURED[/yellow]", "run kln install")
 
     # SmolKLN Agents
     smolkln_agents_dir = SMOL_AGENTS_DIR
@@ -2222,7 +2243,7 @@ def status():
 
     # Check if running in dev mode (symlinks present)
     if scripts_dir.exists():
-        sample_script = next(scripts_dir.glob("*.sh"), None)
+        sample_script = next(scripts_dir.glob("*.py"), None)
         if sample_script and sample_script.is_symlink():
             target = sample_script.resolve().parent.parent
             console.print(f"  Mode: [cyan]Development (symlinked to {target})[/cyan]")
@@ -2279,7 +2300,7 @@ def doctor(auto_fix: bool):
     if CONFIG_DIR.exists():
         config_yaml = CONFIG_DIR / "config.yaml"
         if not config_yaml.exists():
-            issues.append(("INFO", "LiteLLM config.yaml not found - run setup-litellm.sh"))
+            issues.append(("INFO", "LiteLLM config.yaml not found - run `kln init`"))
         else:
             # Check for common config errors
             try:
@@ -2331,7 +2352,7 @@ def doctor(auto_fix: bool):
         # Check .env file
         env_file = CONFIG_DIR / ".env"
         if not env_file.exists():
-            issues.append(("ERROR", "LiteLLM .env file not found - run setup-litellm.sh"))
+            issues.append(("ERROR", "LiteLLM .env file not found - run `kln init`"))
             console.print("  [red]✗[/red] LiteLLM .env: NOT FOUND")
         else:
             env_content = env_file.read_text()

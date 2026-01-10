@@ -180,7 +180,10 @@ class KnowledgeServer:
         has_entries = (db_path / "entries.jsonl").exists()
 
         if not has_fastembed and not has_txtai and not has_entries:
-            return False
+            # Auto-initialize empty database
+            db_path.mkdir(parents=True, exist_ok=True)
+            (db_path / "entries.jsonl").touch()
+            print(f"Auto-initialized empty Knowledge DB at {db_path}")
 
         print(f"Loading index from {db_path}...")
         start = time.time()
@@ -265,6 +268,30 @@ class KnowledgeServer:
                         response = {"status": "ok", "id": entry_id}
                     except Exception as e:
                         response = {"error": f"Failed to add entry: {e}"}
+            elif cmd == "update_usage":
+                # Track usage: increment usage_count, update last_used
+                entry_ids = request.get("ids", [])
+                if not entry_ids:
+                    response = {"error": "No ids provided"}
+                elif not self.db:
+                    response = {"error": "No index loaded"}
+                else:
+                    try:
+                        updated = self.db.update_usage(entry_ids)
+                        response = {"status": "ok", "updated": updated}
+                    except Exception as e:
+                        response = {"error": f"Failed to update usage: {e}"}
+            elif cmd == "recent":
+                # Get recent/high-priority entries for context injection
+                limit = request.get("limit", 3)
+                if not self.db:
+                    response = {"error": "No index loaded"}
+                else:
+                    try:
+                        entries = self.db.get_recent_important(limit)
+                        response = {"status": "ok", "entries": entries}
+                    except Exception as e:
+                        response = {"error": f"Failed to get recent: {e}"}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 

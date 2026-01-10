@@ -771,6 +771,113 @@ class KnowledgeDB:
         entries.sort(key=lambda x: x.get("found_date", ""), reverse=True)
         return entries[:limit]
 
+    def update_usage(self, entry_ids: list[str]) -> int:
+        """
+        Update usage stats for retrieved entries.
+
+        Increments usage_count and sets last_used to now.
+        This tracks which knowledge is actually being used.
+
+        Args:
+            entry_ids: List of entry IDs to update
+
+        Returns:
+            Number of entries updated
+        """
+        if not entry_ids or not self.jsonl_path.exists():
+            return 0
+
+        now = datetime.now().isoformat()
+        updated_count = 0
+        entries = []
+        id_set = set(entry_ids)
+
+        # Read all entries
+        with open(self.jsonl_path) as f:
+            for line in f:
+                if line.strip():
+                    try:
+                        entry = json.loads(line)
+                        if isinstance(entry, dict):
+                            if entry.get("id") in id_set:
+                                entry["usage_count"] = entry.get("usage_count", 0) + 1
+                                entry["last_used"] = now
+                                updated_count += 1
+                            entries.append(entry)
+                    except json.JSONDecodeError:
+                        pass
+
+        # Rewrite file with updated entries
+        if updated_count > 0:
+            with open(self.jsonl_path, "w") as f:
+                for entry in entries:
+                    f.write(json.dumps(entry) + "\n")
+
+            # Update cached entries too
+            for i, entry in enumerate(self._entries):
+                if entry.get("id") in id_set:
+                    self._entries[i]["usage_count"] = entry.get("usage_count", 0) + 1
+                    self._entries[i]["last_used"] = now
+
+        return updated_count
+
+    def get_recent_important(self, limit: int = 3) -> list[dict[str, Any]]:
+        """
+        Get recent and/or high-priority entries for context injection.
+
+        Prioritizes by a combination of:
+        - Recency (found_date)
+        - Priority (critical > high > medium > low)
+        - Usage count (frequently used = valuable)
+
+        Args:
+            limit: Maximum entries to return
+
+        Returns:
+            List of important entries with title, summary, type
+        """
+        if not self._entries:
+            return []
+
+        # Score entries
+        priority_scores = {"critical": 100, "high": 50, "medium": 20, "low": 10}
+        scored = []
+
+        for entry in self._entries:
+            score = 0
+            # Priority weight
+            score += priority_scores.get(entry.get("priority", "medium"), 20)
+            # Usage weight (each use adds 5 points)
+            score += entry.get("usage_count", 0) * 5
+            # Recency weight - entries from last 24h get bonus
+            try:
+                found = datetime.fromisoformat(entry.get("found_date", ""))
+                age_hours = (datetime.now() - found).total_seconds() / 3600
+                if age_hours < 24:
+                    score += 30  # Recent bonus
+                elif age_hours < 168:  # 1 week
+                    score += 10
+            except (ValueError, TypeError):
+                pass
+
+            scored.append((score, entry))
+
+        # Sort by score descending
+        scored.sort(key=lambda x: x[0], reverse=True)
+
+        # Return simplified entries
+        results = []
+        for _, entry in scored[:limit]:
+            results.append({
+                "id": entry.get("id"),
+                "title": entry.get("title", ""),
+                "summary": entry.get("summary", "")[:200],
+                "type": entry.get("type", "lesson"),
+                "priority": entry.get("priority", "medium"),
+            })
+
+        return results
+
     def add_structured(self, data: dict) -> str:
         """
         Add a pre-structured entry (from Claude session or smart-capture).

@@ -448,11 +448,15 @@ knowledge-capture.py "lesson text" --type lesson --tags tag1,tag2
 ### 3.5 Query Methods
 
 ```bash
-# Via server (~30ms)
+# Via TCP server (~30ms) - recommended
 echo '{"cmd":"search","query":"auth bug","limit":5}' | nc localhost 14XXX
 
-# Via capture script
-~/.claude/scripts/knowledge-query.sh "search term"
+# Via Python kb_utils (cross-platform)
+python -c "
+from kb_utils import find_project_root, search
+result = search(find_project_root(), 'auth bug', limit=5)
+print(result)
+"
 
 # Direct Python (slower, ~17s cold start)
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge_db.py search "query"

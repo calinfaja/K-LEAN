@@ -20,17 +20,13 @@
 - `FindKnowledge <query>` - Search knowledge DB
 - `SaveInfo <url>` - Evaluate URL with LLM and save if relevant
 
-**Script Syntax (when calling directly):**
-```bash
-# Knowledge capture - NO "add" subcommand
-~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-capture.py \
-    "lesson text" --type lesson --tags tag1,tag2 --priority medium
+**Python API (cross-platform):**
+```python
+# Knowledge capture via TCP (server must be running)
+# Use kb_utils.py or knowledge-capture.py from pipx venv
 
 # Types: lesson, finding, solution, pattern, warning, best-practice
 # Priority: low, medium, high, critical
-
-# Search
-~/.claude/scripts/knowledge-query.sh "<query>"
 ```
 
 **CLI:** `kln status` | `kln doctor -f` | `kln model list`

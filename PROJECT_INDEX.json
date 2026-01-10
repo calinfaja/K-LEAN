@@ -2,12 +2,12 @@
   "project": {
     "name": "k-lean",
     "package_name": "kln-ai",
-    "version": "1.0.0b5",
+    "version": "1.0.0b6",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
-    "generated": "2026-01-03",
+    "generated": "2026-01-09",
     "python_version": ">=3.9",
     "license": "Apache-2.0",
-    "lines_of_code": 5350
+    "cross_platform": true
   },
   "entry_points": {
     "kln": "src/klean/cli.py:main",
@@ -20,7 +20,7 @@
   "core_modules": {
     "cli": {
       "path": "src/klean/cli.py",
-      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "multi", "model", "admin", "configure_statusline", "get_litellm_binary"],
+      "exports": ["main", "init", "install", "uninstall", "status", "doctor", "start", "stop", "multi", "model", "provider", "admin"],
       "command_structure": {
         "root": ["init", "install", "uninstall", "start", "stop", "status", "doctor", "multi"],
         "model_subgroup": ["list", "add", "remove", "test"],
@@ -29,97 +29,76 @@
       },
       "purpose": "Primary CLI with Click commands, organized into root + 3 subgroups"
     },
-    "model_utils": {
-      "path": "src/klean/model_utils.py",
-      "exports": ["extract_model_name", "parse_model_id", "is_thinking_model"],
-      "purpose": "Model name extraction, parsing, and thinking model detection"
+    "hooks": {
+      "path": "src/klean/hooks.py",
+      "exports": ["session_start", "prompt_handler", "post_bash", "post_web"],
+      "purpose": "Cross-platform Python hook entry points (read JSON stdin, output JSON stdout)"
     },
-    "config_generator": {
-      "path": "src/klean/config_generator.py",
-      "exports": ["generate_litellm_config", "load_config_yaml", "merge_models_into_config", "add_model_to_config", "remove_model_from_config", "list_models_in_config"],
-      "purpose": "LiteLLM configuration generation and management with smart merging"
-    },
-    "model_defaults": {
-      "path": "src/klean/model_defaults.py",
-      "exports": ["get_nanogpt_models", "get_openrouter_models", "NANOGPT_MODELS", "OPENROUTER_MODELS"],
-      "purpose": "Default model configurations for each provider"
-    },
-    "discovery": {
-      "path": "src/klean/discovery.py",
-      "exports": ["list_models", "get_model", "is_available", "clear_cache"],
-      "purpose": "Dynamic model discovery from LiteLLM proxy"
-    },
-    "smol": {
-      "path": "src/klean/smol/",
-      "modules": 16,
-      "purpose": "SmolAgents-based agent system"
-    },
-    "executor": {
-      "path": "src/klean/smol/executor.py",
-      "exports": ["SmolKLNExecutor"],
-      "purpose": "Single agent execution with tool use"
-    },
-    "multi_agent": {
-      "path": "src/klean/smol/multi_agent.py",
-      "exports": ["MultiAgentExecutor"],
-      "purpose": "Multi-agent orchestration and consensus"
-    },
-    "multi_config": {
-      "path": "src/klean/smol/multi_config.py",
-      "exports": ["get_3_agent_config", "get_4_agent_config", "get_models"],
-      "purpose": "Agent configuration (3 or 4 agent variants)"
-    },
-    "loader": {
-      "path": "src/klean/smol/loader.py",
-      "exports": ["parse_agent_file", "load_agent", "list_available_agents", "AgentConfig", "Agent"],
-      "purpose": "Agent definition loading from markdown"
-    },
-    "tools": {
-      "path": "src/klean/smol/tools.py",
-      "exports": ["read_file", "grep", "search_files", "git_diff", "git_status", "git_log", "list_directory", "get_file_info", "get_default_tools"],
-      "purpose": "Agent tools for code analysis"
-    },
-    "models": {
-      "path": "src/klean/smol/models.py",
-      "purpose": "LiteLLM model wrapper, thinking model support"
-    },
-    "context": {
-      "path": "src/klean/smol/context.py",
-      "purpose": "Git context extraction (status, diff, log)"
+    "reviews": {
+      "path": "src/klean/reviews.py",
+      "exports": ["quick_review", "consensus_review", "second_opinion", "ReviewResult", "ConsensusResult"],
+      "purpose": "Async code review via httpx with thinking model support"
     },
     "platform": {
       "path": "src/klean/platform.py",
       "exports": ["spawn_background", "kill_process_tree", "is_process_running", "get_config_dir", "get_runtime_dir", "get_kb_port_file", "cleanup_stale_files"],
       "purpose": "Cross-platform paths (platformdirs) and process management (psutil)"
     },
-    "reviews": {
-      "path": "src/klean/reviews.py",
-      "exports": ["quick_review", "consensus_review", "second_opinion", "ReviewResult", "ConsensusResult"],
-      "purpose": "Async code review via httpx (replaces shell scripts)"
+    "config_generator": {
+      "path": "src/klean/config_generator.py",
+      "exports": ["generate_litellm_config", "load_config_yaml", "merge_models_into_config", "add_model_to_config", "remove_model_from_config"],
+      "purpose": "LiteLLM configuration generation with non-destructive merging"
     },
-    "hooks": {
-      "path": "src/klean/hooks.py",
-      "exports": ["session_start", "prompt_handler", "post_bash", "post_web"],
-      "purpose": "Claude Code hook handlers (cross-platform entry points)"
+    "discovery": {
+      "path": "src/klean/discovery.py",
+      "exports": ["list_models", "get_model", "is_available", "clear_cache"],
+      "purpose": "Dynamic model discovery from LiteLLM proxy"
+    },
+    "model_utils": {
+      "path": "src/klean/model_utils.py",
+      "exports": ["extract_model_name", "parse_model_id", "is_thinking_model"],
+      "purpose": "Model name extraction, parsing, and thinking model detection"
+    },
+    "model_defaults": {
+      "path": "src/klean/model_defaults.py",
+      "exports": ["get_nanogpt_models", "get_openrouter_models"],
+      "purpose": "Default model configurations for each provider"
+    }
+  },
+  "smol_system": {
+    "path": "src/klean/smol/",
+    "modules": {
+      "executor": {"exports": ["SmolKLNExecutor"], "purpose": "Single agent execution with tool use"},
+      "orchestrator": {"exports": ["SmolKLNOrchestrator", "quick_orchestrate"], "purpose": "Multi-agent coordination"},
+      "memory": {"exports": ["AgentMemory", "SessionMemory", "MemoryEntry"], "purpose": "Context management and KB integration"},
+      "tools": {"exports": ["read_file", "grep", "search_files", "get_default_tools"], "purpose": "Agent tools for code analysis"},
+      "models": {"purpose": "LiteLLM model wrapper, thinking model support"},
+      "loader": {"exports": ["parse_agent_file", "load_agent", "list_available_agents"], "purpose": "Agent definition loading from markdown"},
+      "context": {"purpose": "Git context extraction (status, diff, log)"},
+      "reflection": {"purpose": "Agent self-reflection and retry"},
+      "async_executor": {"purpose": "Background async execution"},
+      "task_queue": {"purpose": "Persistent task queue"},
+      "mcp_tools": {"purpose": "MCP tool integration"}
     }
   },
   "slash_commands": {
     "kln:quick": {"file": "data/commands/kln/quick.md", "purpose": "Fast single-model review (~30s)"},
     "kln:multi": {"file": "data/commands/kln/multi.md", "purpose": "Multi-model consensus (~60s)"},
     "kln:agent": {"file": "data/commands/kln/agent.md", "purpose": "SmolKLN specialist agents (~2min)"},
-    "kln:rethink": {"file": "data/commands/kln/rethink.md", "purpose": "Contrarian debugging"},
+    "kln:rethink": {"file": "data/commands/kln/rethink.md", "purpose": "Contrarian debugging (4 techniques)"},
     "kln:learn": {"file": "data/commands/kln/learn.md", "purpose": "Context-aware learning extraction"},
     "kln:remember": {"file": "data/commands/kln/remember.md", "purpose": "End-of-session capture"},
     "kln:doc": {"file": "data/commands/kln/doc.md", "purpose": "Documentation generation"},
     "kln:status": {"file": "data/commands/kln/status.md", "purpose": "System status"},
     "kln:help": {"file": "data/commands/kln/help.md", "purpose": "Command reference"}
   },
-  "hooks_config": {
+  "hooks": {
     "note": "Hooks are Python entry points (cross-platform), not shell scripts",
-    "session-start": {"entry_point": "kln-hook-session", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + Knowledge Server"},
-    "user-prompt-handler": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "SaveInfo", "asyncReview", "asyncConsensus"]},
-    "post-bash-handler": {"entry_point": "kln-hook-bash", "trigger": "PostToolUse:Bash", "purpose": "Post-commit docs, timeline"},
-    "post-web-handler": {"entry_point": "kln-hook-web", "trigger": "PostToolUse:Web*", "purpose": "Auto-capture URLs"}
+    "protocol": "Read JSON stdin, output JSON stdout. Exit 0=success, 2=block",
+    "session-start": {"entry_point": "kln-hook-session", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + KB server"},
+    "user-prompt": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "SaveInfo", "InitKB", "asyncReview", "asyncConsensus"]},
+    "post-bash": {"entry_point": "kln-hook-bash", "trigger": "PostToolUse:Bash", "purpose": "Git timeline logging"},
+    "post-web": {"entry_point": "kln-hook-web", "trigger": "PostToolUse:Web*", "purpose": "Auto-capture web content"}
   },
   "agents": {
     "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "OWASP, SOLID, code quality"},
@@ -131,7 +110,6 @@
     "arm-cortex-expert": {"file": "data/agents/arm-cortex-expert.md", "specialty": "ARM MCU, real-time"},
     "orchestrator": {"file": "data/agents/orchestrator.md", "specialty": "Multi-agent coordination"}
   },
-  "agent_tools": ["read_file", "search_files", "grep", "knowledge_search", "get_complexity"],
   "knowledge_db": {
     "storage": ".knowledge-db/",
     "backend": "fastembed-hybrid",
@@ -141,69 +119,53 @@
       "reranker": "Xenova/ms-marco-MiniLM-L-6-v2"
     },
     "search_pipeline": ["dense", "sparse", "rrf_fusion", "reranking"],
-    "server_type": "tcp_localhost",
+    "server": {
+      "type": "tcp_localhost",
+      "port": "14000 + hash_offset",
+      "features": ["server-owned writes", "immediate indexing", "add command"]
+    },
     "scripts": {
-      "core": "data/scripts/knowledge_db.py",
       "server": "data/scripts/knowledge-server.py",
       "capture": "data/scripts/knowledge-capture.py",
+      "core": "data/scripts/knowledge_db.py",
       "utils": "data/scripts/kb_utils.py"
     }
   },
-  "cross_platform_modules": {
-    "note": "Shell scripts replaced with Python modules for Windows/Linux/macOS support",
-    "platform": "src/klean/platform.py",
-    "reviews": "src/klean/reviews.py",
-    "hooks": "src/klean/hooks.py"
-  },
-  "config_files": {
-    "pyproject": "pyproject.toml",
-    "litellm_nanogpt": "config/litellm/config.yaml",
-    "litellm_openrouter": "config/litellm/openrouter.yaml",
-    "serena": ".serena/project.yml"
+  "tests": {
+    "framework": "pytest",
+    "path": "tests/unit/",
+    "key_files": [
+      "test_platform.py",
+      "test_hooks.py",
+      "test_reviews.py",
+      "test_knowledge_server.py",
+      "test_cli_integration.py",
+      "test_discovery.py",
+      "test_loader.py"
+    ]
   },
   "dependencies": {
     "core": ["click>=8.0.0", "rich>=13.0.0", "pyyaml>=6.0.0", "httpx>=0.27.0", "psutil>=5.9.0", "platformdirs>=4.0.0"],
     "knowledge": ["fastembed>=0.3.0", "numpy>=1.24.0"],
     "agents": ["smolagents[litellm]>=1.17.0", "ddgs>=6.0.0", "markdownify>=0.11.0", "lizard>=1.17.0"],
     "optional": {
+      "telemetry": ["arize-phoenix>=4.0", "opentelemetry-sdk"],
       "agent-sdk": ["anthropic>=0.34.0,<1.0.0"],
-      "telemetry": ["arize-phoenix>=4.0", "opentelemetry-sdk", "opentelemetry-exporter-otlp"],
-      "toon": ["python-toon>=0.1.0"]
-    }
-  },
-  "tests": {
-    "framework": "pytest",
-    "path": "tests/",
-    "count": 13,
-    "files": ["test_discovery.py", "test_loader.py", "test_context.py", "test_memory.py", "test_tools_citations.py", "test_doctor_hooks.py", "test_async_completion.py", "test_llm_client.py", "test_cli_integration.py", "test_init_command.py", "test_model_management.py", "test_provider_management.py", "test_knowledge_db.py"]
-  },
-  "file_counts": {
-    "python": 42,
-    "shell": 16,
-    "markdown": 50,
-    "yaml_toml": 12,
-    "tests": 13,
-    "note": "Shell scripts reduced from 29 to 16 via Python migration"
-  },
-  "directories": {
-    "installed": {
-      "scripts": "~/.claude/scripts/",
-      "commands": "~/.claude/commands/kln/",
-      "config": "~/.config/litellm/",
-      "runtime": "platformdirs.user_runtime_dir()"
-    },
-    "note": "Hooks are Python entry points, not deployed files",
-    "per_project": {
-      "knowledge_db": ".knowledge-db/"
+      "dev": ["pytest", "black", "ruff"]
     }
   },
   "key_patterns": [
-    "Cross-platform support: Windows, Linux, macOS (no shell scripts required)",
-    "Dynamic model discovery from LiteLLM",
-    "First-available model (user controls priority via config order)",
+    "Cross-platform first: Python entry points, TCP IPC, platformdirs",
+    "Dynamic model discovery from LiteLLM (no hardcoding)",
+    "Server-owned writes: KB entries immediately searchable via TCP",
+    "Thinking model handling: Both content and reasoning_content supported",
     "Agent definitions: YAML frontmatter + markdown system prompt",
-    "Per-project knowledge DB in .knowledge-db/",
-    "TCP localhost IPC (cross-platform alternative to Unix sockets)",
-    "Hook system via Python entry points for Claude Code integration"
-  ]
+    "Per-project isolation: .knowledge-db/ and .claude/kln/ per repo"
+  ],
+  "documentation": {
+    "overview": "docs/architecture/OVERVIEW.md",
+    "components": "docs/architecture/COMPONENTS.md",
+    "development": "docs/architecture/DEVELOPMENT.md",
+    "migration": "docs/shell-to-python-migration.md"
+  }
 }

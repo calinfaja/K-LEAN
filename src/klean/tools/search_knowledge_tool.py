@@ -1,11 +1,9 @@
 """Search knowledge database tool for Agent SDK droids.
 
 This tool allows droids to query the knowledge database in real-time during analysis.
+Uses TCP connection to the knowledge server (cross-platform).
 """
 
-import json
-import subprocess
-from pathlib import Path
 from typing import Any
 
 from ..tools import tool
@@ -22,6 +20,8 @@ async def search_knowledge(
     This tool enables droids to integrate knowledge from the project's
     knowledge database, enhancing analysis with learned patterns,
     best practices, and historical findings.
+
+    Uses TCP connection to the knowledge server (cross-platform).
 
     Args:
         query: Search query (e.g., "SQL injection prevention")
@@ -46,66 +46,68 @@ async def search_knowledge(
             for item in kb_result["results"]:
                 print(f"Found: {item.get('title')}")
     """
+    import sys
+    from pathlib import Path
+
     try:
-        # Try to query knowledge server via socket
-        script_path = Path.home() / ".claude" / "scripts" / "knowledge-query.sh"
+        # Add scripts dir to path for kb_utils import (inside function to avoid import issues)
+        scripts_dir = Path(__file__).parent.parent / "data" / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
 
-        if not script_path.exists():
-            return {
-                "success": False,
-                "error": "Knowledge query script not found",
-                "query": query,
-            }
-
-        # Execute knowledge query
-        result = subprocess.run(
-            [str(script_path), query],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-
-        if result.returncode != 0:
-            return {
-                "success": False,
-                "error": result.stderr if result.stderr else "Query failed",
-                "query": query,
-            }
-
-        # Parse results
+        # Import kb_utils for TCP communication
         try:
-            results = json.loads(result.stdout)
-            if not isinstance(results, list):
-                results = [results] if results else []
-        except json.JSONDecodeError:
+            from kb_utils import find_project_root, search
+        except ImportError:
             return {
                 "success": False,
-                "error": "Invalid JSON from knowledge server",
+                "error": "kb_utils not available - knowledge server may not be installed",
                 "query": query,
-                "raw": result.stdout[:500],
             }
+
+        # Find project root
+        project_path = find_project_root()
+        if not project_path:
+            return {
+                "success": False,
+                "error": "Not in a project directory (no .git, .claude, or .knowledge-db found)",
+                "query": query,
+            }
+
+        # Query via TCP
+        result = search(project_path, query, limit=limit)
+
+        if result is None:
+            return {
+                "success": False,
+                "error": "Knowledge server not running. Start with: kln start -s knowledge",
+                "query": query,
+            }
+
+        if "error" in result:
+            return {
+                "success": False,
+                "error": result["error"],
+                "query": query,
+            }
+
+        # Extract results
+        results = result.get("results", [])
 
         # Filter by relevance score
         filtered = [
-            r for r in results if isinstance(r, dict) and r.get("relevance_score", 0) >= min_score
+            r for r in results
+            if isinstance(r, dict) and r.get("relevance_score", 0) >= min_score
         ]
-
-        # Limit results
-        filtered = filtered[:limit]
 
         return {
             "success": True,
             "query": query,
             "results": filtered,
             "total": len(filtered),
+            "search_time_ms": result.get("search_time_ms"),
         }
 
-    except subprocess.TimeoutExpired:
-        return {
-            "success": False,
-            "error": "Knowledge search timeout",
-            "query": query,
-        }
     except Exception as e:
         return {
             "success": False,

@@ -33,7 +33,7 @@ $ARGUMENTS
 - `--parallel, -p` - Run 3 agents in parallel
 - `--async, -a` - Run in background
 
-**Model names:** If user gives partial name (e.g. "qwen"), run `curl -s localhost:4000/models | jq -r '.data[].id'` to find full match.
+**Model names:** If user gives partial name (e.g. "qwen"), run `kln model list` to list available models and find full match. The kln-smol executor handles partial name resolution automatically.
 
 **Role names:** If user gives partial role (e.g. "security"), match to full name from: `ls ~/.klean/agents/*.md | xargs -I{} basename {} .md`
 

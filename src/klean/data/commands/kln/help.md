@@ -170,5 +170,5 @@ kln model list --test   # Test all models with latency
 - Quick reference: `/kln:status`
 - Model health: `kln model list --health`
 - System diagnostics: `kln doctor -f`
-- Timeline: `~/.claude/scripts/timeline-query.sh today`
+- Knowledge search: `FindKnowledge <query>`
 

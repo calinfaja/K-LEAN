@@ -47,22 +47,16 @@ When invoked:
    ```
 
 3. **For "health" subcommand:**
-   Check all critical services:
+   Check all critical services using `kln doctor`:
 
-   - **LiteLLM Proxy:**
-     ```bash
-     curl -s localhost:4000/health
-     ```
-     Expected: `{"status":"ok"}`
+   ```bash
+   kln doctor
+   ```
 
-   - **Knowledge Database:**
-     ```bash
-     ~/.claude/scripts/knowledge-query.sh "test"
-     ```
-     Check if query returns results or server is accessible
-
-   - **Serena MCP Server:**
-     Verify Serena tools are available in the current session
+   Or check individually:
+   - **LiteLLM Proxy:** `kln model list` (lists models if healthy)
+   - **Knowledge Database:** Use KB Python API or check server port file
+   - **Serena MCP Server:** Verify Serena tools are available in session
 
 4. **For "help" subcommand:**
    Display this quick reference:
