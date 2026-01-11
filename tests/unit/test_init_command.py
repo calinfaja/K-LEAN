@@ -1,5 +1,6 @@
 """Tests for kln init command."""
 
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -150,9 +151,10 @@ def test_init_creates_env_file():
             env_file = config_dir / ".env"
             assert env_file.exists()
 
-            # Check file permissions (should be 0o600 = read/write for owner only)
-            mode = env_file.stat().st_mode
-            assert (mode & 0o077) == 0  # No group/other permissions
+            # Check file permissions (Unix only - Windows doesn't have Unix permissions)
+            if sys.platform != "win32":
+                mode = env_file.stat().st_mode
+                assert (mode & 0o077) == 0  # No group/other permissions
 
 
 def test_init_nanogpt_creates_models():

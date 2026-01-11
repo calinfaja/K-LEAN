@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+
 # =============================================================================
 # Path Utilities Tests
 # =============================================================================
@@ -26,12 +27,13 @@ class TestGetConfigDir:
         result = get_config_dir()
         assert isinstance(result, Path)
 
-    def test_directory_name_is_klean(self):
-        """Should return path ending with 'klean'."""
+    def test_directory_contains_klean(self):
+        """Should return path containing 'klean'."""
         from klean.platform import get_config_dir
 
         result = get_config_dir()
-        assert result.name == "klean"
+        # Path structure varies by platform, but should contain 'klean'
+        assert "klean" in str(result)
 
     def test_directory_exists(self):
         """Should ensure directory exists."""
@@ -52,12 +54,13 @@ class TestGetCacheDir:
         result = get_cache_dir()
         assert isinstance(result, Path)
 
-    def test_directory_name_is_klean(self):
-        """Should return path ending with 'klean'."""
+    def test_directory_contains_klean(self):
+        """Should return path containing 'klean'."""
         from klean.platform import get_cache_dir
 
         result = get_cache_dir()
-        assert result.name == "klean"
+        # Path structure varies by platform (Windows adds /Cache suffix)
+        assert "klean" in str(result)
 
 
 class TestGetRuntimeDir:
