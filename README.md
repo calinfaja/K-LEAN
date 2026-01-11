@@ -348,7 +348,7 @@ K-LEAN comes with **curated model sets** for each provider—no manual configura
 | `gpt-5-mini` | OpenAI | Efficient |
 | `gpt-5.1-codex-mini` | OpenAI | Code-focused |
 | `qwen3-coder-plus` | Alibaba | Enhanced coding |
-| `deepseek-v3.2-speciale` | DeepSeek | Specialized |
+| `deepseek-v3.2` | DeepSeek | Reasoning |
 
 ---
 

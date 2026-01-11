@@ -20,8 +20,8 @@ OPENROUTER_DEFAULTS = [
         "model_id": "openrouter/qwen/qwen3-coder-plus",
     },
     {
-        "model_name": "deepseek-v3.2-speciale",
-        "model_id": "openrouter/deepseek/deepseek-v3.2-speciale",
+        "model_name": "deepseek-v3.2",
+        "model_id": "openrouter/deepseek/deepseek-v3.2",
     },
     {
         "model_name": "gpt-5-mini",
