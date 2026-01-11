@@ -109,7 +109,7 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
             synced += 1
             print(f"  [OK] [{lesson['type']}] {lesson['title'][:60]}")
         except Exception as e:
-            print(f"  ✗ Failed: {lesson['title'][:40]} - {e}")
+            print(f"  [X] Failed: {lesson['title'][:40]} - {e}")
 
     return synced
 

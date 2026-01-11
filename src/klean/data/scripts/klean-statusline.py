@@ -251,7 +251,7 @@ def get_services(data: dict) -> str:
     if llm_running and llm_count >= 1:
         llm = f"{C.GREEN}{llm_count}{C.RESET}"
     else:
-        llm = f"{C.RED}✗{C.RESET}"
+        llm = f"{C.RED}[X]{C.RESET}"
 
     # Knowledge DB status - meaningful messages
     if kb_status == "running":

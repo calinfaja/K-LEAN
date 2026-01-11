@@ -52,6 +52,10 @@ from klean.platform import (
 
 console = Console()
 
+# Cross-platform ASCII symbols (Windows cp1252 can't encode Unicode)
+SYM_OK = "[OK]"
+SYM_FAIL = "[X]"
+
 
 def get_litellm_binary() -> Path | None:
     """Find litellm binary - checks pipx venv first, then system PATH.
@@ -1250,7 +1254,7 @@ def provider_list():
             pass
 
     for name, info in sorted(providers.items()):
-        status = "[green]✓ ACTIVE[/green]" if info["configured"] else "[red]✗ NOT CONFIGURED[/red]"
+        status = f"[green]{SYM_OK} ACTIVE[/green]" if info["configured"] else f"[red]{SYM_FAIL} NOT CONFIGURED[/red]"
         model_count = model_counts.get(name, 0)
         models = f"({model_count} models)" if model_count > 0 else "(no models)"
         table.add_row(name.upper(), status, models)
@@ -1292,7 +1296,7 @@ def provider_add(provider_name: str, api_key: str):
     (CONFIG_DIR / ".env").write_text(env_content)
     (CONFIG_DIR / ".env").chmod(0o600)
 
-    console.print(f"\n[green]✓[/green] Configured {provider_name.upper()} API key")
+    console.print(f"\n[green]{SYM_OK}[/green] Configured {provider_name.upper()} API key")
 
     # Show recommended models and ask for confirmation
     if provider_name == "nanogpt":
@@ -1326,7 +1330,7 @@ def provider_add(provider_name: str, api_key: str):
         # Write updated config
         config_path.write_text(config_yaml)
 
-        console.print(f"\n[green]✓[/green] Added {len(recommended_models)} recommended models")
+        console.print(f"\n[green]{SYM_OK}[/green] Added {len(recommended_models)} recommended models")
         console.print("Changes will take effect after service restart")
     else:
         console.print("\nNo models added. Add them later with:")
@@ -1369,7 +1373,7 @@ def provider_set_key(provider_name: str, key: str):
     (CONFIG_DIR / ".env").write_text(env_content)
     (CONFIG_DIR / ".env").chmod(0o600)
 
-    console.print(f"[green]✓[/green] Updated {provider_name.upper()} API key")
+    console.print(f"[green]{SYM_OK}[/green] Updated {provider_name.upper()} API key")
 
 
 @provider.command(name="remove")
@@ -1401,7 +1405,7 @@ def provider_remove(provider_name: str):
     (CONFIG_DIR / ".env").write_text(content)
     (CONFIG_DIR / ".env").chmod(0o600)
 
-    console.print(f"[green]✓[/green] Removed {provider_name.upper()} configuration")
+    console.print(f"[green]{SYM_OK}[/green] Removed {provider_name.upper()} configuration")
     console.print("[dim]Models from this provider will no longer be available[/dim]")
 
 
@@ -1457,7 +1461,7 @@ def model_list(test: bool, health: bool):
             if unhealthy_count == 0:
                 console.print(f"[green][OK] All {healthy_count} models healthy[/green]\n")
             elif healthy_count == 0:
-                console.print(f"[red]✗ All {unhealthy_count} models unhealthy![/red]")
+                console.print(f"[red]{SYM_FAIL} All {unhealthy_count} models unhealthy![/red]")
                 console.print("[dim]Check: kln doctor -f[/dim]\n")
             else:
                 console.print(
@@ -1489,7 +1493,7 @@ def model_list(test: bool, health: bool):
                 )
 
         except Exception as e:
-            console.print(f"[red]✗ Could not check health: {e}[/red]")
+            console.print(f"[red]{SYM_FAIL} Could not check health: {e}[/red]")
         return
 
     if test:
@@ -1519,7 +1523,7 @@ def model_list(test: bool, health: bool):
                 console.print(f"  [green][OK][/green] {model}: {latency}ms")
             except Exception:
                 results.append((model, None))
-                console.print(f"  [red]✗[/red] {model}: FAIL")
+                console.print(f"  [red]{SYM_FAIL}[/red] {model}: FAIL")
 
         # Sort by latency (fastest first), failures last
         results.sort(key=lambda x: (x[1] is None, x[1] if x[1] else 99999))
@@ -1668,7 +1672,7 @@ def model_remove(model_name: str):
             console.print(f"  • {model['model_name']}")
         return
 
-    console.print(f"[green]✓[/green] Removed model '{model_name}'")
+    console.print(f"[green]{SYM_OK}[/green] Removed model '{model_name}'")
     console.print("\nRemaining models:")
     models = list_models_in_config(config_file)
     for model in models:
@@ -2318,12 +2322,12 @@ def doctor(auto_fix: bool):
                     issues.append(
                         ("ERROR", "LiteLLM config has quoted os.environ/ - remove quotes!")
                     )
-                    console.print("  [red]✗[/red] LiteLLM config: Quoted os.environ/ found")
+                    console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM config: Quoted os.environ/ found")
                     console.print(
                         "    [dim]This breaks env var substitution. Edit ~/.config/litellm/config.yaml[/dim]"
                     )
                     console.print(
-                        '    [dim]Change: api_key: "os.environ/KEY" → api_key: os.environ/KEY[/dim]'
+                        '    [dim]Change: api_key: "os.environ/KEY" -> api_key: os.environ/KEY[/dim]'
                     )
                     if auto_fix:
                         # Auto-fix by removing quotes around os.environ
@@ -2349,7 +2353,7 @@ def doctor(auto_fix: bool):
                     issues.append(
                         ("CRITICAL", "LiteLLM config has hardcoded API keys! Use os.environ/VAR")
                     )
-                    console.print("  [red]✗[/red] LiteLLM config: Hardcoded API keys detected!")
+                    console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM config: Hardcoded API keys detected!")
                     console.print(
                         "    [dim]Never commit API keys. Use: api_key: os.environ/NANOGPT_API_KEY[/dim]"
                     )
@@ -2360,7 +2364,7 @@ def doctor(auto_fix: bool):
         env_file = CONFIG_DIR / ".env"
         if not env_file.exists():
             issues.append(("ERROR", "LiteLLM .env file not found - run `kln init`"))
-            console.print("  [red]✗[/red] LiteLLM .env: NOT FOUND")
+            console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM .env: NOT FOUND")
         else:
             env_content = env_file.read_text()
             has_api_key = (
@@ -2370,7 +2374,7 @@ def doctor(auto_fix: bool):
 
             if not has_api_key:
                 issues.append(("ERROR", "NANOGPT_API_KEY not configured in .env"))
-                console.print("  [red]✗[/red] LiteLLM .env: NANOGPT_API_KEY not set")
+                console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM .env: NANOGPT_API_KEY not set")
             else:
                 console.print("  [green][OK][/green] LiteLLM .env: NANOGPT_API_KEY configured")
 
@@ -2410,7 +2414,7 @@ def doctor(auto_fix: bool):
                             console.print("    [green][OK] Saved NANOGPT_API_BASE to .env[/green]")
                             fixes_applied.append("Auto-detected and saved NANOGPT_API_BASE")
                         except Exception as e:
-                            console.print(f"    [red]✗ Could not detect: {e}[/red]")
+                            console.print(f"    [red]{SYM_FAIL} Could not detect: {e}[/red]")
             else:
                 # Check if subscription is still active
                 import re
@@ -2491,7 +2495,7 @@ def doctor(auto_fix: bool):
 
         except json.JSONDecodeError:
             issues.append(("ERROR", "settings.json is not valid JSON"))
-            console.print("  [red]✗[/red] settings.json: Invalid JSON")
+            console.print(f"  [red]{SYM_FAIL}[/red] settings.json: Invalid JSON")
     else:
         missing_hooks = ["SessionStart", "UserPromptSubmit", "PostToolUse"]
         console.print("  [yellow]○[/yellow] settings.json: Not found")
@@ -2519,7 +2523,7 @@ def doctor(auto_fix: bool):
                 else:
                     console.print("  [green][OK][/green] All K-LEAN hooks already configured")
             except Exception as e:
-                console.print(f"  [red]✗[/red] Failed to configure hooks: {e}")
+                console.print(f"  [red]{SYM_FAIL}[/red] Failed to configure hooks: {e}")
                 issues.append(("ERROR", f"Failed to auto-configure hooks: {e}"))
 
     # Check statusline configuration
@@ -2569,10 +2573,10 @@ def doctor(auto_fix: bool):
                 fixes_applied.append("Started LiteLLM proxy")
             else:
                 issues.append(("ERROR", "Failed to start LiteLLM proxy"))
-                console.print("  [red]✗[/red] LiteLLM Proxy: FAILED TO START")
+                console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM Proxy: FAILED TO START")
         else:
             issues.append(("WARNING", "LiteLLM proxy not running"))
-            console.print("  [red]✗[/red] LiteLLM Proxy: NOT RUNNING")
+            console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM Proxy: NOT RUNNING")
 
     # Check Knowledge Server
     if check_knowledge_server():
@@ -2585,10 +2589,10 @@ def doctor(auto_fix: bool):
                 fixes_applied.append("Started Knowledge server")
             else:
                 issues.append(("ERROR", "Failed to start Knowledge server"))
-                console.print("  [red]✗[/red] Knowledge Server: FAILED TO START")
+                console.print(f"  [red]{SYM_FAIL}[/red] Knowledge Server: FAILED TO START")
         else:
             issues.append(("WARNING", "Knowledge server not running"))
-            console.print("  [red]✗[/red] Knowledge Server: NOT RUNNING")
+            console.print(f"  [red]{SYM_FAIL}[/red] Knowledge Server: NOT RUNNING")
 
     # Check SmolKLN
     console.print("\n[bold]SmolKLN Status:[/bold]")
@@ -2677,7 +2681,7 @@ def start(service: str, port: int, telemetry: bool):
                 started.append("LiteLLM")
                 log_debug_event("cli", "service_start", service="litellm", port=port)
             else:
-                console.print("[red]✗[/red] LiteLLM Proxy: Failed to start")
+                console.print(f"[red]{SYM_FAIL}[/red] LiteLLM Proxy: Failed to start")
                 failed.append("LiteLLM")
 
     if service in ["all", "knowledge"]:
@@ -2697,7 +2701,7 @@ def start(service: str, port: int, telemetry: bool):
                         "cli", "service_start", service="knowledge", project=str(project)
                     )
                 else:
-                    console.print("[red]✗[/red] Knowledge Server: Failed to start")
+                    console.print(f"[red]{SYM_FAIL}[/red] Knowledge Server: Failed to start")
                     failed.append("Knowledge")
         else:
             console.print(
@@ -2717,7 +2721,7 @@ def start(service: str, port: int, telemetry: bool):
                 started.append("Phoenix")
                 log_debug_event("cli", "service_start", service="phoenix")
             else:
-                console.print("[red]✗[/red] Phoenix Telemetry: Failed to start")
+                console.print(f"[red]{SYM_FAIL}[/red] Phoenix Telemetry: Failed to start")
                 console.print("[dim]  Install with: pipx inject kln-ai 'kln-ai[telemetry]'[/dim]")
                 failed.append("Phoenix")
 
@@ -3085,7 +3089,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
 
             if provider_choice not in selected_providers:
                 selected_providers.append(provider_choice)
-                console.print(f"  [green]✓[/green] Added {provider_choice.upper()}")
+                console.print(f"  [green]{SYM_OK}[/green] Added {provider_choice.upper()}")
 
             # Check if all providers are selected - no need to ask
             remaining = [p for p in available_providers if p not in selected_providers]
@@ -3155,11 +3159,11 @@ def init(provider: Optional[str], api_key: Optional[str]):
         if install_models:
             config_yaml = generate_litellm_config(all_models)
             console.print(
-                f"\n[green]✓[/green] Configured with {len(all_models)} recommended models"
+                f"\n[green]{SYM_OK}[/green] Configured with {len(all_models)} recommended models"
             )
         else:
             config_yaml = generate_litellm_config([])
-            console.print("\n[green]✓[/green] Configured API keys (no models yet)")
+            console.print(f"\n[green]{SYM_OK}[/green] Configured API keys (no models yet)")
             console.print(
                 'Add models later with: [cyan]kln model add --provider <provider> "model-id"[/cyan]'
             )
@@ -3169,7 +3173,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
         (CONFIG_DIR / ".env").chmod(0o600)
 
         providers_str = ", ".join([p.upper() for p in selected_providers])
-        console.print(f"[green]✓[/green] {providers_str} providers configured")
+        console.print(f"[green]{SYM_OK}[/green] {providers_str} providers configured")
 
     # Install components (invoke existing install command)
     console.print("Installing K-LEAN components...")
@@ -3177,13 +3181,13 @@ def init(provider: Optional[str], api_key: Optional[str]):
         # Call install command with --yes flag to skip prompts
         ctx = click.get_current_context()
         ctx.invoke(install, dev=False, component="all", yes=True)
-        console.print("[green]✓[/green] Installed to ~/.claude/")
+        console.print(f"[green]{SYM_OK}[/green] Installed to ~/.claude/")
     except Exception as e:
         console.print(f"[red]Error installing components: {e}[/red]")
         return
 
     # Show summary
-    console.print("\n[bold green]✓ K-LEAN initialized![/bold green]\n")
+    console.print(f"\n[bold green]{SYM_OK} K-LEAN initialized![/bold green]\n")
 
     if provider == "skip":
         console.print("Knowledge system ready (no LiteLLM configured):")
