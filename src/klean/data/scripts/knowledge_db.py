@@ -116,6 +116,12 @@ def get_reranker():
     return _reranker
 
 
+# =============================================================================
+# Type Inference (V3 Schema) - imported from kb_utils for DRY
+# =============================================================================
+from kb_utils import infer_type  # noqa: E402, F401
+
+
 class KnowledgeDB:
     """
     Hybrid knowledge database using fastembed (dense + sparse + reranking).
@@ -284,15 +290,21 @@ class KnowledgeDB:
             debug_log(f"Saved {len(self._id_to_row)} embeddings to disk")
 
     def _build_searchable_text(self, entry: dict[str, Any]) -> str:
-        """Build searchable text from entry fields."""
+        """Build searchable text from entry fields.
+
+        V3 Schema uses: title, insight, keywords
+        Also includes legacy fields for backward compatibility.
+        """
         searchable_parts = [
+            # V3 primary fields
             entry.get("title", ""),
+            entry.get("insight", ""),
+            " ".join(entry.get("keywords", [])),
+            # Legacy fields (for backward compatibility with old entries)
             entry.get("summary", ""),
             entry.get("atomic_insight", ""),
-            entry.get("problem_solved", ""),
             " ".join(entry.get("key_concepts", [])),
             " ".join(entry.get("tags", [])),
-            entry.get("what_worked", ""),
         ]
         return " ".join(filter(None, searchable_parts))
 
@@ -437,45 +449,64 @@ class KnowledgeDB:
             debug_log(f"Reranking failed: {e}")
             return results[:limit]
 
-    def add(self, entry: dict[str, Any]) -> str:
+    def add(self, entry: dict[str, Any], check_duplicates: bool = True) -> str:
         """
-        Add a knowledge entry to the database.
+        Add a knowledge entry to the database with semantic deduplication.
 
         Args:
-            entry: Dictionary with knowledge entry fields:
-                - title (required): Short title
-                - summary (required): What was found
-                - type: web|code|solution|lesson
-                - url: Source URL
-                - problem_solved: What problem this solves
-                - key_concepts: List of keywords/concepts
-                - relevance_score: 0-1 score
-                - confidence_score: 0-1 confidence
-                - tags: List of searchable tags
-                - etc.
+            entry: Dictionary with V3 schema fields:
+                - title (required): Short title (max 80 chars)
+                - insight (required): Full description (or 'summary' for V2 compat)
+                - type: warning|solution|pattern|finding|commit|session
+                - priority: critical|high|medium|low
+                - keywords: List of searchable terms
+                - source: URL or file:path:line or git:hash or conv:date
+                - date: YYYY-MM-DD
+            check_duplicates: If True, check for semantic duplicates before adding.
+                If a near-duplicate is found (similarity > 0.85), returns existing ID.
 
         Returns:
-            Entry ID (UUID)
+            Entry ID (UUID) - either new or existing if duplicate detected
         """
+        # Ensure required fields first (accept both V3 'insight' and V2 'summary')
+        if "title" not in entry:
+            raise ValueError("Entry must have 'title' field")
+        if "insight" not in entry and "summary" not in entry:
+            raise ValueError("Entry must have 'insight' field (or 'summary' for V2 compat)")
+
+        # Semantic deduplication check (research-backed, threshold 0.85)
+        if check_duplicates and self._entries:
+            query = f"{entry.get('title', '')} {entry.get('insight', entry.get('summary', ''))}"
+            try:
+                # Fast search without reranking for dedup check
+                similar = self.search(query, limit=1, rerank=False)
+                if similar and similar[0].get("score", 0) > 0.85:
+                    existing_id = similar[0].get("id")
+                    existing_title = similar[0].get("title", "")[:50]
+                    debug_log(f"Duplicate detected (score={similar[0]['score']:.2f}): '{existing_title}'")
+                    return existing_id  # Return existing ID instead of adding duplicate
+            except Exception as e:
+                debug_log(f"Dedup check failed (proceeding with add): {e}")
+
         # Generate ID if not provided
         entry_id = entry.get("id") or str(uuid.uuid4())
         entry["id"] = entry_id
 
-        # Add timestamp
-        entry["found_date"] = entry.get("found_date") or datetime.now().isoformat()
+        # Add timestamp (V3 uses 'date', V2 used 'found_date')
+        if "date" not in entry:
+            entry["date"] = entry.get("found_date", "")[:10] or datetime.now().strftime("%Y-%m-%d")
 
-        # Ensure required fields
-        if "title" not in entry:
-            raise ValueError("Entry must have 'title' field")
-        if "summary" not in entry:
-            raise ValueError("Entry must have 'summary' field")
+        # Normalize V2 to V3 if needed
+        if "insight" not in entry and "summary" in entry:
+            entry["insight"] = entry["summary"]
+        if "keywords" not in entry and "tags" in entry:
+            entry["keywords"] = entry["tags"]
 
-        # Add default metadata fields
-        entry.setdefault("confidence_score", 0.7)
-        entry.setdefault("tags", [])
-        entry.setdefault("usage_count", 0)
-        entry.setdefault("last_used", None)
-        entry.setdefault("source_quality", "medium")
+        # V3 defaults
+        entry.setdefault("type", "finding")
+        entry.setdefault("priority", "medium")
+        entry.setdefault("keywords", [])
+        entry.setdefault("source", f"conv:{entry['date']}")
 
         # Build searchable text
         searchable_text = self._build_searchable_text(entry)
@@ -826,7 +857,7 @@ class KnowledgeDB:
         Get recent and/or high-priority entries for context injection.
 
         Prioritizes by a combination of:
-        - Recency (found_date)
+        - Recency (exponential decay with type-aware half-life)
         - Priority (critical > high > medium > low)
         - Usage count (frequently used = valuable)
 
@@ -834,8 +865,10 @@ class KnowledgeDB:
             limit: Maximum entries to return
 
         Returns:
-            List of important entries with title, summary, type
+            List of important entries with title, insight, type
         """
+        import math
+
         if not self._entries:
             return []
 
@@ -849,32 +882,42 @@ class KnowledgeDB:
             score += priority_scores.get(entry.get("priority", "medium"), 20)
             # Usage weight (each use adds 5 points)
             score += entry.get("usage_count", 0) * 5
-            # Recency weight - entries from last 24h get bonus
+
+            # Exponential time decay (research-backed)
+            # Half-life: 7 days for warnings (time-sensitive), 30 days for others
             try:
-                found = datetime.fromisoformat(entry.get("found_date", ""))
-                age_hours = (datetime.now() - found).total_seconds() / 3600
-                if age_hours < 24:
-                    score += 30  # Recent bonus
-                elif age_hours < 168:  # 1 week
-                    score += 10
+                date_str = entry.get("date", "") or entry.get("found_date", "")
+                if date_str:
+                    entry_date = datetime.strptime(date_str[:10], "%Y-%m-%d")
+                    age_days = (datetime.now() - entry_date).days
+
+                    # Type-aware half-life
+                    half_life = 7 if entry.get("type") == "warning" else 30
+                    # Exponential decay: e^(-age * ln(2) / half_life)
+                    decay = math.exp(-age_days * 0.693 / half_life)
+                    # Scale to 0-50 points (bounded contribution)
+                    score += 50 * decay
+                else:
+                    score += 10  # No date = assume medium-old
             except (ValueError, TypeError):
-                pass
+                score += 10
 
             scored.append((score, entry))
 
         # Sort by score descending
         scored.sort(key=lambda x: x[0], reverse=True)
 
-        # Return simplified entries
+        # Return simplified entries (V3 schema)
         results = []
         for _, entry in scored[:limit]:
             results.append(
                 {
                     "id": entry.get("id"),
                     "title": entry.get("title", ""),
-                    "summary": entry.get("summary", "")[:200],
-                    "type": entry.get("type", "lesson"),
+                    "insight": entry.get("insight", entry.get("summary", ""))[:200],
+                    "type": entry.get("type", "finding"),
                     "priority": entry.get("priority", "medium"),
+                    "keywords": entry.get("keywords", entry.get("tags", []))[:5],
                 }
             )
 
@@ -882,47 +925,62 @@ class KnowledgeDB:
 
     def add_structured(self, data: dict) -> str:
         """
-        Add a pre-structured entry (from Claude session or smart-capture).
+        Add a pre-structured entry (V3 schema, accepts V2 input for compatibility).
+
+        V3 Schema fields: id, title, insight, type, priority, keywords, source, date
 
         Returns:
             Entry ID (UUID)
         """
+        # Build V3 entry, accepting both V2 and V3 field names
+        entry_type = data.get("type", "finding")
+        if entry_type in ("lesson", "best-practice"):
+            entry_type = "finding"  # Normalize legacy types
+
+        # Merge insight sources: insight > atomic_insight > summary
+        insight = (
+            data.get("insight")
+            or data.get("atomic_insight")
+            or data.get("summary")
+            or ""
+        )
+
+        # Merge keyword sources: keywords > tags + key_concepts
+        keywords = data.get("keywords")
+        if not keywords:
+            tags = data.get("tags", [])
+            concepts = data.get("key_concepts", [])
+            keywords = list(dict.fromkeys(tags + concepts))  # Dedupe, preserve order
+
+        # Merge source: source > url > source_path
+        source = data.get("source", "")
+        if not source or source in ("manual", "conversation", "review"):
+            source = data.get("url") or data.get("source_path") or f"conv:{datetime.now().strftime('%Y-%m-%d')}"
+
         entry = {
             "id": data.get("id") or str(uuid.uuid4()),
-            "found_date": data.get("found_date") or datetime.now().isoformat(),
-            "usage_count": data.get("usage_count", 0),
-            "last_used": data.get("last_used"),
-            "relevance_score": data.get("relevance_score", 0.8),
-            "confidence_score": data.get("confidence_score", 0.8),
             "title": data.get("title", ""),
-            "summary": data.get("summary", ""),
-            "type": data.get("type", "lesson"),
-            "tags": data.get("tags", []),
-            "atomic_insight": data.get("atomic_insight", ""),
-            "key_concepts": data.get("key_concepts", []),
-            "quality": data.get("quality", "medium"),
-            "source": data.get("source", "conversation"),
-            "source_path": data.get("source_path", ""),
-            "url": data.get("url", ""),
-            "problem_solved": data.get("problem_solved", ""),
-            "what_worked": data.get("what_worked", ""),
-            "constraints": data.get("constraints", ""),
-            "source_quality": data.get("source_quality", "medium"),
+            "insight": insight,
+            "type": entry_type,
+            "priority": data.get("priority", "medium"),
+            "keywords": keywords[:10],  # Limit keywords
+            "source": source,
+            "date": data.get("date") or datetime.now().strftime("%Y-%m-%d"),
         }
 
-        if not entry["title"] and not entry["summary"]:
-            raise ValueError("Entry must have 'title' or 'summary'")
+        if not entry["title"] and not entry["insight"]:
+            raise ValueError("Entry must have 'title' or 'insight'")
 
         if not entry["title"]:
-            entry["title"] = entry["summary"][:100]
-        if not entry["summary"]:
-            entry["summary"] = entry["title"]
+            entry["title"] = entry["insight"][:100]
+        if not entry["insight"]:
+            entry["insight"] = entry["title"]
 
         return self.add(entry)
 
     def migrate_all(self, rewrite: bool = False) -> dict:
         """
-        Migrate all entries to V2 schema.
+        Migrate all entries to V3 schema.
 
         Args:
             rewrite: If True, rewrite entries.jsonl with migrated entries

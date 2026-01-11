@@ -489,8 +489,8 @@ The lesson content goes here.
         # Act
         memory.sync_serena_to_kb(content)
 
-        # Assert - verify structured data passed to KB
+        # Assert - verify structured data passed to KB (V3 schema)
         call_args = mock_kb.add_structured.call_args[0][0]
         assert call_args["title"] == "Test lesson"
-        assert call_args["source"] == "serena"
-        assert "serena" in call_args["tags"]
+        assert call_args["source"] == "serena:2024-12-25"  # V3: includes date
+        assert "serena" in call_args["keywords"]  # V3: uses 'keywords' not 'tags'

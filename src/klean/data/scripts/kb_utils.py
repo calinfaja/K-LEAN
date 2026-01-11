@@ -263,6 +263,88 @@ def cleanup_stale_files(project_path: Path) -> None:
 
 
 # =============================================================================
+# Type Inference (V3 Schema)
+# =============================================================================
+
+# Signal lists - easy for contributors to extend
+TYPE_SIGNALS = {
+    "warning": [
+        # Gotchas and problems
+        "don't",
+        "dont",
+        "avoid",
+        "never",
+        "careful",
+        "bug",
+        "broken",
+        "fails",
+        "failed",
+        "failure",
+        "gotcha",
+        "watch out",
+        "issue",
+        "problem",
+        "error",
+        "warning",
+        "deprecated",
+        "regression",
+        "won't work",
+        "doesn't work",
+        "not work",
+    ],
+    "solution": [
+        # Fixes and resolutions
+        "fixed",
+        "solved",
+        "fix by",
+        "fix:",
+        "solution",
+        "resolved",
+        "workaround",
+        "the fix",
+        "to fix",
+    ],
+    "pattern": [
+        # Best practices and techniques
+        "use ",
+        "prefer",
+        "always",
+        "best way",
+        "pattern",
+        "approach",
+        "technique",
+        "how to",
+        "should ",
+        "recommended",
+        "best practice",
+        "convention",
+    ],
+}
+
+
+def infer_type(title: str, insight: str) -> str:
+    """Infer entry type from content.
+
+    Checks signal words in order: warning > solution > pattern > finding.
+    Returns first matching type, or 'finding' as default.
+
+    Args:
+        title: Entry title.
+        insight: Entry insight/description.
+
+    Returns:
+        Inferred type: 'warning', 'solution', 'pattern', or 'finding'.
+    """
+    text = f"{title} {insight}".lower()
+
+    for entry_type, signals in TYPE_SIGNALS.items():
+        if any(signal in text for signal in signals):
+            return entry_type
+
+    return "finding"
+
+
+# =============================================================================
 # Exports
 # =============================================================================
 
@@ -288,6 +370,9 @@ __all__ = [
     "clean_stale_socket",
     "send_command",
     "search",
+    # Type inference
+    "TYPE_SIGNALS",
+    "infer_type",
 ]
 
 # =============================================================================
@@ -321,7 +406,18 @@ HOST = "127.0.0.1"
 # Project markers in priority order
 PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
 
-# V2 Schema defaults for migration
+# V3 Schema - Simplified 8-field schema
+# id, title, insight, type, priority, keywords, source, date
+SCHEMA_V3_FIELDS = ["id", "title", "insight", "type", "priority", "keywords", "source", "date"]
+
+SCHEMA_V3_DEFAULTS = {
+    "type": "finding",  # warning|solution|pattern|finding|session|task
+    "priority": "medium",  # critical|high|medium|low
+    "keywords": [],  # Searchable terms (merged from tags + key_concepts)
+    "source": "",  # URL or file:path:line or git:hash or conv:date
+}
+
+# Legacy V2 Schema defaults (for backward compatibility during migration)
 SCHEMA_V2_DEFAULTS = {
     # Existing fields with defaults
     "confidence_score": 0.7,
@@ -525,15 +621,97 @@ def get_python_bin() -> str:
 # Schema Migration
 # =============================================================================
 def migrate_entry(entry: dict) -> dict:
-    """Migrate entry to V2 schema with defaults.
+    """Migrate entry to V3 schema.
+
+    V3 Schema (8 fields):
+    - id: type-YYYYMMDD-xxxxx
+    - title: Short title
+    - insight: Full description (merged from summary + atomic_insight)
+    - type: warning|solution|pattern|finding|session|task (auto-inferred)
+    - priority: critical|high|medium|low
+    - keywords: Searchable terms (merged from tags + key_concepts)
+    - source: URL or file:path:line or git:hash or conv:date
+    - date: YYYY-MM-DD
 
     Args:
-        entry: Knowledge entry dict
+        entry: Knowledge entry dict (any version)
 
     Returns:
-        Entry with V2 fields filled in
+        Entry migrated to V3 schema
     """
-    for field, default in SCHEMA_V2_DEFAULTS.items():
+    # Merge summary + atomic_insight → insight
+    if "insight" not in entry:
+        atomic = entry.get("atomic_insight", "")
+        summary = entry.get("summary", "")
+        # Prefer atomic_insight if it exists, otherwise use summary
+        # If both exist, combine them (atomic first as it's more concise)
+        if atomic and summary:
+            entry["insight"] = f"{atomic} {summary}" if atomic not in summary else summary
+        else:
+            entry["insight"] = atomic or summary or entry.get("title", "")
+
+    # Merge tags + key_concepts → keywords
+    if "keywords" not in entry:
+        tags = entry.get("tags", [])
+        concepts = entry.get("key_concepts", [])
+        # Deduplicate while preserving order
+        seen = set()
+        keywords = []
+        for kw in tags + concepts:
+            if kw and kw.lower() not in seen:
+                seen.add(kw.lower())
+                keywords.append(kw)
+        entry["keywords"] = keywords
+
+    # Unify source fields → source
+    if not entry.get("source") or entry.get("source") in ["manual", "conversation", "review"]:
+        url = entry.get("url", "")
+        source_path = entry.get("source_path", "")
+        if url and url.startswith("http"):
+            entry["source"] = url
+        elif source_path and source_path.startswith("http"):
+            entry["source"] = source_path
+        elif source_path:
+            # File path - add file: prefix if not present
+            if not source_path.startswith(("file:", "git:", "conv:")):
+                entry["source"] = f"file:{source_path}"
+            else:
+                entry["source"] = source_path
+        else:
+            # Fallback to conv:date
+            found_date = entry.get("found_date", "")[:10]
+            entry["source"] = f"conv:{found_date}" if found_date else "conv:unknown"
+
+    # Map found_date → date
+    if "date" not in entry:
+        entry["date"] = entry.get("found_date", "")[:10]
+
+    # Infer type if not set or generic
+    if entry.get("type") in [None, "", "lesson", "best-practice"]:
+        # Import here to avoid circular dependency
+        try:
+            from knowledge_db import infer_type
+            entry["type"] = infer_type(entry.get("title", ""), entry.get("insight", ""))
+        except ImportError:
+            entry["type"] = "finding"
+
+    # Map quality scores → priority
+    if "priority" not in entry:
+        # Try to infer from existing quality metrics
+        relevance = entry.get("relevance_score", 0.5)
+        confidence = entry.get("confidence_score", 0.5)
+        quality = entry.get("quality", "medium")
+
+        if quality == "high" or relevance >= 0.9 or confidence >= 0.9:
+            entry["priority"] = "high"
+        elif quality == "low" or relevance < 0.5 or confidence < 0.5:
+            entry["priority"] = "low"
+        else:
+            entry["priority"] = "medium"
+
+    # Apply V3 defaults for any missing fields
+    for field, default in SCHEMA_V3_DEFAULTS.items():
         if field not in entry:
             entry[field] = default
+
     return entry

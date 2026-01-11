@@ -9,25 +9,22 @@ Usage:
   knowledge-capture.py <content> [--type TYPE] [--tags TAG1,TAG2] [--priority LEVEL] [--url URL]
   knowledge-capture.py --json-input '<json>' [--json]
 
-Types: lesson, finding, solution, pattern, warning, best-practice
-Priority: low, medium, high, critical
+Types: warning, solution, pattern, finding (auto-inferred if omitted)
+Priority: critical, high, medium, low
 
-JSON Input (V2 Schema):
+JSON Input (V3 Schema):
   {
-    "title": "Short title",
-    "summary": "Full description",
-    "atomic_insight": "One-sentence takeaway",
-    "key_concepts": ["term1", "term2"],
-    "quality": "high|medium|low",
-    "source": "conversation|web|file|manual",
-    "source_path": "optional URL or file path",
-    "tags": ["tag1", "tag2"],
-    "type": "lesson|finding|solution|pattern"
+    "title": "Short descriptive title (max 80 chars)",
+    "insight": "2-4 sentence explanation with actionable details",
+    "type": "warning|solution|pattern|finding",
+    "priority": "critical|high|medium|low",
+    "keywords": ["searchable", "terms"],
+    "source": "https://url or file:path:line or git:hash or conv:YYYY-MM-DD"
   }
 
 Examples:
-  knowledge-capture.py "Always validate user input" --type lesson --tags security,validation
-  knowledge-capture.py --json-input '{"title":"Validation","summary":"Always validate","atomic_insight":"Validate all inputs"}' --json
+  knowledge-capture.py "Always validate user input" --type warning --tags security,validation
+  knowledge-capture.py --json-input '{"title":"Input Validation","insight":"Always validate user input server-side","keywords":["security","validation"]}' --json
 """
 
 import argparse
@@ -45,6 +42,7 @@ try:
         debug_log,
         find_project_root,
         get_socket_path,
+        infer_type,
         is_server_running,
     )
 except ImportError:
@@ -52,6 +50,7 @@ except ImportError:
     from kb_utils import (
         PYTHON_BIN,
         debug_log,
+        infer_type,
         is_server_running,
     )
 
@@ -127,90 +126,90 @@ def get_knowledge_dir():
     return InitResult(knowledge_db, newly_created, server_started)
 
 
-def create_entry(content, entry_type="lesson", tags=None, priority="medium", url=None):
-    """Create a knowledge database entry (simple mode)."""
+def create_entry(content, entry_type="finding", tags=None, priority="medium", url=None):
+    """Create a knowledge database entry (simple mode, V3 schema)."""
     if tags is None:
         tags = []
     elif isinstance(tags, str):
         tags = [t.strip() for t in tags.split(",") if t.strip()]
 
+    # Normalize legacy types
+    if entry_type in ("lesson", "best-practice"):
+        entry_type = "finding"
+
     # Generate a unique ID
     entry_id = f"{entry_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    # Calculate relevance score based on priority
-    priority_scores = {"critical": 1.0, "high": 0.9, "medium": 0.8, "low": 0.7}
-
-    # Map priority to quality
-    quality_map = {"critical": "high", "high": "high", "medium": "medium", "low": "low"}
-
+    # V3 Schema
     entry = {
         "id": entry_id,
-        "title": content[:100] + "..." if len(content) > 100 else content,
-        "summary": content,
+        "title": content[:100] if len(content) <= 100 else content[:97] + "...",
+        "insight": content,
         "type": entry_type,
-        "source": "manual",
-        "source_path": url or "",
-        "found_date": datetime.now().isoformat(),
-        "relevance_score": priority_scores.get(priority, 0.8),
         "priority": priority,
-        "key_concepts": tags,
-        "tags": tags,
-        "auto_extracted": False,
-        # V2 schema fields
-        "atomic_insight": "",
-        "quality": quality_map.get(priority, "medium"),
-        "confidence_score": priority_scores.get(priority, 0.8),
+        "keywords": tags[:10],
+        "source": url or f"conv:{datetime.now().strftime('%Y-%m-%d')}",
+        "date": datetime.now().strftime("%Y-%m-%d"),
     }
-
-    if url:
-        entry["url"] = url
 
     return entry
 
 
 def create_entry_from_json(data: dict):
-    """Create a knowledge database entry from structured JSON (V2 schema)."""
-    entry_type = data.get("type", "lesson")
+    """Create a knowledge database entry from structured JSON.
+
+    Always outputs V3 schema, but accepts both V2 and V3 input field names.
+    V3 Schema: id, title, insight, type, priority, keywords, source, date
+    """
+    entry_type = data.get("type", "")
+
+    # Normalize legacy types or infer from content
+    if not entry_type or entry_type in ("lesson", "best-practice"):
+        title = data.get("title", "")
+        insight = data.get("insight") or data.get("atomic_insight") or data.get("summary") or ""
+        entry_type = infer_type(title, insight)
+
     entry_id = data.get("id") or f"{entry_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    # Get quality and map to relevance score
-    quality = data.get("quality", "medium")
-    quality_scores = {"high": 0.9, "medium": 0.8, "low": 0.7}
+    # Merge insight sources: insight > atomic_insight > summary
+    insight = (
+        data.get("insight")
+        or data.get("atomic_insight")
+        or data.get("summary")
+        or ""
+    )
 
+    # Merge keyword sources: keywords > tags + key_concepts
+    keywords = data.get("keywords")
+    if not keywords:
+        tags = data.get("tags", [])
+        concepts = data.get("key_concepts", [])
+        keywords = list(dict.fromkeys(tags + concepts))  # Dedupe, preserve order
+
+    # Merge source: source > url > source_path
+    source = data.get("source", "")
+    if not source or source in ("manual", "conversation", "review"):
+        source = (
+            data.get("url")
+            or data.get("source_path")
+            or f"conv:{datetime.now().strftime('%Y-%m-%d')}"
+        )
+
+    # V3 Schema output
     entry = {
         "id": entry_id,
         "title": data.get("title", ""),
-        "summary": data.get("summary", ""),
+        "insight": insight,
         "type": entry_type,
-        "source": data.get("source", "conversation"),
-        "source_path": data.get("source_path", ""),
-        "found_date": data.get("found_date") or datetime.now().isoformat(),
-        "relevance_score": data.get("relevance_score", quality_scores.get(quality, 0.8)),
-        "key_concepts": data.get("key_concepts", []),
-        "tags": data.get("tags", []),
-        "auto_extracted": data.get("auto_extracted", False),
-        # V2 schema fields
-        "atomic_insight": data.get("atomic_insight", ""),
-        "quality": quality,
-        "confidence_score": data.get("confidence_score", quality_scores.get(quality, 0.8)),
-        "usage_count": data.get("usage_count", 0),
-        "last_used": data.get("last_used"),
-        "source_quality": data.get("source_quality", "medium"),
+        "priority": data.get("priority", "medium"),
+        "keywords": keywords[:10],
+        "source": source,
+        "date": data.get("date") or datetime.now().strftime("%Y-%m-%d"),
     }
 
-    # Optional fields
-    if data.get("url"):
-        entry["url"] = data["url"]
-    if data.get("problem_solved"):
-        entry["problem_solved"] = data["problem_solved"]
-    if data.get("what_worked"):
-        entry["what_worked"] = data["what_worked"]
-
-    # Ensure title exists (use first 100 chars of summary if not)
-    if not entry["title"] and entry["summary"]:
-        entry["title"] = entry["summary"][:100]
-    if not entry["summary"] and entry["title"]:
-        entry["summary"] = entry["title"]
+    # Ensure title exists
+    if not entry["title"] and entry["insight"]:
+        entry["title"] = entry["insight"][:100]
 
     return entry
 
@@ -319,35 +318,35 @@ def log_to_timeline(content, entry_type, knowledge_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Capture knowledge to K-LEAN database",
+        description="Capture knowledge to K-LEAN database (V3 schema)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s "Always validate user input" --type lesson
+  %(prog)s "Always validate user input" --type warning --tags security
   %(prog)s "Memory leak in pools" --type finding --priority high
-  %(prog)s "Use async/await" --type best-practice --tags python,async
-  %(prog)s --json-input '{"title":"...","summary":"..."}' --json
+  %(prog)s "Use async/await for I/O" --type pattern --tags python,async
+  %(prog)s --json-input '{"title":"...","insight":"...","keywords":[...]}' --json
         """,
     )
     parser.add_argument("content", nargs="?", default="", help="The content to capture")
     parser.add_argument(
         "--type",
         dest="entry_type",
-        default="lesson",
-        choices=["lesson", "finding", "solution", "pattern", "warning", "best-practice"],
-        help="Type of entry (default: lesson)",
+        default="finding",
+        choices=["finding", "solution", "pattern", "warning"],
+        help="Type of entry (default: finding, auto-inferred if omitted)",
     )
-    parser.add_argument("--tags", default="", help="Comma-separated tags")
+    parser.add_argument("--tags", default="", help="Comma-separated keywords")
     parser.add_argument(
         "--priority",
         default="medium",
         choices=["low", "medium", "high", "critical"],
         help="Priority level (default: medium)",
     )
-    parser.add_argument("--url", default="", help="URL associated with the entry")
+    parser.add_argument("--url", default="", help="Source URL for the entry")
     parser.add_argument("--json", action="store_true", help="Output result as JSON")
     parser.add_argument(
-        "--json-input", dest="json_input", help="Add structured entry from JSON string (V2 schema)"
+        "--json-input", dest="json_input", help="Add structured entry from JSON string (V3 schema)"
     )
 
     args = parser.parse_args()
@@ -395,7 +394,7 @@ Examples:
         save_entry(entry, knowledge_dir)
 
         # Log to timeline
-        log_to_timeline(entry.get("summary", content_display), entry_type, knowledge_dir)
+        log_to_timeline(entry.get("insight", content_display), entry_type, knowledge_dir)
 
         # Output based on mode
         if args.json:
@@ -414,11 +413,9 @@ Examples:
             print(
                 f"[OK] Captured {entry_type}: {content_display}{'...' if len(content_display) >= 60 else ''}"
             )
-            print(f" Saved to: {knowledge_dir}/entries.jsonl")
-            if entry.get("tags"):
-                print(f"  Tags: {', '.join(entry['tags'])}")
-            if entry.get("atomic_insight"):
-                print(f" Insight: {entry['atomic_insight'][:80]}")
+            print(f"  Saved to: {knowledge_dir}/entries.jsonl")
+            if entry.get("keywords"):
+                print(f"  Keywords: {', '.join(entry['keywords'])}")
 
         return 0
 

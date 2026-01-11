@@ -27,15 +27,13 @@ Scan the recent conversation context and extract learnings worth preserving to t
 - **SKIP** obvious/well-documented behaviors
 - **PRIORITIZE** surprising discoveries, non-obvious fixes, gotchas, undocumented behavior
 
-### For Each Learning, Determine Type:
-| Type | When to Use |
-|------|-------------|
-| `solution` | Fixed a specific problem |
-| `warning` | Don't do this / watch out for |
-| `pattern` | Reusable approach that worked |
-| `finding` | Discovered behavior (API, library, tool) |
-| `lesson` | General insight from experience |
-| `best-practice` | Proven approach worth repeating |
+### Entry Types (auto-inferred from content):
+| Type | Content Signals |
+|------|----------------|
+| `warning` | "don't", "avoid", "never", "careful", "bug", "fails", "gotcha" |
+| `solution` | "fixed", "solved", "workaround", "the fix was" |
+| `pattern` | "use X for Y", "prefer", "best way", "approach" |
+| `finding` | Default - discovered behavior, API quirk, etc. |
 
 ### Priority Levels:
 | Priority | When to Use |
@@ -52,10 +50,10 @@ Scan the recent conversation context and extract learnings worth preserving to t
 Found N learnings to save:
 
 1. [type] Title
-   Description of the insight
-   Atomic insight: One-sentence takeaway
-   Source: file.py:42 (if from a specific file)
-   Tags: tag1, tag2
+   Insight: 2-4 sentence explanation with specific details
+   Keywords: keyword1, keyword2, keyword3
+   Source: file.py:42 or https://... or conv:YYYY-MM-DD
+   Priority: high
 
 2. [type] Title
    ...
@@ -63,26 +61,31 @@ Found N learnings to save:
 
 2. **Ask for confirmation**: "Save all? [Y/n/edit]"
 
-3. **Save each** using knowledge-capture.py with V2 schema (JSON input):
+3. **Save each** using knowledge-capture.py with V3 schema (JSON input):
+
+**Path**: Use `~/.venvs/knowledge-db/bin/python` (Unix) or `~/.venvs/knowledge-db/Scripts/python.exe` (Windows).
+
 ```bash
 ~/.venvs/knowledge-db/bin/python ~/.claude/scripts/knowledge-capture.py \
     --json-input '{
-      "title": "Short descriptive title",
-      "summary": "Detailed description of the insight",
-      "atomic_insight": "One-sentence actionable takeaway",
-      "type": "solution|warning|pattern|finding|lesson|best-practice",
+      "title": "Short descriptive title (max 80 chars)",
+      "insight": "2-4 sentence explanation. Be specific about what, why, and how. Include enough context for future retrieval. 50-150 words.",
+      "type": "warning|solution|pattern|finding",
       "priority": "critical|high|medium|low",
-      "tags": ["tag1", "tag2"],
-      "key_concepts": ["searchable", "terms"],
-      "source": "conversation",
-      "source_path": "path/to/file.py:42"
+      "keywords": ["searchable", "terms", "3-5"],
+      "source": "file:path/to/file.py:42 or https://url or git:hash or conv:YYYY-MM-DD"
     }' --json
 ```
 
-**IMPORTANT - Include These Fields:**
-- `atomic_insight`: Always generate a single-sentence, actionable takeaway
-- `source_path`: Include `file:line` if the learning came from a specific file
-- `key_concepts`: Extract 3-5 searchable terms for better retrieval
+**V3 Schema Fields:**
+| Field | Description |
+|-------|-------------|
+| `title` | Short descriptive title (max 80 chars) |
+| `insight` | 2-4 sentence explanation with actionable details (50-150 words) |
+| `type` | Auto-inferred: warning, solution, pattern, finding |
+| `priority` | critical, high, medium, low |
+| `keywords` | 3-5 searchable terms |
+| `source` | Actionable source: file:path:line, https://url, git:hash, conv:date |
 
 4. **Confirm** what was saved with total count.
 
@@ -97,9 +100,16 @@ Look for:
 ### Example Learnings:
 
 **Good** (specific, actionable):
-- "Thinking models (deepseek, glm, minimax, kimi) return responses in reasoning_content field instead of content"
-- "knowledge-capture.py takes content as first positional arg, not 'add' subcommand"
-- "LiteLLM model_name must match exactly what proxy returns in response"
+```json
+{
+  "title": "Thinking models use reasoning_content field",
+  "insight": "DeepSeek, GLM, Minimax, and Kimi models return responses in reasoning_content instead of content field. Always check both fields when parsing responses. This affected our review aggregation where thinking model outputs were silently dropped.",
+  "type": "warning",
+  "priority": "high",
+  "keywords": ["thinking-models", "litellm", "reasoning_content", "response-parsing"],
+  "source": "file:src/klean/reviews.py:142"
+}
+```
 
 **Bad** (too generic):
 - "Always test your code"
@@ -107,7 +117,5 @@ Look for:
 - "Use meaningful variable names"
 
 ## Notes
-- This command replaces the old `SaveThis` hook keyword
-- Unlike SaveThis (literal text only), /kln:learn has full conversation context
 - Can be run multiple times during a session
 - For end-of-session comprehensive capture, use /kln:remember instead

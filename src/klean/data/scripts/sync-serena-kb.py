@@ -94,16 +94,20 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
             continue
 
         try:
+            # V3 Schema
+            lesson_type = lesson.get("type", "finding")
+            if lesson_type in ("lesson", "best-practice"):
+                lesson_type = "finding"
             db.add_structured(
                 {
                     "title": lesson["title"],
-                    "summary": lesson["content"][:1000],
-                    "type": lesson.get("type", "lesson"),
-                    "source": "serena",
-                    "tags": ["serena", "lessons-learned", lesson.get("type", "lesson")],
-                    "key_concepts": [lesson.get("context", "")] if lesson.get("context") else [],
-                    "quality": "high",
-                    "source_path": f"serena:{lesson.get('date', 'unknown')}",
+                    "insight": lesson["content"][:1000],
+                    "type": lesson_type,
+                    "priority": "high",  # Serena lessons are curated
+                    "keywords": ["serena", "lessons-learned", lesson.get("context", "")]
+                    if lesson.get("context")
+                    else ["serena", "lessons-learned"],
+                    "source": f"serena:{lesson.get('date', 'unknown')}",
                 }
             )
             synced += 1

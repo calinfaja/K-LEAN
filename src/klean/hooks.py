@@ -32,6 +32,30 @@ from klean.platform import (
     spawn_background,
 )
 
+# Import infer_type from kb_utils (in data/scripts/ or ~/.claude/scripts/)
+try:
+    from klean.data.scripts.kb_utils import infer_type
+except ImportError:
+    # Fallback: try from installed location
+    _scripts_dir = Path.home() / ".claude" / "scripts"
+    if str(_scripts_dir) not in sys.path:
+        sys.path.insert(0, str(_scripts_dir))
+    try:
+        from kb_utils import infer_type
+    except ImportError:
+        # Inline fallback if kb_utils not available
+        def infer_type(title: str, insight: str) -> str:
+            """Minimal fallback type inference."""
+            text = f"{title} {insight}".lower()
+            if any(w in text for w in ["don't", "avoid", "bug", "fails", "error"]):
+                return "warning"
+            if any(w in text for w in ["fixed", "solved", "solution"]):
+                return "solution"
+            if any(w in text for w in ["use ", "prefer", "pattern"]):
+                return "pattern"
+            return "finding"
+
+
 # =============================================================================
 # Hook I/O Helpers
 # =============================================================================
@@ -263,8 +287,41 @@ def session_start() -> None:
     sys.exit(0)
 
 
+
+def _format_entries_toon(entries: list) -> str:
+    """Format KB entries in TOON format for token reduction.
+
+    Args:
+        entries: List of KB entry dicts.
+
+    Returns:
+        TOON formatted string.
+    """
+    from toon import encode
+
+    # Select minimal fields for injection
+    # Short keys: t=title, y=type, p=priority, k=keywords
+    minimal = []
+    for e in entries:
+        entry = {
+            "t": e.get("title", "")[:80],
+            "y": e.get("type", "finding"),
+            "k": e.get("keywords", e.get("tags", []))[:5],
+        }
+        # Include priority for warnings
+        if e.get("type") == "warning":
+            entry["p"] = e.get("priority", "medium")
+        minimal.append(entry)
+
+    return encode(minimal)
+
 def _get_kb_context(project_root: Path) -> str:
-    """Get recent/important KB entries for context injection.
+    """Get KB entries + Serena prompt for context injection.
+
+    Retrieves:
+    1. Top 10 critical/high priority warnings (any date)
+    2. Last 10 newest entries (by date)
+    3. Serena prompt for session history
 
     Args:
         project_root: Project root path.
@@ -275,35 +332,54 @@ def _get_kb_context(project_root: Path) -> str:
     import socket
 
     if not _is_kb_server_running(project_root):
-        return ""
+        return "[>] Session history: mcp__serena__read_memory lessons-learned"
 
     try:
         port_file = get_kb_port_file(project_root)
         port = int(port_file.read_text().strip())
 
+        # Get more entries to filter locally
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(2.0)
         sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "recent", "limit": 3}).encode())
+        sock.sendall(json.dumps({"cmd": "recent", "limit": 50}).encode())
         response = sock.recv(65536).decode()
         sock.close()
 
         data = json.loads(response)
-        entries = data.get("entries", [])
+        all_entries = data.get("entries", [])
 
-        if not entries:
-            return ""
+        if not all_entries:
+            return "[>] Session history: mcp__serena__read_memory lessons-learned"
 
-        # Format as brief context
-        lines = ["Recent learnings:"]
-        for e in entries:
-            title = e.get("title", "")[:60]
-            entry_type = e.get("type", "lesson")
-            lines.append(f"  [{entry_type}] {title}")
+        # 1. Get critical/high warnings (up to 10)
+        warnings = [
+            e for e in all_entries
+            if e.get("type") == "warning" and e.get("priority") in ("critical", "high")
+        ][:10]
 
-        return "\n".join(lines)
+        # 2. Get last 10 by date (excluding already-selected warnings)
+        warning_ids = {e.get("id") for e in warnings}
+        recent = [e for e in all_entries if e.get("id") not in warning_ids][:10]
+
+        parts = []
+
+        # Format warnings section
+        if warnings:
+            toon_warnings = _format_entries_toon(warnings)
+            parts.append(f"[!] WARNINGS:\n{toon_warnings}")
+
+        # Format recent section
+        if recent:
+            toon_recent = _format_entries_toon(recent)
+            parts.append(f"[KB] RECENT:\n{toon_recent}")
+
+        # Serena prompt
+        parts.append("[>] Session history: mcp__serena__read_memory lessons-learned")
+
+        return "\n\n".join(parts)
     except Exception:
-        return ""
+        return "[>] Session history: mcp__serena__read_memory lessons-learned"
 
 
 def prompt_handler() -> None:
@@ -354,12 +430,6 @@ def prompt_handler() -> None:
     # === InitKB ===
     if prompt_lower == "initkb" or prompt_lower.startswith("initkb "):
         result = _handle_init_kb()
-        _output_json({"systemMessage": result})
-        sys.exit(0)
-
-    # === asyncReview / asyncConsensus ===
-    if "asyncreview" in prompt_lower or "asyncconsensus" in prompt_lower:
-        result = _handle_async_review(prompt)
         _output_json({"systemMessage": result})
         sys.exit(0)
 
@@ -446,16 +516,14 @@ def _capture_git_commit() -> None:
 
         import socket
 
+        # V3 Schema
         entry = {
             "title": f"Commit: {commit_msg[:80]}",
-            "summary": f"Git commit {commit_hash} by {author}: {commit_msg}",
+            "insight": f"Git commit {commit_hash} by {author}: {commit_msg}",
             "type": "commit",
-            "source": "git",
-            "source_path": f"git:{commit_hash}",
-            "tags": ["git", "commit"] + _extract_commit_tags(commit_msg),
-            "key_concepts": changed_files[:5],
             "priority": "low",
-            "quality": "medium",
+            "keywords": ["git", "commit"] + _extract_commit_tags(commit_msg) + changed_files[:3],
+            "source": f"git:{commit_hash}",
         }
 
         port_file = get_kb_port_file(project_root)
@@ -505,9 +573,13 @@ def _extract_commit_tags(commit_msg: str) -> list[str]:
 def post_web() -> None:
     """PostToolUse (Web*) hook - smart web capture.
 
-    Input: {"tool_name": "WebFetch", "tool_input": {"url": "..."}, ...}
+    Handles:
+    - WebFetch: Direct URL fetches
+    - WebSearch: Search results with URLs
+    - mcp__tavily__*: Tavily search/extract with URLs
+    - mcp__context7__*: Context7 documentation queries
 
-    Optionally triggers smart capture for documentation URLs.
+    Input: {"tool_name": "...", "tool_input": {...}, "tool_result": {...}}
 
     Exit code: 0 always
     """
@@ -515,17 +587,46 @@ def post_web() -> None:
 
     tool_name = input_data.get("tool_name", "")
     tool_input = input_data.get("tool_input", {})
-    url = tool_input.get("url", "")
+    tool_result = input_data.get("tool_result", {})
 
-    if not url:
-        sys.exit(0)
+    _debug_log(f"post_web: tool={tool_name}")
 
-    _debug_log(f"post_web: {tool_name} {url[:50]}...")
+    urls = []
 
-    # Could trigger smart capture for documentation URLs
-    # For now, just log
-    if any(pattern in url for pattern in ["docs.", "/docs/", "documentation"]):
-        _log_to_timeline("web", f"Fetched docs: {url}")
+    # Extract URLs based on tool type
+    if tool_name == "WebFetch":
+        url = tool_input.get("url", "")
+        if url:
+            urls.append(url)
+
+    elif tool_name == "WebSearch":
+        # WebSearch returns search results
+        # Extract URLs from result if present
+        if isinstance(tool_result, dict):
+            for item in tool_result.get("results", []):
+                if isinstance(item, dict) and item.get("url"):
+                    urls.append(item["url"])
+
+    elif tool_name.startswith("mcp__tavily__"):
+        # Tavily tools return results with url field
+        if isinstance(tool_result, dict):
+            for item in tool_result.get("results", []):
+                if isinstance(item, dict) and item.get("url"):
+                    urls.append(item["url"])
+
+    elif tool_name.startswith("mcp__context7__"):
+        # Context7 returns documentation - log the library being queried
+        library_id = tool_input.get("libraryId", "")
+        query = tool_input.get("query", "")
+        if library_id:
+            _log_to_timeline("docs", f"Context7: {library_id} - {query[:50]}")
+
+    # Log documentation URLs for reference
+    doc_patterns = ["docs.", "/docs/", "documentation", "readme", "wiki", "guide"]
+    for url in urls:
+        url_lower = url.lower()
+        if any(p in url_lower for p in doc_patterns):
+            _log_to_timeline("web", f"Fetched docs: {url}")
 
     sys.exit(0)
 
@@ -679,21 +780,24 @@ def _handle_save_info(content: str) -> str:
         if not extracted:
             return _save_url_raw(project_root, url)
 
-        # Save to KB
-        import socket
+        # Build V3 schema entry
+        title = extracted.get("title", url[:60])
+        insight = extracted.get("insight", text[:500])
+
+        # Auto-infer type from content using centralized logic
+        entry_type = infer_type(title, insight)
 
         entry = {
-            "title": extracted.get("title", url[:60]),
-            "summary": extracted.get("summary", text[:500]),
-            "atomic_insight": extracted.get("atomic_insight", ""),
-            "type": "web",
-            "source": "web",
-            "source_path": url,
-            "tags": extracted.get("tags", ["web"]),
-            "key_concepts": extracted.get("key_concepts", []),
+            "title": title,
+            "insight": insight,
+            "type": entry_type,
             "priority": "medium",
-            "quality": "medium",
+            "keywords": extracted.get("keywords", ["web"]),
+            "source": url,
         }
+
+        # Save to KB
+        import socket
 
         port_file = get_kb_port_file(project_root)
         port = int(port_file.read_text().strip())
@@ -707,8 +811,8 @@ def _handle_save_info(content: str) -> str:
 
         result = json.loads(response)
         if result.get("status") == "ok":
-            title = entry["title"][:50]
-            return f"SaveInfo: Saved '{title}' from {url}"
+            title_short = entry["title"][:50]
+            return f"SaveInfo: Saved '{title_short}' from {url}"
         else:
             return f"SaveInfo: Failed to save - {result.get('error', 'unknown')}"
 
@@ -746,7 +850,7 @@ def _extract_from_url(url: str, text: str, model: str) -> dict | None:
         model: LiteLLM model to use.
 
     Returns:
-        Dict with title, summary, atomic_insight, key_concepts, tags.
+        Dict with V3 schema fields: title, insight, keywords.
     """
     try:
         import httpx
@@ -761,10 +865,8 @@ Content:
 Return this exact JSON structure:
 {{
   "title": "Short descriptive title (max 80 chars)",
-  "summary": "2-3 sentence summary of key information",
-  "atomic_insight": "Single sentence actionable takeaway",
-  "key_concepts": ["concept1", "concept2", "concept3"],
-  "tags": ["tag1", "tag2"]
+  "insight": "2-4 sentence explanation of the key information and why it matters. Be specific and actionable.",
+  "keywords": ["keyword1", "keyword2", "keyword3"]
 }}
 
 JSON:"""
@@ -817,13 +919,11 @@ def _save_url_raw(project_root: Path, url: str) -> str:
     try:
         entry = {
             "title": f"Web: {url[:60]}",
-            "summary": f"URL saved for reference: {url}",
-            "type": "web",
-            "source": "web",
-            "source_path": url,
-            "tags": ["web", "url"],
+            "insight": f"URL saved for reference: {url}",
+            "type": "finding",
             "priority": "low",
-            "quality": "low",
+            "keywords": ["web", "url"],
+            "source": url,
         }
 
         port_file = get_kb_port_file(project_root)
@@ -861,19 +961,6 @@ def _handle_init_kb() -> str:
         return f"Knowledge DB initialized at {kb_dir}"
     except Exception as e:
         return f"Failed to initialize: {e}"
-
-
-def _handle_async_review(prompt: str) -> str:
-    """Handle async review keywords.
-
-    Args:
-        prompt: Original prompt.
-
-    Returns:
-        Result message.
-    """
-    # Would trigger background review here
-    return "Async review triggered (implementation pending)"
 
 
 def _log_to_timeline(event_type: str, message: str) -> None:

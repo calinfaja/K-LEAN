@@ -246,17 +246,16 @@ class AgentMemory:
                 content_lines = entry.content.strip().split("\n")
                 title = content_lines[0][:100] if content_lines else "Agent finding"
 
+                # V3 Schema
+                entry_type = "solution" if entry.entry_type == "solution" else "finding"
                 self.knowledge_db.add_structured(
                     {
                         "title": title,
-                        "summary": entry.content[:500],
-                        "type": "lesson" if entry.entry_type == "lesson" else "solution",
-                        "source": f"agent_{agent_name}",
-                        "tags": [agent_name, "smolkln", entry.entry_type],
-                        "key_concepts": [agent_name],
-                        "quality": "medium",
-                        # Store session metadata
-                        "source_path": session_id,
+                        "insight": entry.content[:500],
+                        "type": entry_type,
+                        "priority": "medium",
+                        "keywords": [agent_name, "smolkln", entry.entry_type],
+                        "source": f"agent:{agent_name}:{session_id}",
                     }
                 )
                 persisted += 1
@@ -338,16 +337,20 @@ class AgentMemory:
                 if e.get("source") == "serena" and e.get("title") == lesson["title"]:
                     return False  # Already exists
 
+            # V3 Schema
+            lesson_type = lesson.get("type", "finding")
+            if lesson_type in ("lesson", "best-practice"):
+                lesson_type = "finding"
             self.knowledge_db.add_structured(
                 {
                     "title": lesson["title"],
-                    "summary": content.strip()[:1000],
-                    "type": lesson.get("type", "lesson"),
-                    "source": "serena",
-                    "tags": ["serena", "lessons-learned", lesson.get("type", "lesson")],
-                    "key_concepts": [lesson.get("context", "")] if lesson.get("context") else [],
-                    "quality": "high",  # Serena lessons are curated
-                    "source_path": f"serena:{lesson.get('date', 'unknown')}",
+                    "insight": content.strip()[:1000],
+                    "type": lesson_type,
+                    "priority": "high",  # Serena lessons are curated
+                    "keywords": ["serena", "lessons-learned", lesson.get("context", "")]
+                    if lesson.get("context")
+                    else ["serena", "lessons-learned"],
+                    "source": f"serena:{lesson.get('date', 'unknown')}",
                 }
             )
             return True

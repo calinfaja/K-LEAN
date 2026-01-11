@@ -652,6 +652,10 @@ KLEAN_HOOKS_CONFIG = {
             "matcher": "mcp__tavily__.*",
             "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}],
         },
+        {
+            "matcher": "mcp__context7__.*",
+            "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}],
+        },
     ],
 }
 
