@@ -11,6 +11,9 @@
   <a href="https://pypi.org/project/kln-ai/"><img src="https://img.shields.io/pypi/v/kln-ai.svg" alt="PyPI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-green.svg" alt="License"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.9+-yellow.svg" alt="Python"></a>
+</p>
+
+<p align="center">
   <a href="#quick-start"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue.svg" alt="Platform"></a>
 </p>
 
