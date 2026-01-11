@@ -96,8 +96,7 @@ async def search_knowledge(
 
         # Filter by relevance score
         filtered = [
-            r for r in results
-            if isinstance(r, dict) and r.get("relevance_score", 0) >= min_score
+            r for r in results if isinstance(r, dict) and r.get("relevance_score", 0) >= min_score
         ]
 
         return {

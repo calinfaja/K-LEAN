@@ -868,13 +868,15 @@ class KnowledgeDB:
         # Return simplified entries
         results = []
         for _, entry in scored[:limit]:
-            results.append({
-                "id": entry.get("id"),
-                "title": entry.get("title", ""),
-                "summary": entry.get("summary", "")[:200],
-                "type": entry.get("type", "lesson"),
-                "priority": entry.get("priority", "medium"),
-            })
+            results.append(
+                {
+                    "id": entry.get("id"),
+                    "title": entry.get("title", ""),
+                    "summary": entry.get("summary", "")[:200],
+                    "type": entry.get("type", "lesson"),
+                    "priority": entry.get("priority", "medium"),
+                }
+            )
 
         return results
 
