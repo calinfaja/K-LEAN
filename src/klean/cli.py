@@ -1254,7 +1254,11 @@ def provider_list():
             pass
 
     for name, info in sorted(providers.items()):
-        status = f"[green]{SYM_OK} ACTIVE[/green]" if info["configured"] else f"[red]{SYM_FAIL} NOT CONFIGURED[/red]"
+        status = (
+            f"[green]{SYM_OK} ACTIVE[/green]"
+            if info["configured"]
+            else f"[red]{SYM_FAIL} NOT CONFIGURED[/red]"
+        )
         model_count = model_counts.get(name, 0)
         models = f"({model_count} models)" if model_count > 0 else "(no models)"
         table.add_row(name.upper(), status, models)
@@ -1330,7 +1334,9 @@ def provider_add(provider_name: str, api_key: str):
         # Write updated config
         config_path.write_text(config_yaml)
 
-        console.print(f"\n[green]{SYM_OK}[/green] Added {len(recommended_models)} recommended models")
+        console.print(
+            f"\n[green]{SYM_OK}[/green] Added {len(recommended_models)} recommended models"
+        )
         console.print("Changes will take effect after service restart")
     else:
         console.print("\nNo models added. Add them later with:")
@@ -2322,7 +2328,9 @@ def doctor(auto_fix: bool):
                     issues.append(
                         ("ERROR", "LiteLLM config has quoted os.environ/ - remove quotes!")
                     )
-                    console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM config: Quoted os.environ/ found")
+                    console.print(
+                        f"  [red]{SYM_FAIL}[/red] LiteLLM config: Quoted os.environ/ found"
+                    )
                     console.print(
                         "    [dim]This breaks env var substitution. Edit ~/.config/litellm/config.yaml[/dim]"
                     )
@@ -2353,7 +2361,9 @@ def doctor(auto_fix: bool):
                     issues.append(
                         ("CRITICAL", "LiteLLM config has hardcoded API keys! Use os.environ/VAR")
                     )
-                    console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM config: Hardcoded API keys detected!")
+                    console.print(
+                        f"  [red]{SYM_FAIL}[/red] LiteLLM config: Hardcoded API keys detected!"
+                    )
                     console.print(
                         "    [dim]Never commit API keys. Use: api_key: os.environ/NANOGPT_API_KEY[/dim]"
                     )
