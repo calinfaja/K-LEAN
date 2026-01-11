@@ -483,7 +483,9 @@ class KnowledgeDB:
                 if similar and similar[0].get("score", 0) > 0.85:
                     existing_id = similar[0].get("id")
                     existing_title = similar[0].get("title", "")[:50]
-                    debug_log(f"Duplicate detected (score={similar[0]['score']:.2f}): '{existing_title}'")
+                    debug_log(
+                        f"Duplicate detected (score={similar[0]['score']:.2f}): '{existing_title}'"
+                    )
                     return existing_id  # Return existing ID instead of adding duplicate
             except Exception as e:
                 debug_log(f"Dedup check failed (proceeding with add): {e}")
@@ -938,12 +940,7 @@ class KnowledgeDB:
             entry_type = "finding"  # Normalize legacy types
 
         # Merge insight sources: insight > atomic_insight > summary
-        insight = (
-            data.get("insight")
-            or data.get("atomic_insight")
-            or data.get("summary")
-            or ""
-        )
+        insight = data.get("insight") or data.get("atomic_insight") or data.get("summary") or ""
 
         # Merge keyword sources: keywords > tags + key_concepts
         keywords = data.get("keywords")
@@ -955,7 +952,11 @@ class KnowledgeDB:
         # Merge source: source > url > source_path
         source = data.get("source", "")
         if not source or source in ("manual", "conversation", "review"):
-            source = data.get("url") or data.get("source_path") or f"conv:{datetime.now().strftime('%Y-%m-%d')}"
+            source = (
+                data.get("url")
+                or data.get("source_path")
+                or f"conv:{datetime.now().strftime('%Y-%m-%d')}"
+            )
 
         entry = {
             "id": data.get("id") or str(uuid.uuid4()),

@@ -287,7 +287,6 @@ def session_start() -> None:
     sys.exit(0)
 
 
-
 def _format_entries_toon(entries: list) -> str:
     """Format KB entries in TOON format for token reduction.
 
@@ -314,6 +313,7 @@ def _format_entries_toon(entries: list) -> str:
         minimal.append(entry)
 
     return encode(minimal)
+
 
 def _get_kb_context(project_root: Path) -> str:
     """Get KB entries + Serena prompt for context injection.
@@ -354,7 +354,8 @@ def _get_kb_context(project_root: Path) -> str:
 
         # 1. Get critical/high warnings (up to 10)
         warnings = [
-            e for e in all_entries
+            e
+            for e in all_entries
             if e.get("type") == "warning" and e.get("priority") in ("critical", "high")
         ][:10]
 

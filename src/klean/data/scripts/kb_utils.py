@@ -691,6 +691,7 @@ def migrate_entry(entry: dict) -> dict:
         # Import here to avoid circular dependency
         try:
             from knowledge_db import infer_type
+
             entry["type"] = infer_type(entry.get("title", ""), entry.get("insight", ""))
         except ImportError:
             entry["type"] = "finding"

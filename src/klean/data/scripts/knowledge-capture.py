@@ -172,12 +172,7 @@ def create_entry_from_json(data: dict):
     entry_id = data.get("id") or f"{entry_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     # Merge insight sources: insight > atomic_insight > summary
-    insight = (
-        data.get("insight")
-        or data.get("atomic_insight")
-        or data.get("summary")
-        or ""
-    )
+    insight = data.get("insight") or data.get("atomic_insight") or data.get("summary") or ""
 
     # Merge keyword sources: keywords > tags + key_concepts
     keywords = data.get("keywords")
