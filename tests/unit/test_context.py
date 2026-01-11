@@ -31,16 +31,14 @@ from klean.smol.context import (
 # TestProjectContext Dataclass
 # =============================================================================
 
+
 class TestProjectContext:
     """Tests for ProjectContext dataclass."""
 
     def test_creates_with_required_fields(self, tmp_path):
         """Should create context with required fields."""
         # Act
-        ctx = ProjectContext(
-            project_root=tmp_path,
-            project_name="test-project"
-        )
+        ctx = ProjectContext(project_root=tmp_path, project_name="test-project")
 
         # Assert
         assert ctx.project_root == tmp_path
@@ -51,10 +49,7 @@ class TestProjectContext:
     def test_default_values(self, tmp_path):
         """Should have sensible defaults."""
         # Act
-        ctx = ProjectContext(
-            project_root=tmp_path,
-            project_name="test"
-        )
+        ctx = ProjectContext(project_root=tmp_path, project_name="test")
 
         # Assert
         assert ctx.knowledge_db_path is None
@@ -67,17 +62,15 @@ class TestProjectContext:
 # TestDetectProjectRoot
 # =============================================================================
 
+
 class TestDetectProjectRoot:
     """Tests for detect_project_root() function."""
 
-    @patch('klean.smol.context.subprocess.run')
+    @patch("klean.smol.context.subprocess.run")
     def test_uses_git_rev_parse(self, mock_run, tmp_path):
         """Should use git rev-parse to find root."""
         # Arrange
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout=str(tmp_path) + "\n"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout=str(tmp_path) + "\n")
 
         # Act
         root = detect_project_root(tmp_path)
@@ -98,14 +91,14 @@ class TestDetectProjectRoot:
         nested.mkdir(parents=True)
 
         # Act - start from nested, with git command failing
-        with patch('klean.smol.context.subprocess.run') as mock_run:
+        with patch("klean.smol.context.subprocess.run") as mock_run:
             mock_run.side_effect = Exception("git not available")
             root = detect_project_root(nested)
 
         # Assert
         assert root == tmp_path
 
-    @patch('klean.smol.context.subprocess.run')
+    @patch("klean.smol.context.subprocess.run")
     def test_fallback_to_cwd(self, mock_run, tmp_path):
         """Should fallback to cwd when no .git found."""
         # Arrange
@@ -113,7 +106,7 @@ class TestDetectProjectRoot:
         # tmp_path has no .git
 
         # Act
-        with patch('pathlib.Path.cwd', return_value=tmp_path):
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
             root = detect_project_root(tmp_path)
 
         # Assert - should be cwd since no .git found
@@ -122,8 +115,9 @@ class TestDetectProjectRoot:
     def test_handles_git_timeout(self, temp_project):
         """Should handle git command timeout gracefully."""
         # Arrange
-        with patch('klean.smol.context.subprocess.run') as mock_run:
+        with patch("klean.smol.context.subprocess.run") as mock_run:
             import subprocess
+
             mock_run.side_effect = subprocess.TimeoutExpired("git", 5)
 
             # Act - should not raise, should walk up
@@ -137,17 +131,15 @@ class TestDetectProjectRoot:
 # TestGetGitInfo
 # =============================================================================
 
+
 class TestGetGitInfo:
     """Tests for get_git_info() function."""
 
-    @patch('klean.smol.context.subprocess.run')
+    @patch("klean.smol.context.subprocess.run")
     def test_extracts_branch_name(self, mock_run, tmp_path):
         """Should extract current branch name."""
         # Arrange
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout="feature/awesome\n"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout="feature/awesome\n")
 
         # Act
         info = get_git_info(tmp_path)
@@ -155,12 +147,13 @@ class TestGetGitInfo:
         # Assert
         assert info.get("branch") == "feature/awesome"
 
-    @patch('klean.smol.context.subprocess.run')
+    @patch("klean.smol.context.subprocess.run")
     def test_extracts_status_summary(self, mock_run, tmp_path):
         """Should extract status summary."""
+
         # Arrange - simulate 3 files changed
         def run_side_effect(*args, **kwargs):
-            cmd = args[0] if args else kwargs.get('args', [])
+            cmd = args[0] if args else kwargs.get("args", [])
             if "branch" in cmd:
                 return MagicMock(returncode=0, stdout="main\n")
             if "status" in cmd:
@@ -175,12 +168,13 @@ class TestGetGitInfo:
         # Assert
         assert info.get("status") == "3 files changed"
 
-    @patch('klean.smol.context.subprocess.run')
+    @patch("klean.smol.context.subprocess.run")
     def test_clean_status(self, mock_run, tmp_path):
         """Should report 'clean' for no changes."""
+
         # Arrange
         def run_side_effect(*args, **kwargs):
-            cmd = args[0] if args else kwargs.get('args', [])
+            cmd = args[0] if args else kwargs.get("args", [])
             if "status" in cmd:
                 return MagicMock(returncode=0, stdout="")
             return MagicMock(returncode=0, stdout="main\n")
@@ -193,7 +187,7 @@ class TestGetGitInfo:
         # Assert
         assert info.get("status") == "clean"
 
-    @patch('klean.smol.context.subprocess.run')
+    @patch("klean.smol.context.subprocess.run")
     def test_handles_not_git_repo(self, mock_run, tmp_path):
         """Should return empty dict when not a git repo."""
         # Arrange
@@ -210,6 +204,7 @@ class TestGetGitInfo:
 # =============================================================================
 # TestLoadClaudeMd
 # =============================================================================
+
 
 class TestLoadClaudeMd:
     """Tests for load_claude_md() function."""
@@ -253,7 +248,7 @@ class TestLoadClaudeMd:
         claude_md.write_text("content")
 
         # Act - mock read_text to raise
-        with patch.object(Path, 'read_text', side_effect=PermissionError()):
+        with patch.object(Path, "read_text", side_effect=PermissionError()):
             content = load_claude_md(tmp_path)
 
         # Assert
@@ -263,6 +258,7 @@ class TestLoadClaudeMd:
 # =============================================================================
 # TestFindKnowledgeDb
 # =============================================================================
+
 
 class TestFindKnowledgeDb:
     """Tests for find_knowledge_db() function."""
@@ -313,18 +309,19 @@ class TestFindKnowledgeDb:
 # TestGatherProjectContext
 # =============================================================================
 
+
 class TestGatherProjectContext:
     """Tests for gather_project_context() function."""
 
-    @patch('klean.smol.context.subprocess.run')
-    @patch('klean.smol.context.check_serena_available')
+    @patch("klean.smol.context.subprocess.run")
+    @patch("klean.smol.context.check_serena_available")
     def test_assembles_full_context(self, mock_serena, mock_run, temp_project):
         """Should assemble complete project context."""
         # Arrange
         mock_serena.return_value = False
 
         def run_side_effect(*args, **kwargs):
-            cmd = args[0] if args else kwargs.get('args', [])
+            cmd = args[0] if args else kwargs.get("args", [])
             if "rev-parse" in cmd:
                 return MagicMock(returncode=0, stdout=str(temp_project) + "\n")
             if "branch" in cmd:
@@ -345,16 +342,13 @@ class TestGatherProjectContext:
         assert ctx.git_branch == "main"
         assert ctx.git_status_summary == "clean"
 
-    @patch('klean.smol.context.subprocess.run')
-    @patch('klean.smol.context.check_serena_available')
+    @patch("klean.smol.context.subprocess.run")
+    @patch("klean.smol.context.check_serena_available")
     def test_includes_claude_md(self, mock_serena, mock_run, temp_project):
         """Should include CLAUDE.md content."""
         # Arrange
         mock_serena.return_value = False
-        mock_run.return_value = MagicMock(
-            returncode=0,
-            stdout=str(temp_project) + "\n"
-        )
+        mock_run.return_value = MagicMock(returncode=0, stdout=str(temp_project) + "\n")
 
         # Act
         ctx = gather_project_context(temp_project)
@@ -363,8 +357,8 @@ class TestGatherProjectContext:
         assert ctx.claude_md is not None
         assert "Test Project" in ctx.claude_md
 
-    @patch('klean.smol.context.subprocess.run')
-    @patch('klean.smol.context.check_serena_available')
+    @patch("klean.smol.context.subprocess.run")
+    @patch("klean.smol.context.check_serena_available")
     def test_detects_knowledge_db(self, mock_serena, mock_run, tmp_path):
         """Should detect knowledge DB."""
         # Arrange
@@ -388,16 +382,14 @@ class TestGatherProjectContext:
 # TestFormatContextForPrompt
 # =============================================================================
 
+
 class TestFormatContextForPrompt:
     """Tests for format_context_for_prompt() function."""
 
     def test_includes_project_header(self, tmp_path):
         """Should include project name and root."""
         # Arrange
-        ctx = ProjectContext(
-            project_root=tmp_path,
-            project_name="my-app"
-        )
+        ctx = ProjectContext(project_root=tmp_path, project_name="my-app")
 
         # Act
         output = format_context_for_prompt(ctx)
@@ -414,7 +406,7 @@ class TestFormatContextForPrompt:
             project_root=tmp_path,
             project_name="app",
             git_branch="feature/x",
-            git_status_summary="2 files changed"
+            git_status_summary="2 files changed",
         )
 
         # Act
@@ -430,7 +422,7 @@ class TestFormatContextForPrompt:
         ctx = ProjectContext(
             project_root=tmp_path,
             project_name="app",
-            claude_md="# My Project\n\nDo things this way."
+            claude_md="# My Project\n\nDo things this way.",
         )
 
         # Act
@@ -448,7 +440,7 @@ class TestFormatContextForPrompt:
             project_root=tmp_path,
             project_name="app",
             has_knowledge_db=True,
-            knowledge_db_path=kb_path
+            knowledge_db_path=kb_path,
         )
 
         # Act
@@ -462,11 +454,7 @@ class TestFormatContextForPrompt:
     def test_includes_serena_status(self, tmp_path):
         """Should include Serena status when available."""
         # Arrange
-        ctx = ProjectContext(
-            project_root=tmp_path,
-            project_name="app",
-            serena_available=True
-        )
+        ctx = ProjectContext(project_root=tmp_path, project_name="app", serena_available=True)
 
         # Act
         output = format_context_for_prompt(ctx)
@@ -474,4 +462,3 @@ class TestFormatContextForPrompt:
         # Assert
         assert "Serena" in output
         assert "Available" in output
-

@@ -88,7 +88,7 @@ class TestAddModelCommand:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
+                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"],
                 )
 
                 assert result.exit_code != 0
@@ -117,7 +117,7 @@ model_list:
             with patch("klean.cli.CONFIG_DIR", config_dir):
                 result = runner.invoke(
                     main,
-                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
+                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"],
                 )
 
                 assert result.exit_code == 0
@@ -147,10 +147,7 @@ class TestRemoveModelCommand:
             config_dir = Path(tmpdir) / ".config" / "litellm"
 
             with patch("klean.cli.CONFIG_DIR", config_dir):
-                result = runner.invoke(
-                    main,
-                    ["model", "remove", "nonexistent-model"]
-                )
+                result = runner.invoke(main, ["model", "remove", "nonexistent-model"])
 
                 assert result.exit_code != 0
                 assert "config.yaml not found" in result.output
@@ -176,10 +173,7 @@ model_list:
             (config_dir / "config.yaml").write_text(config_yaml)
 
             with patch("klean.cli.CONFIG_DIR", config_dir):
-                result = runner.invoke(
-                    main,
-                    ["model", "remove", "nonexistent-model"]
-                )
+                result = runner.invoke(main, ["model", "remove", "nonexistent-model"])
 
                 assert result.exit_code == 0
                 assert "not found" in result.output
@@ -210,10 +204,7 @@ model_list:
             (config_dir / "config.yaml").write_text(config_yaml)
 
             with patch("klean.cli.CONFIG_DIR", config_dir):
-                result = runner.invoke(
-                    main,
-                    ["model", "remove", "test-model-1"]
-                )
+                result = runner.invoke(main, ["model", "remove", "test-model-1"])
 
                 assert result.exit_code == 0
                 assert "Removed model" in result.output
@@ -247,15 +238,12 @@ model_list: []
                 # Add model
                 result1 = runner.invoke(
                     main,
-                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"]
+                    ["model", "add", "--provider", "openrouter", "anthropic/claude-3.5-sonnet"],
                 )
                 assert result1.exit_code == 0
 
                 # Remove model
-                result2 = runner.invoke(
-                    main,
-                    ["model", "remove", "claude-3.5-sonnet"]
-                )
+                result2 = runner.invoke(main, ["model", "remove", "claude-3.5-sonnet"])
                 assert result2.exit_code == 0
 
                 # Verify model list is empty

@@ -240,7 +240,9 @@ class TestExecute:
                             mock_agent.prompt_templates = {}
                             mock_code_agent.return_value = mock_agent
 
-                            with patch("klean.smol.multi_agent.get_citation_stats", return_value={}):
+                            with patch(
+                                "klean.smol.multi_agent.get_citation_stats", return_value={}
+                            ):
                                 executor = MultiAgentExecutor()
                                 executor.execute("test task", thorough=False)
 
@@ -286,7 +288,9 @@ class TestExecute:
                             mock_agent.prompt_templates = {}
                             mock_code_agent.return_value = mock_agent
 
-                            with patch("klean.smol.multi_agent.get_citation_stats", return_value={}):
+                            with patch(
+                                "klean.smol.multi_agent.get_citation_stats", return_value={}
+                            ):
                                 executor = MultiAgentExecutor()
                                 executor.execute("test task", thorough=True)
 
@@ -429,7 +433,9 @@ class TestErrorHandling:
                     "security": mock_specialist,
                 }
 
-                with patch("klean.smol.multi_agent.create_model", side_effect=Exception("Model error")):
+                with patch(
+                    "klean.smol.multi_agent.create_model", side_effect=Exception("Model error")
+                ):
                     executor = MultiAgentExecutor()
                     result = executor.execute("test task")
 

@@ -42,14 +42,15 @@ def test_init_nanogpt_silent():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             result = runner.invoke(
                 main,
                 ["init", "--provider", "nanogpt", "--api-key", "test-key"],
-                input="y\n"  # Confirm model installation
+                input="y\n",  # Confirm model installation
             )
 
             assert result.exit_code == 0
@@ -65,14 +66,15 @@ def test_init_openrouter_silent():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             result = runner.invoke(
                 main,
                 ["init", "--provider", "openrouter", "--api-key", "sk-or-test"],
-                input="y\n"  # Confirm model installation
+                input="y\n",  # Confirm model installation
             )
 
             assert result.exit_code == 0
@@ -88,14 +90,12 @@ def test_init_skip_litellm():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
-            result = runner.invoke(
-                main,
-                ["init", "--provider", "skip"]
-            )
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
+            result = runner.invoke(main, ["init", "--provider", "skip"])
 
             assert result.exit_code == 0
             assert "Knowledge system ready" in result.output
@@ -112,14 +112,15 @@ def test_init_creates_config_file():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             runner.invoke(
                 main,
                 ["init", "--provider", "nanogpt", "--api-key", "test-key"],
-                input="y\n"  # Confirm model installation
+                input="y\n",  # Confirm model installation
             )
 
             config_file = config_dir / "config.yaml"
@@ -135,14 +136,15 @@ def test_init_creates_env_file():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             runner.invoke(
                 main,
                 ["init", "--provider", "nanogpt", "--api-key", "test-key"],
-                input="y\n"  # Confirm model installation
+                input="y\n",  # Confirm model installation
             )
 
             env_file = config_dir / ".env"
@@ -163,14 +165,15 @@ def test_init_nanogpt_creates_models():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             runner.invoke(
                 main,
                 ["init", "--provider", "nanogpt", "--api-key", "test-key"],
-                input="y\n"  # Confirm model installation
+                input="y\n",  # Confirm model installation
             )
 
             config_file = config_dir / "config.yaml"
@@ -193,10 +196,11 @@ def test_init_no_pricing_info():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             result = runner.invoke(main, ["init"], input="1\ntest-key\n")
 
             # Should not contain any pricing info
@@ -213,14 +217,15 @@ def test_init_openrouter_models_count():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             runner.invoke(
                 main,
                 ["init", "--provider", "openrouter", "--api-key", "sk-or-test"],
-                input="y\n"  # Confirm model installation
+                input="y\n",  # Confirm model installation
             )
 
             config_file = config_dir / "config.yaml"
@@ -243,14 +248,15 @@ def test_init_already_initialized():
         config_dir.mkdir(parents=True, exist_ok=True)
         (config_dir / "config.yaml").write_text("# existing config")
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir):
-
+        with patch("klean.cli.CONFIG_DIR", config_dir), patch("klean.cli.CLAUDE_DIR", claude_dir):
             # Try to init again - should ask for reconfiguration
             result = runner.invoke(main, ["init", "--provider", "skip"], input="n\n")
 
             # Should warn about already being initialized
-            assert "already initialized" in result.output.lower() or "reconfigure" in result.output.lower()
+            assert (
+                "already initialized" in result.output.lower()
+                or "reconfigure" in result.output.lower()
+            )
 
 
 def test_init_api_key_hidden_in_interactive():
@@ -261,14 +267,15 @@ def test_init_api_key_hidden_in_interactive():
         config_dir = Path(tmpdir) / ".config" / "litellm"
         claude_dir = Path(tmpdir) / ".claude"
 
-        with patch("klean.cli.CONFIG_DIR", config_dir), \
-             patch("klean.cli.CLAUDE_DIR", claude_dir), \
-             patch("klean.cli.install"):
-
+        with (
+            patch("klean.cli.CONFIG_DIR", config_dir),
+            patch("klean.cli.CLAUDE_DIR", claude_dir),
+            patch("klean.cli.install"),
+        ):
             result = runner.invoke(
                 main,
                 ["init"],
-                input="1\nn\nmy-secret-key\ny\n"  # Choose provider, no more providers, API key, confirm models
+                input="1\nn\nmy-secret-key\ny\n",  # Choose provider, no more providers, API key, confirm models
             )
 
             # Command should complete successfully

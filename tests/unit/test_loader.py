@@ -68,7 +68,7 @@ class TestAgentConfig:
 class TestParseAgentFile:
     """Tests for parse_agent_file() function."""
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_parses_yaml_frontmatter(self, mock_get_model, temp_agents_dir):
         """Should extract YAML frontmatter from agent file."""
         # Arrange
@@ -83,7 +83,7 @@ class TestParseAgentFile:
         assert agent.config.description == "Security audit specialist"
         assert agent.config.model == "deepseek-r1"
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_extracts_tools_list(self, mock_get_model, temp_agents_dir):
         """Should parse tools list from frontmatter."""
         # Arrange
@@ -99,7 +99,7 @@ class TestParseAgentFile:
         assert "read_file" in agent.config.tools
         assert "grep" in agent.config.tools
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_extracts_system_prompt(self, mock_get_model, temp_agents_dir):
         """Should extract markdown content as system prompt."""
         # Arrange
@@ -114,7 +114,7 @@ class TestParseAgentFile:
         assert "SQL injection" in agent.system_prompt
         assert agent.system_prompt.startswith("#")
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_handles_no_frontmatter(self, mock_get_model, temp_agents_dir):
         """Should use defaults when no YAML frontmatter present."""
         # Arrange
@@ -130,7 +130,7 @@ class TestParseAgentFile:
         assert len(agent.config.tools) == 3  # Default tools
         assert agent.config.model == "fallback-model"
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_resolves_inherit_model(self, mock_get_model, temp_agents_dir):
         """Should resolve 'inherit' model to first available."""
         # Arrange
@@ -144,7 +144,7 @@ class TestParseAgentFile:
         assert agent.config.model == "discovered-model"
         mock_get_model.assert_called_once()
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_resolves_empty_model(self, mock_get_model, temp_agents_dir):
         """Should resolve empty model to first available."""
         # Arrange
@@ -158,7 +158,7 @@ class TestParseAgentFile:
         assert agent.config.model == "first-available"
         mock_get_model.assert_called_once()
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_preserves_source_path(self, mock_get_model, temp_agents_dir):
         """Should preserve source file path in Agent."""
         # Arrange
@@ -172,7 +172,7 @@ class TestParseAgentFile:
         assert agent.source_path == agent_path
         assert agent.source_path.exists()
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_fallback_to_auto_when_no_model_available(self, mock_get_model, temp_agents_dir):
         """Should fallback to 'auto' when get_model() returns None."""
         # Arrange
@@ -230,7 +230,7 @@ class TestListAvailableAgents:
 class TestLoadAgent:
     """Tests for load_agent() function."""
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_loads_existing_agent(self, mock_get_model, temp_agents_dir):
         """Should load and parse existing agent by name."""
         # Arrange
@@ -253,7 +253,7 @@ class TestLoadAgent:
         # Verify error message contains agent name
         assert "nonexistent-agent" in str(exc_info.value)
 
-    @patch('klean.smol.loader.get_model')
+    @patch("klean.smol.loader.get_model")
     def test_returns_agent_instance(self, mock_get_model, temp_agents_dir):
         """Should return proper Agent instance with all fields."""
         # Arrange
@@ -263,10 +263,9 @@ class TestLoadAgent:
         agent = load_agent("simple-reviewer", agents_dir=temp_agents_dir)
 
         # Assert - verify all Agent fields
-        assert hasattr(agent, 'config')
-        assert hasattr(agent, 'system_prompt')
-        assert hasattr(agent, 'source_path')
+        assert hasattr(agent, "config")
+        assert hasattr(agent, "system_prompt")
+        assert hasattr(agent, "source_path")
         assert isinstance(agent.config, AgentConfig)
         assert isinstance(agent.system_prompt, str)
         assert isinstance(agent.source_path, Path)
-

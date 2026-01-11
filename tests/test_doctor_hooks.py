@@ -17,32 +17,52 @@ KLEAN_HOOKS_CONFIG = {
     "SessionStart": [
         {
             "matcher": "startup",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}]
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}
+            ],
         },
         {
             "matcher": "resume",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}]
-        }
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/session-start.sh", "timeout": 5}
+            ],
+        },
     ],
     "UserPromptSubmit": [
         {
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/user-prompt-handler.sh", "timeout": 30}]
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/.claude/hooks/user-prompt-handler.sh",
+                    "timeout": 30,
+                }
+            ]
         }
     ],
     "PostToolUse": [
         {
             "matcher": "Bash",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-bash-handler.sh", "timeout": 15}]
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "~/.claude/hooks/post-bash-handler.sh",
+                    "timeout": 15,
+                }
+            ],
         },
         {
             "matcher": "WebFetch|WebSearch",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}]
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}
+            ],
         },
         {
             "matcher": "mcp__tavily__.*",
-            "hooks": [{"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}]
-        }
-    ]
+            "hooks": [
+                {"type": "command", "command": "~/.claude/hooks/post-web-handler.sh", "timeout": 10}
+            ],
+        },
+    ],
 }
 
 
@@ -78,7 +98,9 @@ def merge_klean_hooks(existing_settings: dict) -> tuple:
             for klean_hook in klean_hook_list:
                 klean_matcher = klean_hook.get("matcher", "")
                 if not klean_matcher and "hooks" in klean_hook:
-                    klean_matcher = klean_hook["hooks"][0].get("command", "") if klean_hook["hooks"] else ""
+                    klean_matcher = (
+                        klean_hook["hooks"][0].get("command", "") if klean_hook["hooks"] else ""
+                    )
 
                 if klean_matcher not in existing_matchers:
                     hooks[hook_type].append(klean_hook)
@@ -115,7 +137,12 @@ class TestMergeKleanHooks:
         settings = {
             "hooks": {
                 "SessionStart": [
-                    {"matcher": "startup", "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh"}]}
+                    {
+                        "matcher": "startup",
+                        "hooks": [
+                            {"type": "command", "command": "~/.claude/hooks/session-start.sh"}
+                        ],
+                    }
                 ]
             }
         }
@@ -132,11 +159,17 @@ class TestMergeKleanHooks:
         settings = {
             "hooks": {
                 "PreToolUse": [
-                    {"matcher": "Edit", "hooks": [{"type": "command", "command": "my-custom-hook.sh"}]}
+                    {
+                        "matcher": "Edit",
+                        "hooks": [{"type": "command", "command": "my-custom-hook.sh"}],
+                    }
                 ],
                 "SessionStart": [
-                    {"matcher": "custom-matcher", "hooks": [{"type": "command", "command": "my-hook.sh"}]}
-                ]
+                    {
+                        "matcher": "custom-matcher",
+                        "hooks": [{"type": "command", "command": "my-hook.sh"}],
+                    }
+                ],
             }
         }
         result, added = merge_klean_hooks(settings)
@@ -169,12 +202,11 @@ class TestMergeKleanHooks:
 
     def test_all_klean_hooks_present(self):
         """Test: Already fully configured - should add nothing."""
-        settings = {
-            "hooks": KLEAN_HOOKS_CONFIG.copy()
-        }
+        settings = {"hooks": KLEAN_HOOKS_CONFIG.copy()}
 
         # Deep copy to avoid mutation
         import copy
+
         settings = copy.deepcopy(settings)
 
         result, added = merge_klean_hooks(settings)
@@ -187,7 +219,7 @@ class TestMergeKleanHooks:
             "model": "claude-3-opus",
             "apiKey": "sk-xxx",
             "permissions": {"allow": ["Read", "Write"]},
-            "hooks": {}
+            "hooks": {},
         }
         result, added = merge_klean_hooks(settings)
 

@@ -15,7 +15,16 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Add klean data/core to path for klean_core module
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "src", "klean", "data", "core"))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "src",
+        "klean",
+        "data",
+        "core",
+    ),
+)
 
 from klean_core import LLMClient
 
@@ -23,18 +32,14 @@ from klean_core import LLMClient
 class TestModelDiscovery(unittest.TestCase):
     """Test 1: Model Discovery via urllib."""
 
-    @patch('urllib.request.urlopen')
+    @patch("urllib.request.urlopen")
     def test_discover_models_success(self, mock_urlopen):
         """Should parse models from LiteLLM /models endpoint."""
         # Mock response
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "data": [
-                {"id": "qwen3-coder"},
-                {"id": "deepseek-r1"},
-                {"id": "kimi-k2"}
-            ]
-        }).encode()
+        mock_response.read.return_value = json.dumps(
+            {"data": [{"id": "qwen3-coder"}, {"id": "deepseek-r1"}, {"id": "kimi-k2"}]}
+        ).encode()
         mock_response.__enter__ = lambda s: s
         mock_response.__exit__ = lambda s, *args: None
         mock_urlopen.return_value = mock_response
@@ -45,7 +50,7 @@ class TestModelDiscovery(unittest.TestCase):
         self.assertEqual(models, ["qwen3-coder", "deepseek-r1", "kimi-k2"])
         mock_urlopen.assert_called_once()
 
-    @patch('urllib.request.urlopen')
+    @patch("urllib.request.urlopen")
     def test_discover_models_empty(self, mock_urlopen):
         """Should handle empty model list."""
         mock_response = MagicMock()
@@ -59,7 +64,7 @@ class TestModelDiscovery(unittest.TestCase):
 
         self.assertEqual(models, [])
 
-    @patch('urllib.request.urlopen')
+    @patch("urllib.request.urlopen")
     def test_discover_models_network_error(self, mock_urlopen):
         """Should return empty list on network error."""
         mock_urlopen.side_effect = Exception("Connection refused")
@@ -95,7 +100,7 @@ class TestModelPrefix(unittest.TestCase):
 class TestSyncCompletion(unittest.TestCase):
     """Test 3: Sync completion via litellm."""
 
-    @patch('litellm.completion')
+    @patch("litellm.completion")
     def test_completion_returns_content(self, mock_completion):
         """Should extract content from litellm response."""
         # Mock litellm response
@@ -109,7 +114,9 @@ class TestSyncCompletion(unittest.TestCase):
         mock_response = MagicMock()
         mock_response.choices = [mock_choice]
         mock_response.usage = MagicMock()
-        mock_response.usage.__iter__ = lambda s: iter([("prompt_tokens", 10), ("completion_tokens", 20)])
+        mock_response.usage.__iter__ = lambda s: iter(
+            [("prompt_tokens", 10), ("completion_tokens", 20)]
+        )
         mock_response.model = "qwen3-coder"
 
         mock_completion.return_value = mock_response
@@ -120,7 +127,7 @@ class TestSyncCompletion(unittest.TestCase):
         self.assertEqual(result["content"], "Test response content")
         self.assertIn("model", result)
 
-    @patch('litellm.completion')
+    @patch("litellm.completion")
     def test_completion_uses_proxy_model(self, mock_completion):
         """Should add openai/ prefix when calling litellm."""
         mock_message = MagicMock()
@@ -144,7 +151,7 @@ class TestSyncCompletion(unittest.TestCase):
 class TestReasoningContent(unittest.TestCase):
     """Test 5: Reasoning content extraction for thinking models."""
 
-    @patch('litellm.completion')
+    @patch("litellm.completion")
     def test_extracts_reasoning_content(self, mock_completion):
         """Should extract reasoning_content from thinking models."""
         mock_message = MagicMock()
@@ -167,10 +174,10 @@ class TestReasoningContent(unittest.TestCase):
         self.assertEqual(result["content"], "Final answer")
         self.assertEqual(result["reasoning_content"], "Let me think step by step...")
 
-    @patch('litellm.completion')
+    @patch("litellm.completion")
     def test_handles_missing_reasoning_content(self, mock_completion):
         """Should handle models without reasoning_content."""
-        mock_message = MagicMock(spec=['content'])  # No reasoning_content attribute
+        mock_message = MagicMock(spec=["content"])  # No reasoning_content attribute
         mock_message.content = "Regular response"
 
         mock_choice = MagicMock()
@@ -205,10 +212,11 @@ class TestTelemetrySetup(unittest.TestCase):
 
         self.assertEqual(os.environ.get("PHOENIX_PROJECT_NAME"), "test-project")
 
-    @patch('litellm.callbacks', [])
+    @patch("litellm.callbacks", [])
     def test_enable_telemetry_sets_callback(self):
         """Should add arize_phoenix to litellm callbacks."""
         import litellm
+
         litellm.callbacks = []
 
         client = LLMClient()

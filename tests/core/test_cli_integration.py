@@ -25,17 +25,13 @@ def run_klean_command(args: list, timeout: int = 30) -> tuple:
     try:
         # Set PYTHONPATH to include src directory
         import os
+
         env = os.environ.copy()
         src_path = str(Path(__file__).parent.parent.parent / "src")
         env["PYTHONPATH"] = f"{src_path}:{env.get('PYTHONPATH', '')}"
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(Path.home()),
-            env=env
+            cmd, capture_output=True, text=True, timeout=timeout, cwd=str(Path.home()), env=env
         )
         return result.stdout, result.stderr, result.returncode
     except subprocess.TimeoutExpired:
@@ -65,27 +61,23 @@ class TestCLIHelp(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    subprocess.run(["curl", "-s", "http://localhost:4000/health"],
-                   capture_output=True).returncode == 0,
-    "LiteLLM proxy not running"
+    subprocess.run(["curl", "-s", "http://localhost:4000/health"], capture_output=True).returncode
+    == 0,
+    "LiteLLM proxy not running",
 )
 class TestCLIQuick(unittest.TestCase):
     """Test 7: CLI quick review command."""
 
     def test_quick_review_runs(self):
         """Should execute quick review without crashing."""
-        stdout, stderr, code = run_klean_command(
-            ["quick", "test review"],
-            timeout=60
-        )
+        stdout, stderr, code = run_klean_command(["quick", "test review"], timeout=60)
         # Check it ran (may fail for model reasons, but should not crash)
         self.assertNotIn("Traceback", stderr)
 
     def test_quick_review_output_format(self):
         """Should produce structured output."""
         stdout, stderr, code = run_klean_command(
-            ["quick", "--output", "json", "test review"],
-            timeout=60
+            ["quick", "--output", "json", "test review"], timeout=60
         )
         if code == 0 and stdout.strip():
             # Try to parse JSON output
@@ -97,9 +89,9 @@ class TestCLIQuick(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    subprocess.run(["curl", "-s", "http://localhost:4000/health"],
-                   capture_output=True).returncode == 0,
-    "LiteLLM proxy not running"
+    subprocess.run(["curl", "-s", "http://localhost:4000/health"], capture_output=True).returncode
+    == 0,
+    "LiteLLM proxy not running",
 )
 class TestCLIMulti(unittest.TestCase):
     """Test 8: CLI multi review command."""
@@ -107,8 +99,7 @@ class TestCLIMulti(unittest.TestCase):
     def test_multi_review_runs(self):
         """Should execute multi review without crashing."""
         stdout, stderr, code = run_klean_command(
-            ["multi", "--models", "2", "test review"],
-            timeout=120
+            ["multi", "--models", "2", "test review"], timeout=120
         )
         self.assertNotIn("Traceback", stderr)
 
@@ -117,10 +108,10 @@ class TestCLIMulti(unittest.TestCase):
         # Discover models dynamically from LiteLLM proxy
         import json
         import urllib.request
+
         try:
             req = urllib.request.Request(
-                "http://localhost:4000/models",
-                headers={"Content-Type": "application/json"}
+                "http://localhost:4000/models", headers={"Content-Type": "application/json"}
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
@@ -134,17 +125,16 @@ class TestCLIMulti(unittest.TestCase):
         # Use first 2 discovered models
         model_list = ",".join(models[:2])
         stdout, stderr, code = run_klean_command(
-            ["multi", "--models", model_list, "test"],
-            timeout=120
+            ["multi", "--models", model_list, "test"], timeout=120
         )
         # Should not crash with invalid args
         self.assertNotIn("invalid", stderr.lower())
 
 
 @unittest.skipUnless(
-    subprocess.run(["curl", "-s", "http://localhost:4000/health"],
-                   capture_output=True).returncode == 0,
-    "LiteLLM proxy not running"
+    subprocess.run(["curl", "-s", "http://localhost:4000/health"], capture_output=True).returncode
+    == 0,
+    "LiteLLM proxy not running",
 )
 class TestCLIMultiTelemetry(unittest.TestCase):
     """Test 9: CLI multi review with telemetry flag."""
@@ -152,34 +142,29 @@ class TestCLIMultiTelemetry(unittest.TestCase):
     def test_multi_telemetry_flag(self):
         """Should accept --telemetry flag."""
         stdout, stderr, code = run_klean_command(
-            ["multi", "--telemetry", "--models", "1", "test"],
-            timeout=120
+            ["multi", "--telemetry", "--models", "1", "test"], timeout=120
         )
         # Should mention telemetry or phoenix
         self.assertNotIn("unrecognized arguments: --telemetry", stderr)
 
 
 @unittest.skipUnless(
-    subprocess.run(["curl", "-s", "http://localhost:4000/health"],
-                   capture_output=True).returncode == 0,
-    "LiteLLM proxy not running"
+    subprocess.run(["curl", "-s", "http://localhost:4000/health"], capture_output=True).returncode
+    == 0,
+    "LiteLLM proxy not running",
 )
 class TestCLIRethink(unittest.TestCase):
     """Test 10: CLI rethink command."""
 
     def test_rethink_runs(self):
         """Should execute rethink without crashing."""
-        stdout, stderr, code = run_klean_command(
-            ["rethink", "test problem"],
-            timeout=120
-        )
+        stdout, stderr, code = run_klean_command(["rethink", "test problem"], timeout=120)
         self.assertNotIn("Traceback", stderr)
 
     def test_rethink_with_telemetry(self):
         """Should accept --telemetry flag."""
         stdout, stderr, code = run_klean_command(
-            ["rethink", "--telemetry", "test problem"],
-            timeout=120
+            ["rethink", "--telemetry", "test problem"], timeout=120
         )
         self.assertNotIn("unrecognized arguments: --telemetry", stderr)
 
@@ -237,9 +222,13 @@ class TestAdminSubcommands(unittest.TestCase):
         stdout, stderr, code = run_klean_command(["--help"])
         combined = stdout + stderr
         # admin should not be listed in main help (it's hidden)
-        main_help_lines = [line for line in combined.split('\n') if 'admin' in line.lower() and 'hidden' not in line.lower()]
+        main_help_lines = [
+            line
+            for line in combined.split("\n")
+            if "admin" in line.lower() and "hidden" not in line.lower()
+        ]
         # Check that admin is not listed as a regular command
-        self.assertTrue(len(main_help_lines) <= 1 or 'subcommand' not in main_help_lines[0].lower())
+        self.assertTrue(len(main_help_lines) <= 1 or "subcommand" not in main_help_lines[0].lower())
 
 
 class TestNoHttpxImports(unittest.TestCase):
@@ -251,15 +240,15 @@ class TestNoHttpxImports(unittest.TestCase):
             content = f.read()
 
         # Check no active httpx import in main CLI
-        lines = content.split('\n')
+        lines = content.split("\n")
         active_httpx_imports = [
-            line for line in lines
-            if 'import httpx' in line and not line.strip().startswith('#')
+            line for line in lines if "import httpx" in line and not line.strip().startswith("#")
         ]
         # CLI uses lazy httpx imports inside functions for specific HTTP calls
         # This is acceptable - the key is model discovery uses urllib for reliability
-        self.assertLessEqual(len(active_httpx_imports), 3,
-                            f"Found too many httpx imports: {active_httpx_imports}")
+        self.assertLessEqual(
+            len(active_httpx_imports), 3, f"Found too many httpx imports: {active_httpx_imports}"
+        )
 
     def test_has_litellm_import(self):
         """CLI should use litellm for model interactions."""
@@ -268,8 +257,8 @@ class TestNoHttpxImports(unittest.TestCase):
 
         # Check for either direct import or usage
         self.assertTrue(
-            'litellm' in content or 'import litellm' in content,
-            "CLI should reference litellm for model handling"
+            "litellm" in content or "import litellm" in content,
+            "CLI should reference litellm for model handling",
         )
 
     def test_has_urllib_import(self):
@@ -277,7 +266,7 @@ class TestNoHttpxImports(unittest.TestCase):
         with open(KLEAN_CORE) as f:
             content = f.read()
 
-        self.assertIn('urllib', content)
+        self.assertIn("urllib", content)
 
 
 if __name__ == "__main__":

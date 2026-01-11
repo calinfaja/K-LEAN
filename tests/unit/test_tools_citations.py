@@ -13,7 +13,6 @@ ANTI-FALSE-POSITIVE MEASURES:
 4. Use mock memory with known file:line patterns
 """
 
-
 # Import module under test
 from klean.smol.tools import get_citation_stats, validate_citations
 
@@ -21,14 +20,17 @@ from klean.smol.tools import get_citation_stats, validate_citations
 # Mock Memory Classes for Testing
 # =============================================================================
 
+
 class MockStep:
     """Mock agent memory step with observations."""
+
     def __init__(self, observations):
         self.observations = observations
 
 
 class MockMemory:
     """Mock agent memory with configurable tool outputs."""
+
     def __init__(self, outputs):
         self._outputs = outputs
 
@@ -39,6 +41,7 @@ class MockMemory:
 # =============================================================================
 # TestValidateCitations
 # =============================================================================
+
 
 class TestValidateCitations:
     """Tests for validate_citations() function."""
@@ -81,10 +84,12 @@ class TestValidateCitations:
         - Issue at src/auth.py:42: password exposure
         - Problem in src/login.py:15: SQL injection risk
         """
-        memory = MockMemory([
-            "Found issue at src/auth.py:42: password = input()",
-            "Vulnerability in src/login.py:15: SQL injection risk",
-        ])
+        memory = MockMemory(
+            [
+                "Found issue at src/auth.py:42: password = input()",
+                "Vulnerability in src/login.py:15: SQL injection risk",
+            ]
+        )
 
         # Act
         result = validate_citations(answer, memory)
@@ -96,9 +101,7 @@ class TestValidateCitations:
         """Should match citations by basename when full path doesn't match."""
         # Arrange - answer uses basename, memory has full path
         answer = "Found at auth.py:42: password issue"
-        memory = MockMemory([
-            "Issue at /some/deep/path/src/auth.py:42: exposed"
-        ])
+        memory = MockMemory(["Issue at /some/deep/path/src/auth.py:42: exposed"])
 
         # Act
         result = validate_citations(answer, memory)
@@ -117,9 +120,11 @@ class TestValidateCitations:
         - file4.py:40
         - file5.py:50
         """
-        memory = MockMemory([
-            "Only found at file1.py:10"  # Only 1 valid
-        ])
+        memory = MockMemory(
+            [
+                "Only found at file1.py:10"  # Only 1 valid
+            ]
+        )
 
         # Act
         result = validate_citations(answer, memory)
@@ -138,13 +143,15 @@ class TestValidateCitations:
         - file4.py:40
         - file5.py:50
         """
-        memory = MockMemory([
-            "Found at file1.py:10",
-            "Found at file2.py:20",
-            "Found at file3.py:30",
-            "Found at file4.py:40",
-            # file5.py:50 is missing - 1/5 = 20% invalid
-        ])
+        memory = MockMemory(
+            [
+                "Found at file1.py:10",
+                "Found at file2.py:20",
+                "Found at file3.py:30",
+                "Found at file4.py:40",
+                # file5.py:50 is missing - 1/5 = 20% invalid
+            ]
+        )
 
         # Act
         result = validate_citations(answer, memory)
@@ -161,11 +168,13 @@ class TestValidateCitations:
         c6.py:6 c7.py:7 c8.py:8 c9.py:9 c10.py:10
         invalid.py:99
         """
-        memory = MockMemory([
-            "c1.py:1 c2.py:2 c3.py:3 c4.py:4 c5.py:5",
-            "c6.py:6 c7.py:7 c8.py:8 c9.py:9 c10.py:10",
-            # invalid.py:99 not here - 1/11 = 9% invalid < 20%
-        ])
+        memory = MockMemory(
+            [
+                "c1.py:1 c2.py:2 c3.py:3 c4.py:4 c5.py:5",
+                "c6.py:6 c7.py:7 c8.py:8 c9.py:9 c10.py:10",
+                # invalid.py:99 not here - 1/11 = 9% invalid < 20%
+            ]
+        )
 
         # Act
         result = validate_citations(answer, memory)
@@ -177,9 +186,7 @@ class TestValidateCitations:
         """Should extract line ranges like file.py:10-20."""
         # Arrange
         answer = "Problem at utils/helper.py:100-110: unsafe code"
-        memory = MockMemory([
-            "Pattern at utils/helper.py:100-110: unsafe deserialization"
-        ])
+        memory = MockMemory(["Pattern at utils/helper.py:100-110: unsafe deserialization"])
 
         # Act
         result = validate_citations(answer, memory)
@@ -196,10 +203,7 @@ class TestValidateCitations:
         - my-file.ts:30
         - under_score.py:40
         """
-        memory = MockMemory([
-            "simple.py:10 path/to/file.js:20",
-            "my-file.ts:30 under_score.py:40"
-        ])
+        memory = MockMemory(["simple.py:10 path/to/file.js:20", "my-file.ts:30 under_score.py:40"])
 
         # Act
         result = validate_citations(answer, memory)
@@ -220,6 +224,7 @@ class TestValidateCitations:
 # =============================================================================
 # TestGetCitationStats
 # =============================================================================
+
 
 class TestGetCitationStats:
     """Tests for get_citation_stats() function."""
@@ -316,4 +321,3 @@ class TestGetCitationStats:
         assert stats["total"] == 1
         # Citation format includes range
         assert any("10-20" in c for c in stats["valid_citations"])
-

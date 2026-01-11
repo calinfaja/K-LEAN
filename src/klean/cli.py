@@ -759,6 +759,10 @@ def start_litellm(background: bool = True, port: int = 4000) -> bool:
         str(port),
     ]
 
+    # Windows: use hypercorn instead of uvicorn (no uvloop dependency)
+    if sys.platform == "win32":
+        cmd.append("--run_hypercorn")
+
     # Load environment from .env file
     env = os.environ.copy()
     if env_file.exists():

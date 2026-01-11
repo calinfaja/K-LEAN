@@ -8,7 +8,6 @@ Tests cover:
 - Environment file generation
 """
 
-
 import pytest
 
 # =============================================================================
@@ -120,11 +119,7 @@ class TestMergeModelsIntoConfig:
         """Should not add models that already exist."""
         from klean.config_generator import merge_models_into_config
 
-        existing = {
-            "model_list": [
-                {"model_name": "existing", "litellm_params": {"model": "test"}}
-            ]
-        }
+        existing = {"model_list": [{"model_name": "existing", "litellm_params": {"model": "test"}}]}
         new_models = [{"model_name": "existing", "model_id": "test/existing"}]
 
         result = merge_models_into_config(existing, new_models)
@@ -136,11 +131,7 @@ class TestMergeModelsIntoConfig:
         """Should preserve existing models in config."""
         from klean.config_generator import merge_models_into_config
 
-        existing = {
-            "model_list": [
-                {"model_name": "old", "litellm_params": {"model": "test/old"}}
-            ]
-        }
+        existing = {"model_list": [{"model_name": "old", "litellm_params": {"model": "test/old"}}]}
         new_models = [{"model_name": "new", "model_id": "test/new"}]
 
         result = merge_models_into_config(existing, new_models)
@@ -167,9 +158,7 @@ class TestAddModelToConfig:
         config_path.write_text("model_list: []\n")
 
         result = add_model_to_config(
-            config_path,
-            "openrouter/anthropic/claude-3.5-sonnet",
-            "openrouter"
+            config_path, "openrouter/anthropic/claude-3.5-sonnet", "openrouter"
         )
 
         assert result is True
@@ -191,9 +180,7 @@ class TestAddModelToConfig:
 """)
 
         result = add_model_to_config(
-            config_path,
-            "openrouter/anthropic/claude-3.5-sonnet",
-            "openrouter"
+            config_path, "openrouter/anthropic/claude-3.5-sonnet", "openrouter"
         )
 
         assert result is False
@@ -339,10 +326,7 @@ class TestGenerateEnvFile:
         """Should generate .env file content."""
         from klean.config_generator import generate_env_file
 
-        providers = {
-            "openrouter": "or-key-123",
-            "nanogpt": "nano-key-456"
-        }
+        providers = {"openrouter": "or-key-123", "nanogpt": "nano-key-456"}
         result = generate_env_file(providers)
 
         assert "OPENROUTER_API_KEY=or-key-123" in result

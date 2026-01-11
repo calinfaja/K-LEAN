@@ -143,9 +143,7 @@ class TestSubmit:
             async_exec = AsyncExecutor()
             async_exec.submit("my-agent", "my-task", model="gpt-4", project_path="/path")
 
-            mock_queue.enqueue.assert_called_once_with(
-                "my-agent", "my-task", "gpt-4", "/path"
-            )
+            mock_queue.enqueue.assert_called_once_with("my-agent", "my-task", "gpt-4", "/path")
 
     def test_ensures_worker_started(self):
         """Should start worker after submit."""

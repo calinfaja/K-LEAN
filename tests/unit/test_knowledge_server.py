@@ -26,6 +26,7 @@ def get_kb_utils():
     if "kb_utils" in sys.modules:
         del sys.modules["kb_utils"]
     import kb_utils
+
     return kb_utils
 
 
@@ -284,6 +285,7 @@ class TestCrossPlatform:
 
         # Verify the function uses TCP socket
         import inspect
+
         source = inspect.getsource(kb_utils.is_server_running)
         assert "AF_INET" in source
         assert "AF_UNIX" not in source

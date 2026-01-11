@@ -148,8 +148,13 @@ class TestStartLiteLLM:
                 with patch("klean.cli.get_litellm_binary", return_value=Path("/usr/bin/litellm")):
                     with patch("klean.cli.ensure_klean_dirs"):
                         with patch("klean.cli.LOGS_DIR", tmp_path):
-                            with patch("klean.cli.get_litellm_pid_file", return_value=tmp_path / "litellm.pid"):
-                                with patch("klean.cli.spawn_background", return_value=12345) as mock_spawn:
+                            with patch(
+                                "klean.cli.get_litellm_pid_file",
+                                return_value=tmp_path / "litellm.pid",
+                            ):
+                                with patch(
+                                    "klean.cli.spawn_background", return_value=12345
+                                ) as mock_spawn:
                                     with patch("klean.cli.is_process_running", return_value=True):
                                         result = start_litellm(background=True, port=4000)
 
@@ -230,10 +235,14 @@ class TestStartKnowledgeServer:
                         with patch("klean.cli.cleanup_stale_files"):
                             with patch("klean.cli.ensure_klean_dirs"):
                                 with patch("klean.cli.LOGS_DIR", tmp_path):
-                                    with patch("klean.cli.spawn_background", return_value=99999) as mock_spawn:
+                                    with patch(
+                                        "klean.cli.spawn_background", return_value=99999
+                                    ) as mock_spawn:
                                         with patch("klean.cli.get_kb_port_file") as mock_port:
                                             mock_port.return_value = tmp_path / "kb.port"
-                                            with patch("klean.cli.is_process_running", return_value=True):
+                                            with patch(
+                                                "klean.cli.is_process_running", return_value=True
+                                            ):
                                                 result = start_knowledge_server(project, wait=False)
 
                                                 assert mock_spawn.called

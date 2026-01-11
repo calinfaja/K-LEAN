@@ -22,6 +22,7 @@ import pytest
 # Setup: Add src directory to PYTHONPATH for imports
 # =============================================================================
 
+
 def pytest_configure(config):
     """Add src directory to PYTHONPATH so imports work."""
     src_path = str(Path(__file__).parent.parent / "src")
@@ -32,6 +33,7 @@ def pytest_configure(config):
 # =============================================================================
 # Temporary File System Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def temp_project(tmp_path):
@@ -132,6 +134,7 @@ def temp_knowledge_db(tmp_path):
 
     # Create index marker (fastembed uses embeddings.npy + index.json)
     import numpy as np
+
     np.save(str(kb_dir / "embeddings.npy"), np.array([[0.1, 0.2, 0.3]]))
     (kb_dir / "index.json").write_text("{}")
 
@@ -141,6 +144,7 @@ def temp_knowledge_db(tmp_path):
 # =============================================================================
 # HTTP/Network Mock Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_litellm_models():
@@ -183,6 +187,7 @@ def mock_httpx_get_failure():
         MagicMock that raises exception
     """
     import httpx
+
     mock_get = MagicMock(side_effect=httpx.ConnectError("Connection refused"))
     return mock_get
 
@@ -191,9 +196,11 @@ def mock_httpx_get_failure():
 # Subprocess Mock Fixtures
 # =============================================================================
 
+
 @dataclass
 class MockCompletedProcess:
     """Mock subprocess.CompletedProcess for git commands."""
+
     returncode: int = 0
     stdout: str = ""
     stderr: str = ""
@@ -206,11 +213,10 @@ def mock_git_toplevel(temp_project):
     Returns:
         Function to create mock that returns project path
     """
+
     def create_mock(returncode=0, path=None):
         result = MockCompletedProcess(
-            returncode=returncode,
-            stdout=str(path or temp_project) + "\n",
-            stderr=""
+            returncode=returncode, stdout=str(path or temp_project) + "\n", stderr=""
         )
         return MagicMock(return_value=result)
 
@@ -224,12 +230,9 @@ def mock_git_branch():
     Returns:
         Function to create mock with specified branch
     """
+
     def create_mock(branch="main"):
-        result = MockCompletedProcess(
-            returncode=0,
-            stdout=f"{branch}\n",
-            stderr=""
-        )
+        result = MockCompletedProcess(returncode=0, stdout=f"{branch}\n", stderr="")
         return MagicMock(return_value=result)
 
     return create_mock
@@ -242,6 +245,7 @@ def mock_git_status():
     Returns:
         Function to create mock with specified status
     """
+
     def create_mock(files_changed=0):
         if files_changed == 0:
             stdout = ""
@@ -249,11 +253,7 @@ def mock_git_status():
             lines = [f" M file{i}.py" for i in range(files_changed)]
             stdout = "\n".join(lines)
 
-        result = MockCompletedProcess(
-            returncode=0,
-            stdout=stdout,
-            stderr=""
-        )
+        result = MockCompletedProcess(returncode=0, stdout=stdout, stderr="")
         return MagicMock(return_value=result)
 
     return create_mock
@@ -263,6 +263,7 @@ def mock_git_status():
 # Agent Memory Mock Fixtures (for citation validation)
 # =============================================================================
 
+
 @pytest.fixture
 def mock_agent_memory():
     """Mock smolagents memory with tool outputs containing file:line refs.
@@ -270,6 +271,7 @@ def mock_agent_memory():
     Returns:
         Mock memory object with get_full_steps()
     """
+
     class MockStep:
         def __init__(self, observations):
             self.observations = observations
@@ -281,11 +283,13 @@ def mock_agent_memory():
         def get_full_steps(self):
             return [MockStep(o) for o in self._outputs]
 
-    return MockMemory([
-        "Found issue at src/auth.py:42: password = input()",
-        "Vulnerability in src/login.py:15: SQL injection risk",
-        "Pattern at utils/helper.py:100-110: unsafe deserialization",
-    ])
+    return MockMemory(
+        [
+            "Found issue at src/auth.py:42: password = input()",
+            "Vulnerability in src/login.py:15: SQL injection risk",
+            "Pattern at utils/helper.py:100-110: unsafe deserialization",
+        ]
+    )
 
 
 @pytest.fixture
@@ -295,6 +299,7 @@ def mock_empty_agent_memory():
     Returns:
         Mock memory with empty steps
     """
+
     class MockMemory:
         def get_full_steps(self):
             return []
@@ -305,6 +310,7 @@ def mock_empty_agent_memory():
 # =============================================================================
 # Time Control Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def frozen_time():
@@ -321,16 +327,21 @@ def frozen_time():
     def get_time():
         return current_time[0]
 
-    return type('FrozenTime', (), {
-        'set': set_time,
-        'get': get_time,
-        'advance': lambda seconds: set_time(current_time[0] + seconds)
-    })()
+    return type(
+        "FrozenTime",
+        (),
+        {
+            "set": set_time,
+            "get": get_time,
+            "advance": lambda seconds: set_time(current_time[0] + seconds),
+        },
+    )()
 
 
 # =============================================================================
 # Assertion Helpers
 # =============================================================================
+
 
 def assert_mock_called_with_url(mock, expected_url_part):
     """Assert mock was called with URL containing expected part.

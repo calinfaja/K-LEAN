@@ -236,9 +236,7 @@ class TestRunTests:
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="test_a PASSED\ntest_b PASSED\n",
-                stderr=""
+                returncode=0, stdout="test_a PASSED\ntest_b PASSED\n", stderr=""
             )
 
             result = asyncio.run(run_tests())
@@ -254,9 +252,7 @@ class TestRunTests:
 
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="test_a PASSED\ntest_b PASSED\ntest_c FAILED\n",
-                stderr=""
+                returncode=0, stdout="test_a PASSED\ntest_b PASSED\ntest_c FAILED\n", stderr=""
             )
 
             result = asyncio.run(run_tests())
@@ -291,11 +287,7 @@ class TestRunTests:
         from klean.tools.testing_tool import run_tests
 
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="",
-                stderr=""
-            )
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
 
             asyncio.run(run_tests(pattern="test_security"))
 

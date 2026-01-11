@@ -26,17 +26,14 @@ from klean.smol.memory import (
 # TestMemoryEntry
 # =============================================================================
 
+
 class TestMemoryEntry:
     """Tests for MemoryEntry dataclass."""
 
     def test_creates_with_required_fields(self):
         """Should create entry with required fields."""
         # Act
-        entry = MemoryEntry(
-            content="Test content",
-            timestamp=1234567890.0,
-            entry_type="action"
-        )
+        entry = MemoryEntry(content="Test content", timestamp=1234567890.0, entry_type="action")
 
         # Assert
         assert entry.content == "Test content"
@@ -51,7 +48,7 @@ class TestMemoryEntry:
             content="Found issue",
             timestamp=1000.0,
             entry_type="result",
-            metadata={"file": "test.py", "line": 42}
+            metadata={"file": "test.py", "line": 42},
         )
 
         # Act
@@ -72,7 +69,7 @@ class TestMemoryEntry:
             "content": "Lesson learned",
             "timestamp": 2000.0,
             "entry_type": "lesson",
-            "metadata": {"importance": "high"}
+            "metadata": {"importance": "high"},
         }
 
         # Act
@@ -92,7 +89,7 @@ class TestMemoryEntry:
             content="Complex content with\nmultiple lines",
             timestamp=time.time(),
             entry_type="error",
-            metadata={"nested": {"key": "value"}, "list": [1, 2, 3]}
+            metadata={"nested": {"key": "value"}, "list": [1, 2, 3]},
         )
 
         # Act
@@ -108,11 +105,7 @@ class TestMemoryEntry:
     def test_handles_missing_metadata_in_dict(self):
         """Should handle dict without metadata field."""
         # Arrange
-        data = {
-            "content": "Test",
-            "timestamp": 1000.0,
-            "entry_type": "action"
-        }
+        data = {"content": "Test", "timestamp": 1000.0, "entry_type": "action"}
 
         # Act
         entry = MemoryEntry.from_dict(data)
@@ -124,6 +117,7 @@ class TestMemoryEntry:
 # =============================================================================
 # TestSessionMemory
 # =============================================================================
+
 
 class TestSessionMemory:
     """Tests for SessionMemory class."""
@@ -235,7 +229,7 @@ class TestSessionMemory:
             "start_time": 1000.0,
             "entries": [
                 {"content": "Test", "timestamp": 1001.0, "entry_type": "action", "metadata": {}}
-            ]
+            ],
         }
 
         # Act
@@ -268,6 +262,7 @@ class TestSessionMemory:
 # =============================================================================
 # TestAgentMemory
 # =============================================================================
+
 
 class TestAgentMemory:
     """Tests for AgentMemory class."""
@@ -418,6 +413,7 @@ class TestAgentMemory:
 # TestSyncSerenaToKb
 # =============================================================================
 
+
 class TestSyncSerenaToKb:
     """Tests for sync_serena_to_kb() method."""
 
@@ -498,4 +494,3 @@ The lesson content goes here.
         assert call_args["title"] == "Test lesson"
         assert call_args["source"] == "serena"
         assert "serena" in call_args["tags"]
-

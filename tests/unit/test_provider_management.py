@@ -1,6 +1,5 @@
 """Tests for provider management functionality."""
 
-
 import pytest
 from click.testing import CliRunner
 
@@ -23,6 +22,7 @@ class TestProviderCommands:
 
         # Mock CONFIG_DIR
         import klean.cli
+
         monkeypatch.setattr(klean.cli, "CONFIG_DIR", config_dir)
 
         return config_dir
@@ -38,7 +38,7 @@ class TestProviderCommands:
         result = cli_runner.invoke(
             main,
             ["provider", "add", "nanogpt", "--api-key", "sk-nano-test123"],
-            input="y\n"  # Confirm model installation
+            input="y\n",  # Confirm model installation
         )
         assert result.exit_code == 0
         assert "Configured NANOGPT API key" in result.output
@@ -54,7 +54,7 @@ class TestProviderCommands:
         result = cli_runner.invoke(
             main,
             ["provider", "add", "openrouter", "--api-key", "sk-or-test456"],
-            input="y\n"  # Confirm model installation
+            input="y\n",  # Confirm model installation
         )
         assert result.exit_code == 0
         assert "Configured OPENROUTER API key" in result.output
@@ -70,7 +70,7 @@ class TestProviderCommands:
         result1 = cli_runner.invoke(
             main,
             ["provider", "add", "nanogpt", "--api-key", "sk-nano-original"],
-            input="y\n"  # Confirm model installation
+            input="y\n",  # Confirm model installation
         )
         assert result1.exit_code == 0
 
@@ -78,7 +78,7 @@ class TestProviderCommands:
         result2 = cli_runner.invoke(
             main,
             ["provider", "add", "openrouter", "--api-key", "sk-or-new"],
-            input="y\n"  # Confirm model installation
+            input="y\n",  # Confirm model installation
         )
         assert result2.exit_code == 0
 
@@ -91,16 +91,10 @@ class TestProviderCommands:
     def test_provider_set_key(self, cli_runner, temp_config):
         """Test updating an existing provider's API key."""
         # Add NanoGPT
-        cli_runner.invoke(
-            main,
-            ["provider", "add", "nanogpt", "--api-key", "sk-nano-old"]
-        )
+        cli_runner.invoke(main, ["provider", "add", "nanogpt", "--api-key", "sk-nano-old"])
 
         # Update key
-        result = cli_runner.invoke(
-            main,
-            ["provider", "set-key", "nanogpt", "--key", "sk-nano-new"]
-        )
+        result = cli_runner.invoke(main, ["provider", "set-key", "nanogpt", "--key", "sk-nano-new"])
         assert result.exit_code == 0
         assert "Updated NANOGPT API key" in result.output
 
@@ -113,21 +107,11 @@ class TestProviderCommands:
     def test_provider_remove(self, cli_runner, temp_config):
         """Test removing a provider."""
         # Add both providers
-        cli_runner.invoke(
-            main,
-            ["provider", "add", "nanogpt", "--api-key", "sk-nano-test"]
-        )
-        cli_runner.invoke(
-            main,
-            ["provider", "add", "openrouter", "--api-key", "sk-or-test"]
-        )
+        cli_runner.invoke(main, ["provider", "add", "nanogpt", "--api-key", "sk-nano-test"])
+        cli_runner.invoke(main, ["provider", "add", "openrouter", "--api-key", "sk-or-test"])
 
         # Remove NanoGPT
-        result = cli_runner.invoke(
-            main,
-            ["provider", "remove", "nanogpt"],
-            input="y\n"
-        )
+        result = cli_runner.invoke(main, ["provider", "remove", "nanogpt"], input="y\n")
         assert result.exit_code == 0
         assert "Removed NANOGPT configuration" in result.output
 
@@ -151,6 +135,7 @@ class TestProviderCommands:
         import unittest.mock
 
         import klean.cli
+
         with unittest.mock.patch.object(klean.cli, "CONFIG_DIR", temp_config):
             env_vars = _load_existing_env()
 
@@ -162,14 +147,12 @@ class TestProviderCommands:
         """Test getting list of configured providers."""
         # Create .env with both providers
         env_file = temp_config / ".env"
-        env_file.write_text(
-            "NANOGPT_API_KEY=sk-nano-123\n"
-            "OPENROUTER_API_KEY=sk-or-456\n"
-        )
+        env_file.write_text("NANOGPT_API_KEY=sk-nano-123\nOPENROUTER_API_KEY=sk-or-456\n")
 
         import unittest.mock
 
         import klean.cli
+
         with unittest.mock.patch.object(klean.cli, "CONFIG_DIR", temp_config):
             providers = _get_configured_providers()
 
@@ -188,6 +171,7 @@ class TestProviderHelperFunctions:
         config_dir.mkdir(parents=True)
 
         import klean.cli
+
         monkeypatch.setattr(klean.cli, "CONFIG_DIR", config_dir)
 
         env_vars = _load_existing_env()
@@ -199,12 +183,11 @@ class TestProviderHelperFunctions:
         config_dir.mkdir(parents=True)
         env_file = config_dir / ".env"
         env_file.write_text(
-            "VALID_KEY=value\n"
-            "INVALID_LINE_NO_EQUALS\n"
-            "ANOTHER_VALID=another_value\n"
+            "VALID_KEY=value\nINVALID_LINE_NO_EQUALS\nANOTHER_VALID=another_value\n"
         )
 
         import klean.cli
+
         monkeypatch.setattr(klean.cli, "CONFIG_DIR", config_dir)
 
         env_vars = _load_existing_env()

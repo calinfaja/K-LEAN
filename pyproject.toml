@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kln-ai"
-version = "1.0.0b6"
+version = "1.0.0b7"
 description = "Multi-model code review and knowledge capture system for Claude Code"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -44,8 +44,12 @@ dependencies = [
     "numpy>=1.24.0",
     # SmolKLN Agents (required for agents and kln multi)
     "smolagents[litellm]>=1.17.0",
-    # LiteLLM proxy dependencies (backoff, uvicorn, etc.) for kln start
-    "litellm[proxy]>=1.0.0",
+    # LiteLLM proxy dependencies - platform-specific for Windows compatibility
+    # Linux/macOS: uvicorn + uvloop (fastest)
+    # Windows: hypercorn + asyncio (no uvloop, but works natively)
+    "litellm[proxy]>=1.0.0; sys_platform != 'win32'",
+    "litellm>=1.0.0; sys_platform == 'win32'",
+    "hypercorn>=0.14.0; sys_platform == 'win32'",
     "ddgs>=6.0.0",
     "markdownify>=0.11.0",
     "lizard>=1.17.0",

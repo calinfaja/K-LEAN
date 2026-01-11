@@ -24,6 +24,7 @@ import pytest
 # Test Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def temp_kb_dir(tmp_path):
     """Create temporary knowledge DB directory."""
@@ -80,6 +81,7 @@ def kb_with_entries(temp_kb_dir, sample_entries):
 # TestRRFScore
 # =============================================================================
 
+
 class TestRRFScore:
     """Tests for RRF (Reciprocal Rank Fusion) scoring."""
 
@@ -87,6 +89,7 @@ class TestRRFScore:
         """Should calculate RRF for single rank."""
         # Import here to avoid module-level import issues
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
         from knowledge_db import KnowledgeDB
 
@@ -99,6 +102,7 @@ class TestRRFScore:
     def test_rrf_multiple_ranks(self):
         """Should sum RRF scores for multiple ranks."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
         from knowledge_db import KnowledgeDB
 
@@ -112,6 +116,7 @@ class TestRRFScore:
     def test_rrf_ignores_zero_ranks(self):
         """Should ignore zero ranks (not found in retriever)."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
         from knowledge_db import KnowledgeDB
 
@@ -125,6 +130,7 @@ class TestRRFScore:
     def test_rrf_higher_rank_lower_score(self):
         """Should give lower scores to higher ranks."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
         from knowledge_db import KnowledgeDB
 
@@ -138,6 +144,7 @@ class TestRRFScore:
     def test_rrf_different_k_values(self):
         """Should produce different scores with different k values."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
         from knowledge_db import KnowledgeDB
 
@@ -153,12 +160,14 @@ class TestRRFScore:
 # TestSparseIndexPersistence
 # =============================================================================
 
+
 class TestSparseIndexPersistence:
     """Tests for sparse index persistence."""
 
     def test_sparse_index_path_set(self, temp_kb_dir):
         """Should set sparse_index_path during init."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -174,6 +183,7 @@ class TestSparseIndexPersistence:
     def test_loads_sparse_vectors_if_present(self, temp_kb_dir):
         """Should load sparse vectors from sparse_index.json."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         # Create sparse index file
@@ -204,12 +214,14 @@ class TestSparseIndexPersistence:
 # TestHybridSearch
 # =============================================================================
 
+
 class TestHybridSearch:
     """Tests for hybrid search with RRF fusion."""
 
     def test_search_returns_empty_for_empty_db(self, temp_kb_dir):
         """Should return empty list for empty database."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -226,6 +238,7 @@ class TestHybridSearch:
     def test_search_returns_results_with_scores(self, kb_with_entries):
         """Should return results with RRF scores."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -245,6 +258,7 @@ class TestHybridSearch:
     def test_search_includes_meta_breakdown(self, kb_with_entries):
         """Should include search metadata with rank breakdown."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -266,6 +280,7 @@ class TestHybridSearch:
     def test_search_respects_limit(self, kb_with_entries):
         """Should respect result limit."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -285,12 +300,14 @@ class TestHybridSearch:
 # TestDenseSearch
 # =============================================================================
 
+
 class TestDenseSearch:
     """Tests for dense (semantic) search."""
 
     def test_dense_search_returns_tuples(self, kb_with_entries):
         """Should return list of (row_idx, score) tuples."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -311,6 +328,7 @@ class TestDenseSearch:
     def test_dense_search_scores_sorted_descending(self, kb_with_entries):
         """Should return results sorted by score descending."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -332,12 +350,14 @@ class TestDenseSearch:
 # TestStats
 # =============================================================================
 
+
 class TestStats:
     """Tests for database statistics."""
 
     def test_stats_includes_hybrid_backend(self, kb_with_entries):
         """Should report fastembed-hybrid backend."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -359,12 +379,14 @@ class TestStats:
 # TestRebuildIndex
 # =============================================================================
 
+
 class TestRebuildIndex:
     """Tests for index rebuilding."""
 
     def test_rebuild_creates_dense_embeddings(self, kb_with_entries):
         """Should create dense embeddings during rebuild."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -383,6 +405,7 @@ class TestRebuildIndex:
     def test_rebuild_saves_files(self, kb_with_entries):
         """Should save embeddings and index files."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -402,12 +425,14 @@ class TestRebuildIndex:
 # TestAddEntry
 # =============================================================================
 
+
 class TestAddEntry:
     """Tests for adding entries."""
 
     def test_add_generates_dense_embedding(self, temp_kb_dir):
         """Should generate dense embedding when adding entry."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:
@@ -416,10 +441,12 @@ class TestAddEntry:
 
             # Act
             db = KnowledgeDB(str(temp_kb_dir.parent))
-            entry_id = db.add({
-                "title": "Test Entry",
-                "summary": "Test summary content",
-            })
+            entry_id = db.add(
+                {
+                    "title": "Test Entry",
+                    "summary": "Test summary content",
+                }
+            )
 
             # Assert
             assert entry_id is not None
@@ -429,6 +456,7 @@ class TestAddEntry:
     def test_add_appends_to_jsonl(self, temp_kb_dir):
         """Should append entry to JSONL file."""
         import sys
+
         sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src/klean/data/scripts"))
 
         with patch("knowledge_db.find_project_root") as mock_root:

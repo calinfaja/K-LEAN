@@ -27,7 +27,7 @@ class TestAgentConfig:
             model="test-model",
             tools=["tool1", "tool2"],
             max_steps=5,
-            description="Test agent"
+            description="Test agent",
         )
 
         assert config.name == "test"
@@ -40,13 +40,7 @@ class TestAgentConfig:
         """Should default planning_interval to 3."""
         from klean.smol.multi_config import AgentConfig
 
-        config = AgentConfig(
-            name="test",
-            model="model",
-            tools=[],
-            max_steps=5,
-            description="desc"
-        )
+        config = AgentConfig(name="test", model="model", tools=[], max_steps=5, description="desc")
 
         assert config.planning_interval == 3
 
@@ -60,7 +54,7 @@ class TestAgentConfig:
             tools=[],
             max_steps=5,
             description="desc",
-            planning_interval=5
+            planning_interval=5,
         )
 
         assert config.planning_interval == 5

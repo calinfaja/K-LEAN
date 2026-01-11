@@ -11,7 +11,16 @@ import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Add klean data/core to path for klean_core module
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "src", "klean", "data", "core"))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        "src",
+        "klean",
+        "data",
+        "core",
+    ),
+)
 
 from klean_core import LLMClient
 
@@ -35,27 +44,25 @@ def create_mock_response(content="Response", model="test-model", reasoning=None)
 class TestAsyncCompletion(unittest.TestCase):
     """Test 4: Async completion via litellm.acompletion."""
 
-    @patch('klean_core.litellm.acompletion', new_callable=AsyncMock)
+    @patch("klean_core.litellm.acompletion", new_callable=AsyncMock)
     def test_async_completion_returns_content(self, mock_acompletion):
         """Should extract content from async litellm response."""
         mock_acompletion.return_value = create_mock_response(
-            content="Async response content",
-            model="qwen3-coder"
+            content="Async response content", model="qwen3-coder"
         )
 
         client = LLMClient()
 
         # Run async method
-        result = asyncio.run(client.acompletion(
-            "qwen3-coder",
-            [{"role": "user", "content": "Hello async"}]
-        ))
+        result = asyncio.run(
+            client.acompletion("qwen3-coder", [{"role": "user", "content": "Hello async"}])
+        )
 
         self.assertEqual(result["content"], "Async response content")
         self.assertIn("model", result)
         mock_acompletion.assert_called_once()
 
-    @patch('klean_core.litellm.acompletion', new_callable=AsyncMock)
+    @patch("klean_core.litellm.acompletion", new_callable=AsyncMock)
     def test_async_completion_uses_proxy_model(self, mock_acompletion):
         """Should add openai/ prefix for async calls."""
         mock_acompletion.return_value = create_mock_response(model="openai/test-model")
@@ -67,20 +74,17 @@ class TestAsyncCompletion(unittest.TestCase):
         call_args = mock_acompletion.call_args
         self.assertTrue(call_args.kwargs["model"].startswith("openai/"))
 
-    @patch('klean_core.litellm.acompletion', new_callable=AsyncMock)
+    @patch("klean_core.litellm.acompletion", new_callable=AsyncMock)
     def test_async_completion_extracts_reasoning(self, mock_acompletion):
         """Should extract reasoning_content from async thinking model response."""
         mock_acompletion.return_value = create_mock_response(
-            content="Final answer",
-            model="deepseek-r1",
-            reasoning="Thinking process..."
+            content="Final answer", model="deepseek-r1", reasoning="Thinking process..."
         )
 
         client = LLMClient()
-        result = asyncio.run(client.acompletion(
-            "deepseek-r1",
-            [{"role": "user", "content": "Think about this"}]
-        ))
+        result = asyncio.run(
+            client.acompletion("deepseek-r1", [{"role": "user", "content": "Think about this"}])
+        )
 
         self.assertEqual(result["content"], "Final answer")
         self.assertEqual(result["reasoning_content"], "Thinking process...")
@@ -89,7 +93,7 @@ class TestAsyncCompletion(unittest.TestCase):
 class TestParallelAsyncCalls(unittest.TestCase):
     """Test parallel async completion for multi-model reviews."""
 
-    @patch('klean_core.litellm.acompletion', new_callable=AsyncMock)
+    @patch("klean_core.litellm.acompletion", new_callable=AsyncMock)
     def test_parallel_completions(self, mock_acompletion):
         """Should handle multiple parallel async calls."""
         call_count = 0
@@ -98,10 +102,7 @@ class TestParallelAsyncCalls(unittest.TestCase):
             nonlocal call_count
             call_count += 1
             model = kwargs.get("model", "unknown")
-            return create_mock_response(
-                content=f"Response from {model}",
-                model=model
-            )
+            return create_mock_response(content=f"Response from {model}", model=model)
 
         mock_acompletion.side_effect = mock_side_effect
 

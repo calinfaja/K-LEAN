@@ -32,7 +32,7 @@ class TestListModels:
         """Reset cache before each test."""
         clear_cache()
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_model_list_from_proxy(self, mock_get, mock_litellm_models):
         """Should fetch and parse models from LiteLLM /v1/models endpoint."""
         # Arrange
@@ -57,7 +57,7 @@ class TestListModels:
         assert "/v1/models" in str(call_args), "Should call /v1/models endpoint"
         assert "timeout" in str(call_args), "Should specify timeout"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_uses_cache_when_fresh(self, mock_get, mock_litellm_models):
         """Should return cached models without HTTP call when cache is fresh."""
         # Arrange - first call populates cache
@@ -74,8 +74,8 @@ class TestListModels:
         assert mock_get.call_count == 1, "Should only call API once"
         assert first_result == second_result, "Both calls should return same data"
 
-    @patch('klean.discovery.httpx.get')
-    @patch('klean.discovery.time.time')
+    @patch("klean.discovery.httpx.get")
+    @patch("klean.discovery.time.time")
     def test_refreshes_cache_when_stale(self, mock_time, mock_get, mock_litellm_models):
         """Should fetch new data when cache TTL expires."""
         # Arrange
@@ -97,7 +97,7 @@ class TestListModels:
         # Assert - two HTTP calls (cache expired)
         assert mock_get.call_count == 2, "Should call API twice after cache expires"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_force_refresh_bypasses_cache(self, mock_get, mock_litellm_models):
         """Should fetch fresh data when force_refresh=True."""
         # Arrange
@@ -113,7 +113,7 @@ class TestListModels:
         # Assert
         assert mock_get.call_count == 2, "force_refresh should bypass cache"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_stale_cache_on_error(self, mock_get, mock_litellm_models):
         """Should return stale cache when API fails."""
         # Arrange - first call succeeds
@@ -135,7 +135,7 @@ class TestListModels:
         assert second_result == first_result, "Should return stale cache on error"
         assert len(second_result) == 4, "Should have cached models"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_handles_empty_response(self, mock_get):
         """Should handle empty model list from API."""
         # Arrange
@@ -151,7 +151,7 @@ class TestListModels:
         assert models == [], "Should return empty list"
         assert isinstance(models, list), "Should be a list type"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_handles_malformed_response(self, mock_get):
         """Should handle response without 'data' key."""
         # Arrange
@@ -174,7 +174,7 @@ class TestGetModel:
         """Reset cache before each test."""
         clear_cache()
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_first_available(self, mock_get, mock_litellm_models):
         """Should return first model from discovery."""
         # Arrange
@@ -197,7 +197,7 @@ class TestGetModel:
         # Assert
         assert model == "my-custom-model", "Should return exact override"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_none_when_no_models(self, mock_get):
         """Should return None when no models available."""
         # Arrange
@@ -216,7 +216,7 @@ class TestGetModel:
 class TestClearCache:
     """Tests for clear_cache() function."""
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_clears_cached_models(self, mock_get, mock_litellm_models):
         """Should clear cache forcing next call to fetch fresh."""
         # Arrange
@@ -244,7 +244,7 @@ class TestClearCache:
 class TestIsAvailable:
     """Tests for is_available() function."""
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_true_when_proxy_healthy(self, mock_get):
         """Should return True when LiteLLM responds with 200."""
         # Arrange
@@ -260,7 +260,7 @@ class TestIsAvailable:
         mock_get.assert_called_once()
         assert "/v1/models" in str(mock_get.call_args), "Should check /v1/models"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_false_on_connection_error(self, mock_get):
         """Should return False when connection fails."""
         # Arrange
@@ -272,7 +272,7 @@ class TestIsAvailable:
         # Assert
         assert result is False, "Should return False on connection error"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_returns_false_on_non_200(self, mock_get):
         """Should return False for non-200 status codes."""
         # Arrange
@@ -286,7 +286,7 @@ class TestIsAvailable:
         # Assert
         assert result is False, "Should return False for 503"
 
-    @patch('klean.discovery.httpx.get')
+    @patch("klean.discovery.httpx.get")
     def test_uses_short_timeout(self, mock_get):
         """Should use short timeout for availability check."""
         # Arrange
@@ -300,5 +300,6 @@ class TestIsAvailable:
         # Assert
         call_args = mock_get.call_args
         # timeout should be 3 seconds
-        assert "timeout=3" in str(call_args) or "timeout" in call_args.kwargs, \
+        assert "timeout=3" in str(call_args) or "timeout" in call_args.kwargs, (
             "Should use timeout parameter"
+        )

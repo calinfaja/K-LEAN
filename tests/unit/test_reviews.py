@@ -28,11 +28,7 @@ class TestExtractContent:
         """Should extract content from regular model response."""
         from klean.reviews import _extract_content
 
-        response = {
-            "choices": [
-                {"message": {"content": "This is the review content."}}
-            ]
-        }
+        response = {"choices": [{"message": {"content": "This is the review content."}}]}
 
         result = _extract_content(response)
         assert result == "This is the review content."
@@ -41,11 +37,7 @@ class TestExtractContent:
         """Should extract reasoning_content from thinking models."""
         from klean.reviews import _extract_content
 
-        response = {
-            "choices": [
-                {"message": {"reasoning_content": "Thinking model output."}}
-            ]
-        }
+        response = {"choices": [{"message": {"reasoning_content": "Thinking model output."}}]}
 
         result = _extract_content(response)
         assert result == "Thinking model output."
@@ -278,16 +270,20 @@ class TestConsensusReview:
         with patch("klean.reviews.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.post = mock_post
-            mock_client.get = AsyncMock(return_value=MagicMock(
-                status_code=200,
-                json=MagicMock(return_value={
-                    "data": [
-                        {"id": "model1"},
-                        {"id": "model2"},
-                        {"id": "model3"},
-                    ]
-                })
-            ))
+            mock_client.get = AsyncMock(
+                return_value=MagicMock(
+                    status_code=200,
+                    json=MagicMock(
+                        return_value={
+                            "data": [
+                                {"id": "model1"},
+                                {"id": "model2"},
+                                {"id": "model3"},
+                            ]
+                        }
+                    ),
+                )
+            )
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
             mock_client_class.return_value = mock_client
@@ -336,6 +332,7 @@ class TestSecondOpinion:
         with patch("klean.reviews._check_model_health", return_value=True):
             with patch("klean.reviews.quick_review") as mock_quick:
                 from klean.reviews import ReviewResult
+
                 mock_quick.return_value = ReviewResult(
                     model="primary-model",
                     content="Review",
@@ -362,6 +359,7 @@ class TestSecondOpinion:
         with patch("klean.reviews._check_model_health", side_effect=mock_health):
             with patch("klean.reviews.quick_review") as mock_quick:
                 from klean.reviews import ReviewResult
+
                 mock_quick.return_value = ReviewResult(
                     model="fallback1",
                     content="Review",
