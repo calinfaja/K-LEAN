@@ -13,24 +13,19 @@ ANTI-FALSE-POSITIVE MEASURES:
 4. Check all context fields are properly populated
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-from dataclasses import asdict
+from unittest.mock import MagicMock, patch
 
 # Import module under test
 from klean.smol.context import (
     ProjectContext,
     detect_project_root,
+    find_knowledge_db,
+    format_context_for_prompt,
+    gather_project_context,
     get_git_info,
     load_claude_md,
-    find_knowledge_db,
-    gather_project_context,
-    format_context_for_prompt,
-    get_claude_scripts,
-    check_serena_available,
 )
-
 
 # =============================================================================
 # TestProjectContext Dataclass

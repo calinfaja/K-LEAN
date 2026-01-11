@@ -18,7 +18,6 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import httpx
 
@@ -33,7 +32,7 @@ class ReviewResult:
     model: str
     content: str
     success: bool
-    error: Optional[str] = None
+    error: str | None = None
     duration_ms: int = 0
 
 
@@ -349,7 +348,7 @@ async def second_opinion(
     focus: str,
     context: str,
     primary_model: str = "deepseek-r1",
-    fallback_models: Optional[list[str]] = None,
+    fallback_models: list[str] | None = None,
     system_prompt: str = "Concise code reviewer.",
     timeout: float = 60.0,
 ) -> ReviewResult:
@@ -401,7 +400,7 @@ async def second_opinion(
 # =============================================================================
 
 
-def get_git_diff(work_dir: Optional[Path] = None, max_lines: int = 300) -> str:
+def get_git_diff(work_dir: Path | None = None, max_lines: int = 300) -> str:
     """Get git diff for review context.
 
     Args:
@@ -449,7 +448,7 @@ def get_git_diff(work_dir: Optional[Path] = None, max_lines: int = 300) -> str:
 def format_review_markdown(
     result: ReviewResult | ConsensusResult,
     focus: str,
-    work_dir: Optional[Path] = None,
+    work_dir: Path | None = None,
 ) -> str:
     """Format review result as markdown.
 

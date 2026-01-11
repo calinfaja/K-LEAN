@@ -166,7 +166,7 @@ class ReflectionEngine:
         current_task = task
         attempt = 0
 
-        for attempt in range(self.max_retries + 1):
+        for attempt in range(self.max_retries + 1):  # noqa: B007
             # Execute agent
             result = executor.execute(agent_name, current_task, **kwargs)
 

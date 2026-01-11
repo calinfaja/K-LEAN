@@ -8,12 +8,8 @@ Tests cover:
 
 import os
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
-
+from unittest.mock import patch
 
 # =============================================================================
 # Path Utilities Tests
@@ -91,6 +87,70 @@ class TestGetRuntimeDir:
         result = get_runtime_dir()
         username = getpass.getuser()
         assert f"klean-{username}" in str(result)
+
+
+class TestGetVenvPython:
+    """Tests for get_venv_python()."""
+
+    def test_returns_path_object(self):
+        """Should return a Path object."""
+        from klean.platform import get_venv_python
+
+        result = get_venv_python(Path("/some/venv"))
+        assert isinstance(result, Path)
+
+    def test_unix_path_structure(self):
+        """Should return bin/python on Unix-like systems."""
+        from klean.platform import get_venv_python
+
+        venv = Path("/home/user/.venv")
+        result = get_venv_python(venv)
+
+        if sys.platform == "win32":
+            assert result == venv / "Scripts" / "python.exe"
+        else:
+            assert result == venv / "bin" / "python"
+
+    def test_preserves_venv_root(self):
+        """Should preserve the venv root path."""
+        from klean.platform import get_venv_python
+
+        venv = Path("/custom/path/to/venv")
+        result = get_venv_python(venv)
+
+        assert str(result).startswith(str(venv))
+
+
+class TestGetVenvPip:
+    """Tests for get_venv_pip()."""
+
+    def test_returns_path_object(self):
+        """Should return a Path object."""
+        from klean.platform import get_venv_pip
+
+        result = get_venv_pip(Path("/some/venv"))
+        assert isinstance(result, Path)
+
+    def test_unix_path_structure(self):
+        """Should return bin/pip on Unix-like systems."""
+        from klean.platform import get_venv_pip
+
+        venv = Path("/home/user/.venv")
+        result = get_venv_pip(venv)
+
+        if sys.platform == "win32":
+            assert result == venv / "Scripts" / "pip.exe"
+        else:
+            assert result == venv / "bin" / "pip"
+
+    def test_preserves_venv_root(self):
+        """Should preserve the venv root path."""
+        from klean.platform import get_venv_pip
+
+        venv = Path("/custom/path/to/venv")
+        result = get_venv_pip(venv)
+
+        assert str(result).startswith(str(venv))
 
 
 class TestGetKbPort:
@@ -425,9 +485,6 @@ class TestCleanupStaleFiles:
         """Should remove PID and port files when process is dead."""
         from klean.platform import (
             cleanup_stale_files,
-            get_kb_pid_file,
-            get_kb_port_file,
-            get_runtime_dir,
             write_pid_file,
         )
 

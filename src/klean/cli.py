@@ -43,6 +43,8 @@ from klean.platform import (
     get_kb_pid_file,
     get_kb_port_file,
     get_runtime_dir,
+    get_venv_pip,
+    get_venv_python,
     is_process_running,
     kill_process_tree,
     spawn_background,
@@ -502,7 +504,7 @@ def _ensure_kb_initialized(project_path: Path) -> bool:
     try:
         rebuild_script = CLAUDE_DIR / "scripts" / "knowledge_db.py"
         if rebuild_script.exists():
-            venv_python = VENV_DIR / "bin" / "python"
+            venv_python = get_venv_python(VENV_DIR)
             python_cmd = str(venv_python) if venv_python.exists() else sys.executable
             result = subprocess.run(
                 [python_cmd, str(rebuild_script), "rebuild", str(project_path)],
@@ -542,7 +544,7 @@ def start_knowledge_server(project_path: Path = None, wait: bool = True) -> bool
             return False
 
         # Use the venv python if available
-        venv_python = VENV_DIR / "bin" / "python"
+        venv_python = get_venv_python(VENV_DIR)
         python_cmd = str(venv_python) if venv_python.exists() else sys.executable
 
         # Clean up stale files first
@@ -1842,7 +1844,6 @@ def install(dev: bool, component: str, yes: bool):
     source_commands_kln = source_base / "commands" / "kln"
     # Note: Hooks are now Python entry points, not shell scripts
     source_config = source_base / "config"
-    source_lib = source_base / "lib"
     source_core = source_base / "core"
 
     console.print(f"[dim]Source: {source_scripts.parent}[/dim]\n")
@@ -2006,7 +2007,7 @@ def install(dev: bool, component: str, yes: bool):
             subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
 
         # Install dependencies
-        pip = VENV_DIR / "bin" / "pip"
+        pip = get_venv_pip(VENV_DIR)
         if pip.exists():
             console.print("  Installing Python dependencies...")
             console.print("  [dim](First install may take 2-5 minutes for ML models...)[/dim]")
@@ -2442,7 +2443,7 @@ def doctor(auto_fix: bool):
 
     # Check Python venv
     if VENV_DIR.exists():
-        python = VENV_DIR / "bin" / "python"
+        python = get_venv_python(VENV_DIR)
         if not python.exists():
             issues.append(("ERROR", "Knowledge DB venv is broken - recreate with kln install"))
 

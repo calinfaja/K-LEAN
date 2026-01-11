@@ -13,12 +13,9 @@ ANTI-FALSE-POSITIVE MEASURES:
 4. Use mock memory with known file:line patterns
 """
 
-import pytest
-from pathlib import Path
 
 # Import module under test
-from klean.smol.tools import validate_citations, get_citation_stats
-
+from klean.smol.tools import get_citation_stats, validate_citations
 
 # =============================================================================
 # Mock Memory Classes for Testing

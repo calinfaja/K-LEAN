@@ -89,7 +89,7 @@ def get_sparse_model():
     if _sparse_model is None:
         if SparseTextEmbedding is None:
             try:
-                from fastembed import SparseTextEmbedding as STE
+                from fastembed import SparseTextEmbedding as STE  # noqa: N817
 
                 SparseTextEmbedding = STE
             except ImportError:
@@ -106,7 +106,7 @@ def get_reranker():
     if _reranker is None:
         if TextCrossEncoder is None:
             try:
-                from fastembed.rerank.cross_encoder import TextCrossEncoder as TCE
+                from fastembed.rerank.cross_encoder import TextCrossEncoder as TCE  # noqa: N817
 
                 TextCrossEncoder = TCE
             except ImportError:

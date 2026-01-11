@@ -3,6 +3,7 @@
 Primary agent execution engine for K-LEAN.
 """
 
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -79,15 +80,15 @@ class SmolKLNExecutor:
         """Get output directory for agent results.
 
         Follows K-LEAN convention: <project_root>/.claude/kln/agentExecute/
-        Falls back to /tmp/claude-reviews/agentExecute/ if not writable.
+        Falls back to temp directory if not writable.
         """
         output_dir = self.project_root / ".claude" / "kln" / "agentExecute"
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
             return output_dir
         except (PermissionError, OSError):
-            # Fallback to /tmp
-            fallback = Path("/tmp/claude-reviews/agentExecute")
+            # Fallback to system temp directory (cross-platform)
+            fallback = Path(tempfile.gettempdir()) / "claude-reviews" / "agentExecute"
             fallback.mkdir(parents=True, exist_ok=True)
             return fallback
 

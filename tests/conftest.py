@@ -10,16 +10,13 @@ IMPORTANT: These fixtures mock EXTERNAL dependencies only.
 The code under test should execute normally.
 """
 
-import pytest
-import tempfile
-import json
-import time
 import sys
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+import time
 from dataclasses import dataclass
-from typing import Optional
+from pathlib import Path
+from unittest.mock import MagicMock
 
+import pytest
 
 # =============================================================================
 # Setup: Add src directory to PYTHONPATH for imports

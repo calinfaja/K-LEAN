@@ -13,17 +13,18 @@ ANTI-FALSE-POSITIVE MEASURES:
 4. Verify source_path is preserved correctly
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+import pytest
 
 # Import module under test
 from klean.smol.loader import (
-    AgentConfig,
     Agent,
-    parse_agent_file,
+    AgentConfig,
     list_available_agents,
     load_agent,
+    parse_agent_file,
 )
 
 

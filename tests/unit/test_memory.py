@@ -12,19 +12,15 @@ ANTI-FALSE-POSITIVE MEASURES:
 4. Check all dataclass fields are preserved
 """
 
-import pytest
 import time
-from pathlib import Path
-from unittest.mock import patch, MagicMock, PropertyMock
-from dataclasses import asdict
+from unittest.mock import MagicMock
 
 # Import module under test
 from klean.smol.memory import (
+    AgentMemory,
     MemoryEntry,
     SessionMemory,
-    AgentMemory,
 )
-
 
 # =============================================================================
 # TestMemoryEntry
@@ -191,7 +187,7 @@ class TestSessionMemory:
         # Arrange
         session = SessionMemory(task="Test")
         # Add entries with known word count
-        for i in range(10):
+        for _ in range(10):
             session.add("word " * 50, "action")  # 50 words each
 
         # Act - request small token limit

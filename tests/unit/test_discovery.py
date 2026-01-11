@@ -12,19 +12,16 @@ ANTI-FALSE-POSITIVE MEASURES:
 4. Verify return values match expected types
 """
 
-import pytest
-import time
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # Import module under test
 from klean.discovery import (
-    list_models,
-    get_model,
-    clear_cache,
-    is_available,
-    LITELLM_ENDPOINT,
     CACHE_TTL,
     _cache,
+    clear_cache,
+    get_model,
+    is_available,
+    list_models,
 )
 
 
@@ -236,7 +233,6 @@ class TestClearCache:
         clear_cache()
 
         # Verify cache is cleared by checking module-level _cache
-        from klean.discovery import _cache
         assert _cache["models"] == [], "Cache should be empty"
         assert _cache["timestamp"] == 0, "Timestamp should be reset"
 

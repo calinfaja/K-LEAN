@@ -3,6 +3,7 @@
 Uses smolagents managed_agents for orchestrated multi-model reviews.
 """
 
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Any
 from .context import format_context_for_prompt, gather_project_context
 from .executor import add_step_awareness
 from .models import create_model
-from .multi_config import get_3_agent_config, get_4_agent_config
+from .multi_config import get_3_agent_config, get_thorough_agent_config
 from .tools import get_citation_stats, get_tools_for_agent, validate_citations, validate_file_paths
 
 
@@ -45,7 +46,8 @@ class MultiAgentExecutor:
             output_dir.mkdir(parents=True, exist_ok=True)
             return output_dir
         except (PermissionError, OSError):
-            fallback = Path("/tmp/claude-reviews/multiAgent")
+            # Fallback to system temp directory (cross-platform)
+            fallback = Path(tempfile.gettempdir()) / "claude-reviews" / "multiAgent"
             fallback.mkdir(parents=True, exist_ok=True)
             return fallback
 
@@ -146,15 +148,15 @@ class MultiAgentExecutor:
         except ImportError:
             return {
                 "output": "Error: smolagents not installed. Install with: pip install smolagents[litellm]",
-                "variant": "4-agent" if thorough else "3-agent",
+                "variant": "thorough" if thorough else "3-agent",
                 "agents_used": [],
                 "duration_s": 0,
                 "success": False,
             }
 
         # Get configuration
-        config = get_4_agent_config() if thorough else get_3_agent_config()
-        variant = "4-agent" if thorough else "3-agent"
+        config = get_thorough_agent_config() if thorough else get_3_agent_config()
+        variant = "thorough" if thorough else "3-agent"
 
         # Override manager model if specified
         if manager_model:

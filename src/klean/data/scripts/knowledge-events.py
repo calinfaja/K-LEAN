@@ -26,11 +26,12 @@ Or via CLI:
 import json
 import os
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-LOG_PATH = Path(os.environ.get("KLEAN_SOCKET_DIR", "/tmp")) / "knowledge-events.log"
+LOG_PATH = Path(os.environ.get("KLEAN_SOCKET_DIR", tempfile.gettempdir())) / "knowledge-events.log"
 
 
 class KnowledgeEventLog:

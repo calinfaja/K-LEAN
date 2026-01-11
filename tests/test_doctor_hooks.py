@@ -9,9 +9,8 @@ Run with: pytest tests/test_doctor_hooks.py -v
 """
 
 import json
+
 import pytest
-import tempfile
-from pathlib import Path
 
 # K-LEAN hooks configuration (copy from cli.py for standalone testing)
 KLEAN_HOOKS_CONFIG = {
@@ -214,14 +213,14 @@ class TestKleanHooksConfig:
 
     def test_all_hooks_have_command_type(self):
         """Test: All hooks use command type."""
-        for hook_type, hook_list in KLEAN_HOOKS_CONFIG.items():
+        for _hook_type, hook_list in KLEAN_HOOKS_CONFIG.items():
             for hook_entry in hook_list:
                 for hook in hook_entry.get("hooks", []):
                     assert hook.get("type") == "command"
 
     def test_all_commands_point_to_claude_hooks(self):
         """Test: All commands point to ~/.claude/hooks/."""
-        for hook_type, hook_list in KLEAN_HOOKS_CONFIG.items():
+        for _hook_type, hook_list in KLEAN_HOOKS_CONFIG.items():
             for hook_entry in hook_list:
                 for hook in hook_entry.get("hooks", []):
                     cmd = hook.get("command", "")

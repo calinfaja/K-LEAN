@@ -8,7 +8,6 @@ Tests cover:
 - Second opinion with fallback
 """
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -210,12 +209,12 @@ class TestQuickReview:
         }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("klean.reviews.httpx.AsyncClient") as MockClient:
+        with patch("klean.reviews.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.post.return_value = mock_response
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
-            MockClient.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             result = await quick_review(
                 model="test-model",
@@ -231,12 +230,12 @@ class TestQuickReview:
         """Should return failed result on connection error."""
         from klean.reviews import quick_review
 
-        with patch("klean.reviews.httpx.AsyncClient") as MockClient:
+        with patch("klean.reviews.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.post.side_effect = Exception("Connection refused")
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
-            MockClient.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # Also mock health check to fail
             with patch("klean.reviews._check_model_health", return_value=False):
@@ -276,7 +275,7 @@ class TestConsensusReview:
             mock_resp.raise_for_status = MagicMock()
             return mock_resp
 
-        with patch("klean.reviews.httpx.AsyncClient") as MockClient:
+        with patch("klean.reviews.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.post = mock_post
             mock_client.get = AsyncMock(return_value=MagicMock(
@@ -291,9 +290,9 @@ class TestConsensusReview:
             ))
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
-            MockClient.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
-            result = await consensus_review(
+            _result = await consensus_review(
                 focus="Review",
                 context="code",
                 model_count=3,
@@ -307,11 +306,11 @@ class TestConsensusReview:
         from klean.reviews import consensus_review
 
         with patch("klean.reviews._get_healthy_models", return_value=[]):
-            with patch("klean.reviews.httpx.AsyncClient") as MockClient:
+            with patch("klean.reviews.httpx.AsyncClient") as mock_client_class:
                 mock_client = AsyncMock()
                 mock_client.__aenter__.return_value = mock_client
                 mock_client.__aexit__.return_value = None
-                MockClient.return_value = mock_client
+                mock_client_class.return_value = mock_client
 
                 result = await consensus_review(
                     focus="Review",

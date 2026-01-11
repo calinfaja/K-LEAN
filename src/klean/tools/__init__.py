@@ -44,11 +44,11 @@ def tool(
     return decorator
 
 
-# Import all tools
-from .grep_tool import grep_codebase
-from .read_tool import read_file
-from .search_knowledge_tool import search_knowledge
-from .testing_tool import run_tests
+# Import all tools (after decorator definition)
+from .grep_tool import grep_codebase  # noqa: E402
+from .read_tool import read_file  # noqa: E402
+from .search_knowledge_tool import search_knowledge  # noqa: E402
+from .testing_tool import run_tests  # noqa: E402
 
 __all__ = [
     "tool",

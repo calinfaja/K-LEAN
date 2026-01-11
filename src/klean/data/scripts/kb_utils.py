@@ -294,15 +294,19 @@ __all__ = [
 # Configuration Constants (with environment variable overrides)
 # =============================================================================
 # Python binary - check environment override first
+# Cross-platform: Windows uses Scripts/, Unix uses bin/
+_venv_bin = "Scripts" if sys.platform == "win32" else "bin"
+_python_exe = "python.exe" if sys.platform == "win32" else "python"
+
 _kb_python_env = os.environ.get("KB_PYTHON") or os.environ.get("KLEAN_KB_PYTHON")
 if _kb_python_env:
     PYTHON_BIN = Path(_kb_python_env)
-elif (Path.home() / ".venvs/knowledge-db/bin/python").exists():
-    PYTHON_BIN = Path.home() / ".venvs/knowledge-db/bin/python"
-elif (Path.home() / ".local/share/klean/venv/bin/python").exists():
-    PYTHON_BIN = Path.home() / ".local/share/klean/venv/bin/python"
+elif (Path.home() / ".venvs" / "knowledge-db" / _venv_bin / _python_exe).exists():
+    PYTHON_BIN = Path.home() / ".venvs" / "knowledge-db" / _venv_bin / _python_exe
+elif (Path.home() / ".local" / "share" / "klean" / "venv" / _venv_bin / _python_exe).exists():
+    PYTHON_BIN = Path.home() / ".local" / "share" / "klean" / "venv" / _venv_bin / _python_exe
 else:
-    PYTHON_BIN = Path("python3")  # Fallback to system python
+    PYTHON_BIN = Path("python3" if sys.platform != "win32" else "python")  # Fallback
 
 # Scripts directory - check environment override first
 _kb_scripts_env = os.environ.get("KB_SCRIPTS_DIR") or os.environ.get("KLEAN_SCRIPTS_DIR")

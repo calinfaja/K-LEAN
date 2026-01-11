@@ -83,11 +83,11 @@ def get_3_agent_config() -> dict[str, AgentConfig]:
     }
 
 
-def get_4_agent_config() -> dict[str, AgentConfig]:
-    """Return 4-agent configuration (--thorough flag).
+def get_thorough_agent_config() -> dict[str, AgentConfig]:
+    """Return thorough agent configuration (--thorough flag).
 
     Manager orchestrates file_scout, code_analyzer, security_auditor, and synthesizer.
-    More thorough, specialized analysis.
+    More thorough analysis with 4 specialized agents plus manager orchestrator.
     """
     models = get_models()
     return {

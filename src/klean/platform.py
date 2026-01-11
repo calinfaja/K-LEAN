@@ -13,7 +13,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 import platformdirs
 import psutil
@@ -115,7 +114,35 @@ def get_kb_pid_file(project_path: Path) -> Path:
     return get_runtime_dir() / f"kb-{project_hash}.pid"
 
 
-def find_project_root(start_path: Optional[Path] = None) -> Optional[Path]:
+def get_venv_python(venv_dir: Path) -> Path:
+    """Get the Python executable path for a virtual environment.
+
+    Args:
+        venv_dir: Path to the virtual environment root.
+
+    Returns:
+        Path to python executable (Scripts/python.exe on Windows, bin/python on Unix).
+    """
+    if sys.platform == "win32":
+        return venv_dir / "Scripts" / "python.exe"
+    return venv_dir / "bin" / "python"
+
+
+def get_venv_pip(venv_dir: Path) -> Path:
+    """Get the pip executable path for a virtual environment.
+
+    Args:
+        venv_dir: Path to the virtual environment root.
+
+    Returns:
+        Path to pip executable (Scripts/pip.exe on Windows, bin/pip on Unix).
+    """
+    if sys.platform == "win32":
+        return venv_dir / "Scripts" / "pip.exe"
+    return venv_dir / "bin" / "pip"
+
+
+def find_project_root(start_path: Path | None = None) -> Path | None:
     """Find the project root by looking for markers.
 
     Searches upward from start_path (or cwd) for:
@@ -152,7 +179,7 @@ def find_project_root(start_path: Optional[Path] = None) -> Optional[Path]:
 # =============================================================================
 
 
-def find_process(pattern: str) -> Optional[psutil.Process]:
+def find_process(pattern: str) -> psutil.Process | None:
     """Find a process by command line pattern.
 
     Cross-platform replacement for `pgrep -f pattern`.
@@ -211,9 +238,9 @@ def is_process_running(pid: int) -> bool:
 
 def spawn_background(
     cmd: list[str],
-    cwd: Optional[Path] = None,
-    env: Optional[dict] = None,
-    log_file: Optional[Path] = None,
+    cwd: Path | None = None,
+    env: dict | None = None,
+    log_file: Path | None = None,
 ) -> int:
     """Spawn a background process that survives parent exit.
 
@@ -307,7 +334,7 @@ def kill_process_tree(pid: int, timeout: float = 5.0) -> bool:
     return True
 
 
-def read_pid_file(pid_file: Path) -> Optional[int]:
+def read_pid_file(pid_file: Path) -> int | None:
     """Read a PID from a file.
 
     Args:
