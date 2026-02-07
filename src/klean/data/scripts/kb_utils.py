@@ -319,21 +319,53 @@ TYPE_SIGNALS = {
         "best practice",
         "convention",
     ],
+    "decision": [
+        # Architectural/design decisions
+        "chose",
+        "decided",
+        "picked",
+        "selected",
+        "went with",
+        "instead of",
+        "decision",
+        "trade-off",
+        "tradeoff",
+    ],
+    "discovery": [
+        # Things learned/discovered
+        "found that",
+        "discovered",
+        "turns out",
+        "TIL",
+        "realized",
+        "learned that",
+        "it turns out",
+        "surprisingly",
+    ],
+    "journal": [
+        # Session/work log entries
+        "worked on",
+        "session started",
+        "today I",
+        "spent time",
+        "working on",
+    ],
 }
 
 
 def infer_type(title: str, insight: str) -> str:
     """Infer entry type from content.
 
-    Checks signal words in order: warning > solution > pattern > finding.
-    Returns first matching type, or 'finding' as default.
+    Checks signal words in order: warning > solution > pattern >
+    decision > discovery > journal > finding (default).
 
     Args:
         title: Entry title.
         insight: Entry insight/description.
 
     Returns:
-        Inferred type: 'warning', 'solution', 'pattern', or 'finding'.
+        Inferred type: 'warning', 'solution', 'pattern', 'decision',
+        'discovery', 'journal', or 'finding'.
     """
     text = f"{title} {insight}".lower()
 
@@ -406,15 +438,25 @@ HOST = "127.0.0.1"
 # Project markers in priority order
 PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
 
-# V3 Schema - Simplified 8-field schema
-# id, title, insight, type, priority, keywords, source, date
-SCHEMA_V3_FIELDS = ["id", "title", "insight", "type", "priority", "keywords", "source", "date"]
+# V3 Schema - Simplified 8-field schema + V3.1 extensions
+# id, title, insight, type, priority, keywords, source, date + timestamp, branch, related_to
+SCHEMA_V3_FIELDS = [
+    "id", "title", "insight", "type", "priority", "keywords", "source", "date",
+    # V3.1 extensions
+    "timestamp",    # ISO 8601: "2026-02-07T10:30:00"
+    "branch",       # git branch: "feature/auth"
+    "related_to",   # list of entry IDs: ["uuid1", "uuid2"]
+]
 
 SCHEMA_V3_DEFAULTS = {
-    "type": "finding",  # warning|solution|pattern|finding|session|task
+    "type": "finding",  # warning|solution|pattern|finding|session|task|journal|decision|discovery
     "priority": "medium",  # critical|high|medium|low
     "keywords": [],  # Searchable terms (merged from tags + key_concepts)
     "source": "",  # URL or file:path:line or git:hash or conv:date
+    # V3.1 defaults
+    "timestamp": "",  # ISO 8601 timestamp
+    "branch": "",  # git branch name
+    "related_to": [],  # linked entry IDs
 }
 
 # Legacy V2 Schema defaults (for backward compatibility during migration)
@@ -589,18 +631,39 @@ def send_command(project_path: str | Path, cmd_data: dict, timeout: float = 5.0)
         return {"error": str(e)}
 
 
-def search(project_path: str | Path, query: str, limit: int = 5) -> dict | None:
-    """Perform semantic search via KB server.
+def search(
+    project_path: str | Path,
+    query: str,
+    limit: int = 5,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    entry_type: str | None = None,
+    branch: str | None = None,
+) -> dict | None:
+    """Perform semantic search via KB server with optional filters.
 
     Args:
         project_path: Project root directory
         query: Search query string
         limit: Maximum results
+        date_from: Filter entries from this date (YYYY-MM-DD)
+        date_to: Filter entries up to this date (YYYY-MM-DD)
+        entry_type: Filter by entry type (warning, solution, pattern, etc.)
+        branch: Filter by git branch name
 
     Returns:
         Search results dict or None if server not running
     """
-    return send_command(project_path, {"cmd": "search", "query": query, "limit": limit})
+    cmd = {"cmd": "search", "query": query, "limit": limit}
+    if date_from:
+        cmd["date_from"] = date_from
+    if date_to:
+        cmd["date_to"] = date_to
+    if entry_type:
+        cmd["entry_type"] = entry_type
+    if branch:
+        cmd["branch"] = branch
+    return send_command(project_path, cmd)
 
 
 # =============================================================================
@@ -710,9 +773,22 @@ def migrate_entry(entry: dict) -> dict:
         else:
             entry["priority"] = "medium"
 
+    # V3.1: Set timestamp from found_date for old entries
+    if "timestamp" not in entry:
+        found_date = entry.get("found_date", "")
+        if found_date and "T" in found_date:
+            entry["timestamp"] = found_date
+        elif found_date:
+            entry["timestamp"] = f"{found_date[:10]}T00:00:00"
+        else:
+            entry["timestamp"] = ""
+
     # Apply V3 defaults for any missing fields
     for field, default in SCHEMA_V3_DEFAULTS.items():
         if field not in entry:
-            entry[field] = default
+            if isinstance(default, list):
+                entry[field] = list(default)  # Copy to avoid shared reference
+            else:
+                entry[field] = default
 
     return entry

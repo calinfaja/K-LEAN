@@ -240,7 +240,31 @@ class KnowledgeServer:
             if cmd == "search":
                 query = request.get("query", "")
                 limit = request.get("limit", 5)
-                response = self.search(query, limit)
+                # V3.1: Pass filter params to KnowledgeDB.search()
+                date_from = request.get("date_from")
+                date_to = request.get("date_to")
+                entry_type = request.get("entry_type")
+                branch = request.get("branch")
+                if any([date_from, date_to, entry_type, branch]):
+                    # Filtered search - call db directly
+                    self.last_activity = time.time()
+                    if not self.db:
+                        response = {"error": "No index loaded"}
+                    else:
+                        start = time.time()
+                        results = self.db.search(
+                            query, limit,
+                            date_from=date_from, date_to=date_to,
+                            entry_type=entry_type, branch=branch,
+                        )
+                        search_time = time.time() - start
+                        response = {
+                            "results": results,
+                            "search_time_ms": round(search_time * 1000, 2),
+                            "query": query,
+                        }
+                else:
+                    response = self.search(query, limit)
             elif cmd == "status":
                 idle_time = time.time() - self.last_activity
                 response = {
@@ -292,6 +316,44 @@ class KnowledgeServer:
                         response = {"status": "ok", "entries": entries}
                     except Exception as e:
                         response = {"error": f"Failed to get recent: {e}"}
+            elif cmd == "search_by_date":
+                start_date = request.get("start", "")
+                end_date = request.get("end")
+                limit = request.get("limit", 50)
+                if not self.db:
+                    response = {"error": "No index loaded"}
+                elif not start_date:
+                    response = {"error": "Missing 'start' date parameter"}
+                else:
+                    try:
+                        entries = self.db.search_by_date(start_date, end_date, limit)
+                        response = {"status": "ok", "entries": entries, "count": len(entries)}
+                    except Exception as e:
+                        response = {"error": f"search_by_date failed: {e}"}
+            elif cmd == "get_timeline":
+                date = request.get("date", "")
+                if not self.db:
+                    response = {"error": "No index loaded"}
+                elif not date:
+                    response = {"error": "Missing 'date' parameter"}
+                else:
+                    try:
+                        entries = self.db.get_timeline(date)
+                        response = {"status": "ok", "entries": entries, "count": len(entries)}
+                    except Exception as e:
+                        response = {"error": f"get_timeline failed: {e}"}
+            elif cmd == "get_related":
+                entry_id = request.get("id", "")
+                if not self.db:
+                    response = {"error": "No index loaded"}
+                elif not entry_id:
+                    response = {"error": "Missing 'id' parameter"}
+                else:
+                    try:
+                        entries = self.db.get_related(entry_id)
+                        response = {"status": "ok", "entries": entries, "count": len(entries)}
+                    except Exception as e:
+                        response = {"error": f"get_related failed: {e}"}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 

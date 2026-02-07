@@ -63,8 +63,8 @@ def format_detailed(results):
             lines.append(f"URL: {r['url']}")
         if r.get("type"):
             lines.append(f"Type: {r['type']}")
-        if r.get("found_date"):
-            lines.append(f"Date: {r['found_date'][:10]}")
+        if r.get("date") or r.get("found_date"):
+            lines.append(f"Date: {(r.get('date') or r.get('found_date', ''))[:10]}")
         if r.get("summary"):
             lines.append(f"\nSummary: {r['summary']}")
         if r.get("problem_solved"):

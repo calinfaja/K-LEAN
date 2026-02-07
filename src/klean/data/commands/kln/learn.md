@@ -33,6 +33,9 @@ Scan the recent conversation context and extract learnings worth preserving to t
 | `warning` | "don't", "avoid", "never", "careful", "bug", "fails", "gotcha" |
 | `solution` | "fixed", "solved", "workaround", "the fix was" |
 | `pattern` | "use X for Y", "prefer", "best way", "approach" |
+| `decision` | "chose", "decided", "went with", "instead of", "trade-off" |
+| `discovery` | "found that", "turns out", "TIL", "realized", "surprisingly" |
+| `journal` | "worked on", "session started", "today I", "spent time" |
 | `finding` | Default - discovered behavior, API quirk, etc. |
 
 ### Priority Levels:
@@ -70,7 +73,7 @@ Found N learnings to save:
     --json-input '{
       "title": "Short descriptive title (max 80 chars)",
       "insight": "2-4 sentence explanation. Be specific about what, why, and how. Include enough context for future retrieval. 50-150 words.",
-      "type": "warning|solution|pattern|finding",
+      "type": "warning|solution|pattern|finding|decision|discovery|journal",
       "priority": "critical|high|medium|low",
       "keywords": ["searchable", "terms", "3-5"],
       "source": "file:path/to/file.py:42 or https://url or git:hash or conv:YYYY-MM-DD"
@@ -82,7 +85,7 @@ Found N learnings to save:
 |-------|-------------|
 | `title` | Short descriptive title (max 80 chars) |
 | `insight` | 2-4 sentence explanation with actionable details (50-150 words) |
-| `type` | Auto-inferred: warning, solution, pattern, finding |
+| `type` | Auto-inferred: warning, solution, pattern, decision, discovery, journal, finding |
 | `priority` | critical, high, medium, low |
 | `keywords` | 3-5 searchable terms |
 | `source` | Actionable source: file:path:line, https://url, git:hash, conv:date |

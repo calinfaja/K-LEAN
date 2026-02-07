@@ -43,7 +43,9 @@ git log --oneline -5
 |----------|-----------------|
 | **Warnings** | Problems encountered, gotchas, things to AVOID |
 | **Solutions** | Working fixes, workarounds that resolved issues |
-| **Patterns** | Reusable approaches, design decisions with rationale |
+| **Patterns** | Reusable approaches, techniques, best practices |
+| **Decisions** | Architectural choices, trade-offs, "chose X over Y" |
+| **Discoveries** | "Found that...", "Turns out...", surprising learnings |
 | **Findings** | Undocumented behavior, API quirks, edge cases |
 
 ### Step 3: Save to Knowledge DB (V3 Schema)
@@ -57,7 +59,7 @@ For each significant learning:
     --json-input '{
       "title": "Short descriptive title (max 80 chars)",
       "insight": "2-4 sentence explanation. Be specific. 50-150 words.",
-      "type": "warning|solution|pattern|finding",
+      "type": "warning|solution|pattern|finding|decision|discovery|journal",
       "priority": "critical|high|medium|low",
       "keywords": ["keyword1", "keyword2", "keyword3"],
       "source": "file:path.py:42 or git:hash or conv:YYYY-MM-DD"

@@ -55,6 +55,20 @@ except ImportError:
     )
 
 
+def _get_current_branch() -> str:
+    """Get current git branch name."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=3,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+
 # Result of initialization
 class InitResult:
     def __init__(self, path, newly_created=False, server_started=False):
@@ -140,7 +154,7 @@ def create_entry(content, entry_type="finding", tags=None, priority="medium", ur
     # Generate a unique ID
     entry_id = f"{entry_type}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    # V3 Schema
+    # V3.1 Schema
     entry = {
         "id": entry_id,
         "title": content[:100] if len(content) <= 100 else content[:97] + "...",
@@ -150,6 +164,9 @@ def create_entry(content, entry_type="finding", tags=None, priority="medium", ur
         "keywords": tags[:10],
         "source": url or f"conv:{datetime.now().strftime('%Y-%m-%d')}",
         "date": datetime.now().strftime("%Y-%m-%d"),
+        "timestamp": datetime.now().isoformat(),
+        "branch": _get_current_branch(),
+        "related_to": [],
     }
 
     return entry
@@ -190,7 +207,7 @@ def create_entry_from_json(data: dict):
             or f"conv:{datetime.now().strftime('%Y-%m-%d')}"
         )
 
-    # V3 Schema output
+    # V3.1 Schema output
     entry = {
         "id": entry_id,
         "title": data.get("title", ""),
@@ -200,6 +217,9 @@ def create_entry_from_json(data: dict):
         "keywords": keywords[:10],
         "source": source,
         "date": data.get("date") or datetime.now().strftime("%Y-%m-%d"),
+        "timestamp": data.get("timestamp") or datetime.now().isoformat(),
+        "branch": data.get("branch") or _get_current_branch(),
+        "related_to": data.get("related_to", []),
     }
 
     # Ensure title exists
@@ -328,7 +348,7 @@ Examples:
         "--type",
         dest="entry_type",
         default="finding",
-        choices=["finding", "solution", "pattern", "warning"],
+        choices=["finding", "solution", "pattern", "warning", "decision", "discovery", "journal"],
         help="Type of entry (default: finding, auto-inferred if omitted)",
     )
     parser.add_argument("--tags", default="", help="Comma-separated keywords")

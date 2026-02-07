@@ -25,7 +25,7 @@
 # Knowledge capture via TCP (server must be running)
 # Use kb_utils.py or knowledge-capture.py from pipx venv
 
-# Types: lesson, finding, solution, pattern, warning, best-practice
+# Types: finding, solution, pattern, warning, decision, discovery, journal, commit, session
 # Priority: low, medium, high, critical
 ```
 

@@ -20,6 +20,9 @@
 | Keyword | Action |
 |---------|--------|
 | `FindKnowledge <query>` | Search knowledge DB |
+| `FindKnowledge <query> since:YYYY-MM-DD` | Search with date filter |
+| `FindKnowledge <query> branch:<name>` | Search filtered by git branch |
+| `FindKnowledge <query> type:<type>` | Search filtered by entry type |
 | `SaveInfo <url>` | Evaluate URL with LLM and save if relevant |
 
 ## Knowledge Database

@@ -136,6 +136,9 @@ Use `/kln:status` or `kln model list` to see current model availability.
 | `/kln:learn "topic"` | Slash | Focused extraction on specific topic |
 | `/kln:remember` | Slash | Comprehensive end-of-session capture |
 | `FindKnowledge <query>` | Hook | Semantic search knowledge database |
+| `FindKnowledge <query> since:YYYY-MM-DD` | Hook | Search with date filter |
+| `FindKnowledge <query> branch:<name>` | Hook | Search filtered by git branch |
+| `FindKnowledge <query> type:<type>` | Hook | Search filtered by entry type |
 | `SaveInfo <url>` | Hook | Evaluate URL with LLM and save if relevant |
 
 ## K-LEAN CLI

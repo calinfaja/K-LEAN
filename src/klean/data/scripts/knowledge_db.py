@@ -509,6 +509,10 @@ class KnowledgeDB:
         entry.setdefault("priority", "medium")
         entry.setdefault("keywords", [])
         entry.setdefault("source", f"conv:{entry['date']}")
+        # V3.1 defaults
+        entry.setdefault("timestamp", datetime.now().isoformat())
+        entry.setdefault("branch", "")
+        entry.setdefault("related_to", [])
 
         # Build searchable text
         searchable_text = self._build_searchable_text(entry)
@@ -546,6 +550,10 @@ class KnowledgeDB:
         query: str,
         limit: int = 5,
         rerank: bool = True,
+        date_from: str | None = None,
+        date_to: str | None = None,
+        entry_type: str | None = None,
+        branch: str | None = None,
     ) -> list[dict[str, Any]]:
         """
         Hybrid search combining dense and sparse retrieval with RRF fusion.
@@ -554,6 +562,10 @@ class KnowledgeDB:
             query: Natural language search query
             limit: Maximum number of results
             rerank: Apply cross-encoder reranking for higher precision (default: True)
+            date_from: Filter entries from this date (YYYY-MM-DD inclusive)
+            date_to: Filter entries up to this date (YYYY-MM-DD inclusive)
+            entry_type: Filter by entry type (warning, solution, pattern, etc.)
+            branch: Filter by git branch name
 
         Returns:
             List of matching entries with scores
@@ -562,13 +574,16 @@ class KnowledgeDB:
         1. Dense search (semantic similarity via BGE)
         2. Sparse search (keyword matching via BM42)
         3. RRF fusion of both result sets
-        4. Cross-encoder reranking (default enabled)
+        4. Post-RRF filtering (date, type, branch)
+        5. Cross-encoder reranking (default enabled)
         """
         if self._embeddings is None or len(self._embeddings) == 0:
             return []
 
-        # Get more candidates for fusion (2x limit)
-        candidate_limit = limit * 2
+        has_filters = any([date_from, date_to, entry_type, branch])
+
+        # Oversample 3x when filtering to compensate for filtered-out results
+        candidate_limit = limit * (6 if has_filters else 2)
 
         # Layer 1: Dense search
         dense_results = self._dense_search(query, candidate_limit)
@@ -610,11 +625,94 @@ class KnowledgeDB:
                 }
                 results.append(entry)
 
+        # Post-RRF filtering (before reranking)
+        if date_from:
+            results = [r for r in results if r.get("date", "") >= date_from]
+        if date_to:
+            results = [r for r in results if r.get("date", "") <= date_to]
+        if entry_type:
+            results = [r for r in results if r.get("type") == entry_type]
+        if branch:
+            results = [r for r in results if r.get("branch") == branch]
+
         # Layer 3: Optional reranking
         if rerank:
             results = self._rerank_results(query, results, limit)
         else:
             results = results[:limit]
+
+        return results
+
+    def search_by_date(
+        self, start_date: str, end_date: str | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
+        """Return entries in a date range, sorted by timestamp descending.
+
+        Args:
+            start_date: Start date (YYYY-MM-DD inclusive)
+            end_date: End date (YYYY-MM-DD inclusive), defaults to start_date
+            limit: Maximum results
+
+        Returns:
+            List of entries in the date range
+        """
+        if end_date is None:
+            end_date = start_date
+
+        results = []
+        for entry in self._entries:
+            date = entry.get("date", "")
+            if date and start_date <= date <= end_date:
+                results.append(entry.copy())
+
+        # Sort by timestamp descending (newest first)
+        results.sort(key=lambda x: x.get("timestamp", "") or x.get("date", ""), reverse=True)
+        return results[:limit]
+
+    def get_timeline(self, date: str) -> list[dict[str, Any]]:
+        """Return all entries for a specific day, sorted by timestamp ascending.
+
+        Args:
+            date: Date string (YYYY-MM-DD)
+
+        Returns:
+            List of entries for that day, chronologically ordered
+        """
+        results = []
+        for entry in self._entries:
+            if entry.get("date", "") == date:
+                results.append(entry.copy())
+
+        # Sort by timestamp ascending (chronological order)
+        results.sort(key=lambda x: x.get("timestamp", "") or "")
+        return results
+
+    def get_related(self, entry_id: str) -> list[dict[str, Any]]:
+        """Return entries linked via related_to (bidirectional).
+
+        Finds entries that this entry references AND entries that reference this one.
+
+        Args:
+            entry_id: Entry ID to find relations for
+
+        Returns:
+            List of related entries
+        """
+        related_ids = set()
+
+        for entry in self._entries:
+            if entry.get("id") == entry_id:
+                # Forward links: entries this one references
+                for rid in entry.get("related_to", []):
+                    related_ids.add(rid)
+            elif entry_id in entry.get("related_to", []):
+                # Backward links: entries that reference this one
+                related_ids.add(entry.get("id", ""))
+
+        results = []
+        for entry in self._entries:
+            if entry.get("id") in related_ids:
+                results.append(entry.copy())
 
         return results
 
@@ -800,8 +898,11 @@ class KnowledgeDB:
                         except json.JSONDecodeError:
                             pass
 
-        # Sort by date descending
-        entries.sort(key=lambda x: x.get("found_date", ""), reverse=True)
+        # Sort by date descending, with timestamp as secondary sort
+        entries.sort(
+            key=lambda x: (x.get("date", "") or x.get("found_date", ""), x.get("timestamp", "")),
+            reverse=True,
+        )
         return entries[:limit]
 
     def update_usage(self, entry_ids: list[str]) -> int:
@@ -967,6 +1068,10 @@ class KnowledgeDB:
             "keywords": keywords[:10],  # Limit keywords
             "source": source,
             "date": data.get("date") or datetime.now().strftime("%Y-%m-%d"),
+            # V3.1 fields
+            "timestamp": data.get("timestamp") or datetime.now().isoformat(),
+            "branch": data.get("branch", ""),
+            "related_to": data.get("related_to", []),
         }
 
         if not entry["title"] and not entry["insight"]:

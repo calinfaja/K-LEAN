@@ -105,6 +105,33 @@ def _debug_log(msg: str) -> None:
 
 
 # =============================================================================
+# Git Helpers
+# =============================================================================
+
+
+def _get_current_branch() -> str:
+    """Get current git branch name.
+
+    Returns:
+        Branch name or empty string if not in a git repo.
+    """
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+
+# =============================================================================
 # Service Management
 # =============================================================================
 
@@ -274,6 +301,10 @@ def session_start() -> None:
                 if _start_kb_server(project_root):
                     messages.append(f"Knowledge server started for {project_root.name}")
 
+            # Create journal entry on session start (not resume/clear/compact)
+            if source == "startup" and _is_kb_server_running(project_root):
+                _create_session_journal(project_root)
+
             # Inject recent/important KB entries as context (only on startup/resume)
             if source in ("startup", "resume"):
                 context = _get_kb_context(project_root)
@@ -285,6 +316,44 @@ def session_start() -> None:
         _output_text("K-LEAN: " + "; ".join(messages))
 
     sys.exit(0)
+
+
+def _create_session_journal(project_root: Path) -> None:
+    """Create a journal entry when a session starts.
+
+    Args:
+        project_root: Project root path.
+    """
+    import socket
+
+    branch = _get_current_branch()
+    branch_info = f" on {branch}" if branch else ""
+
+    entry = {
+        "title": f"Session started{branch_info}",
+        "insight": f"New coding session started for {project_root.name}{branch_info}",
+        "type": "journal",
+        "priority": "low",
+        "keywords": ["session", "start", project_root.name],
+        "source": f"session:{datetime.now().strftime('%Y-%m-%d')}",
+        "timestamp": datetime.now().isoformat(),
+        "branch": branch,
+    }
+
+    try:
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
+        sock.recv(1024)
+        sock.close()
+
+        _debug_log("Created session journal entry")
+    except Exception as e:
+        _debug_log(f"Failed to create session journal: {e}")
 
 
 def _format_entries_toon(entries: list) -> str:
@@ -456,11 +525,47 @@ def post_bash() -> None:
     if not command:
         sys.exit(0)
 
+    tool_result = input_data.get("tool_result", {})
+    exit_code = tool_result.get("exitCode") if isinstance(tool_result, dict) else None
+
     _debug_log(f"post_bash: {command[:50]}...")
 
     # Detect git commit and capture to KB
     if "git commit" in command and "-m" in command:
         _capture_git_commit()
+
+    # Detect test failures (non-zero exit)
+    elif exit_code and exit_code != 0:
+        test_cmds = ["pytest", "npm test", "cargo test", "go test", "jest", "vitest"]
+        if any(tc in command for tc in test_cmds):
+            _capture_bash_event(
+                command, tool_result,
+                entry_type="finding",
+                priority="high",
+                prefix="Test failure",
+                extra_keywords=["test", "failure"],
+            )
+
+        # Detect build errors (non-zero exit)
+        build_cmds = ["make", "cargo build", "npm run build", "go build", "tsc", "gcc", "g++"]
+        if any(bc in command for bc in build_cmds):
+            _capture_bash_event(
+                command, tool_result,
+                entry_type="finding",
+                priority="high",
+                prefix="Build error",
+                extra_keywords=["build", "error"],
+            )
+
+    # Detect package installs
+    elif any(pc in command for pc in ["pip install", "npm install", "cargo add"]):
+        _capture_bash_event(
+            command, tool_result,
+            entry_type="finding",
+            priority="low",
+            prefix="Package install",
+            extra_keywords=["dependency", "install"],
+        )
 
     sys.exit(0)
 
@@ -493,13 +598,14 @@ def _capture_git_commit() -> None:
         if len(parts) < 2:
             return
 
-        commit_hash = parts[0][:8]  # Short hash
+        full_hash = parts[0]
+        short_hash = full_hash[:8]
         commit_msg = parts[1] if len(parts) > 1 else ""
         author = parts[2] if len(parts) > 2 else ""
 
-        # Get changed files
+        # Get changed files with stat
         result = subprocess.run(
-            ["git", "diff", "--name-only", "HEAD~1", "HEAD"],
+            ["git", "diff", "--stat", "--name-only", "HEAD~1", "HEAD"],
             cwd=project_root,
             capture_output=True,
             text=True,
@@ -509,7 +615,7 @@ def _capture_git_commit() -> None:
         changed_files = [f for f in changed_files if f][:10]  # Limit to 10 files
 
         # Log to timeline
-        _log_to_timeline("commit", f"[{commit_hash}] {commit_msg[:60]}")
+        _log_to_timeline("commit", f"[{short_hash}] {commit_msg[:60]}")
 
         # Save to KB if server is running
         if not _is_kb_server_running(project_root):
@@ -517,14 +623,20 @@ def _capture_git_commit() -> None:
 
         import socket
 
-        # V3 Schema
+        # Build insight with changed files for searchability
+        files_str = ", ".join(changed_files[:5]) if changed_files else "no files"
+        insight = f"Git commit {short_hash} by {author}: {commit_msg}. Changed: {files_str}"
+
+        # V3.1 Schema
         entry = {
             "title": f"Commit: {commit_msg[:80]}",
-            "insight": f"Git commit {commit_hash} by {author}: {commit_msg}",
+            "insight": insight,
             "type": "commit",
             "priority": "low",
-            "keywords": ["git", "commit"] + _extract_commit_tags(commit_msg) + changed_files[:3],
-            "source": f"git:{commit_hash}",
+            "keywords": ["git", "commit"] + _extract_commit_tags(commit_msg) + changed_files[:5],
+            "source": f"git:{full_hash}",
+            "timestamp": datetime.now().isoformat(),
+            "branch": _get_current_branch(),
         }
 
         port_file = get_kb_port_file(project_root)
@@ -537,9 +649,70 @@ def _capture_git_commit() -> None:
         sock.recv(1024)
         sock.close()
 
-        _debug_log(f"Captured commit {commit_hash} to KB")
+        _debug_log(f"Captured commit {short_hash} to KB")
     except Exception as e:
         _debug_log(f"Failed to capture commit: {e}")
+
+
+def _capture_bash_event(
+    command: str,
+    tool_result: Any,
+    entry_type: str,
+    priority: str,
+    prefix: str,
+    extra_keywords: list[str],
+) -> None:
+    """Capture a bash event (test failure, build error, etc.) to Knowledge DB.
+
+    Args:
+        command: The bash command that was run.
+        tool_result: Tool result dict (may contain stdout/stderr).
+        entry_type: KB entry type (finding, warning, etc.).
+        priority: KB entry priority.
+        prefix: Title prefix (e.g., "Test failure").
+        extra_keywords: Additional keywords for the entry.
+    """
+    project_root = find_project_root()
+    if not project_root or not _is_kb_server_running(project_root):
+        return
+
+    # Truncate command for title
+    cmd_short = command[:80].replace("\n", " ")
+    # Get stderr/stdout snippet for insight
+    stderr = ""
+    stdout = ""
+    if isinstance(tool_result, dict):
+        stderr = (tool_result.get("stderr") or "")[:300]
+        stdout = (tool_result.get("stdout") or "")[:300]
+    error_context = stderr or stdout or "No output captured"
+
+    entry = {
+        "title": f"{prefix}: {cmd_short}",
+        "insight": f"{prefix} running '{cmd_short}': {error_context}",
+        "type": entry_type,
+        "priority": priority,
+        "keywords": (extra_keywords + [command.split()[0]]) if command.split() else extra_keywords,
+        "source": f"bash:{cmd_short[:60]}",
+        "timestamp": datetime.now().isoformat(),
+        "branch": _get_current_branch(),
+    }
+
+    try:
+        import socket
+
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
+        sock.recv(1024)
+        sock.close()
+
+        _debug_log(f"Captured {prefix} to KB")
+    except Exception as e:
+        _debug_log(f"Failed to capture {prefix}: {e}")
 
 
 def _extract_commit_tags(commit_msg: str) -> list[str]:
@@ -622,12 +795,51 @@ def post_web() -> None:
         if library_id:
             _log_to_timeline("docs", f"Context7: {library_id} - {query[:50]}")
 
-    # Log documentation URLs for reference
-    doc_patterns = ["docs.", "/docs/", "documentation", "readme", "wiki", "guide"]
+    # Log documentation URLs and create KB entries for doc-pattern URLs
+    doc_patterns = ["docs.", "/docs/", "documentation", "readme", "wiki", "guide",
+                    "reference", "api.", "/api/", "tutorial"]
+    project_root = find_project_root()
+
     for url in urls:
         url_lower = url.lower()
         if any(p in url_lower for p in doc_patterns):
             _log_to_timeline("web", f"Fetched docs: {url}")
+
+            # Create KB entry for doc URLs
+            if project_root and _is_kb_server_running(project_root):
+                try:
+                    from urllib.parse import urlparse
+
+                    parsed = urlparse(url)
+                    domain = parsed.netloc
+                    path_summary = parsed.path.rstrip("/").split("/")[-1] or domain
+
+                    entry = {
+                        "title": f"Docs: {domain} - {path_summary}",
+                        "insight": f"Documentation reference captured from {tool_name}: {url}",
+                        "type": "discovery",
+                        "priority": "low",
+                        "keywords": ["docs", "reference", domain, path_summary],
+                        "source": url,
+                        "timestamp": datetime.now().isoformat(),
+                        "branch": _get_current_branch(),
+                    }
+
+                    import socket
+
+                    port_file = get_kb_port_file(project_root)
+                    port = int(port_file.read_text().strip())
+
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(2.0)
+                    sock.connect(("127.0.0.1", port))
+                    sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
+                    sock.recv(1024)
+                    sock.close()
+
+                    _debug_log(f"Captured doc URL to KB: {url[:60]}")
+                except Exception as e:
+                    _debug_log(f"Failed to capture doc URL: {e}")
 
     sys.exit(0)
 
@@ -637,11 +849,49 @@ def post_web() -> None:
 # =============================================================================
 
 
-def _handle_find_knowledge(query: str) -> str:
-    """Handle FindKnowledge keyword.
+def _parse_find_knowledge_query(raw_query: str) -> tuple[str, dict]:
+    """Parse FindKnowledge query with optional filters.
+
+    Supports syntax like:
+        FindKnowledge auth since:2026-02-01
+        FindKnowledge auth branch:feature/auth
+        FindKnowledge auth type:decision
+        FindKnowledge auth since:2026-02-01 until:2026-02-07
 
     Args:
-        query: Search query.
+        raw_query: Raw query string after "FindKnowledge ".
+
+    Returns:
+        Tuple of (clean_query, filters_dict).
+    """
+    filters = {}
+    query_parts = []
+
+    for token in raw_query.split():
+        if token.startswith("since:"):
+            filters["date_from"] = token[6:]
+        elif token.startswith("until:") or token.startswith("before:"):
+            filters["date_to"] = token.split(":", 1)[1]
+        elif token.startswith("branch:"):
+            filters["branch"] = token[7:]
+        elif token.startswith("type:"):
+            filters["entry_type"] = token[5:]
+        else:
+            query_parts.append(token)
+
+    return " ".join(query_parts), filters
+
+
+def _handle_find_knowledge(query: str) -> str:
+    """Handle FindKnowledge keyword with optional date/branch/type filters.
+
+    Supports:
+        FindKnowledge auth
+        FindKnowledge auth since:2026-02-01
+        FindKnowledge auth branch:feature/auth type:decision
+
+    Args:
+        query: Search query (may include filter tokens).
 
     Returns:
         Search results as formatted string.
@@ -654,6 +904,9 @@ def _handle_find_knowledge(query: str) -> str:
     if not kb_dir.exists():
         return "Knowledge DB not initialized. Use InitKB to create it."
 
+    # Parse filters from query
+    clean_query, filters = _parse_find_knowledge_query(query)
+
     # Try to query via server
     if _is_kb_server_running(project_root):
         import socket
@@ -662,10 +915,13 @@ def _handle_find_knowledge(query: str) -> str:
             port_file = get_kb_port_file(project_root)
             port = int(port_file.read_text().strip())
 
+            cmd = {"cmd": "search", "query": clean_query or "*", "limit": 10}
+            cmd.update(filters)
+
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5.0)
             sock.connect(("127.0.0.1", port))
-            sock.sendall(json.dumps({"cmd": "search", "query": query, "limit": 5}).encode())
+            sock.sendall(json.dumps(cmd).encode())
             response = sock.recv(65536).decode()
             sock.close()
 
@@ -673,21 +929,41 @@ def _handle_find_knowledge(query: str) -> str:
             results = data.get("results", [])
 
             if not results:
-                return f"No results found for: {query}"
+                filter_desc = ""
+                if filters:
+                    filter_desc = f" (filters: {filters})"
+                return f"No results found for: {clean_query}{filter_desc}"
 
             # Track usage for returned results
             result_ids = [r.get("id") for r in results if r.get("id")]
             if result_ids:
                 _update_usage(project_root, result_ids)
 
-            output = [f"Found {len(results)} results for '{query}':\n"]
+            filter_desc = ""
+            if filters:
+                filter_desc = f" [filters: {', '.join(f'{k}={v}' for k, v in filters.items())}]"
+
+            output = [f"Found {len(results)} results for '{clean_query}'{filter_desc}:\n"]
             for r in results:
                 score = r.get("score", 0)
                 title = r.get("title", r.get("id", "?"))
-                summary = r.get("summary", "")[:200]
-                output.append(f"  [{score:.2f}] {title}")
-                if summary:
-                    output.append(f"    {summary}...")
+                entry_type = r.get("type", "")
+                date = r.get("date", "")
+                branch = r.get("branch", "")
+                insight = r.get("insight", r.get("summary", ""))[:200]
+
+                meta_parts = []
+                if entry_type:
+                    meta_parts.append(entry_type)
+                if date:
+                    meta_parts.append(date)
+                if branch:
+                    meta_parts.append(branch)
+                meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
+
+                output.append(f"  [{score:.2f}] {title}{meta}")
+                if insight:
+                    output.append(f"    {insight}...")
 
             return "\n".join(output)
         except Exception as e:
