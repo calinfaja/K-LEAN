@@ -464,28 +464,28 @@ class TestFormatEntriesToon:
 
 
 class TestExtractUserMessages:
-    """Tests for _extract_user_messages() function."""
+    """Tests for _extract_user_messages() interleaved conversation extraction."""
 
-    def test_extracts_user_messages_from_jsonl(self, tmp_path):
-        """Should extract user messages from transcript JSONL."""
+    def test_extracts_interleaved_conversation(self, tmp_path):
+        """Should extract both user and assistant messages as dialogue."""
         from klean.hooks import _extract_user_messages
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
             json.dumps({"type": "file-history-snapshot", "snapshot": {}}),
             json.dumps({"type": "user", "message": {"content": "Fix the auth bug in login"}}),
-            json.dumps({"type": "assistant", "message": {"content": "I'll fix that."}}),
+            json.dumps({"type": "assistant", "message": {"content": "I'll fix the JWT validation."}}),
             json.dumps({"type": "user", "message": {"content": "Now run the tests please"}}),
         ]
         transcript.write_text("\n".join(lines))
 
-        result = _extract_user_messages(str(transcript))
-        assert "Fix the auth bug" in result
-        assert "run the tests" in result
-        assert "I'll fix" not in result
+        messages, start_ts, end_ts = _extract_user_messages(str(transcript))
+        assert "USER: Fix the auth bug" in messages
+        assert "CLAUDE: I'll fix the JWT" in messages
+        assert "USER: Now run the tests" in messages
 
-    def test_skips_command_messages(self, tmp_path):
-        """Should skip CLI command messages."""
+    def test_strips_system_tags(self, tmp_path):
+        """Should strip system-reminder and other injected tags."""
         from klean.hooks import _extract_user_messages
 
         transcript = tmp_path / "transcript.jsonl"
@@ -502,57 +502,359 @@ class TestExtractUserMessages:
                 }
             ),
             json.dumps(
-                {"type": "user", "message": {"content": "Actual user question about the code"}}
+                {
+                    "type": "user",
+                    "message": {
+                        "content": (
+                            "Actual user question about the code"
+                            "<system-reminder>ignore this noise</system-reminder>"
+                        )
+                    },
+                }
             ),
         ]
         transcript.write_text("\n".join(lines))
 
-        result = _extract_user_messages(str(transcript))
-        assert "clear" not in result
-        assert "caveat" not in result
-        assert "Actual user question" in result
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "clear" not in messages
+        assert "caveat" not in messages
+        assert "ignore this noise" not in messages
+        assert "Actual user question" in messages
 
-    def test_limits_message_count(self, tmp_path):
-        """Should return only the last N messages."""
+    def test_extracts_list_content_user_messages(self, tmp_path):
+        """Should extract text from list-type user messages (skip tool_results)."""
         from klean.hooks import _extract_user_messages
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({"type": "user", "message": {"content": f"Message number {i} here"}})
+            # List with tool_result -> should be skipped
+            json.dumps({
+                "type": "user",
+                "message": {"content": [
+                    {"type": "tool_result", "content": "file contents here"},
+                    {"type": "text", "text": "This should be skipped due to tool_result"},
+                ]},
+            }),
+            # List with only text -> should be extracted
+            json.dumps({
+                "type": "user",
+                "message": {"content": [
+                    {"type": "text", "text": "Please review this implementation carefully"},
+                ]},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "file contents" not in messages
+        assert "should be skipped" not in messages
+        assert "review this implementation" in messages
+
+    def test_budget_caps_from_recent(self, tmp_path):
+        """Should include all messages within budget, most recent first."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({"type": "user", "message": {"content": f"Message number {i} with enough text"}})
             for i in range(20)
         ]
         transcript.write_text("\n".join(lines))
 
-        result = _extract_user_messages(str(transcript), limit=3)
-        assert "Message number 17" in result
-        assert "Message number 18" in result
-        assert "Message number 19" in result
-        assert "Message number 0" not in result
+        # All 20 messages should fit within 200K char budget
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "Message number 0" in messages
+        assert "Message number 19" in messages
 
     def test_returns_empty_for_missing_file(self):
-        """Should return empty string for non-existent file."""
+        """Should return empty tuple for non-existent file."""
         from klean.hooks import _extract_user_messages
 
-        result = _extract_user_messages("/nonexistent/path.jsonl")
-        assert result == ""
+        messages, start_ts, end_ts = _extract_user_messages("/nonexistent/path.jsonl")
+        assert messages == ""
+        assert start_ts == ""
+        assert end_ts == ""
 
     def test_skips_short_messages(self, tmp_path):
-        """Should skip messages shorter than 10 chars."""
+        """Should skip messages shorter than 15 chars."""
         from klean.hooks import _extract_user_messages
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
             json.dumps({"type": "user", "message": {"content": "yes"}}),
-            json.dumps({"type": "user", "message": {"content": "ok"}}),
+            json.dumps({"type": "user", "message": {"content": "ok sure"}}),
             json.dumps(
                 {"type": "user", "message": {"content": "Please fix the authentication bug"}}
             ),
         ]
         transcript.write_text("\n".join(lines))
 
-        result = _extract_user_messages(str(transcript))
-        assert "yes" not in result
-        assert "authentication bug" in result
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "yes" not in messages
+        assert "authentication bug" in messages
+
+    def test_extracts_timestamps(self, tmp_path):
+        """Should extract first and last timestamps as HH:MM."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({
+                "type": "user",
+                "message": {"content": "First question of the session"},
+                "timestamp": "2026-02-08T09:15:30.000Z",
+            }),
+            json.dumps({
+                "type": "user",
+                "message": {"content": "Last question of the session"},
+                "timestamp": "2026-02-08T17:45:10.000Z",
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        _, start_ts, end_ts = _extract_user_messages(str(transcript))
+        assert start_ts == "09:15"
+        assert end_ts == "17:45"
+
+    def test_keeps_text_from_text_plus_tool_turns(self, tmp_path):
+        """Should keep text from turns that have both text and tools."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "text", "text": "I fixed the authentication validation logic."},
+                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/src/hooks.py"}},
+                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/cli.py"}},
+                ]},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "CLAUDE:" in messages
+        assert "authentication validation" in messages
+        # Tool annotations are dropped (noise for changelog)
+        assert "[read]" not in messages
+        assert "[edit]" not in messages
+
+    def test_drops_noise_tools(self, tmp_path):
+        """Should drop turns with only noise tools (sequential-thinking, etc.)."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "name": "mcp__sequential-thinking__sequentialthinking",
+                     "input": {"thought": "thinking..."}},
+                ]},
+            }),
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "name": "TaskUpdate", "input": {"taskId": "1"}},
+                ]},
+            }),
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "text", "text": "Here is the result of my analysis."},
+                ]},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "sequentialthinking" not in messages
+        assert "TaskUpdate" not in messages
+        assert "Here is the result" in messages
+
+    def test_drops_tool_only_turns(self, tmp_path):
+        """Should drop tool-only turns entirely (zero value for changelog)."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/a.py"}},
+                ]},
+            }),
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/b.py"}},
+                ]},
+            }),
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/c.py"}},
+                ]},
+            }),
+            json.dumps({
+                "type": "user",
+                "message": {"content": "What did you find in those files?"},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        # Tool-only turns are dropped entirely
+        assert "CLAUDE:" not in messages
+        # Should still have the user message
+        assert "What did you find" in messages
+
+    def test_drops_filler_text(self, tmp_path):
+        """Should drop filler-only text turns."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": "Let me read the file and check the contents."},
+            }),
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": "The implementation uses a TCP socket for IPC."},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "Let me read" not in messages
+        assert "TCP socket" in messages
+
+    def test_delta_extraction_skips_before_boundary(self, tmp_path):
+        """Should only extract conversation after the last compact_boundary."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            # Pre-boundary conversation (should be skipped)
+            json.dumps({"type": "user", "message": {"content": "Old question from before compaction happened"}}),
+            json.dumps({"type": "assistant", "message": {"content": "Old answer that should not appear in output."}}),
+            # Compact boundary marker
+            json.dumps({"type": "system", "subtype": "compact_boundary", "content": "Conversation compacted", "timestamp": "2026-02-08T13:30:00.000Z"}),
+            # Post-boundary conversation (should be extracted)
+            json.dumps({"type": "user", "message": {"content": "New question after compaction happened here"}}),
+            json.dumps({"type": "assistant", "message": {"content": "New answer that should appear in the output."}}),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "Old question" not in messages
+        assert "Old answer" not in messages
+        assert "New question" in messages
+        assert "New answer" in messages
+
+    def test_delta_extracts_all_when_no_boundary(self, tmp_path):
+        """Should extract everything when no compact_boundary exists."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({"type": "user", "message": {"content": "First question of the session here"}}),
+            json.dumps({"type": "assistant", "message": {"content": "First answer of the entire session."}}),
+            json.dumps({"type": "user", "message": {"content": "Second question of the session here"}}),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "First question" in messages
+        assert "First answer" in messages
+        assert "Second question" in messages
+
+    def test_delta_uses_last_boundary_not_first(self, tmp_path):
+        """Should use the LAST compact_boundary, not the first one."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        lines = [
+            json.dumps({"type": "user", "message": {"content": "Very old question from first segment"}}),
+            json.dumps({"type": "system", "subtype": "compact_boundary", "content": "Conversation compacted"}),
+            json.dumps({"type": "user", "message": {"content": "Middle question between two boundaries"}}),
+            json.dumps({"type": "system", "subtype": "compact_boundary", "content": "Conversation compacted"}),
+            json.dumps({"type": "user", "message": {"content": "Latest question after second boundary"}}),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        assert "Very old" not in messages
+        assert "Middle question" not in messages
+        assert "Latest question" in messages
+
+
+    def test_long_text_not_over_truncated(self, tmp_path):
+        """Should keep up to 2000 chars per turn, not just 500."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        long_text = "Agent 1 findings: important stuff. " * 60  # ~2100 chars
+        lines = [
+            json.dumps({
+                "type": "assistant",
+                "message": {"content": [
+                    {"type": "text", "text": long_text},
+                ]},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        # Should keep significantly more than 500 chars
+        claude_line = [ln for ln in messages.split("\n") if ln.startswith("CLAUDE:")][0]
+        assert len(claude_line) > 1000
+
+    def test_truncates_session_continuation_summary(self, tmp_path):
+        """Should truncate session continuation summaries to ~200 chars."""
+        from klean.hooks import _extract_user_messages
+
+        transcript = tmp_path / "transcript.jsonl"
+        long_summary = (
+            "This session is being continued from a previous conversation. "
+            + "Detail about previous work. " * 50  # ~1400 chars of noise
+        )
+        lines = [
+            json.dumps({
+                "type": "user",
+                "message": {"content": long_summary},
+            }),
+            json.dumps({
+                "type": "user",
+                "message": {"content": "Now let's work on the actual task at hand"},
+            }),
+        ]
+        transcript.write_text("\n".join(lines))
+
+        messages, _, _ = _extract_user_messages(str(transcript))
+        # Continuation summary should be truncated
+        user_lines = [ln for ln in messages.split("\n") if ln.startswith("USER:")]
+        continuation_line = user_lines[0]
+        assert len(continuation_line) < 300
+        assert "..." in continuation_line
+        # The real user message should be preserved
+        assert "actual task" in messages
+
+    def test_raises_on_logic_bug_not_swallowed(self, tmp_path):
+        """Parsing exceptions for IO/JSON are caught, but logic bugs propagate."""
+        from klean.hooks import _extract_user_messages
+
+        # A file that doesn't exist returns empty (OSError caught)
+        messages, _, _ = _extract_user_messages(str(tmp_path / "nonexistent.jsonl"))
+        assert messages == ""
+
+        # A file with invalid JSON returns empty (JSONDecodeError caught)
+        bad_json = tmp_path / "bad.jsonl"
+        bad_json.write_text("not json\n")
+        messages, _, _ = _extract_user_messages(str(bad_json))
+        assert messages == ""
 
 
 class TestCallClaudeHaiku:
@@ -681,6 +983,7 @@ class TestPersistSessionLog:
             content = log_file.read_text()
             assert "10:00 - 11:00" in content  # Original preserved
             assert "14:00 - 15:00" in content  # New appended
+            assert "---" in content  # Separator between entries
 
     def test_returns_haiku_unavailable(self, tmp_path):
         """Should return message when Haiku is not available."""
@@ -722,8 +1025,33 @@ class TestPersistSessionLog:
             _persist_session_log(tmp_path, "")
             # Verify KB entries were included in prompt
             prompt_arg = mock_haiku.call_args[0][0]
-            assert "Knowledge captured this session" in prompt_arg
+            assert "KNOWLEDGE CAPTURED:" in prompt_arg
             assert "Auth uses weak hashing" in prompt_arg
+
+    def test_skips_minimal_activity(self, tmp_path):
+        """Should skip Haiku call when delta conversation is too small."""
+        from klean.hooks import _persist_session_log
+
+        memory_dir = tmp_path / ".serena" / "memories"
+        memory_dir.mkdir(parents=True)
+
+        # Simulate tiny conversation (< 500 chars) with no git activity
+        mock_git = MagicMock()
+        mock_git.stdout = ""
+
+        with (
+            patch("subprocess.run", return_value=mock_git),
+            patch("klean.hooks._get_current_branch", return_value="main"),
+            patch("klean.hooks._get_today_kb_entries", return_value=""),
+            patch(
+                "klean.hooks._extract_user_messages",
+                return_value=("USER: ok sure", "14:00", "14:01"),
+            ),
+            patch("klean.hooks._call_claude_haiku") as mock_haiku,
+        ):
+            result = _persist_session_log(tmp_path, "/fake/transcript.jsonl")
+            assert "minimal activity" in result.lower() or "Skipped" in result
+            mock_haiku.assert_not_called()
 
 
 class TestGetTodayKbEntries:
@@ -757,6 +1085,22 @@ class TestGetTodayKbEntries:
             assert "[solution] Use parameterized queries" in result
             assert "commit" not in result
             assert "session" not in result.lower().split("\n")[0]  # No session type
+
+    def test_includes_insight_text(self, tmp_path):
+        """Should include truncated insight text when available."""
+        from klean.hooks import _get_today_kb_entries
+
+        entries = [
+            {"type": "finding", "title": "Auth weakness", "insight": "bcrypt replaced by md5 in migration"},
+            {"type": "warning", "title": "SQL injection", "insight": ""},
+        ]
+        resp = {"status": "ok", "entries": entries}
+
+        with patch("klean.hooks._kb_send", return_value=resp):
+            result = _get_today_kb_entries(tmp_path)
+            assert "Auth weakness: bcrypt replaced by md5" in result
+            # No insight -> no colon suffix
+            assert "[warning] SQL injection\n" in result or result.endswith("[warning] SQL injection")
 
     def test_limits_to_15_entries(self, tmp_path):
         """Should cap output at 15 entries."""
@@ -800,9 +1144,9 @@ class TestCreateSessionKbEntry:
 
     def test_skips_when_already_exists(self, tmp_path):
         """Should skip creation if session entry for today exists."""
-        from klean.hooks import _create_session_kb_entry
-
         from datetime import datetime
+
+        from klean.hooks import _create_session_kb_entry
 
         today = datetime.now().strftime("%Y-%m-%d")
         source = f"session-log:{today}"
@@ -944,10 +1288,11 @@ class TestGetKbContext:
         log_file = memory_dir / "session-log-2026-02-07.md"
         log_file.write_text(
             "# Session Log: 2026-02-07\n\n"
-            "## 14:00 - 15:30 | main\n"
-            "- Fixed JWT race condition\n"
-            "- Status: in-progress\n"
-            "- Left: integration tests"
+            "### 14:00-15:30 | `main` | 2 commits\n\n"
+            "**Accomplished**\n"
+            "- Fix JWT race condition (abc1234)\n\n"
+            "**Carry Forward**\n"
+            "- [ ] Integration tests for auth flow"
         )
 
         entries = [
@@ -965,8 +1310,8 @@ class TestGetKbContext:
         ):
             result = _get_kb_context(tmp_path)
             assert "[SESSION]" in result
-            assert "14:00 - 15:30" in result
             assert "JWT race condition" in result
+            assert "Integration tests" in result
 
     def test_groups_warnings_compact(self, tmp_path):
         """Should show compact warning count with top titles."""

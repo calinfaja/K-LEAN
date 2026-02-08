@@ -11,23 +11,23 @@ K-LEAN is a multi-model code review and knowledge capture system for Claude Code
 
 ## Development Commands
 
+**IMPORTANT:** Always use the project venv at `.venv/`. System python lacks required dependencies (platformdirs, psutil, etc.) and will fail on import.
+
 ```bash
 # Install in editable mode
 pipx install -e .
 
-# Run tests
-pytest tests/ -v
+# Run tests (MUST use .venv)
+.venv/bin/pytest tests/ -v
+.venv/bin/pytest tests/unit/test_hooks.py -v
+.venv/bin/pytest tests/unit/test_hooks.py::TestClassName::test_method -v
 
-# Run single test
-pytest tests/test_discovery.py -v
-pytest tests/test_discovery.py::test_function_name -v
-
-# Lint
-ruff check src/
-ruff check src/ --fix
+# Lint (MUST use .venv)
+.venv/bin/ruff check src/
+.venv/bin/ruff check src/ --fix
 
 # Format
-black src/
+.venv/bin/black src/
 
 # Sync data files to ~/.claude/ after editing data/*
 kln admin sync

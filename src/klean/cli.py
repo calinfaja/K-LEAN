@@ -1890,8 +1890,17 @@ main.add_command(admin)
     "--component",
     "-c",
     type=click.Choice(
-        ["all", "scripts", "commands", "hooks", "smolkln", "config", "core", "knowledge",
-         "knowledge-only"]
+        [
+            "all",
+            "scripts",
+            "commands",
+            "hooks",
+            "smolkln",
+            "config",
+            "core",
+            "knowledge",
+            "knowledge-only",
+        ]
     ),
     default="all",
     help="Component to install",

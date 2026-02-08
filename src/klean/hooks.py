@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -271,7 +272,7 @@ def _kb_send(
     cmd: dict,
     *,
     timeout: float = 2.0,
-    recv_size: int = 1024,
+    recv_size: int = 4096,
 ) -> dict | None:
     """Send command to KB server and return parsed response.
 
@@ -279,7 +280,7 @@ def _kb_send(
         project_root: Project root path.
         cmd: Command dict to send (e.g. {"cmd": "add", "entry": {...}}).
         timeout: Socket timeout in seconds.
-        recv_size: Max bytes to receive.
+        recv_size: Buffer size per recv call.
 
     Returns:
         Parsed JSON response dict, or None on failure.
@@ -294,9 +295,19 @@ def _kb_send(
         sock.settimeout(timeout)
         sock.connect(("127.0.0.1", port))
         sock.sendall(json.dumps(cmd).encode())
-        response = sock.recv(recv_size).decode()
+
+        # Recv loop: read until connection closes
+        chunks: list[bytes] = []
+        while True:
+            try:
+                chunk = sock.recv(recv_size)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            except socket.timeout:
+                break
         sock.close()
-        return json.loads(response)
+        return json.loads(b"".join(chunks).decode())
     except Exception:
         return None
 
@@ -425,20 +436,33 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
     """
     import subprocess
 
-    # 1. Extract context from transcript
-    user_messages = _extract_user_messages(transcript_path) if transcript_path else ""
+    # 1. Extract interleaved conversation (with timestamps)
+    if transcript_path:
+        conversation, start_time, end_time = _extract_user_messages(transcript_path)
+    else:
+        conversation, start_time, end_time = "", "", ""
 
-    # 2. Git log (concrete facts)
+    # 2. Git log with stats (concrete facts)
     git_log = ""
+    git_stats = ""
     try:
         result = subprocess.run(
-            ["git", "log", "--oneline", "--since=6am"],
+            ["git", "log", "--format=%h %s%n%b", "--since=18 hours ago"],
             capture_output=True,
             text=True,
             cwd=project_root,
             timeout=5,
         )
         git_log = result.stdout.strip()
+        # Get diffstat for metrics
+        stat_result = subprocess.run(
+            ["git", "diff", "--shortstat", "HEAD@{18 hours ago}"],
+            capture_output=True,
+            text=True,
+            cwd=project_root,
+            timeout=5,
+        )
+        git_stats = stat_result.stdout.strip()
     except Exception:
         pass
 
@@ -448,89 +472,257 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
     # 4. Current branch
     branch = _get_current_branch() or "unknown"
 
-    if not user_messages and not git_log:
+    if not conversation and not git_log:
         return "No activity to log"
 
-    # 5. Build prompt for Haiku
+    # Skip if delta conversation is too small (e.g. just "ok" and "yes")
+    if conversation and len(conversation) < 500 and not git_log:
+        return "Skipped: minimal activity since last compaction"
+
+    # 5. Build time range (real timestamps from transcript)
+    time_range = f"{start_time}-{end_time}" if start_time and end_time else "??:??-??:??"
+    commit_count = len(git_log.splitlines()) if git_log else 0
+
+    # 6. Build prompt for Haiku - full conversation context
+    # Conversation is already budget-capped at ~50K tokens by extractor
     prompt = (
-        "Summarize this coding session as a concise changelog entry.\n\n"
-        f"User requests/questions during this session:\n{user_messages[:3000]}\n\n"
-        f"Git commits:\n{git_log[:500]}\n\n"
+        "Generate a developer session log from the conversation and data below.\n"
+        "Use imperative mood. Be specific, not generic. Include commit SHAs inline.\n"
+        "Skip empty sections. No prose, just structured entries.\n\n"
+        f"SESSION CONVERSATION:\n{conversation}\n\n"
+        f"GIT COMMITS:\n{git_log[:3000]}\n\n"
     )
+    if git_stats:
+        prompt += f"GIT STATS: {git_stats}\n\n"
     if kb_entries:
-        prompt += f"Knowledge captured this session:\n{kb_entries[:1500]}\n\n"
+        prompt += f"KNOWLEDGE CAPTURED:\n{kb_entries[:3000]}\n\n"
     prompt += (
-        f"Branch: {branch}\n\n"
-        "Output ONLY a markdown section in this exact format (no extra text):\n"
-        f"## HH:MM - HH:MM | {branch}\n"
-        "- <what was done, 3-5 bullets, be specific>\n"
-        '- Commits: <commit messages or "none">\n'
-        "- Status: <completed|in-progress|blocked>\n"
-        '- Left: <unfinished items or "none">\n'
+        f"BRANCH: {branch}\n\n"
+        "Output ONLY this markdown (no extra text):\n\n"
+        f"### {time_range} | `{branch}` | {commit_count} commits\n\n"
+        "**Accomplished**\n"
+        "- <what was built/fixed, imperative mood, commit SHA in parens>\n\n"
+        "**Decisions**\n"
+        "- <choice made> -- <why, not just what>\n\n"
+        "**Discovered**\n"
+        "- <bugs found, surprises, things learned, insights>\n\n"
+        "**Carry Forward**\n"
+        "- [ ] <unfinished item or next step>\n"
     )
 
-    # 6. Call Haiku
+    # 7. Call Haiku
     summary = _call_claude_haiku(prompt)
     if not summary:
         return "Claude Haiku not available"
 
-    # 7. Append to session log file
+    # 8. Append to session log file
     today = datetime.now().strftime("%Y-%m-%d")
     memory_file = project_root / ".serena" / "memories" / f"session-log-{today}.md"
 
     try:
         if memory_file.exists():
-            content = memory_file.read_text() + "\n\n" + summary
+            content = memory_file.read_text() + "\n\n---\n\n" + summary
         else:
             content = f"# Session Log: {today}\n\n{summary}"
         memory_file.write_text(content)
     except Exception as e:
         return f"Failed to write session log: {e}"
 
-    # 8. Create searchable KB entry (idempotent)
-    _create_session_kb_entry(project_root, branch, summary)
+    # 9. Create searchable KB entry (idempotent, per time range)
+    _create_session_kb_entry(project_root, branch, summary, time_range)
 
     return f"Session log updated: session-log-{today}"
 
 
-def _extract_user_messages(transcript_path: str, limit: int = 10) -> str:
-    """Extract last N user messages from transcript JSONL.
+def _extract_user_messages(transcript_path: str) -> tuple[str, str, str]:
+    """Extract interleaved conversation from transcript JSONL (delta-aware).
+
+    Only extracts conversation since the last compaction boundary. The
+    transcript contains ``compact_boundary`` markers that delimit segments.
+    First compaction (no boundary) extracts everything.
+
+    Single-pass parser that builds a clean dialogue transcript:
+    - USER: human-typed content (stripped of system tags)
+    - CLAUDE: text responses + compact tool summaries
+
+    Noise filtering (2 rules):
+    1. Drop tool-only turns entirely (zero value for changelog summarization)
+    2. Drop filler text ("Let me read...", "<thinking>", etc.)
+
+    Budget-capped at ~50K tokens from most recent backward.
 
     Args:
         transcript_path: Path to the transcript JSONL file.
-        limit: Max number of messages to extract.
 
     Returns:
-        Formatted string of user messages.
+        Tuple of (conversation transcript, first_timestamp, last_timestamp).
+        Timestamps are HH:MM format or empty string if unavailable.
     """
     path = Path(transcript_path)
     if not path.exists():
-        return ""
+        return "", "", ""
 
-    user_msgs: list[str] = []
+    # Find the last compact_boundary line number (delta extraction).
+    # Only conversation AFTER this line will be processed.
+    start_after_line = -1
     try:
         with open(path) as f:
-            for line in f:
+            for line_no, line in enumerate(f):
                 line = line.strip()
                 if not line:
                     continue
-                obj = json.loads(line)
-                if obj.get("type") != "user" or "message" not in obj:
+                try:
+                    obj = json.loads(line)
+                except (json.JSONDecodeError, ValueError):
                     continue
-                content = obj["message"].get("content", "")
-                if not isinstance(content, str) or len(content) < 10:
-                    continue
-                # Skip CLI command messages
-                if "<local-command" in content or "<command-name>" in content:
-                    continue
-                clean = content[:200].strip()
-                if clean:
-                    user_msgs.append(clean)
+                if obj.get("subtype") == "compact_boundary":
+                    start_after_line = line_no
     except Exception:
-        return ""
+        pass  # If scan fails, extract everything (start_after_line stays -1)
 
-    recent = user_msgs[-limit:]
-    return "\n".join(f"- {msg}" for msg in recent)
+    # --- Noise filtering constants ---
+
+    # Rule 2: Filler text regex (pure navigational announcements)
+    filler_re = re.compile(
+        r"^(Let me (read|check|look|find|search|trace|gather|analyze|"
+        r"examine|also|verify|review|understand) |"
+        r"Now let me (read|check|look|find|search|trace|gather|also|"
+        r"verify|review) |"
+        r"I'll start by (reading|checking|looking|reviewing) |"
+        r"Good\. Now let me |Good\. Let me |<thinking>)",
+    )
+
+    # Regex to strip injected tags from user messages
+    tag_re = re.compile(
+        r"<system-reminder>.*?</system-reminder>|"
+        r"<command-message>.*?</command-message>|"
+        r"<command-name>.*?</command-name>|"
+        r"<task-notification>.*?</task-notification>|"
+        r"<local-command[^>]*>.*?</local-command[^>]*>|"
+        r"<local-command-caveat>.*?</local-command-caveat>|"
+        r"<local-command-stdout>.*?</local-command-stdout>",
+        re.DOTALL,
+    )
+    args_re = re.compile(r"</?command-args>")
+
+    turns: list[str] = []
+    first_ts = ""
+    last_ts = ""
+
+    try:
+        with open(path) as f:
+            for line_no, line in enumerate(f):
+                line = line.strip()
+                if not line:
+                    continue
+                # Delta: skip everything up to and including the last compact boundary
+                if line_no <= start_after_line:
+                    continue
+                obj = json.loads(line)
+                msg_type = obj.get("type", "")
+
+                # Track timestamps
+                ts = obj.get("timestamp", "")
+                if ts:
+                    if not first_ts:
+                        first_ts = ts
+                    last_ts = ts
+
+                msg = obj.get("message", {})
+                if not isinstance(msg, dict):
+                    continue
+
+                # === USER MESSAGES (always signal) ===
+                if msg_type == "user":
+                    content = msg.get("content", "")
+                    text = ""
+
+                    if isinstance(content, str):
+                        text = content
+                    elif isinstance(content, list):
+                        # Skip messages that are just tool_result payloads
+                        has_tool_result = any(
+                            isinstance(b, dict) and b.get("type") == "tool_result" for b in content
+                        )
+                        if not has_tool_result:
+                            text = " ".join(
+                                b.get("text", "")
+                                for b in content
+                                if isinstance(b, dict) and b.get("type") == "text"
+                            )
+
+                    if not text:
+                        continue
+
+                    # Strip injected tags, keep command-args content
+                    clean = tag_re.sub("", text)
+                    clean = args_re.sub("", clean).strip()
+
+                    if len(clean) < 15:
+                        continue
+                    # Skip slash command definitions (injected context)
+                    if clean.startswith("# /"):
+                        continue
+
+                    # Session continuation summaries are noise for current changelog
+                    if clean.startswith("This session is being continued"):
+                        clean = clean[:200] + "..."
+
+                    turns.append(f"USER: {clean[:500]}")
+
+                # === ASSISTANT MESSAGES (filtered) ===
+                elif msg_type == "assistant":
+                    content = msg.get("content", "")
+
+                    if isinstance(content, list):
+                        text_parts: list[str] = []
+
+                        for block in content:
+                            if not isinstance(block, dict):
+                                continue
+                            if block.get("type") == "text":
+                                t = block.get("text", "").strip()
+                                if t:
+                                    text_parts.append(t)
+
+                        # Rule 1: Drop tool-only turns entirely
+                        if not text_parts:
+                            continue
+
+                        combined_text = "\n".join(text_parts)[:2000]
+
+                        # Rule 2: Drop filler-only text
+                        if filler_re.match(combined_text):
+                            continue
+
+                        turns.append(f"CLAUDE: {combined_text}")
+
+                    elif isinstance(content, str) and len(content) > 20:
+                        # Rule 2: Drop filler string content
+                        if not filler_re.match(content):
+                            turns.append(f"CLAUDE: {content[:2000]}")
+
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return "", "", ""
+
+    # Convert ISO timestamps to HH:MM
+    if first_ts:
+        first_ts = first_ts[11:16]
+    if last_ts:
+        last_ts = last_ts[11:16]
+
+    # Budget cap: ~50K tokens (~200K chars) from most recent backward
+    max_chars = 200_000
+    total = 0
+    start_idx = len(turns)
+    for i in range(len(turns) - 1, -1, -1):
+        total += len(turns[i]) + 1  # +1 for newline
+        if total > max_chars:
+            break
+        start_idx = i
+
+    conversation = "\n".join(turns[start_idx:])
+    return conversation, first_ts, last_ts
 
 
 def _get_today_kb_entries(project_root: Path) -> str:
@@ -546,7 +738,7 @@ def _get_today_kb_entries(project_root: Path) -> str:
     resp = _kb_send(
         project_root,
         {"cmd": "search_by_date", "start": today, "end": today},
-        recv_size=8192,
+        recv_size=16384,
     )
     if not resp or resp.get("status") != "ok":
         return ""
@@ -559,45 +751,96 @@ def _get_today_kb_entries(project_root: Path) -> str:
         if etype not in useful_types:
             continue
         title = e.get("title", "")[:100]
-        lines.append(f"- [{etype}] {title}")
+        insight = e.get("insight", "")[:120]
+        if insight:
+            lines.append(f"- [{etype}] {title}: {insight}")
+        else:
+            lines.append(f"- [{etype}] {title}")
 
     return "\n".join(lines[:15])
 
 
-def _create_session_kb_entry(project_root: Path, branch: str, summary: str) -> None:
+def _parse_session_sections(text: str) -> dict[str, list[str]]:
+    """Parse structured sections from a Haiku session summary.
+
+    Extracts bullet items under **Accomplished**, **Carry Forward**, etc.
+
+    Returns:
+        Dict with keys "accomplished", "carry", "decisions", "discovered".
+        Values are lists of raw bullet strings (e.g. "- Fix JWT (abc123)").
+    """
+    sections: dict[str, list[str]] = {
+        "accomplished": [],
+        "carry": [],
+        "decisions": [],
+        "discovered": [],
+    }
+    current = ""
+    for ln in text.split("\n"):
+        stripped = ln.strip()
+        if stripped.startswith("**Accomplished**"):
+            current = "accomplished"
+        elif stripped.startswith("**Decisions**"):
+            current = "decisions"
+        elif stripped.startswith("**Discovered**"):
+            current = "discovered"
+        elif stripped.startswith("**Carry Forward**"):
+            current = "carry"
+        elif stripped.startswith("**"):
+            current = ""
+        elif stripped.startswith("- ") and current:
+            sections[current].append(stripped)
+    return sections
+
+
+def _create_session_kb_entry(
+    project_root: Path, branch: str, summary: str, time_range: str = ""
+) -> None:
     """Create a searchable KB entry from the session log summary.
 
-    Idempotent: skips if a session entry for today already exists.
+    Idempotent: skips if a session entry with this source already exists.
     Includes related_to path to the full session log file for graph traversal.
 
     Args:
         project_root: Project root path.
         branch: Current git branch.
         summary: Haiku-generated session summary markdown.
+        time_range: Session time range (e.g. "07:18-16:45").
     """
     today = datetime.now().strftime("%Y-%m-%d")
-    source = f"session-log:{today}"
+    source = f"session-log:{today}:{time_range}" if time_range else f"session-log:{today}"
 
-    # Idempotency check: search for existing session entry with this source
+    # Idempotency check: use date-filtered search (more reliable than semantic)
     resp = _kb_send(
         project_root,
-        {"cmd": "search", "query": source, "limit": 3},
-        recv_size=4096,
+        {
+            "cmd": "search_by_date",
+            "start": today,
+            "end": today,
+            "entry_type": "session",
+            "limit": 20,
+        },
+        recv_size=8192,
     )
     if resp and resp.get("status") == "ok":
         for e in resp.get("results", []):
             if e.get("source") == source:
                 return  # Already exists
 
-    # Extract first 3-5 bullet lines as insight
-    bullets = [ln.strip() for ln in summary.split("\n") if ln.strip().startswith("- ")]
-    insight = "\n".join(bullets[:5]) if bullets else summary[:300]
+    sections = _parse_session_sections(summary)
+    insight_parts = sections["accomplished"][:4]
+    if sections["carry"]:
+        insight_parts.append(
+            "Next: "
+            + "; ".join(c.removeprefix("- [ ] ").removeprefix("- ") for c in sections["carry"][:3])
+        )
+    insight = "\n".join(insight_parts) if insight_parts else summary[:300]
 
     # Full path to session log for graph traversal
     log_path = str(project_root / ".serena" / "memories" / f"session-log-{today}.md")
 
     entry = {
-        "title": f"Session: {today} on {branch}",
+        "title": f"Session: {today} {time_range} on {branch}",
         "insight": insight,
         "type": "session",
         "priority": "low",
@@ -626,12 +869,12 @@ def _call_claude_haiku(prompt: str) -> str:
             input=prompt,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=120,
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
         return ""
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except Exception:
         return ""
 
 
@@ -661,13 +904,18 @@ def _read_latest_session_log(project_root: Path) -> str:
 def _format_entries_toon(entries: list) -> str:
     """Format KB entries in TOON format for token reduction.
 
+    Falls back to compact JSON if toon is not installed.
+
     Args:
         entries: List of KB entry dicts.
 
     Returns:
-        TOON formatted string.
+        TOON formatted string, or compact JSON fallback.
     """
-    from toon import encode
+    try:
+        from toon import encode
+    except ImportError:
+        encode = None
 
     # Select minimal fields for injection
     # Short keys: t=title, y=type, p=priority, k=keywords
@@ -683,14 +931,17 @@ def _format_entries_toon(entries: list) -> str:
             entry["p"] = e.get("priority", "medium")
         minimal.append(entry)
 
-    return encode(minimal)
+    if encode is not None:
+        return encode(minimal)
+    # Fallback: compact JSON (one line per entry)
+    return "\n".join(json.dumps(e, separators=(",", ":")) for e in minimal)
 
 
 def _get_kb_context(project_root: Path) -> str:
     """Get session-aware KB context for injection.
 
     Structure:
-    1. Previous session log (if exists)
+    1. Previous session summary (Carry Forward + Accomplished)
     2. Grouped warnings with count
     3. Pinned entries (usage-proven, skip decay)
     4. Recent entries in TOON format (up to 8)
@@ -715,13 +966,24 @@ def _get_kb_context(project_root: Path) -> str:
 
     parts = []
 
-    # 1. Read latest session log from Serena memories
+    # 1. Read latest session log - extract last entry (after last ---)
     session_log = _read_latest_session_log(project_root)
     if session_log:
-        sections = session_log.split("\n## ")
-        if len(sections) > 1:
-            last = sections[-1][:200].strip()
-            parts.append(f"[SESSION] {last}")
+        # Split on --- separators, take the last entry
+        log_sections = session_log.split("\n---\n")
+        last_entry = log_sections[-1].strip() if log_sections else ""
+        if last_entry:
+            parsed = _parse_session_sections(last_entry)
+            session_parts = []
+            if parsed["accomplished"]:
+                session_parts.append(f"Last: {parsed['accomplished'][0][2:][:80]}")
+            if parsed["carry"]:
+                carry_clean = [
+                    c.removeprefix("- [ ] ").removeprefix("- ") for c in parsed["carry"][:3]
+                ]
+                session_parts.append(f"Next: {'; '.join(carry_clean)}")
+            if session_parts:
+                parts.append(f"[SESSION] {' | '.join(session_parts)}")
 
     # 2. Grouped warnings (critical/high)
     warnings = [

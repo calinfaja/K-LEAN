@@ -240,7 +240,94 @@ asyncConsensus security                          # Background 3-model review
 
 ---
 
-### 5. Status Line
+### 5. Knowledge System Architecture
+
+The knowledge system has three layers: **capture**, **storage**, and **retrieval**. Everything runs locally, per-project, with no external services.
+
+#### Auto-Capture (always running)
+
+Every session automatically captures knowledge without any commands:
+
+| Source | What's Captured | Entry Type |
+|--------|----------------|------------|
+| Git commits | Commit message + SHA + branch | `commit` |
+| Test failures | Failure output + file path | `finding` |
+| Build errors | Error message + context | `warning` |
+| Package installs | Package name + version | `discovery` |
+| Doc URLs | URL content evaluated by LLM | `discovery` |
+| Session compaction | Session changelog via Claude Haiku | `session` |
+
+#### Session Log Pipeline (PreCompact hook)
+
+When context gets compacted, the system automatically generates a structured session changelog:
+
+```
+Transcript JSONL (thousands of lines)
+    |
+    v
+[1] Delta extraction -----> Only lines since last compaction
+    |                        (uses compact_boundary markers)
+    v
+[2] Noise filtering ------> Drop tool-only turns, filler text,
+    |                        system tags, slash command defs
+    v
+[3] Clean dialogue -------> USER: messages + CLAUDE: text responses
+    |                        (~20% signal ratio from raw transcript)
+    v
+[4] Enrich with context --> + git log (18h window, with commit bodies)
+    |                       + KB entries captured today
+    v
+[5] Claude Haiku ---------> Structured markdown:
+    |                        Accomplished / Decisions / Discovered / Carry Forward
+    v
+[6] Persist --------------> .serena/memories/session-log-YYYY-MM-DD.md
+                             + searchable KB entry (type: session)
+```
+
+Multiple compactions per day append to the same log file (separated by `---`). Each compaction only processes the conversation delta since the last one, so there's no overlap between entries.
+
+#### Hybrid Search
+
+Queries go through a 5-stage pipeline for high-quality results:
+
+```
+Query --> Dense embeddings (BGE-small) --> Sparse matching (BM42)
+              |                                |
+              v                                v
+         Dense scores                    Sparse scores
+              |                                |
+              +--> RRF Fusion <----------------+
+                       |
+                       v
+              Post-RRF filtering (date, branch, type)
+                       |
+                       v
+              Cross-encoder reranking (MiniLM)
+                       |
+                       v
+              Final ranked results
+```
+
+All models run locally via ONNX ([fastembed](https://github.com/qdrant/fastembed)). No API calls, no cloud. Queries return in <100ms via a TCP server that stays warm between searches.
+
+#### Cross-Session Continuity
+
+At session start, the system injects context from previous sessions:
+
+```
+[SESSION] Last: Fix JWT race condition (abc1234) | Next: Integration tests
+[!] WARNINGS (2): "SQL injection in login" | "Deprecated API usage"
+[KB] PINNED: <high-priority entries>
+[KB] RECENT: <latest findings, solutions, patterns>
+```
+
+This means every new session starts with awareness of what happened before -- carry-forward items, active warnings, and recent discoveries. The Knowledge DB acts as long-term memory that persists across sessions, compactions, and context limits.
+
+**Storage:** Per-project `.knowledge-db/` directory with `entries.jsonl` (append-only), dense/sparse index files, and a TCP server for fast queries. Schema V3.2 supports 9 entry types with date, branch, and type filtering.
+
+---
+
+### 6. Status Line
 ```
 [opus 4.5] │ claudeAgentic │ git:(main●) +27-23 │ llm:16 kb:[OK]
 ```
