@@ -14,7 +14,7 @@ Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:42
 Knowledge DB Status:
 - kb:<count>     (green)  - Server running, shows entry count
 - run InitKB  (cyan)   - Not initialized, prompts user
-- kb:starting (yellow) - Server starting up
+- kb:idle     (yellow) - Server stopped (auto-restarts on next session)
 - kb:—        (dim)    - No project root found
 """
 
@@ -234,23 +234,31 @@ def check_knowledge_db(workspace: dict) -> tuple[str, int]:
     if not is_kb_initialized(project_root_str):
         return "init", 0
 
-    # Single TCP call: get health + entry count in one round-trip
+    # Try TCP server first for live count
     port = get_server_port(project_root_str)
-    if not port:
-        return "stopped", 0
+    if port:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.3)
+            sock.connect(("127.0.0.1", port))
+            sock.sendall(b'{"cmd":"status"}')
+            data = json.loads(sock.recv(1024).decode())
+            sock.close()
+            entries = data.get("entries", 0)
+            return "running", entries
+        except Exception:
+            clean_stale_socket(project_root_str)
 
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.3)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(b'{"cmd":"status"}')
-        data = json.loads(sock.recv(1024).decode())
-        sock.close()
-        entries = data.get("entries", 0)
-        return "running", entries
-    except Exception:
-        clean_stale_socket(project_root_str)
-        return "stopped", 0
+    # Server not running -- fall back to counting entries on disk
+    entries_file = Path(project_root_str) / ".knowledge-db" / "entries.jsonl"
+    count = 0
+    if entries_file.exists():
+        try:
+            with entries_file.open() as f:
+                count = sum(1 for _ in f)
+        except Exception:
+            pass
+    return "stopped", count
 
 
 def get_services(data: dict) -> str:
@@ -265,13 +273,13 @@ def get_services(data: dict) -> str:
     else:
         llm = f"{C.RED}[X]{C.RESET}"
 
-    # Knowledge DB status - entry count when running, actionable message otherwise
+    # Knowledge DB status - entry count when running, yellow count when stopped
     if kb_status == "running":
         kb = f"{C.GREEN}{kb_entries}{C.RESET}"
     elif kb_status == "init":
         return f"{C.DIM}llm:{llm}{C.RESET} {C.CYAN}run InitKB{C.RESET}"
     elif kb_status == "stopped":
-        kb = f"{C.YELLOW}starting{C.RESET}"
+        kb = f"{C.YELLOW}{kb_entries}{C.RESET}" if kb_entries else f"{C.YELLOW}idle{C.RESET}"
     else:  # no-project
         kb = f"{C.DIM}—{C.RESET}"
 
