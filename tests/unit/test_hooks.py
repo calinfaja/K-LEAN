@@ -935,7 +935,10 @@ class TestPersistSessionLog:
             patch("subprocess.run", return_value=mock_git),
             patch("klean.hooks._get_current_branch", return_value="main"),
             patch("klean.hooks._get_today_kb_entries", return_value=""),
-            patch("klean.hooks._call_claude_haiku", return_value="## 14:00 - 15:00 | main\n- Test"),
+            patch(
+                "klean.hooks._call_claude_haiku",
+                return_value="### 14:00-15:00 | `main` | 1 commits\n\n**Accomplished**\n- Add auth (abc1234)",
+            ),
             patch("klean.hooks._create_session_kb_entry") as mock_kb,
         ):
             result = _persist_session_log(tmp_path, "")
@@ -946,7 +949,7 @@ class TestPersistSessionLog:
             assert len(log_files) == 1
             content = log_files[0].read_text()
             assert "# Session Log:" in content
-            assert "14:00 - 15:00" in content
+            assert "**Accomplished**" in content
 
             # Check KB entry creation was called
             mock_kb.assert_called_once()
@@ -973,7 +976,7 @@ class TestPersistSessionLog:
             patch("klean.hooks._get_today_kb_entries", return_value=""),
             patch(
                 "klean.hooks._call_claude_haiku",
-                return_value="## 14:00 - 15:00 | main\n- Later work",
+                return_value="### 14:00-15:00 | `main` | 1 commits\n\n**Accomplished**\n- Fix bug (def5678)",
             ),
             patch("klean.hooks._create_session_kb_entry"),
         ):
@@ -982,7 +985,7 @@ class TestPersistSessionLog:
 
             content = log_file.read_text()
             assert "10:00 - 11:00" in content  # Original preserved
-            assert "14:00 - 15:00" in content  # New appended
+            assert "**Accomplished**" in content  # New appended
             assert "---" in content  # Separator between entries
 
     def test_returns_haiku_unavailable(self, tmp_path):

@@ -485,13 +485,23 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
 
     # 6. Build prompt for Haiku - full conversation context
     # Conversation is already budget-capped at ~50K tokens by extractor
-    prompt = (
-        "Generate a developer session log from the conversation and data below.\n"
-        "Use imperative mood. Be specific, not generic. Include commit SHAs inline.\n"
-        "Skip empty sections. No prose, just structured entries.\n\n"
-        f"SESSION CONVERSATION:\n{conversation}\n\n"
-        f"GIT COMMITS:\n{git_log[:3000]}\n\n"
-    )
+    if conversation:
+        prompt = (
+            "Generate a developer session log from the conversation and data below.\n"
+            "Use imperative mood. Be specific, not generic. Include commit SHAs inline.\n"
+            "Skip empty sections. No prose, just structured entries.\n\n"
+            f"SESSION CONVERSATION:\n{conversation}\n\n"
+            f"GIT COMMITS:\n{git_log[:3000]}\n\n"
+        )
+    else:
+        prompt = (
+            "Generate a developer session log from ONLY the git commits below.\n"
+            "No conversation data is available. Do NOT ask questions or request\n"
+            "clarification. Generate the best log you can from the commits.\n"
+            "Use imperative mood. Be specific. Include commit SHAs inline.\n"
+            "Skip empty sections. No prose, just structured entries.\n\n"
+            f"GIT COMMITS:\n{git_log[:3000]}\n\n"
+        )
     if git_stats:
         prompt += f"GIT STATS: {git_stats}\n\n"
     if kb_entries:
@@ -514,6 +524,11 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
     summary = _call_claude_haiku(prompt)
     if not summary:
         return "Claude Haiku not available"
+
+    # Validate: reject responses that are refusals/questions instead of structured logs
+    if "**Accomplished**" not in summary and "###" not in summary:
+        _debug_log("pre_compact: Haiku returned non-structured response, skipping")
+        return "Skipped: Haiku did not generate a structured log"
 
     # 8. Append to session log file
     today = datetime.now().strftime("%Y-%m-%d")
