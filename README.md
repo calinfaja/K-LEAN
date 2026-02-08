@@ -329,11 +329,11 @@ This means every new session starts with awareness of what happened before -- ca
 
 ### 6. Status Line
 ```
-[opus 4.5] │ claudeAgentic │ git:(main●) +27-23 │ llm:16 kb:[OK]
+[opus 4.5] │ claudeAgentic │ git:(main●) +27-23 │ llm:16 kb:42
 ```
-Model. Project. Branch (● = dirty). Lines changed. Models ready. KB health.
+Model. Project. Branch (● = dirty). Lines changed. Models ready. KB entry count.
 
-**How:** Custom statusline polling LiteLLM and Knowledge DB on each prompt.
+**How:** Custom statusline polling LiteLLM and Knowledge DB via TCP on each prompt.
 
 ---
 

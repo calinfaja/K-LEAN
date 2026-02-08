@@ -92,10 +92,16 @@ data/
 Per-project storage in `.knowledge-db/` using hybrid search:
 - Dense embeddings: BAAI/bge-small-en-v1.5 via fastembed
 - Sparse matching: BM42
-- RRF fusion + cross-encoder reranking
+- RRF fusion + post-RRF filtering (date, branch, type) + cross-encoder reranking
 - TCP server for fast queries (~30ms vs ~17s cold)
+- Auto-pinning: critical entries pinned at capture, others after 3 retrievals (1.3x boost, cap 15)
 
 Core scripts: `data/scripts/knowledge_db.py`, `knowledge-server.py`, `knowledge-capture.py`
+
+### Status Line
+
+`data/scripts/klean-statusline.py` polls LiteLLM and KB via TCP on each prompt.
+Displays: model, project, branch (dirty indicator), lines changed, model count, KB entry count.
 
 ### Thinking Model Handling
 
@@ -155,6 +161,7 @@ Releases are published via GitHub Actions workflow `.github/workflows/publish.ym
 - Target Python: 3.9+
 - Cross-platform: Use `klean.platform` for paths and process management
 - Hooks: Python entry points (`kln-hook-*`), read JSON from stdin, output JSON to stdout
+- PreCompact: async hook, generates session log via Claude Haiku, validates structured output
 - Session logs: `.serena/memories/session-log-YYYY-MM-DD.md` (auto-generated on PreCompact)
 - IPC: TCP localhost (not Unix sockets) for cross-platform compatibility
 - Commit style: conventional commits (`feat:`, `fix:`, `docs:`, etc.)
