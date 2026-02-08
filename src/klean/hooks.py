@@ -262,6 +262,46 @@ def _start_kb_server(project_path: Path) -> bool:
 
 
 # =============================================================================
+# KB Server Communication
+# =============================================================================
+
+
+def _kb_send(
+    project_root: Path,
+    cmd: dict,
+    *,
+    timeout: float = 2.0,
+    recv_size: int = 1024,
+) -> dict | None:
+    """Send command to KB server and return parsed response.
+
+    Args:
+        project_root: Project root path.
+        cmd: Command dict to send (e.g. {"cmd": "add", "entry": {...}}).
+        timeout: Socket timeout in seconds.
+        recv_size: Max bytes to receive.
+
+    Returns:
+        Parsed JSON response dict, or None on failure.
+    """
+    import socket
+
+    try:
+        port_file = get_kb_port_file(project_root)
+        port = int(port_file.read_text().strip())
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps(cmd).encode())
+        response = sock.recv(recv_size).decode()
+        sock.close()
+        return json.loads(response)
+    except Exception:
+        return None
+
+
+# =============================================================================
 # Hook Entry Points
 # =============================================================================
 
@@ -301,7 +341,7 @@ def session_start() -> None:
                 if _start_kb_server(project_root):
                     messages.append(f"Knowledge server started for {project_root.name}")
 
-            # Create journal entry on session start (not resume/clear/compact)
+            # Create journal entry on startup
             if source == "startup" and _is_kb_server_running(project_root):
                 _create_session_journal(project_root)
 
@@ -324,8 +364,6 @@ def _create_session_journal(project_root: Path) -> None:
     Args:
         project_root: Project root path.
     """
-    import socket
-
     branch = _get_current_branch()
     branch_info = f" on {branch}" if branch else ""
 
@@ -340,20 +378,288 @@ def _create_session_journal(project_root: Path) -> None:
         "branch": branch,
     }
 
-    try:
-        port_file = get_kb_port_file(project_root)
-        port = int(port_file.read_text().strip())
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
-        sock.recv(1024)
-        sock.close()
-
+    result = _kb_send(project_root, {"cmd": "add", "entry": entry})
+    if result:
         _debug_log("Created session journal entry")
+    else:
+        _debug_log("Failed to create session journal")
+
+
+def pre_compact() -> None:
+    """PreCompact hook - persist session log before context compaction.
+
+    Input: {"transcript_path": "...", "trigger": "auto"|"manual", "cwd": "..."}
+    Output: None (informational only, cannot block compaction)
+
+    Exit code: 0 always
+    """
+    input_data = _read_input()
+    trigger = input_data.get("trigger", "")
+    transcript_path = input_data.get("transcript_path", "")
+
+    _debug_log(f"pre_compact: trigger={trigger}")
+
+    # Only run on auto-compact (natural session boundary)
+    if trigger != "auto":
+        sys.exit(0)
+
+    project_root = find_project_root()
+    if not project_root:
+        sys.exit(0)
+
+    memory_dir = project_root / ".serena" / "memories"
+    if not memory_dir.exists():
+        _debug_log("pre_compact: no .serena/memories/ directory")
+        sys.exit(0)
+
+    result = _persist_session_log(project_root, transcript_path)
+    _debug_log(f"pre_compact: {result}")
+    sys.exit(0)
+
+
+def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
+    """Generate session log entry from transcript + git log + KB via Claude Haiku.
+
+    Args:
+        project_root: Project root path.
+        transcript_path: Path to conversation transcript JSONL.
+
+    Returns:
+        Status message.
+    """
+    import subprocess
+
+    # 1. Extract context from transcript
+    user_messages = _extract_user_messages(transcript_path) if transcript_path else ""
+
+    # 2. Git log (concrete facts)
+    git_log = ""
+    try:
+        result = subprocess.run(
+            ["git", "log", "--oneline", "--since=6am"],
+            capture_output=True,
+            text=True,
+            cwd=project_root,
+            timeout=5,
+        )
+        git_log = result.stdout.strip()
+    except Exception:
+        pass
+
+    # 3. KB entries created today (findings, warnings, solutions)
+    kb_entries = _get_today_kb_entries(project_root)
+
+    # 4. Current branch
+    branch = _get_current_branch() or "unknown"
+
+    if not user_messages and not git_log:
+        return "No activity to log"
+
+    # 5. Build prompt for Haiku
+    prompt = (
+        "Summarize this coding session as a concise changelog entry.\n\n"
+        f"User requests/questions during this session:\n{user_messages[:3000]}\n\n"
+        f"Git commits:\n{git_log[:500]}\n\n"
+    )
+    if kb_entries:
+        prompt += f"Knowledge captured this session:\n{kb_entries[:1500]}\n\n"
+    prompt += (
+        f"Branch: {branch}\n\n"
+        "Output ONLY a markdown section in this exact format (no extra text):\n"
+        f"## HH:MM - HH:MM | {branch}\n"
+        "- <what was done, 3-5 bullets, be specific>\n"
+        '- Commits: <commit messages or "none">\n'
+        "- Status: <completed|in-progress|blocked>\n"
+        '- Left: <unfinished items or "none">\n'
+    )
+
+    # 6. Call Haiku
+    summary = _call_claude_haiku(prompt)
+    if not summary:
+        return "Claude Haiku not available"
+
+    # 7. Append to session log file
+    today = datetime.now().strftime("%Y-%m-%d")
+    memory_file = project_root / ".serena" / "memories" / f"session-log-{today}.md"
+
+    try:
+        if memory_file.exists():
+            content = memory_file.read_text() + "\n\n" + summary
+        else:
+            content = f"# Session Log: {today}\n\n{summary}"
+        memory_file.write_text(content)
     except Exception as e:
-        _debug_log(f"Failed to create session journal: {e}")
+        return f"Failed to write session log: {e}"
+
+    # 8. Create searchable KB entry (idempotent)
+    _create_session_kb_entry(project_root, branch, summary)
+
+    return f"Session log updated: session-log-{today}"
+
+
+def _extract_user_messages(transcript_path: str, limit: int = 10) -> str:
+    """Extract last N user messages from transcript JSONL.
+
+    Args:
+        transcript_path: Path to the transcript JSONL file.
+        limit: Max number of messages to extract.
+
+    Returns:
+        Formatted string of user messages.
+    """
+    path = Path(transcript_path)
+    if not path.exists():
+        return ""
+
+    user_msgs: list[str] = []
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                obj = json.loads(line)
+                if obj.get("type") != "user" or "message" not in obj:
+                    continue
+                content = obj["message"].get("content", "")
+                if not isinstance(content, str) or len(content) < 10:
+                    continue
+                # Skip CLI command messages
+                if "<local-command" in content or "<command-name>" in content:
+                    continue
+                clean = content[:200].strip()
+                if clean:
+                    user_msgs.append(clean)
+    except Exception:
+        return ""
+
+    recent = user_msgs[-limit:]
+    return "\n".join(f"- {msg}" for msg in recent)
+
+
+def _get_today_kb_entries(project_root: Path) -> str:
+    """Get KB entries created today (findings, warnings, solutions, patterns).
+
+    Args:
+        project_root: Project root path.
+
+    Returns:
+        Formatted list of today's KB entries, or empty string.
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    resp = _kb_send(
+        project_root,
+        {"cmd": "search_by_date", "start": today, "end": today},
+        recv_size=8192,
+    )
+    if not resp or resp.get("status") != "ok":
+        return ""
+
+    entries = resp.get("entries", [])
+    useful_types = {"finding", "warning", "solution", "pattern", "lesson", "best-practice"}
+    lines = []
+    for e in entries:
+        etype = e.get("type", "")
+        if etype not in useful_types:
+            continue
+        title = e.get("title", "")[:100]
+        lines.append(f"- [{etype}] {title}")
+
+    return "\n".join(lines[:15])
+
+
+def _create_session_kb_entry(project_root: Path, branch: str, summary: str) -> None:
+    """Create a searchable KB entry from the session log summary.
+
+    Idempotent: skips if a session entry for today already exists.
+    Includes related_to path to the full session log file for graph traversal.
+
+    Args:
+        project_root: Project root path.
+        branch: Current git branch.
+        summary: Haiku-generated session summary markdown.
+    """
+    today = datetime.now().strftime("%Y-%m-%d")
+    source = f"session-log:{today}"
+
+    # Idempotency check: search for existing session entry with this source
+    resp = _kb_send(
+        project_root,
+        {"cmd": "search", "query": source, "limit": 3},
+        recv_size=4096,
+    )
+    if resp and resp.get("status") == "ok":
+        for e in resp.get("results", []):
+            if e.get("source") == source:
+                return  # Already exists
+
+    # Extract first 3-5 bullet lines as insight
+    bullets = [ln.strip() for ln in summary.split("\n") if ln.strip().startswith("- ")]
+    insight = "\n".join(bullets[:5]) if bullets else summary[:300]
+
+    # Full path to session log for graph traversal
+    log_path = str(project_root / ".serena" / "memories" / f"session-log-{today}.md")
+
+    entry = {
+        "title": f"Session: {today} on {branch}",
+        "insight": insight,
+        "type": "session",
+        "priority": "low",
+        "keywords": ["session", "log", branch, today],
+        "source": source,
+        "branch": branch,
+        "related_to": [log_path],
+    }
+    _kb_send(project_root, {"cmd": "add", "entry": entry})
+
+
+def _call_claude_haiku(prompt: str) -> str:
+    """Call Claude Haiku via claude CLI print mode ($0, uses subscription).
+
+    Args:
+        prompt: The prompt to send to Haiku.
+
+    Returns:
+        Haiku's response text, or empty string on failure.
+    """
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["claude", "-p", "--model", "haiku", "--no-session-persistence"],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+        return ""
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return ""
+
+
+def _read_latest_session_log(project_root: Path) -> str:
+    """Read the most recent session log from .serena/memories/.
+
+    Args:
+        project_root: Project root path.
+
+    Returns:
+        Content of the most recent session-log-*.md file, or empty string.
+    """
+    memory_dir = project_root / ".serena" / "memories"
+    if not memory_dir.exists():
+        return ""
+
+    logs = sorted(memory_dir.glob("session-log-*.md"), reverse=True)
+    if not logs:
+        return ""
+
+    try:
+        return logs[0].read_text()
+    except Exception:
+        return ""
 
 
 def _format_entries_toon(entries: list) -> str:
@@ -385,12 +691,13 @@ def _format_entries_toon(entries: list) -> str:
 
 
 def _get_kb_context(project_root: Path) -> str:
-    """Get KB entries + Serena prompt for context injection.
+    """Get session-aware KB context for injection.
 
-    Retrieves:
-    1. Top 10 critical/high priority warnings (any date)
-    2. Last 10 newest entries (by date)
-    3. Serena prompt for session history
+    Structure:
+    1. Previous session log (if exists)
+    2. Grouped warnings with count
+    3. Recent entries in TOON format (up to 8)
+    4. Serena prompt for session history
 
     Args:
         project_root: Project root path.
@@ -398,58 +705,55 @@ def _get_kb_context(project_root: Path) -> str:
     Returns:
         Formatted context string or empty string.
     """
-    import socket
+    serena_prompt = "[>] Session history: mcp__serena__read_memory lessons-learned"
 
     if not _is_kb_server_running(project_root):
-        return "[>] Session history: mcp__serena__read_memory lessons-learned"
+        return serena_prompt
 
-    try:
-        port_file = get_kb_port_file(project_root)
-        port = int(port_file.read_text().strip())
+    data = _kb_send(project_root, {"cmd": "recent", "limit": 50}, recv_size=65536)
+    all_entries = (data or {}).get("entries", [])
 
-        # Get more entries to filter locally
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "recent", "limit": 50}).encode())
-        response = sock.recv(65536).decode()
-        sock.close()
+    if not all_entries:
+        return serena_prompt
 
-        data = json.loads(response)
-        all_entries = data.get("entries", [])
+    parts = []
 
-        if not all_entries:
-            return "[>] Session history: mcp__serena__read_memory lessons-learned"
+    # 1. Read latest session log from Serena memories
+    session_log = _read_latest_session_log(project_root)
+    if session_log:
+        sections = session_log.split("\n## ")
+        if len(sections) > 1:
+            last = sections[-1][:200].strip()
+            parts.append(f"[SESSION] {last}")
 
-        # 1. Get critical/high warnings (up to 10)
-        warnings = [
-            e
-            for e in all_entries
-            if e.get("type") == "warning" and e.get("priority") in ("critical", "high")
-        ][:10]
+    # 2. Grouped warnings (critical/high)
+    warnings = [
+        e for e in all_entries
+        if e.get("type") == "warning" and e.get("priority") in ("critical", "high")
+    ]
+    if warnings:
+        count = len(warnings)
+        titles = [w.get("title", "?")[:60] for w in warnings[:2]]
+        warning_str = " | ".join(f'"{t}"' for t in titles)
+        if count > 2:
+            warning_str += f" | +{count - 2} more"
+        parts.append(f"[!] WARNINGS ({count}): {warning_str}")
 
-        # 2. Get last 10 by date (excluding already-selected warnings)
-        warning_ids = {e.get("id") for e in warnings}
-        recent = [e for e in all_entries if e.get("id") not in warning_ids][:10]
+    # 3. Recent entries (non-warning), TOON format, limit 8
+    warning_ids = {e.get("id") for e in warnings}
+    recent = [
+        e for e in all_entries
+        if e.get("id") not in warning_ids and e.get("type") not in ("session", "journal")
+    ][:8]
 
-        parts = []
+    if recent:
+        toon_recent = _format_entries_toon(recent)
+        parts.append(f"[KB] RECENT:\n{toon_recent}")
 
-        # Format warnings section
-        if warnings:
-            toon_warnings = _format_entries_toon(warnings)
-            parts.append(f"[!] WARNINGS:\n{toon_warnings}")
+    # 4. Serena prompt
+    parts.append(serena_prompt)
 
-        # Format recent section
-        if recent:
-            toon_recent = _format_entries_toon(recent)
-            parts.append(f"[KB] RECENT:\n{toon_recent}")
-
-        # Serena prompt
-        parts.append("[>] Session history: mcp__serena__read_memory lessons-learned")
-
-        return "\n\n".join(parts)
-    except Exception:
-        return "[>] Session history: mcp__serena__read_memory lessons-learned"
+    return "\n\n".join(parts)
 
 
 def prompt_handler() -> None:
@@ -459,10 +763,10 @@ def prompt_handler() -> None:
     Output: {"decision": "block", "reason": "..."} OR context text
 
     Handles keywords:
-    - FindKnowledge <query> - Search knowledge DB
+    - FindKnowledge <query> - Search knowledge DB (compact index)
+    - FindKnowledgeDetail <id> - Full entry by ID
     - SaveInfo <url> - Smart save with LLM evaluation
     - InitKB - Initialize knowledge DB
-    - asyncReview - Background review
 
     Exit code: 0=continue, 2=block with reason
     """
@@ -485,6 +789,15 @@ def prompt_handler() -> None:
         query = prompt[14:].strip()  # Remove "FindKnowledge "
         if query:
             result = _handle_find_knowledge(query)
+            if result:
+                _output_json({"additionalContext": result})
+        sys.exit(0)
+
+    # === FindKnowledgeDetail <id> ===
+    if prompt_lower.startswith("findknowledgedetail "):
+        entry_id = prompt[19:].strip()
+        if entry_id:
+            result = _handle_find_knowledge_detail(entry_id)
             if result:
                 _output_json({"additionalContext": result})
         sys.exit(0)
@@ -621,8 +934,6 @@ def _capture_git_commit() -> None:
         if not _is_kb_server_running(project_root):
             return
 
-        import socket
-
         # Build insight with changed files for searchability
         files_str = ", ".join(changed_files[:5]) if changed_files else "no files"
         insight = f"Git commit {short_hash} by {author}: {commit_msg}. Changed: {files_str}"
@@ -639,16 +950,7 @@ def _capture_git_commit() -> None:
             "branch": _get_current_branch(),
         }
 
-        port_file = get_kb_port_file(project_root)
-        port = int(port_file.read_text().strip())
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
-        sock.recv(1024)
-        sock.close()
-
+        _kb_send(project_root, {"cmd": "add", "entry": entry})
         _debug_log(f"Captured commit {short_hash} to KB")
     except Exception as e:
         _debug_log(f"Failed to capture commit: {e}")
@@ -697,22 +999,11 @@ def _capture_bash_event(
         "branch": _get_current_branch(),
     }
 
-    try:
-        import socket
-
-        port_file = get_kb_port_file(project_root)
-        port = int(port_file.read_text().strip())
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
-        sock.recv(1024)
-        sock.close()
-
+    result = _kb_send(project_root, {"cmd": "add", "entry": entry})
+    if result:
         _debug_log(f"Captured {prefix} to KB")
-    except Exception as e:
-        _debug_log(f"Failed to capture {prefix}: {e}")
+    else:
+        _debug_log(f"Failed to capture {prefix}")
 
 
 def _extract_commit_tags(commit_msg: str) -> list[str]:
@@ -807,39 +1098,27 @@ def post_web() -> None:
 
             # Create KB entry for doc URLs
             if project_root and _is_kb_server_running(project_root):
-                try:
-                    from urllib.parse import urlparse
+                from urllib.parse import urlparse
 
-                    parsed = urlparse(url)
-                    domain = parsed.netloc
-                    path_summary = parsed.path.rstrip("/").split("/")[-1] or domain
+                parsed = urlparse(url)
+                domain = parsed.netloc
+                path_summary = parsed.path.rstrip("/").split("/")[-1] or domain
 
-                    entry = {
-                        "title": f"Docs: {domain} - {path_summary}",
-                        "insight": f"Documentation reference captured from {tool_name}: {url}",
-                        "type": "discovery",
-                        "priority": "low",
-                        "keywords": ["docs", "reference", domain, path_summary],
-                        "source": url,
-                        "timestamp": datetime.now().isoformat(),
-                        "branch": _get_current_branch(),
-                    }
+                entry = {
+                    "title": f"Docs: {domain} - {path_summary}",
+                    "insight": f"Documentation reference captured from {tool_name}: {url}",
+                    "type": "discovery",
+                    "priority": "low",
+                    "keywords": ["docs", "reference", domain, path_summary],
+                    "source": url,
+                    "timestamp": datetime.now().isoformat(),
+                    "branch": _get_current_branch(),
+                }
 
-                    import socket
-
-                    port_file = get_kb_port_file(project_root)
-                    port = int(port_file.read_text().strip())
-
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.settimeout(2.0)
-                    sock.connect(("127.0.0.1", port))
-                    sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
-                    sock.recv(1024)
-                    sock.close()
-
+                if _kb_send(project_root, {"cmd": "add", "entry": entry}):
                     _debug_log(f"Captured doc URL to KB: {url[:60]}")
-                except Exception as e:
-                    _debug_log(f"Failed to capture doc URL: {e}")
+                else:
+                    _debug_log(f"Failed to capture doc URL: {url[:60]}")
 
     sys.exit(0)
 
@@ -885,6 +1164,9 @@ def _parse_find_knowledge_query(raw_query: str) -> tuple[str, dict]:
 def _handle_find_knowledge(query: str) -> str:
     """Handle FindKnowledge keyword with optional date/branch/type filters.
 
+    Returns compact index with entry IDs for progressive disclosure.
+    Use FindKnowledgeDetail <id> to get full entry details.
+
     Supports:
         FindKnowledge auth
         FindKnowledge auth since:2026-02-01
@@ -894,7 +1176,7 @@ def _handle_find_knowledge(query: str) -> str:
         query: Search query (may include filter tokens).
 
     Returns:
-        Search results as formatted string.
+        Search results as compact formatted string.
     """
     project_root = find_project_root()
     if not project_root:
@@ -908,68 +1190,121 @@ def _handle_find_knowledge(query: str) -> str:
     clean_query, filters = _parse_find_knowledge_query(query)
 
     # Try to query via server
-    if _is_kb_server_running(project_root):
-        import socket
+    if not _is_kb_server_running(project_root):
+        return "Knowledge server not running. Start it with: kln start"
 
-        try:
-            port_file = get_kb_port_file(project_root)
-            port = int(port_file.read_text().strip())
+    cmd = {"cmd": "search", "query": clean_query or "*", "limit": 10}
+    cmd.update(filters)
 
-            cmd = {"cmd": "search", "query": clean_query or "*", "limit": 10}
-            cmd.update(filters)
+    data = _kb_send(project_root, cmd, timeout=5.0, recv_size=65536)
+    if data is None:
+        return "Search error: failed to communicate with KB server"
 
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5.0)
-            sock.connect(("127.0.0.1", port))
-            sock.sendall(json.dumps(cmd).encode())
-            response = sock.recv(65536).decode()
-            sock.close()
+    results = data.get("results", [])
 
-            data = json.loads(response)
-            results = data.get("results", [])
+    if not results:
+        filter_desc = f" (filters: {filters})" if filters else ""
+        return f"No results found for: {clean_query}{filter_desc}"
 
-            if not results:
-                filter_desc = ""
-                if filters:
-                    filter_desc = f" (filters: {filters})"
-                return f"No results found for: {clean_query}{filter_desc}"
+    # Track usage for returned results
+    result_ids = [r.get("id") for r in results if r.get("id")]
+    if result_ids:
+        _update_usage(project_root, result_ids)
 
-            # Track usage for returned results
-            result_ids = [r.get("id") for r in results if r.get("id")]
-            if result_ids:
-                _update_usage(project_root, result_ids)
+    filter_desc = ""
+    if filters:
+        filter_desc = f" [filters: {', '.join(f'{k}={v}' for k, v in filters.items())}]"
 
-            filter_desc = ""
-            if filters:
-                filter_desc = f" [filters: {', '.join(f'{k}={v}' for k, v in filters.items())}]"
+    output = [f"Found {len(results)} results for '{clean_query}'{filter_desc}:\n"]
+    for r in results:
+        score = r.get("score", 0)
+        title = r.get("title", r.get("id", "?"))
+        entry_type = r.get("type", "")
+        date = r.get("date", "")
+        entry_id = r.get("id", "")
 
-            output = [f"Found {len(results)} results for '{clean_query}'{filter_desc}:\n"]
-            for r in results:
-                score = r.get("score", 0)
-                title = r.get("title", r.get("id", "?"))
-                entry_type = r.get("type", "")
-                date = r.get("date", "")
-                branch = r.get("branch", "")
-                insight = r.get("insight", r.get("summary", ""))[:200]
+        meta_parts = []
+        if entry_type:
+            meta_parts.append(entry_type)
+        if date:
+            meta_parts.append(date)
+        meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
 
-                meta_parts = []
-                if entry_type:
-                    meta_parts.append(entry_type)
-                if date:
-                    meta_parts.append(date)
-                if branch:
-                    meta_parts.append(branch)
-                meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
+        id_str = f" [id:{entry_id[:8]}]" if entry_id else ""
+        output.append(f"  [{score:.2f}] {title}{meta}{id_str}")
 
-                output.append(f"  [{score:.2f}] {title}{meta}")
-                if insight:
-                    output.append(f"    {insight}...")
+    output.append('\nTip: "FindKnowledgeDetail <id>" for full entry')
+    return "\n".join(output)
 
-            return "\n".join(output)
-        except Exception as e:
-            return f"Search error: {e}"
 
-    return "Knowledge server not running. Start it with: kln start"
+def _handle_find_knowledge_detail(entry_id: str) -> str:
+    """Fetch and display full details of a knowledge entry by ID.
+
+    Supports both full UUIDs and short prefixes (8+ chars).
+
+    Args:
+        entry_id: Full or partial entry UUID.
+
+    Returns:
+        Formatted entry details or error message.
+    """
+    project_root = find_project_root()
+    if not project_root:
+        return "No project found"
+
+    if not _is_kb_server_running(project_root):
+        return "Knowledge server not running. Start it with: kln start"
+
+    # Resolve entry: short ID prefix vs full UUID
+    if len(entry_id) < 36:
+        data = _kb_send(
+            project_root, {"cmd": "recent", "limit": 200},
+            timeout=3.0, recv_size=131072,
+        )
+        if not data:
+            return f"Error fetching entry: {entry_id}"
+
+        matches = [
+            e for e in data.get("entries", [])
+            if e.get("id", "").startswith(entry_id)
+        ]
+        if not matches:
+            return f"No entry found matching ID prefix: {entry_id}"
+        if len(matches) > 1:
+            return f"Ambiguous ID prefix '{entry_id}', matches {len(matches)} entries"
+        entry = matches[0]
+    else:
+        data = _kb_send(
+            project_root, {"cmd": "get", "id": entry_id},
+            timeout=3.0, recv_size=65536,
+        )
+        if not data or "error" in data:
+            return f"Entry not found: {entry_id}"
+        entry = data.get("entry", {})
+
+    # Format full entry
+    lines = [f"=== {entry.get('title', 'Untitled')} ==="]
+    lines.append(f"Type: {entry.get('type', '?')} | Priority: {entry.get('priority', '?')}")
+    lines.append(f"Date: {entry.get('date', '?')} | Branch: {entry.get('branch', '?')}")
+
+    insight = entry.get("insight", entry.get("summary", ""))
+    if insight:
+        lines.append(f"\n{insight}")
+
+    keywords = entry.get("keywords", entry.get("tags", []))
+    if keywords:
+        lines.append(f"\nKeywords: {', '.join(keywords)}")
+
+    source = entry.get("source", "")
+    if source:
+        lines.append(f"Source: {source}")
+
+    related = entry.get("related_to", [])
+    if related:
+        lines.append(f"Related: {', '.join(related[:5])}")
+
+    lines.append(f"ID: {entry.get('id', '?')}")
+    return "\n".join(lines)
 
 
 def _update_usage(project_root: Path, entry_ids: list[str]) -> None:
@@ -979,22 +1314,7 @@ def _update_usage(project_root: Path, entry_ids: list[str]) -> None:
         project_root: Project root path.
         entry_ids: List of entry IDs to update.
     """
-    import socket
-
-    try:
-        port_file = get_kb_port_file(project_root)
-        if not port_file.exists():
-            return
-
-        port = int(port_file.read_text().strip())
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(2.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "update_usage", "ids": entry_ids}).encode())
-        sock.recv(1024)  # Discard response
-        sock.close()
-    except Exception:
-        pass  # Non-critical, fail silently
+    _kb_send(project_root, {"cmd": "update_usage", "ids": entry_ids})
 
 
 def _handle_save_info(content: str) -> str:
@@ -1074,24 +1394,13 @@ def _handle_save_info(content: str) -> str:
         }
 
         # Save to KB
-        import socket
-
-        port_file = get_kb_port_file(project_root)
-        port = int(port_file.read_text().strip())
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
-        response = sock.recv(1024).decode()
-        sock.close()
-
-        result = json.loads(response)
-        if result.get("status") == "ok":
+        result = _kb_send(project_root, {"cmd": "add", "entry": entry}, timeout=5.0)
+        if result and result.get("status") == "ok":
             title_short = entry["title"][:50]
             return f"SaveInfo: Saved '{title_short}' from {url}"
         else:
-            return f"SaveInfo: Failed to save - {result.get('error', 'unknown')}"
+            error = (result or {}).get("error", "unknown")
+            return f"SaveInfo: Failed to save - {error}"
 
     except httpx.HTTPError as e:
         return f"SaveInfo: Failed to fetch URL - {e}"
@@ -1191,31 +1500,19 @@ def _save_url_raw(project_root: Path, url: str) -> str:
     Returns:
         Result message.
     """
-    import socket
+    entry = {
+        "title": f"Web: {url[:60]}",
+        "insight": f"URL saved for reference: {url}",
+        "type": "finding",
+        "priority": "low",
+        "keywords": ["web", "url"],
+        "source": url,
+    }
 
-    try:
-        entry = {
-            "title": f"Web: {url[:60]}",
-            "insight": f"URL saved for reference: {url}",
-            "type": "finding",
-            "priority": "low",
-            "keywords": ["web", "url"],
-            "source": url,
-        }
-
-        port_file = get_kb_port_file(project_root)
-        port = int(port_file.read_text().strip())
-
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5.0)
-        sock.connect(("127.0.0.1", port))
-        sock.sendall(json.dumps({"cmd": "add", "entry": entry}).encode())
-        sock.recv(1024)
-        sock.close()
-
+    result = _kb_send(project_root, {"cmd": "add", "entry": entry}, timeout=5.0)
+    if result:
         return f"SaveInfo: Saved URL (no LLM extraction): {url}"
-    except Exception as e:
-        return f"SaveInfo: Failed to save URL - {e}"
+    return "SaveInfo: Failed to save URL"
 
 
 def _handle_init_kb() -> str:
@@ -1274,7 +1571,7 @@ def main() -> None:
     """Main entry point for CLI testing."""
     if len(sys.argv) < 2:
         print("Usage: python -m klean.hooks <hook_name>")
-        print("Hooks: session_start, prompt_handler, post_bash, post_web")
+        print("Hooks: session_start, prompt_handler, post_bash, post_web, pre_compact")
         sys.exit(1)
 
     hook_name = sys.argv[1]
@@ -1287,6 +1584,8 @@ def main() -> None:
         post_bash()
     elif hook_name == "post_web":
         post_web()
+    elif hook_name == "pre_compact":
+        pre_compact()
     else:
         print(f"Unknown hook: {hook_name}")
         sys.exit(1)

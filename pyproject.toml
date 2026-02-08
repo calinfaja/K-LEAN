@@ -88,6 +88,7 @@ kln-hook-session = "klean.hooks:session_start"
 kln-hook-prompt = "klean.hooks:prompt_handler"
 kln-hook-bash = "klean.hooks:post_bash"
 kln-hook-web = "klean.hooks:post_web"
+kln-hook-compact = "klean.hooks:pre_compact"
 
 [project.urls]
 Homepage = "https://github.com/calinfaja/k-lean"

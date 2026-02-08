@@ -354,6 +354,18 @@ class KnowledgeServer:
                         response = {"status": "ok", "entries": entries, "count": len(entries)}
                     except Exception as e:
                         response = {"error": f"get_related failed: {e}"}
+            elif cmd == "get":
+                entry_id = request.get("id", "")
+                if not self.db:
+                    response = {"error": "No index loaded"}
+                elif not entry_id:
+                    response = {"error": "Missing 'id' parameter"}
+                else:
+                    entry = self.db.get(entry_id)
+                    if entry:
+                        response = {"status": "ok", "entry": entry}
+                    else:
+                        response = {"error": f"Entry not found: {entry_id}"}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 

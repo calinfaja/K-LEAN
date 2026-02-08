@@ -57,7 +57,7 @@ check_release() {
     fi
 
     # Check data directories have content
-    for dir in scripts commands/kln hooks agents; do
+    for dir in scripts commands/kln agents config; do
         if [ -d "$DATA_DIR/$dir" ] && [ "$(ls -1 "$DATA_DIR/$dir" 2>/dev/null | wc -l)" -gt 0 ]; then
             local count=$(ls -1 "$DATA_DIR/$dir" 2>/dev/null | wc -l)
             log_success "data/$dir: $count files"

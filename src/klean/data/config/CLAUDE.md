@@ -19,10 +19,11 @@
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search knowledge DB |
+| `FindKnowledge <query>` | Search KB (compact index with IDs) |
 | `FindKnowledge <query> since:YYYY-MM-DD` | Search with date filter |
 | `FindKnowledge <query> branch:<name>` | Search filtered by git branch |
 | `FindKnowledge <query> type:<type>` | Search filtered by entry type |
+| `FindKnowledgeDetail <id>` | Fetch full entry by ID |
 | `SaveInfo <url>` | Evaluate URL with LLM and save if relevant |
 
 ## Knowledge Database

@@ -50,6 +50,7 @@ Access with `kln admin <command>`
 | `kln admin sync` | Sync files to package data for release |
 | `kln admin debug` | Live dashboard (shows Phoenix status) |
 | `kln admin test` | Run comprehensive test suite |
+| `kln admin persist-session` | Generate session log via Claude Haiku |
 
 ## Models
 
@@ -83,10 +84,18 @@ User controls model priority via order in `~/.config/litellm/config.yaml`.
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge` | Semantic search KB |
+| `FindKnowledge <query>` | Semantic search KB (compact index with IDs) |
+| `FindKnowledge <query> since:YYYY-MM-DD` | Search with date filter |
+| `FindKnowledge <query> branch:<name>` | Search filtered by git branch |
+| `FindKnowledge <query> type:<type>` | Search filtered by entry type |
+| `FindKnowledgeDetail <id>` | Fetch full entry by ID (supports short prefixes) |
 | `SaveInfo` | LLM-evaluated URL save |
 | `asyncReview` | Background quick review |
 | `asyncConsensus` | Background consensus |
+
+**Filter syntax:** Combine filters inline: `FindKnowledge auth since:2026-02-01 branch:feature/auth type:decision`
+
+**Progressive disclosure:** `FindKnowledge` returns a compact index (title, type, date, score, short ID). Use `FindKnowledgeDetail <id>` to fetch the full entry with insight text, keywords, source, and related entries.
 
 **Note:** For context-aware saves, use `/kln:learn` slash command.
 
@@ -99,6 +108,7 @@ User controls model priority via order in `~/.config/litellm/config.yaml`.
 | `~/.claude/settings.json` | Claude Code settings |
 | `.knowledge-db/entries.jsonl` | KB entries (per-project) |
 | `.knowledge-db/index/` | Semantic index |
+| `.serena/memories/session-log-*.md` | Session logs (per-project, Serena-discoverable) |
 | `~/.klean/logs/phoenix.log` | Phoenix telemetry logs |
 | `.claude/kln/agentExecute/` | SmolKLN agent reports |
 | `.claude/kln/quickReview/` | Quick review outputs |
@@ -171,25 +181,51 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 
 **UI:** `http://localhost:6006`
 
-## Knowledge DB Schema (V2)
+## Knowledge DB Schema (V3.1)
 
 ```json
 {
-  "title": "Short title",
-  "summary": "2-3 sentence summary",
-  "type": "lesson|finding|solution|pattern",
-  "key_concepts": ["keyword1", "keyword2"],
-  "quality": "high|medium|low",
-  "source": "manual|web|agent_<name>|serena",
-  "found_date": "2024-12-21T10:30:00"
+  "id": "finding-20260207103000",
+  "title": "Short descriptive title (max 80 chars)",
+  "insight": "2-4 sentence explanation with actionable details",
+  "type": "warning|solution|pattern|decision|discovery|journal|finding|commit|session",
+  "priority": "critical|high|medium|low",
+  "keywords": ["searchable", "terms"],
+  "source": "file:path:line|https://url|git:hash|conv:YYYY-MM-DD",
+  "date": "2026-02-07",
+  "timestamp": "2026-02-07T10:30:00",
+  "branch": "feature/auth",
+  "related_to": ["entry-id-1", "entry-id-2"]
 }
 ```
 
+**Entry types:**
+
+| Type | When to Use |
+|------|-------------|
+| `warning` | Problems, gotchas, things to avoid |
+| `solution` | Working fixes, workarounds |
+| `pattern` | Reusable approaches, best practices |
+| `decision` | Architectural choices, "chose X over Y" |
+| `discovery` | "Found that...", "Turns out...", TIL moments |
+| `journal` | Session starts, work log entries |
+| `commit` | Git commit captures (auto-captured) |
+| `session` | Session log summaries (auto-generated on PreCompact) |
+| `finding` | Default - undocumented behavior, API quirks |
+
+**V3.1 fields** (added to V3 core):
+- `timestamp` - ISO 8601 for intra-day ordering (auto-set)
+- `branch` - Git branch at capture time (auto-detected)
+- `related_to` - Bidirectional links between entries
+
 **Source types:**
-- `manual` - /kln:learn command
-- `web` - Auto-captured from web research
-- `agent_<name>` - SmolKLN agent session persistence (e.g., `agent_security-auditor`)
-- `serena` - Synced from Serena lessons-learned
+- `file:path:line` - Source code reference
+- `https://url` - Documentation or web reference
+- `git:<hash>` - Git commit
+- `conv:YYYY-MM-DD` - Conversation context
+- `bash:<command>` - Auto-captured from bash events
+- `session:YYYY-MM-DD` - Session journal entry
+- `session-log:YYYY-MM-DD` - Session log summary (links to .serena/memories/)
 
 ## Review Areas
 

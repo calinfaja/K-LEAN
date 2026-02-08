@@ -2,9 +2,9 @@
   "project": {
     "name": "k-lean",
     "package_name": "kln-ai",
-    "version": "1.0.0b6",
+    "version": "1.0.0b7",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
-    "generated": "2026-01-09",
+    "generated": "2026-02-07",
     "python_version": ">=3.9",
     "license": "Apache-2.0",
     "cross_platform": true
@@ -15,7 +15,8 @@
     "kln-hook-session": "src/klean/hooks.py:session_start",
     "kln-hook-prompt": "src/klean/hooks.py:prompt_handler",
     "kln-hook-bash": "src/klean/hooks.py:post_bash",
-    "kln-hook-web": "src/klean/hooks.py:post_web"
+    "kln-hook-web": "src/klean/hooks.py:post_web",
+    "kln-hook-compact": "src/klean/hooks.py:pre_compact"
   },
   "core_modules": {
     "cli": {
@@ -96,9 +97,10 @@
     "note": "Hooks are Python entry points (cross-platform), not shell scripts",
     "protocol": "Read JSON stdin, output JSON stdout. Exit 0=success, 2=block",
     "session-start": {"entry_point": "kln-hook-session", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + KB server"},
-    "user-prompt": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "SaveInfo", "InitKB", "asyncReview", "asyncConsensus"]},
-    "post-bash": {"entry_point": "kln-hook-bash", "trigger": "PostToolUse:Bash", "purpose": "Git timeline logging"},
-    "post-web": {"entry_point": "kln-hook-web", "trigger": "PostToolUse:Web*", "purpose": "Auto-capture web content"}
+    "user-prompt": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "FindKnowledgeDetail", "SaveInfo", "InitKB", "asyncReview", "asyncConsensus"]},
+    "post-bash": {"entry_point": "kln-hook-bash", "trigger": "PostToolUse:Bash", "purpose": "Git commits, test failures, build errors, package installs -> KB"},
+    "post-web": {"entry_point": "kln-hook-web", "trigger": "PostToolUse:Web*", "purpose": "Doc URL captures as discovery entries"},
+    "pre-compact": {"entry_point": "kln-hook-compact", "trigger": "PreCompact", "purpose": "Session log via Claude Haiku (transcript + git + KB -> .serena/memories/)"}
   },
   "agents": {
     "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "OWASP, SOLID, code quality"},
@@ -113,17 +115,21 @@
   "knowledge_db": {
     "storage": ".knowledge-db/",
     "backend": "fastembed-hybrid",
+    "schema_version": "3.1",
     "models": {
       "dense": "BAAI/bge-small-en-v1.5",
       "sparse": "Qdrant/bm42-all-minilm-l6-v2-attentions",
       "reranker": "Xenova/ms-marco-MiniLM-L-6-v2"
     },
-    "search_pipeline": ["dense", "sparse", "rrf_fusion", "reranking"],
+    "entry_types": ["warning", "solution", "pattern", "decision", "discovery", "journal", "finding"],
+    "search_pipeline": ["dense", "sparse", "rrf_fusion", "post_rrf_filtering", "reranking"],
+    "filters": ["date_from", "date_to", "entry_type", "branch"],
     "server": {
       "type": "tcp_localhost",
       "port": "14000 + hash_offset",
-      "features": ["server-owned writes", "immediate indexing", "add command"]
+      "features": ["server-owned writes", "immediate indexing", "add command", "date/branch/type filtering", "search_by_date", "get_timeline", "get_related"]
     },
+    "auto_capture": ["git_commits", "test_failures", "build_errors", "package_installs", "doc_urls", "session_starts"],
     "scripts": {
       "server": "data/scripts/knowledge-server.py",
       "capture": "data/scripts/knowledge-capture.py",

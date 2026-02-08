@@ -2,7 +2,7 @@
 
 > **Multi-Model Code Reviews & Persistent Knowledge for Claude Code**
 
-**Version:** 1.0.0b6 | **License:** Apache 2.0
+**Version:** 1.0.0b7 | **License:** Apache 2.0
 
 ---
 
@@ -15,7 +15,7 @@ K-LEAN (Knowledge-Lean) is an addon for Claude Code that provides:
 - **Persistent Knowledge DB** with semantic search (per-project)
 - **8 SmolKLN agents** for domain-specific analysis
 - **9 slash commands** for reviews, debugging, and documentation
-- **4 hooks** for automatic knowledge capture (Python entry points)
+- **5 hooks** for automatic knowledge capture and session persistence (Python entry points)
 
 ### The Problem
 
@@ -45,7 +45,7 @@ K-LEAN works natively on **Windows, Linux, and macOS**:
    +-----------------------------------------------------------------+
    |  +----------------+  +-------------+  +----------------------+  |
    |  |  Python Hooks  |  |  /kln:*     |  |   SmolKLN Agents     |  |
-   |  |  (4 entry pts) |  |  Commands   |  |   (8 specialists)    |  |
+   |  |  (5 entry pts) |  |  Commands   |  |   (8 specialists)    |  |
    |  +-------+--------+  +------+------+  +-----------+----------+  |
    +---------|--------------------|----------------------|-----------+
              |                    |                      |
@@ -82,7 +82,7 @@ K-LEAN works natively on **Windows, Linux, and macOS**:
 | Models | Dynamic | Via LiteLLM (auto-discovered) |
 | Slash Commands | 9 | /kln:quick, multi, agent, rethink, doc, learn, remember, status, help |
 | SmolKLN Agents | 8 | code-reviewer, security-auditor, debugger, performance-engineer, rust-expert, c-pro, arm-cortex-expert, orchestrator |
-| Hooks | 4 | Python entry points (session, prompt, bash, web) |
+| Hooks | 5 | Python entry points (session, prompt, bash, web, compact) |
 | Rules | 1 | ~/.claude/rules/kln.md |
 
 ---
@@ -129,15 +129,17 @@ K-LEAN hooks are Python entry points that work cross-platform:
 | Entry Point | Hook Type | Purpose |
 |-------------|-----------|---------|
 | `kln-hook-session` | SessionStart | Auto-start LiteLLM + per-project KB |
-| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (FindKnowledge, SaveInfo, etc.) |
-| `kln-hook-bash` | PostToolUse (Bash) | Git events -> timeline |
-| `kln-hook-web` | PostToolUse (Web*) | Auto-capture web content to KB |
+| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (FindKnowledge, FindKnowledgeDetail, SaveInfo, etc.) |
+| `kln-hook-bash` | PostToolUse (Bash) | Git commits, test failures, build errors, package installs -> KB |
+| `kln-hook-web` | PostToolUse (Web*) | Doc URLs captured as discovery entries |
+| `kln-hook-compact` | PreCompact | Session log via Claude Haiku (transcript + git + KB -> .serena/memories/) |
 
 **Keywords detected by prompt handler:**
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search KB |
+| `FindKnowledge <query>` | Search KB (compact index; supports `since:`, `until:`, `branch:`, `type:` filters) |
+| `FindKnowledgeDetail <id>` | Fetch full KB entry by ID (supports short prefixes) |
 | `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `InitKB` | Initialize project KB |
 | `asyncReview` | Background quick review |
@@ -238,6 +240,7 @@ kln-hook-session    -> klean.hooks:session_start
 kln-hook-prompt     -> klean.hooks:prompt_handler
 kln-hook-bash       -> klean.hooks:post_bash
 kln-hook-web        -> klean.hooks:post_web
+kln-hook-compact    -> klean.hooks:pre_compact
 ```
 
 ### Per-Project Isolation
@@ -246,7 +249,7 @@ Each git repository gets its own:
 
 ```
 .knowledge-db/              # Knowledge DB (in .gitignore)
-├── entries.jsonl           # V2 schema entries
+├── entries.jsonl           # V3.1 schema entries
 ├── embeddings.npy          # Dense embeddings
 └── entries.pkl             # Entry metadata
 
@@ -270,7 +273,7 @@ Each git repository gets its own:
 ### Knowledge Capture Flow
 ```
 /kln:learn "topic" -> Claude extracts from context
-  -> knowledge-capture.py -> V2 schema
+  -> knowledge-capture.py -> V3.1 schema (+ timestamp, branch, related_to)
   -> TCP to KB server (immediate index) OR direct to entries.jsonl
 ```
 

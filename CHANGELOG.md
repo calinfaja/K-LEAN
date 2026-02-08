@@ -7,6 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- Knowledge DB V3.1 schema: `timestamp` (ISO 8601), `branch` (git branch), `related_to` (linked entries)
+- New entry types: `decision`, `discovery`, `journal` with auto-inference from signal words
+- FindKnowledge filter syntax: `since:`, `until:`, `branch:`, `type:` inline filters
+- `search_by_date()`, `get_timeline()`, `get_related()` query methods on KnowledgeDB
+- Auto-capture: test failures, build errors, package installs, doc URLs, session starts
+- Session journal entries created on startup with branch name
+- Enhanced git commit capture: full 40-char hash, branch, changed files in insight
+- `FindKnowledgeDetail <id>` keyword for fetching full KB entries by ID (progressive disclosure)
+- `FindKnowledge` now returns compact index (title, type, date, score, short ID) for token efficiency
+- `kln-hook-compact` (PreCompact hook) - automatic session log on context compaction
+- Session log system: transcript + git log + KB entries summarized via Claude Haiku
+- Session logs stored in `.serena/memories/session-log-YYYY-MM-DD.md` (Serena-discoverable)
+- Searchable KB session entries with `related_to` graph links to full session log files
+- `kln admin persist-session` CLI command for manual session log generation
+- `_kb_send()` helper centralizing all KB TCP communication (11 call sites deduplicated)
+- DRY `infer_type()` with signal-word matching, exponential time decay, semantic deduplication
 - `kln init` - Unified initialization command with provider selection and multi-provider support
 - `kln model` subgroup - Model management commands (list, add, remove, test)
 - `kln provider` subgroup - Provider management commands (list, add, set-key, remove)

@@ -1,7 +1,7 @@
 # Project Index: K-LEAN
 
-**Generated:** 2026-01-11
-**Package:** `kln-ai` v1.0.0b6
+**Generated:** 2026-02-07
+**Package:** `kln-ai` v1.0.0b7
 **Python:** >=3.9 | **License:** Apache-2.0
 
 ---
@@ -22,7 +22,7 @@ k-lean/
 │   ├── cli.py              # Click CLI entry point
 │   ├── discovery.py        # LiteLLM model discovery
 │   ├── reviews.py          # Async review engine (httpx)
-│   ├── hooks.py            # Python hook entry points (4 hooks)
+│   ├── hooks.py            # Python hook entry points (5 hooks)
 │   ├── platform.py         # Cross-platform utilities (psutil, platformdirs)
 │   ├── config_generator.py # LiteLLM config generation
 │   ├── smol/               # SmolKLN agent system (16 modules)
@@ -92,11 +92,11 @@ Async code review engine:
 - Auto-handles thinking model responses (`content` OR `reasoning_content`)
 
 ### `src/klean/hooks.py`
-Cross-platform hook entry points (JSON stdin → JSON stdout):
-- `session_start()` - Auto-start LiteLLM + KB server
-- `prompt_handler()` - FindKnowledge, SaveInfo, asyncReview keywords
-- `post_bash()` - Git commit/push timeline logging
-- `post_web()` - Auto-capture web content to KB
+Cross-platform hook entry points (JSON stdin -> JSON stdout):
+- `session_start()` - Auto-start LiteLLM + KB server, create session journal entry
+- `prompt_handler()` - FindKnowledge (with date/branch/type filters), SaveInfo, asyncReview
+- `post_bash()` - Git commits, test failures, build errors, package installs -> KB
+- `post_web()` - Doc URL captures as discovery entries
 
 ### `src/klean/platform.py`
 Cross-platform utilities:
@@ -169,14 +169,18 @@ Cross-platform utilities:
 **Storage:** `.knowledge-db/` per project
 **Backend:** fastembed-hybrid (ONNX-based, ~200MB)
 **Search:** RRF fusion (dense BGE + sparse BM42 + cross-encoder reranking)
+**Schema:** V3.1 (8 core + 3 extension fields: timestamp, branch, related_to)
 **Server:** TCP localhost, port 14000 + hash offset
 
 | Script | Purpose |
 |--------|---------|
-| `knowledge-server.py` | TCP server with immediate indexing |
-| `knowledge_db.py` | Core hybrid search |
-| `knowledge-capture.py` | Entry creation (TCP-first with fallback) |
-| `kb_utils.py` | Cross-platform utilities |
+| `knowledge-server.py` | TCP server with immediate indexing + date/branch/type filtering |
+| `knowledge_db.py` | Core hybrid search with `search_by_date()`, `get_timeline()`, `get_related()` |
+| `knowledge-capture.py` | Entry creation (TCP-first with fallback, V3.1 schema) |
+| `kb_utils.py` | Cross-platform utilities, type inference, schema migration |
+
+**Entry types:** warning, solution, pattern, decision, discovery, journal, finding (default)
+**Filters:** `FindKnowledge <query> since:DATE until:DATE branch:NAME type:TYPE`
 
 ---
 
@@ -280,4 +284,4 @@ kln admin sync
 
 ---
 
-*Index updated: 2026-01-11 | ~4KB | Full codebase: ~60K tokens | Savings: 93%*
+*Index updated: 2026-02-07 | ~4KB | Full codebase: ~60K tokens | Savings: 93%*

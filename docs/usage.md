@@ -127,7 +127,7 @@ kln multi --thorough "Security audit of auth module"
 
 ## Knowledge System
 
-Persistent semantic memory across sessions.
+Persistent semantic memory across sessions with hybrid search and temporal filtering.
 
 ### Saving Knowledge
 
@@ -137,21 +137,86 @@ Persistent semantic memory across sessions.
 | `/kln:learn "topic"` | Focused capture on specific topic |
 | `/kln:remember` | End-of-session, comprehensive capture |
 
+**Entry types** (auto-inferred from content):
+
+| Type | Signal Words |
+|------|-------------|
+| `warning` | "don't", "avoid", "careful", "gotcha" |
+| `solution` | "fixed", "solved", "workaround" |
+| `pattern` | "use X for Y", "prefer", "best way" |
+| `decision` | "chose", "decided", "instead of", "trade-off" |
+| `discovery` | "found that", "turns out", "TIL", "surprisingly" |
+| `journal` | "worked on", "session started", "today I" |
+| `finding` | Default for everything else |
+
 ### Searching Knowledge
 
 Type these keywords directly in Claude Code (no `/` prefix):
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Semantic search Knowledge DB |
+| `FindKnowledge <query>` | Semantic search KB (returns compact index with IDs) |
+| `FindKnowledge <query> since:YYYY-MM-DD` | Search with date filter |
+| `FindKnowledge <query> branch:<name>` | Search filtered by git branch |
+| `FindKnowledge <query> type:<type>` | Search filtered by entry type |
+| `FindKnowledgeDetail <id>` | Fetch full entry by ID (supports short prefixes) |
 | `SaveInfo <url>` | Evaluate URL with LLM, save if relevant |
 | `InitKB` | Initialize Knowledge DB for current project |
+
+`FindKnowledge` returns a compact index for token efficiency:
+```
+  [0.85] Auth refactor (solution, 2026-02-07) [id:abc12345]
+  [0.72] JWT token handling (pattern, 2026-02-06) [id:def67890]
+  Tip: "FindKnowledgeDetail <id>" for full entry
+```
+
+Use `FindKnowledgeDetail abc12345` to get the full insight text, keywords, source, and related entries.
 
 **Examples:**
 ```bash
 FindKnowledge "authentication patterns"
+FindKnowledge auth since:2026-02-01
+FindKnowledge auth branch:feature/auth type:decision
+FindKnowledgeDetail abc12345
 SaveInfo https://docs.example.com/api
 ```
+
+### Auto-Captured Events
+
+Hooks automatically capture events to the Knowledge DB:
+
+| Event | Type | Priority |
+|-------|------|----------|
+| Git commits | `commit` | low |
+| Test failures | `finding` | high |
+| Build errors | `finding` | high |
+| Package installs | `finding` | low |
+| Doc URL fetches | `discovery` | low |
+| Session starts | `journal` | low |
+| Session logs (PreCompact) | `session` | low |
+
+All auto-captured entries include timestamp and git branch metadata.
+
+### Session Log (Automatic)
+
+When Claude Code compacts context (PreCompact hook), K-LEAN automatically generates a session summary:
+
+1. Reads the conversation transcript (user messages)
+2. Gets git log since 6am
+3. Queries KB for today's entries (findings, warnings, solutions)
+4. Sends all three to Claude Haiku for summarization
+5. Appends to `.serena/memories/session-log-YYYY-MM-DD.md`
+6. Creates a searchable KB entry (type: `session`) linking to the full log
+
+Session logs are Serena-discoverable and injected as context on next session start:
+```
+[SESSION] 14:00 - 16:30 | main
+- Implemented PreCompact session log system
+- Commits: feat(hooks): add session persistence
+- Status: completed
+```
+
+**Manual trigger:** `kln admin persist-session [--transcript PATH]`
 
 ### End-of-Session Workflow
 
@@ -162,8 +227,10 @@ SaveInfo https://docs.example.com/api
 
 The `/kln:remember` command:
 1. Extracts learnings from git diff/log
-2. Saves entries to Knowledge DB
+2. Saves entries to Knowledge DB (V3.1 schema with timestamp + branch)
 3. Syncs Serena lessons to KB (searchable by agents)
+
+Session logs are generated automatically on context compaction -- no manual action needed.
 
 ---
 
@@ -251,9 +318,10 @@ kln provider remove    # Remove provider
 ### Development (Hidden Admin Subgroup)
 
 ```bash
-kln admin test         # Run test suite
-kln admin sync         # Sync package data
-kln admin debug        # Live monitoring dashboard
+kln admin test             # Run test suite
+kln admin sync             # Sync package data
+kln admin debug            # Live monitoring dashboard
+kln admin persist-session  # Generate session log via Claude Haiku
 ```
 
 ---
@@ -267,6 +335,7 @@ kln admin debug        # Live monitoring dashboard
 | Quick reviews | `.claude/kln/quickReview/` |
 | Knowledge DB | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |
+| Session logs | `.serena/memories/session-log-YYYY-MM-DD.md` |
 | System logs | `~/.klean/logs/` |
 | Phoenix traces | `http://localhost:6006` |
 

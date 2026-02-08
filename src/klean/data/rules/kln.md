@@ -17,7 +17,8 @@
 - `/kln:remember` - Comprehensive end-of-session capture
 
 **Hook Keywords (type directly):**
-- `FindKnowledge <query>` - Search knowledge DB
+- `FindKnowledge <query>` - Search knowledge DB (compact index with IDs)
+- `FindKnowledgeDetail <id>` - Fetch full entry by ID
 - `SaveInfo <url>` - Evaluate URL with LLM and save if relevant
 
 **Python API (cross-platform):**

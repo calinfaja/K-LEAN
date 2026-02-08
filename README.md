@@ -27,7 +27,7 @@ One model's confidence isn't proof. K-LEAN brings in **OpenAI, Gemini, DeepSeek,
 
 - **9 slash commands** — `/kln:quick`, `/kln:multi`, `/kln:agent`, `/kln:rethink`...
 - **8 specialist agents** — Security, Rust, embedded C, ARM Cortex, performance
-- **4 smart hooks** — Service auto-start, keyword handling, git tracking, web capture
+- **5 smart hooks** — Service auto-start, keyword handling, git tracking, web capture, session log
 - **Persistent knowledge** — Insights that survive across sessions
 
 Access any model via **NanoGPT** or **OpenRouter**, directly from Claude Code.
@@ -159,20 +159,22 @@ Your insights survive sessions. Capture mid-session or end-of-session:
 # Found 3 learnings → Saved to Knowledge DB
 ```
 
-**`/kln:remember`** — End of session. Reviews git diff, extracts warnings/patterns/solutions, syncs to Serena MCP.
+**`/kln:remember`** — End of session. Reviews git diff, extracts warnings/patterns/decisions, syncs to Serena MCP.
 ```
 /kln:remember
-# Saved 5 entries (2 warnings, 2 patterns, 1 solution)
+# Saved 6 entries (2 warnings, 2 patterns, 1 solution, 1 decision)
 # Synced to Serena lessons-learned
 ```
 
-**`FindKnowledge`** — Search anytime. Just type the keyword.
+**`FindKnowledge`** — Search anytime. Supports date, branch, and type filters.
 ```
 FindKnowledge "JWT validation"
-# Found: [2024-12-15] JWT refresh token race condition fix
+FindKnowledge auth since:2026-02-01
+FindKnowledge type:decision since:2026-02-03
+FindKnowledge auth branch:feature/auth
 ```
 
-**How:** Per-project knowledge database with hybrid search—dense embeddings (BGE-small via [fastembed](https://github.com/qdrant/fastembed)) + sparse matching (BM25) + RRF fusion + cross-encoder reranking. Runs locally via ONNX, <100ms queries.
+**How:** Per-project knowledge database with hybrid search—dense embeddings (BGE-small via [fastembed](https://github.com/qdrant/fastembed)) + sparse matching (BM42) + RRF fusion + cross-encoder reranking. Runs locally via ONNX, <100ms queries. V3.1 schema adds temporal filtering by date, branch, and entry type.
 
 > **No API key?** Knowledge DB works fully offline. You can still use `/kln:learn`, `/kln:remember`, and `FindKnowledge` without NanoGPT or OpenRouter—embeddings run locally on your machine.
 
@@ -215,23 +217,26 @@ Unlike models that review what you give them, **agents read your codebase themse
 
 ### 4. Hooks That Work in Background
 
-4 hooks run automatically—you don't call them:
+5 hooks run automatically—you don't call them:
 
 | Hook | Trigger | What It Does |
 |------|---------|--------------|
-| `session-start` | Claude Code opens | Starts LiteLLM + Knowledge Server |
-| `user-prompt` | You type keywords | `FindKnowledge`, `SaveInfo`, `asyncConsensus` |
-| `post-bash` | After git commits | Logs to timeline, extracts facts |
-| `post-web` | After WebFetch | Evaluates URLs, saves if relevant |
+| `session-start` | Claude Code opens | Starts LiteLLM + Knowledge Server, creates journal entry |
+| `user-prompt` | You type keywords | `FindKnowledge` (with filters), `FindKnowledgeDetail`, `SaveInfo` |
+| `post-bash` | After bash commands | Git commits, test failures, build errors, package installs |
+| `post-web` | After WebFetch | Doc URLs captured as discoveries |
+| `pre-compact` | Context compaction | Summarizes session via Claude Haiku, writes session log |
 
 **Keywords you can type directly** (no slash):
 ```
-FindKnowledge "rate limiting"     # Search KB
-SaveInfo https://docs.example.com # Evaluate + save if useful
-asyncConsensus security           # Background 3-model review
+FindKnowledge "rate limiting"                    # Search KB (compact index)
+FindKnowledge auth since:2026-02-01 type:warning # Filtered search
+FindKnowledgeDetail abc12345                     # Full entry by ID
+SaveInfo https://docs.example.com                # Evaluate + save if useful
+asyncConsensus security                          # Background 3-model review
 ```
 
-**How:** Claude Code hook system with pattern matching. Services auto-start on session begin. Git commits logged to timeline. Web content evaluated and captured if relevant.
+**How:** Claude Code hook system with pattern matching. Services auto-start on session begin. Git commits, test failures, build errors, and doc URLs auto-captured to KB with timestamp and branch metadata.
 
 ---
 

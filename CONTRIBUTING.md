@@ -17,7 +17,7 @@ Thank you for your interest in contributing to K-LEAN!
    ```
 4. Verify installation:
    ```bash
-   kln test
+   kln admin test
    ```
 
 ## Development Workflow
@@ -29,7 +29,7 @@ Thank you for your interest in contributing to K-LEAN!
 2. Make your changes
 3. Test your changes:
    ```bash
-   kln test
+   kln admin test
    ```
 4. Commit with clear messages
 5. Push and create a Pull Request
@@ -45,7 +45,7 @@ Thank you for your interest in contributing to K-LEAN!
 - One feature/fix per PR
 - Update documentation as needed
 - Add tests for new functionality
-- Ensure `kln test` passes
+- Ensure `kln admin test` passes
 
 ## Reporting Issues
 
@@ -53,7 +53,7 @@ Use GitHub Issues with:
 - Clear description
 - Steps to reproduce
 - Expected vs actual behavior
-- K-LEAN version (`kln version`)
+- K-LEAN version (`kln --version`)
 
 ## Questions?
 

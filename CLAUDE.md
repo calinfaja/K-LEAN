@@ -85,7 +85,7 @@ data/
 |--------|---------|
 | `src/klean/platform.py` | Cross-platform paths (platformdirs) and process management (psutil) |
 | `src/klean/reviews.py` | Async code review with httpx (quick, consensus, second-opinion) |
-| `src/klean/hooks.py` | Claude Code hook handlers (session, prompt, bash, web) |
+| `src/klean/hooks.py` | Claude Code hook handlers (session, prompt, bash, web, compact) |
 
 ### Knowledge DB
 
@@ -128,7 +128,8 @@ kln
 └── admin                   # Hidden subgroup
     ├── sync                # Sync data files
     ├── debug               # Live monitoring
-    └── test                # Run test suite
+    ├── test                # Run test suite
+    └── persist-session     # Generate session log via Claude Haiku
 ```
 
 ## Release Process
@@ -154,5 +155,6 @@ Releases are published via GitHub Actions workflow `.github/workflows/publish.ym
 - Target Python: 3.9+
 - Cross-platform: Use `klean.platform` for paths and process management
 - Hooks: Python entry points (`kln-hook-*`), read JSON from stdin, output JSON to stdout
+- Session logs: `.serena/memories/session-log-YYYY-MM-DD.md` (auto-generated on PreCompact)
 - IPC: TCP localhost (not Unix sockets) for cross-platform compatibility
 - Commit style: conventional commits (`feat:`, `fix:`, `docs:`, etc.)

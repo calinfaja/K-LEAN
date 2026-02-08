@@ -657,6 +657,12 @@ KLEAN_HOOKS_CONFIG = {
             "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}],
         },
     ],
+    "PreCompact": [
+        {
+            "matcher": "auto",
+            "hooks": [{"type": "command", "command": "kln-hook-compact", "timeout": 60}],
+        },
+    ],
 }
 
 
@@ -1829,6 +1835,21 @@ def admin_test():
     sys.exit(result.returncode)
 
 
+@admin.command(name="persist-session")
+@click.option("--transcript", "-t", default="", help="Path to transcript JSONL file")
+def admin_persist_session(transcript):
+    """Generate session log from today's activity via Claude Haiku."""
+    from klean.hooks import _persist_session_log
+
+    project_root = find_project_root()
+    if not project_root:
+        console.print("[red]Error:[/red] No project root found")
+        sys.exit(1)
+
+    result = _persist_session_log(project_root, transcript)
+    console.print(result)
+
+
 # Register subcommand groups
 main.add_command(provider)
 main.add_command(model)
@@ -2507,11 +2528,16 @@ def doctor(auto_fix: bool):
             else:
                 missing_hooks.append("PostToolUse")
 
+            if "PreCompact" in hooks:
+                console.print("  [green][OK][/green] PreCompact hooks: Configured")
+            else:
+                missing_hooks.append("PreCompact")
+
         except json.JSONDecodeError:
             issues.append(("ERROR", "settings.json is not valid JSON"))
             console.print(f"  [red]{SYM_FAIL}[/red] settings.json: Invalid JSON")
     else:
-        missing_hooks = ["SessionStart", "UserPromptSubmit", "PostToolUse"]
+        missing_hooks = ["SessionStart", "UserPromptSubmit", "PostToolUse", "PreCompact"]
         console.print("  [yellow]○[/yellow] settings.json: Not found")
 
     if missing_hooks:

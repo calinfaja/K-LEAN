@@ -104,7 +104,7 @@ kln status
 - Scripts count (symlinked status)
 - KLN commands (9)
 - SuperClaude availability (optional)
-- Hook entry points (4)
+- Hook entry points (5)
 - SmolKLN Agents (8)
 - Knowledge DB (per-project status + entry count)
 - LiteLLM Proxy (model count + provider)
@@ -193,16 +193,17 @@ Uses:
 
 ## 2. Hooks System
 
-K-LEAN integrates with Claude Code via **4 Python entry points** that trigger on specific events.
+K-LEAN integrates with Claude Code via **5 Python entry points** that trigger on specific events.
 
 ### Hook Overview
 
 | Entry Point | Trigger | Purpose |
 |-------------|---------|---------|
 | `kln-hook-session` | SessionStart | Auto-start LiteLLM + per-project KB |
-| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (7 keywords) |
+| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (FindKnowledge, FindKnowledgeDetail, SaveInfo, etc.) |
 | `kln-hook-bash` | PostToolUse (Bash) | Git events -> timeline |
 | `kln-hook-web` | PostToolUse (Web*) | Auto-capture web content to KB |
+| `kln-hook-compact` | PreCompact | Session log generation via Claude Haiku |
 
 ---
 
@@ -227,7 +228,7 @@ K-LEAN integrates with Claude Code via **4 Python entry points** that trigger on
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search KB |
+| `FindKnowledge <query>` | Search KB (supports `since:`, `until:`, `branch:`, `type:` filters) |
 | `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `InitKB` | Initialize project KB |
 | `asyncReview` | Background quick review |
@@ -243,10 +244,11 @@ K-LEAN integrates with Claude Code via **4 Python entry points** that trigger on
 
 **Trigger:** After any Bash command
 
-**Detects:**
-- `git commit` -> Log to timeline
-- `git push` -> Log to timeline
-- Other git operations
+**Detects and captures to KB:**
+- `git commit` -> Commit entry with full hash, branch, changed files
+- Test failures (pytest, jest, cargo test, etc.) -> `finding` / high priority
+- Build errors (make, cargo build, tsc, etc.) -> `finding` / high priority
+- Package installs (pip, npm, cargo add) -> `finding` / low priority
 
 **Implementation:** `src/klean/hooks.py:post_bash()`
 
@@ -256,13 +258,42 @@ K-LEAN integrates with Claude Code via **4 Python entry points** that trigger on
 
 **Trigger:** After WebFetch/WebSearch/Tavily tools
 
-**Action:** Smart capture of web content to KB
+**Action:** Smart capture of web content to KB. Documentation URLs (matching patterns like `docs.`, `/api/`, `reference`, `tutorial`) are auto-captured as `discovery` entries.
 
 **Implementation:** `src/klean/hooks.py:post_web()`
 
 ---
 
-### 2.5 Hook Registration
+### 2.5 kln-hook-compact
+
+**Trigger:** PreCompact (before context compaction, `"auto"` trigger only)
+
+**Input:** `{"trigger": "auto"|"manual", "transcript_path": "/path/to/transcript.jsonl"}`
+
+**Actions:**
+1. Read transcript JSONL, extract user messages
+2. Get git log since 6am
+3. Query KB for today's entries (findings, warnings, solutions, patterns)
+4. Send all three data sources to Claude Haiku (`claude -p --model haiku`)
+5. Append summary to `.serena/memories/session-log-YYYY-MM-DD.md`
+6. Create searchable KB session entry with `related_to` link to session log file
+
+**Session log format:**
+```markdown
+## HH:MM - HH:MM | branch-name
+- What was done (3-5 bullets)
+- Commits: commit messages
+- Status: completed|in-progress|blocked
+- Left: unfinished items
+```
+
+**Manual trigger:** `kln admin persist-session [--transcript PATH]`
+
+**Implementation:** `src/klean/hooks.py:pre_compact()`
+
+---
+
+### 2.6 Hook Registration
 
 Hooks are registered in `~/.claude/settings.json` as Python entry points:
 
@@ -289,6 +320,12 @@ Hooks are registered in `~/.claude/settings.json` as Python entry points:
         "matcher": "WebFetch|WebSearch",
         "hooks": [{"type": "command", "command": "kln-hook-web", "timeout": 10}]
       }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [{"type": "command", "command": "kln-hook-compact", "timeout": 60}]
+      }
     ]
   }
 }
@@ -298,7 +335,7 @@ Hooks are registered in `~/.claude/settings.json` as Python entry points:
 
 ---
 
-### 2.6 Hook I/O Protocol
+### 2.7 Hook I/O Protocol
 
 Hooks read JSON from stdin and output JSON to stdout:
 
@@ -318,7 +355,7 @@ or
 
 ---
 
-### 2.7 Exit Code Behavior
+### 2.8 Exit Code Behavior
 
 | Code | Behavior |
 |------|----------|
@@ -328,7 +365,7 @@ or
 
 ---
 
-### 2.8 Debugging Hooks
+### 2.9 Debugging Hooks
 
 ```bash
 # Test hooks manually
@@ -347,8 +384,10 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
 - **Per-project isolation**: Each git repo gets its own KB
 - **Semantic search**: Find related knowledge by meaning, not just keywords
 - **Fast queries**: TCP server with 1hr idle timeout (~30ms latency)
-- **V2 schema**: Rich metadata for quality and provenance
+- **V3.1 schema**: Rich metadata with timestamp, branch, and entry linking
+- **Temporal filtering**: Search by date range, git branch, and entry type
 - **Immediate indexing**: Server-owned writes for instant searchability
+- **Auto-capture**: Git commits, test failures, build errors, doc URLs captured automatically
 
 ---
 
@@ -384,36 +423,37 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
 
 ---
 
-### 3.2 V2 Schema
+### 3.2 V3.1 Schema
 
 Each knowledge entry contains:
 
 ```json
 {
-  "id": "uuid",
-  "found_date": "ISO8601",
-  "title": "Brief title",
-  "summary": "Detailed description",
-  "type": "lesson|finding|solution|pattern",
-  "atomic_insight": "Single clear insight",
-  "key_concepts": ["concept1", "concept2"],
-  "tags": ["tag1", "tag2"],
-  "quality": "high|medium|low",
-  "source": "manual|conversation|web|file",
-  "source_path": "path/to/source",
-  "relevance_score": 0.85,
-  "confidence_score": 0.9
+  "id": "finding-20260207103000",
+  "title": "Short descriptive title (max 80 chars)",
+  "insight": "2-4 sentence explanation with actionable details",
+  "type": "warning|solution|pattern|decision|discovery|journal|finding|commit|session",
+  "priority": "critical|high|medium|low",
+  "keywords": ["searchable", "terms"],
+  "source": "file:path:line|https://url|git:hash|conv:YYYY-MM-DD",
+  "date": "2026-02-07",
+  "timestamp": "2026-02-07T10:30:00",
+  "branch": "feature/auth",
+  "related_to": ["entry-id-1"]
 }
 ```
 
 | Field | Purpose |
 |-------|---------|
-| `type` | Entry category (lesson/finding/solution/pattern) |
-| `atomic_insight` | Single, self-contained insight |
-| `key_concepts` | Searchable concept tags |
-| `quality` | Quality level (high/medium/low) |
-| `source` | Origin type (manual/conversation/web/file) |
-| `relevance_score` | Semantic relevance (0-1) |
+| `type` | Entry category (warning/solution/pattern/decision/discovery/journal/finding/commit/session) |
+| `priority` | Importance level (critical/high/medium/low) |
+| `keywords` | Searchable terms (merged from legacy tags + key_concepts) |
+| `source` | Actionable reference (file:path:line, git:hash, URL) |
+| `timestamp` | ISO 8601 for intra-day ordering (V3.1) |
+| `branch` | Git branch at capture time (V3.1) |
+| `related_to` | Bidirectional linked entry IDs (V3.1) |
+
+Old V2 entries are auto-migrated on load via `migrate_entry()`.
 
 ---
 
@@ -481,7 +521,12 @@ print(result)
 | Command | Request | Response |
 |---------|---------|----------|
 | search | `{"cmd":"search","query":"...","limit":5}` | `{"results":[...],"search_time_ms":...}` |
+| search (filtered) | `{"cmd":"search","query":"...","date_from":"...","date_to":"...","entry_type":"...","branch":"..."}` | Same as search |
+| search_by_date | `{"cmd":"search_by_date","start":"2026-02-06","end":"2026-02-07"}` | `{"entries":[...],"count":...}` |
+| get_timeline | `{"cmd":"get_timeline","date":"2026-02-07"}` | `{"entries":[...],"count":...}` |
+| get_related | `{"cmd":"get_related","id":"entry-id"}` | `{"entries":[...],"count":...}` |
 | add | `{"cmd":"add","entry":{...}}` | `{"status":"ok","id":"..."}` |
+| get | `{"cmd":"get","id":"entry-id"}` | `{"status":"ok","entry":{...}}` |
 | status | `{"cmd":"status"}` | `{"status":"running","entries":...}` |
 | ping | `{"cmd":"ping"}` | `{"pong":true}` |
 
@@ -797,7 +842,8 @@ print(result["output"])
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search knowledge DB |
+| `FindKnowledge <query>` | Search knowledge DB (compact index with IDs) |
+| `FindKnowledgeDetail <id>` | Fetch full entry by ID |
 | `SaveInfo <url>` | Smart save URL |
 
 ---
@@ -832,4 +878,4 @@ kln model list # List models
 
 ---
 
-*Last updated: 2026-01*
+*Last updated: 2026-02*
