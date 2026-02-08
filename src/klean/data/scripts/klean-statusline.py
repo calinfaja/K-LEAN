@@ -9,10 +9,10 @@ Optimized statusline with actionable metrics:
 3. Git       - Branch + dirty state + lines changed
 4. Services  - LiteLLM + Knowledge DB status
 
-Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:[OK]
+Layout: [opus] │ myproject │ main● +45-12 │ llm:6 kb:42
 
 Knowledge DB Status:
-- kb:[OK]        (green)  - Server running
+- kb:<count>     (green)  - Server running, shows entry count
 - run InitKB  (cyan)   - Not initialized, prompts user
 - kb:starting (yellow) - Server starting up
 - kb:—        (dim)    - No project root found
@@ -21,6 +21,7 @@ Knowledge DB Status:
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -33,14 +34,13 @@ RE_DELETIONS = re.compile(r"(\d+) deletion")
 try:
     from kb_utils import (  # noqa: F401
         clean_stale_socket,
-        get_socket_path,
+        get_server_port,
         is_kb_initialized,
-        is_server_running,
     )
     from kb_utils import find_project_root as _find_project_root
 except ImportError:
     sys.path.insert(0, str(Path(__file__).parent))
-    from kb_utils import clean_stale_socket, is_kb_initialized, is_server_running
+    from kb_utils import clean_stale_socket, get_server_port, is_kb_initialized
     from kb_utils import find_project_root as _find_project_root
 
 
@@ -213,10 +213,11 @@ def check_litellm() -> tuple[int, bool]:
         return 0, False
 
 
-def check_knowledge_db(workspace: dict) -> str:
-    """Check knowledge DB status for the project.
+def check_knowledge_db(workspace: dict) -> tuple[str, int]:
+    """Check knowledge DB status and entry count via TCP status command.
 
     Returns:
+        (status, entry_count) where status is one of:
         "running" - server is up and responding
         "stopped" - .knowledge-db exists but server not running
         "init"    - no .knowledge-db directory (needs initialization)
@@ -226,26 +227,37 @@ def check_knowledge_db(workspace: dict) -> str:
     project_root = _find_project_root(project_dir)
 
     if not project_root:
-        return "no-project"
+        return "no-project", 0
 
     project_root_str = str(project_root)
 
     if not is_kb_initialized(project_root_str):
-        return "init"
+        return "init", 0
 
-    if is_server_running(project_root_str, timeout=0.3):
-        return "running"
+    # Single TCP call: get health + entry count in one round-trip
+    port = get_server_port(project_root_str)
+    if not port:
+        return "stopped", 0
 
-    # Clean stale socket if exists
-    clean_stale_socket(project_root_str)
-    return "stopped"
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.3)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(b'{"cmd":"status"}')
+        data = json.loads(sock.recv(1024).decode())
+        sock.close()
+        entries = data.get("entries", 0)
+        return "running", entries
+    except Exception:
+        clean_stale_socket(project_root_str)
+        return "stopped", 0
 
 
 def get_services(data: dict) -> str:
     """Get K-LEAN services status."""
     llm_count, llm_running = check_litellm()
     workspace = data.get("workspace", {})
-    kb_status = check_knowledge_db(workspace)
+    kb_status, kb_entries = check_knowledge_db(workspace)
 
     # LiteLLM status
     if llm_running and llm_count >= 1:
@@ -253,14 +265,12 @@ def get_services(data: dict) -> str:
     else:
         llm = f"{C.RED}[X]{C.RESET}"
 
-    # Knowledge DB status - meaningful messages
+    # Knowledge DB status - entry count when running, actionable message otherwise
     if kb_status == "running":
-        kb = f"{C.GREEN}[OK]{C.RESET}"
+        kb = f"{C.GREEN}{kb_entries}{C.RESET}"
     elif kb_status == "init":
-        # Not initialized - cyan prompt to run InitKB
         return f"{C.DIM}llm:{llm}{C.RESET} {C.CYAN}run InitKB{C.RESET}"
     elif kb_status == "stopped":
-        # Initialized but server not running
         kb = f"{C.YELLOW}starting{C.RESET}"
     else:  # no-project
         kb = f"{C.DIM}—{C.RESET}"
@@ -284,7 +294,7 @@ def main():
     git = get_git(data)
     services = get_services(data)
 
-    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:18 kb:[OK]
+    # Assemble: [opus] │ myproject │ main● +45-12 │ llm:6 kb:42
     line = f"{model}{SEP}{project}{SEP}{git}{SEP}{services}"
 
     print(line)

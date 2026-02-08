@@ -2,9 +2,9 @@
   "project": {
     "name": "k-lean",
     "package_name": "kln-ai",
-    "version": "1.0.0b7",
+    "version": "1.0.0b8",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
-    "generated": "2026-02-07",
+    "generated": "2026-02-08",
     "python_version": ">=3.9",
     "license": "Apache-2.0",
     "cross_platform": true
@@ -26,13 +26,13 @@
         "root": ["init", "install", "uninstall", "start", "stop", "status", "doctor", "multi"],
         "model_subgroup": ["list", "add", "remove", "test"],
         "provider_subgroup": ["list", "add", "set-key", "remove"],
-        "admin_subgroup": ["sync", "debug", "test"]
+        "admin_subgroup": ["sync", "debug", "test", "persist-session"]
       },
       "purpose": "Primary CLI with Click commands, organized into root + 3 subgroups"
     },
     "hooks": {
       "path": "src/klean/hooks.py",
-      "exports": ["session_start", "prompt_handler", "post_bash", "post_web"],
+      "exports": ["session_start", "prompt_handler", "post_bash", "post_web", "pre_compact"],
       "purpose": "Cross-platform Python hook entry points (read JSON stdin, output JSON stdout)"
     },
     "reviews": {
@@ -115,26 +115,27 @@
   "knowledge_db": {
     "storage": ".knowledge-db/",
     "backend": "fastembed-hybrid",
-    "schema_version": "3.1",
+    "schema_version": "3.2",
     "models": {
       "dense": "BAAI/bge-small-en-v1.5",
       "sparse": "Qdrant/bm42-all-minilm-l6-v2-attentions",
       "reranker": "Xenova/ms-marco-MiniLM-L-6-v2"
     },
-    "entry_types": ["warning", "solution", "pattern", "decision", "discovery", "journal", "finding"],
+    "entry_types": ["warning", "solution", "pattern", "decision", "discovery", "journal", "finding", "commit", "session"],
     "search_pipeline": ["dense", "sparse", "rrf_fusion", "post_rrf_filtering", "reranking"],
     "filters": ["date_from", "date_to", "entry_type", "branch"],
     "server": {
       "type": "tcp_localhost",
       "port": "14000 + hash_offset",
-      "features": ["server-owned writes", "immediate indexing", "add command", "date/branch/type filtering", "search_by_date", "get_timeline", "get_related"]
+      "features": ["server-owned writes", "immediate indexing", "add command", "date/branch/type filtering", "search_by_date", "get_timeline", "get_related", "get", "update_usage", "status"]
     },
     "auto_capture": ["git_commits", "test_failures", "build_errors", "package_installs", "doc_urls", "session_starts"],
     "scripts": {
       "server": "data/scripts/knowledge-server.py",
       "capture": "data/scripts/knowledge-capture.py",
       "core": "data/scripts/knowledge_db.py",
-      "utils": "data/scripts/kb_utils.py"
+      "utils": "data/scripts/kb_utils.py",
+      "statusline": "data/scripts/klean-statusline.py"
     }
   },
   "tests": {
