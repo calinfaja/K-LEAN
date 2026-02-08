@@ -728,7 +728,8 @@ def _get_kb_context(project_root: Path) -> str:
 
     # 2. Grouped warnings (critical/high)
     warnings = [
-        e for e in all_entries
+        e
+        for e in all_entries
         if e.get("type") == "warning" and e.get("priority") in ("critical", "high")
     ]
     if warnings:
@@ -742,7 +743,8 @@ def _get_kb_context(project_root: Path) -> str:
     # 3. Recent entries (non-warning), TOON format, limit 8
     warning_ids = {e.get("id") for e in warnings}
     recent = [
-        e for e in all_entries
+        e
+        for e in all_entries
         if e.get("id") not in warning_ids and e.get("type") not in ("session", "journal")
     ][:8]
 
@@ -852,7 +854,8 @@ def post_bash() -> None:
         test_cmds = ["pytest", "npm test", "cargo test", "go test", "jest", "vitest"]
         if any(tc in command for tc in test_cmds):
             _capture_bash_event(
-                command, tool_result,
+                command,
+                tool_result,
                 entry_type="finding",
                 priority="high",
                 prefix="Test failure",
@@ -863,7 +866,8 @@ def post_bash() -> None:
         build_cmds = ["make", "cargo build", "npm run build", "go build", "tsc", "gcc", "g++"]
         if any(bc in command for bc in build_cmds):
             _capture_bash_event(
-                command, tool_result,
+                command,
+                tool_result,
                 entry_type="finding",
                 priority="high",
                 prefix="Build error",
@@ -873,7 +877,8 @@ def post_bash() -> None:
     # Detect package installs
     elif any(pc in command for pc in ["pip install", "npm install", "cargo add"]):
         _capture_bash_event(
-            command, tool_result,
+            command,
+            tool_result,
             entry_type="finding",
             priority="low",
             prefix="Package install",
@@ -1087,8 +1092,18 @@ def post_web() -> None:
             _log_to_timeline("docs", f"Context7: {library_id} - {query[:50]}")
 
     # Log documentation URLs and create KB entries for doc-pattern URLs
-    doc_patterns = ["docs.", "/docs/", "documentation", "readme", "wiki", "guide",
-                    "reference", "api.", "/api/", "tutorial"]
+    doc_patterns = [
+        "docs.",
+        "/docs/",
+        "documentation",
+        "readme",
+        "wiki",
+        "guide",
+        "reference",
+        "api.",
+        "/api/",
+        "tutorial",
+    ]
     project_root = find_project_root()
 
     for url in urls:
@@ -1258,16 +1273,15 @@ def _handle_find_knowledge_detail(entry_id: str) -> str:
     # Resolve entry: short ID prefix vs full UUID
     if len(entry_id) < 36:
         data = _kb_send(
-            project_root, {"cmd": "recent", "limit": 200},
-            timeout=3.0, recv_size=131072,
+            project_root,
+            {"cmd": "recent", "limit": 200},
+            timeout=3.0,
+            recv_size=131072,
         )
         if not data:
             return f"Error fetching entry: {entry_id}"
 
-        matches = [
-            e for e in data.get("entries", [])
-            if e.get("id", "").startswith(entry_id)
-        ]
+        matches = [e for e in data.get("entries", []) if e.get("id", "").startswith(entry_id)]
         if not matches:
             return f"No entry found matching ID prefix: {entry_id}"
         if len(matches) > 1:
@@ -1275,8 +1289,10 @@ def _handle_find_knowledge_detail(entry_id: str) -> str:
         entry = matches[0]
     else:
         data = _kb_send(
-            project_root, {"cmd": "get", "id": entry_id},
-            timeout=3.0, recv_size=65536,
+            project_root,
+            {"cmd": "get", "id": entry_id},
+            timeout=3.0,
+            recv_size=65536,
         )
         if not data or "error" in data:
             return f"Entry not found: {entry_id}"

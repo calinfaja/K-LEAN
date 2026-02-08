@@ -253,9 +253,12 @@ class KnowledgeServer:
                     else:
                         start = time.time()
                         results = self.db.search(
-                            query, limit,
-                            date_from=date_from, date_to=date_to,
-                            entry_type=entry_type, branch=branch,
+                            query,
+                            limit,
+                            date_from=date_from,
+                            date_to=date_to,
+                            entry_type=entry_type,
+                            branch=branch,
                         )
                         search_time = time.time() - start
                         response = {

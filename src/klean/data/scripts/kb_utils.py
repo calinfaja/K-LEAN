@@ -441,11 +441,18 @@ PROJECT_MARKERS = [".knowledge-db", ".serena", ".claude", ".git"]
 # V3 Schema - Simplified 8-field schema + V3.1 extensions
 # id, title, insight, type, priority, keywords, source, date + timestamp, branch, related_to
 SCHEMA_V3_FIELDS = [
-    "id", "title", "insight", "type", "priority", "keywords", "source", "date",
+    "id",
+    "title",
+    "insight",
+    "type",
+    "priority",
+    "keywords",
+    "source",
+    "date",
     # V3.1 extensions
-    "timestamp",    # ISO 8601: "2026-02-07T10:30:00"
-    "branch",       # git branch: "feature/auth"
-    "related_to",   # list of entry IDs: ["uuid1", "uuid2"]
+    "timestamp",  # ISO 8601: "2026-02-07T10:30:00"
+    "branch",  # git branch: "feature/auth"
+    "related_to",  # list of entry IDs: ["uuid1", "uuid2"]
 ]
 
 SCHEMA_V3_DEFAULTS = {

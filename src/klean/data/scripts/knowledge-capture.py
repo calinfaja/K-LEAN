@@ -60,7 +60,9 @@ def _get_current_branch() -> str:
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            capture_output=True, text=True, timeout=3,
+            capture_output=True,
+            text=True,
+            timeout=3,
         )
         if result.returncode == 0:
             return result.stdout.strip()
