@@ -399,10 +399,6 @@ def pre_compact() -> None:
 
     _debug_log(f"pre_compact: trigger={trigger}")
 
-    # Only run on auto-compact (natural session boundary)
-    if trigger != "auto":
-        sys.exit(0)
-
     project_root = find_project_root()
     if not project_root:
         sys.exit(0)

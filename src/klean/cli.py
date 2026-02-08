@@ -677,7 +677,6 @@ KLEAN_HOOKS_CONFIG = {
     ],
     "PreCompact": [
         {
-            "matcher": "auto",
             "hooks": [{"type": "command", "command": "kln-hook-compact", "timeout": 60}],
         },
     ],
@@ -1891,7 +1890,8 @@ main.add_command(admin)
     "--component",
     "-c",
     type=click.Choice(
-        ["all", "scripts", "commands", "hooks", "smolkln", "config", "core", "knowledge"]
+        ["all", "scripts", "commands", "hooks", "smolkln", "config", "core", "knowledge",
+         "knowledge-only"]
     ),
     default="all",
     help="Component to install",
@@ -1901,6 +1901,8 @@ def install(dev: bool, component: str, yes: bool):
     """Install K-LEAN components to ~/.claude/"""
     print_banner()
 
+    # "knowledge-only": scripts, commands, hooks, rules, knowledge, statusline, hook-config
+    # (skips: smolkln, litellm config, core)
     mode = "development (symlinks)" if dev else "production (copies)"
     console.print(f"\n[bold]Installation Mode:[/bold] {mode}")
 
@@ -1923,7 +1925,7 @@ def install(dev: bool, component: str, yes: bool):
     installed = {}
 
     # Install scripts (Python only - cross-platform)
-    if component in ["all", "scripts"]:
+    if component in ["all", "scripts", "knowledge-only"]:
         console.print("[bold]Installing scripts...[/bold]")
         scripts_dst = CLAUDE_DIR / "scripts"
 
@@ -1936,7 +1938,7 @@ def install(dev: bool, component: str, yes: bool):
             console.print(f"  [yellow]Scripts source not found: {source_scripts}[/yellow]")
 
     # Install commands
-    if component in ["all", "commands"]:
+    if component in ["all", "commands", "knowledge-only"]:
         console.print("[bold]Installing slash commands...[/bold]")
 
         # KLN commands
@@ -1950,7 +1952,7 @@ def install(dev: bool, component: str, yes: bool):
         # Users can manage SC commands separately
 
     # Install hooks - hooks are now Python entry points (cross-platform)
-    if component in ["all", "hooks"]:
+    if component in ["all", "hooks", "knowledge-only"]:
         console.print("[bold]Installing hooks...[/bold]")
         # Hooks are Python entry points installed via pip/pipx (kln-hook-*)
         # They don't need to be copied - just configured in settings.json
@@ -2012,7 +2014,8 @@ def install(dev: bool, component: str, yes: bool):
                         f"  [green]Installed {count} LiteLLM callbacks (thinking models)[/green]"
                     )
 
-        # Install rules (loaded every Claude session)
+    # Install rules (loaded every Claude session)
+    if component in ["all", "config", "knowledge-only"]:
         rules_src = DATA_DIR / "rules"
         if rules_src.exists():
             rules_dst = CLAUDE_DIR / "rules"
@@ -2068,7 +2071,7 @@ def install(dev: bool, component: str, yes: bool):
             console.print(f"  [yellow]Core source not found: {source_core}[/yellow]")
 
     # Install knowledge system
-    if component in ["all", "knowledge"]:
+    if component in ["all", "knowledge", "knowledge-only"]:
         console.print("[bold]Setting up knowledge database...[/bold]")
         if not VENV_DIR.exists():
             console.print("  Creating Python virtual environment...")
@@ -2095,7 +2098,7 @@ def install(dev: bool, component: str, yes: bool):
                 )
 
     # Configure statusline (if scripts were installed)
-    if component in ["all", "scripts"]:
+    if component in ["all", "scripts", "knowledge-only"]:
         console.print("[bold]Configuring statusline...[/bold]")
         if configure_statusline():
             console.print("  [green]Statusline configured[/green]")
@@ -2103,7 +2106,7 @@ def install(dev: bool, component: str, yes: bool):
             console.print("  [dim]Statusline: skipped or already configured[/dim]")
 
     # Configure hooks in settings.json (if hooks were installed)
-    if component in ["all", "hooks"]:
+    if component in ["all", "hooks", "knowledge-only"]:
         console.print("[bold]Configuring hooks...[/bold]")
         try:
             settings_file = CLAUDE_DIR / "settings.json"
@@ -2130,21 +2133,28 @@ def install(dev: bool, component: str, yes: bool):
         console.print("\n[cyan]Development mode:[/cyan] Files are symlinked to source.")
         console.print("Edit source files and changes will be immediately available.")
 
-    console.print("\n[bold]Next steps:[/bold]")
-    env_file = CONFIG_DIR / ".env"
-    step = 1
-    if not env_file.exists():
-        console.print(f"  {step}. Configure API keys: [cyan]kln setup[/cyan]")
+    if component == "knowledge-only":
+        console.print("\n[bold]Next steps:[/bold]")
+        console.print("  1. Capture learnings: [cyan]/kln:learn[/cyan]")
+        console.print("  2. Search knowledge: type [cyan]FindKnowledge query[/cyan]")
+        console.print("\nAdd API provider later for code reviews:")
+        console.print("  [cyan]kln init --provider nanogpt --api-key $KEY[/cyan]")
+    else:
+        console.print("\n[bold]Next steps:[/bold]")
+        env_file = CONFIG_DIR / ".env"
+        step = 1
+        if not env_file.exists():
+            console.print(f"  {step}. Configure API keys: [cyan]kln setup[/cyan]")
+            step += 1
+        console.print(f"  {step}. Start services: [cyan]kln start[/cyan]")
         step += 1
-    console.print(f"  {step}. Start services: [cyan]kln start[/cyan]")
-    step += 1
-    console.print(f"  {step}. Verify: [cyan]kln status[/cyan]")
+        console.print(f"  {step}. Verify: [cyan]kln status[/cyan]")
 
-    # Check if smolagents is installed
-    if not _check_smolagents_installed():
-        console.print("\n[bold]Optional - SmolKLN agents:[/bold]")
-        console.print("  To use SmolKLN agents, install:")
-        console.print("  [cyan]pipx inject kln-ai 'smolagents[litellm]'[/cyan]")
+        # Check if smolagents is installed
+        if not _check_smolagents_installed():
+            console.print("\n[bold]Optional - SmolKLN agents:[/bold]")
+            console.print("  To use SmolKLN agents, install:")
+            console.print("  [cyan]pipx inject kln-ai 'smolagents[litellm]'[/cyan]")
 
 
 @main.command()
@@ -3250,11 +3260,11 @@ def init(provider: Optional[str], api_key: Optional[str]):
         console.print(f"[green]{SYM_OK}[/green] {providers_str} providers configured")
 
     # Install components (invoke existing install command)
+    install_component = "knowledge-only" if provider == "skip" else "all"
     console.print("Installing K-LEAN components...")
     try:
-        # Call install command with --yes flag to skip prompts
         ctx = click.get_current_context()
-        ctx.invoke(install, dev=False, component="all", yes=True)
+        ctx.invoke(install, dev=False, component=install_component, yes=True)
         console.print(f"[green]{SYM_OK}[/green] Installed to ~/.claude/")
     except Exception as e:
         console.print(f"[red]Error installing components: {e}[/red]")
