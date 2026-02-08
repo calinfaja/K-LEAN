@@ -696,8 +696,9 @@ def _get_kb_context(project_root: Path) -> str:
     Structure:
     1. Previous session log (if exists)
     2. Grouped warnings with count
-    3. Recent entries in TOON format (up to 8)
-    4. Serena prompt for session history
+    3. Pinned entries (usage-proven, skip decay)
+    4. Recent entries in TOON format (up to 8)
+    5. Serena prompt for session history
 
     Args:
         project_root: Project root path.
@@ -740,19 +741,28 @@ def _get_kb_context(project_root: Path) -> str:
             warning_str += f" | +{count - 2} more"
         parts.append(f"[!] WARNINGS ({count}): {warning_str}")
 
-    # 3. Recent entries (non-warning), TOON format, limit 8
+    # 3. Pinned entries (usage-proven, skip decay)
     warning_ids = {e.get("id") for e in warnings}
+    pinned = [e for e in all_entries if e.get("pinned") and e.get("id") not in warning_ids]
+    if pinned:
+        toon_pinned = _format_entries_toon(pinned)
+        parts.append(f"[KB] PINNED:\n{toon_pinned}")
+
+    # 4. Recent entries (non-warning, non-pinned), TOON format, limit 8
+    pinned_ids = {e.get("id") for e in pinned}
     recent = [
         e
         for e in all_entries
-        if e.get("id") not in warning_ids and e.get("type") not in ("session", "journal")
+        if e.get("id") not in warning_ids
+        and e.get("id") not in pinned_ids
+        and e.get("type") not in ("session", "journal")
     ][:8]
 
     if recent:
         toon_recent = _format_entries_toon(recent)
         parts.append(f"[KB] RECENT:\n{toon_recent}")
 
-    # 4. Serena prompt
+    # 5. Serena prompt
     parts.append(serena_prompt)
 
     return "\n\n".join(parts)

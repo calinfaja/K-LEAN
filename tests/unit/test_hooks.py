@@ -490,15 +490,20 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({"type": "user", "message": {
-                "content": "<command-name>/clear</command-name>"
-            }}),
-            json.dumps({"type": "user", "message": {
-                "content": "<local-command-caveat>some caveat</local-command-caveat>"
-            }}),
-            json.dumps({"type": "user", "message": {
-                "content": "Actual user question about the code"
-            }}),
+            json.dumps(
+                {"type": "user", "message": {"content": "<command-name>/clear</command-name>"}}
+            ),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {
+                        "content": "<local-command-caveat>some caveat</local-command-caveat>"
+                    },
+                }
+            ),
+            json.dumps(
+                {"type": "user", "message": {"content": "Actual user question about the code"}}
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -539,9 +544,9 @@ class TestExtractUserMessages:
         lines = [
             json.dumps({"type": "user", "message": {"content": "yes"}}),
             json.dumps({"type": "user", "message": {"content": "ok"}}),
-            json.dumps({"type": "user", "message": {
-                "content": "Please fix the authentication bug"
-            }}),
+            json.dumps(
+                {"type": "user", "message": {"content": "Please fix the authentication bug"}}
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -709,7 +714,9 @@ class TestPersistSessionLog:
             patch("subprocess.run", return_value=mock_git),
             patch("klean.hooks._get_current_branch", return_value="main"),
             patch("klean.hooks._get_today_kb_entries", return_value=kb_entries),
-            patch("klean.hooks._call_claude_haiku", return_value="## 14:00 | main\n- Work") as mock_haiku,
+            patch(
+                "klean.hooks._call_claude_haiku", return_value="## 14:00 | main\n- Work"
+            ) as mock_haiku,
             patch("klean.hooks._create_session_kb_entry"),
         ):
             _persist_session_log(tmp_path, "")
@@ -717,7 +724,6 @@ class TestPersistSessionLog:
             prompt_arg = mock_haiku.call_args[0][0]
             assert "Knowledge captured this session" in prompt_arg
             assert "Auth uses weak hashing" in prompt_arg
-
 
 
 class TestGetTodayKbEntries:
@@ -778,7 +784,9 @@ class TestCreateSessionKbEntry:
         add_resp = {"status": "ok"}
 
         with patch("klean.hooks._kb_send", side_effect=[search_resp, add_resp]) as mock_send:
-            _create_session_kb_entry(tmp_path, "main", "## 14:00 | main\n- Did X\n- Did Y\n- Commits: abc123")
+            _create_session_kb_entry(
+                tmp_path, "main", "## 14:00 | main\n- Did X\n- Did Y\n- Commits: abc123"
+            )
             assert mock_send.call_count == 2
             add_call = mock_send.call_args_list[1]
             entry = add_call[0][1]["entry"]
@@ -813,6 +821,7 @@ class TestCreateSessionKbEntry:
         with patch("klean.hooks._kb_send", return_value=None):
             # Should not raise
             _create_session_kb_entry(tmp_path, "main", "## 14:00 | main\n- Work")
+
 
 class TestReadLatestSessionLog:
     """Tests for _read_latest_session_log() function."""
@@ -868,9 +877,10 @@ class TestPreCompact:
         from klean.hooks import pre_compact
 
         with (
-            patch("klean.hooks._read_input", return_value={
-                "trigger": "auto", "transcript_path": "/tmp/test.jsonl"
-            }),
+            patch(
+                "klean.hooks._read_input",
+                return_value={"trigger": "auto", "transcript_path": "/tmp/test.jsonl"},
+            ),
             patch("klean.hooks.find_project_root", return_value=None),
             pytest.raises(SystemExit) as exc_info,
         ):
@@ -885,9 +895,10 @@ class TestPreCompact:
         memory_dir.mkdir(parents=True)
 
         with (
-            patch("klean.hooks._read_input", return_value={
-                "trigger": "auto", "transcript_path": "/tmp/test.jsonl"
-            }),
+            patch(
+                "klean.hooks._read_input",
+                return_value={"trigger": "auto", "transcript_path": "/tmp/test.jsonl"},
+            ),
             patch("klean.hooks.find_project_root", return_value=tmp_path),
             patch("klean.hooks._persist_session_log", return_value="ok") as mock_persist,
             pytest.raises(SystemExit),
@@ -962,13 +973,16 @@ class TestGetKbContext:
         from klean.hooks import _get_kb_context
 
         entries = [
-            {"id": f"w{i}", "type": "warning", "priority": "high", "title": f"Warning {i}",
-             "keywords": []}
+            {
+                "id": f"w{i}",
+                "type": "warning",
+                "priority": "high",
+                "title": f"Warning {i}",
+                "keywords": [],
+            }
             for i in range(4)
         ]
-        entries.append(
-            {"id": "f1", "type": "finding", "title": "Test", "keywords": ["test"]}
-        )
+        entries.append({"id": "f1", "type": "finding", "title": "Test", "keywords": ["test"]})
 
         with (
             patch("klean.hooks._is_kb_server_running", return_value=True),
@@ -984,8 +998,13 @@ class TestGetKbContext:
 
         entries = [
             {"id": "j1", "type": "journal", "title": "Session started", "keywords": []},
-            {"id": "s1", "type": "session", "title": "Session summary: 2026-02-07",
-             "insight": "test", "keywords": []},
+            {
+                "id": "s1",
+                "type": "session",
+                "title": "Session summary: 2026-02-07",
+                "insight": "test",
+                "keywords": [],
+            },
             {"id": "f1", "type": "finding", "title": "Real finding", "keywords": ["test"]},
         ]
 
@@ -1195,3 +1214,82 @@ class TestPromptHandlerFindKnowledgeDetail:
             with pytest.raises(SystemExit) as exc_info:
                 prompt_handler()
             assert exc_info.value.code == 0
+
+
+# =============================================================================
+# Auto-Pin Tests
+# =============================================================================
+
+
+class TestGetKbContextPinned:
+    """Tests for pinned entries in _get_kb_context()."""
+
+    def test_pinned_entries_shown_in_pinned_section(self, tmp_path):
+        """Pinned entries should appear in [KB] PINNED section."""
+        from klean.hooks import _get_kb_context
+
+        entries = [
+            {
+                "id": "p1",
+                "type": "pattern",
+                "title": "JWT uses RS256",
+                "keywords": ["jwt"],
+                "pinned": True,
+            },
+            {
+                "id": "f1",
+                "type": "finding",
+                "title": "Found perf issue",
+                "keywords": ["perf"],
+                "pinned": False,
+            },
+        ]
+
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._kb_send", return_value={"entries": entries}),
+        ):
+            result = _get_kb_context(tmp_path)
+            assert "[KB] PINNED:" in result
+            assert "JWT uses RS256" in result
+            assert "[KB] RECENT:" in result
+            assert "Found perf issue" in result
+
+    def test_pinned_entries_not_duplicated_in_recent(self, tmp_path):
+        """Pinned entries should NOT appear in RECENT section."""
+        from klean.hooks import _get_kb_context
+
+        entries = [
+            {
+                "id": "p1",
+                "type": "pattern",
+                "title": "Pinned entry",
+                "keywords": ["test"],
+                "pinned": True,
+            },
+        ]
+
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._kb_send", return_value={"entries": entries}),
+        ):
+            result = _get_kb_context(tmp_path)
+            assert "[KB] PINNED:" in result
+            # Should not have RECENT section since the only entry is pinned
+            assert "[KB] RECENT:" not in result
+
+    def test_no_pinned_section_when_none_pinned(self, tmp_path):
+        """Should not show PINNED section when no entries are pinned."""
+        from klean.hooks import _get_kb_context
+
+        entries = [
+            {"id": "f1", "type": "finding", "title": "Regular entry", "keywords": ["test"]},
+        ]
+
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._kb_send", return_value={"entries": entries}),
+        ):
+            result = _get_kb_context(tmp_path)
+            assert "[KB] PINNED:" not in result
+            assert "[KB] RECENT:" in result

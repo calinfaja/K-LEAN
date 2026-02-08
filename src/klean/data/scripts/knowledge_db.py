@@ -513,6 +513,8 @@ class KnowledgeDB:
         entry.setdefault("timestamp", datetime.now().isoformat())
         entry.setdefault("branch", "")
         entry.setdefault("related_to", [])
+        # V3.2: Auto-pin critical entries (research: Copilot Memory pattern)
+        entry.setdefault("pinned", entry.get("priority") == "critical")
 
         # Build searchable text
         searchable_text = self._build_searchable_text(entry)
@@ -624,6 +626,11 @@ class KnowledgeDB:
                     "rrf_score": rrf,
                 }
                 results.append(entry)
+
+        # Boost pinned entries (research: usage-proven value ranks higher)
+        for r in results:
+            if r.get("pinned"):
+                r["score"] *= 1.3
 
         # Post-RRF filtering (before reranking)
         if date_from:
@@ -936,6 +943,9 @@ class KnowledgeDB:
                             if entry.get("id") in id_set:
                                 entry["usage_count"] = entry.get("usage_count", 0) + 1
                                 entry["last_used"] = now
+                                # Auto-pin at 3 uses (research: implicit feedback)
+                                if entry["usage_count"] >= 3 and not entry.get("pinned"):
+                                    entry["pinned"] = True
                                 updated_count += 1
                             entries.append(entry)
                     except json.JSONDecodeError:
@@ -952,8 +962,34 @@ class KnowledgeDB:
                 if entry.get("id") in id_set:
                     self._entries[i]["usage_count"] = entry.get("usage_count", 0) + 1
                     self._entries[i]["last_used"] = now
+                    if self._entries[i]["usage_count"] >= 3:
+                        self._entries[i]["pinned"] = True
+
+            # Enforce pin cap: max 15 pinned entries
+            self._enforce_pin_cap(entries)
 
         return updated_count
+
+    MAX_PINNED = 15
+
+    def _enforce_pin_cap(self, entries: list[dict[str, Any]]) -> None:
+        """Enforce max pinned entries. Unpin lowest-usage when cap exceeded."""
+        pinned = [e for e in entries if e.get("pinned")]
+        if len(pinned) <= self.MAX_PINNED:
+            return
+        # Sort by usage_count ascending — lowest usage gets unpinned first
+        pinned.sort(key=lambda e: e.get("usage_count", 0))
+        for e in pinned[: len(pinned) - self.MAX_PINNED]:
+            e["pinned"] = False
+        # Persist changes
+        with open(self.jsonl_path, "w") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
+        # Sync cache
+        pinned_ids = {e.get("id") for e in entries if not e.get("pinned")}
+        for i, cached in enumerate(self._entries):
+            if cached.get("id") in pinned_ids:
+                self._entries[i]["pinned"] = False
 
     def get_recent_important(self, limit: int = 3) -> list[dict[str, Any]]:
         """
@@ -987,23 +1023,27 @@ class KnowledgeDB:
             score += entry.get("usage_count", 0) * 5
 
             # Exponential time decay (research-backed)
-            # Half-life: 7 days for warnings (time-sensitive), 30 days for others
-            try:
-                date_str = entry.get("date", "") or entry.get("found_date", "")
-                if date_str:
-                    entry_date = datetime.strptime(date_str[:10], "%Y-%m-%d")
-                    age_days = (datetime.now() - entry_date).days
+            # Pinned entries skip decay entirely (usage-proven value)
+            if entry.get("pinned"):
+                score += 50  # Full recency score, no decay
+            else:
+                # Half-life: 7 days for warnings (time-sensitive), 30 days for others
+                try:
+                    date_str = entry.get("date", "") or entry.get("found_date", "")
+                    if date_str:
+                        entry_date = datetime.strptime(date_str[:10], "%Y-%m-%d")
+                        age_days = (datetime.now() - entry_date).days
 
-                    # Type-aware half-life
-                    half_life = 7 if entry.get("type") == "warning" else 30
-                    # Exponential decay: e^(-age * ln(2) / half_life)
-                    decay = math.exp(-age_days * 0.693 / half_life)
-                    # Scale to 0-50 points (bounded contribution)
-                    score += 50 * decay
-                else:
-                    score += 10  # No date = assume medium-old
-            except (ValueError, TypeError):
-                score += 10
+                        # Type-aware half-life
+                        half_life = 7 if entry.get("type") == "warning" else 30
+                        # Exponential decay: e^(-age * ln(2) / half_life)
+                        decay = math.exp(-age_days * 0.693 / half_life)
+                        # Scale to 0-50 points (bounded contribution)
+                        score += 50 * decay
+                    else:
+                        score += 10  # No date = assume medium-old
+                except (ValueError, TypeError):
+                    score += 10
 
             scored.append((score, entry))
 
@@ -1021,6 +1061,7 @@ class KnowledgeDB:
                     "type": entry.get("type", "finding"),
                     "priority": entry.get("priority", "medium"),
                     "keywords": entry.get("keywords", entry.get("tags", []))[:5],
+                    "pinned": entry.get("pinned", False),
                 }
             )
 
