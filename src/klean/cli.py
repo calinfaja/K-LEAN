@@ -294,17 +294,19 @@ def make_executable(path: Path) -> None:
 
 def check_litellm() -> bool:
     """Check if LiteLLM proxy is running."""
-    try:
-        import json
-        import urllib.request
+    import json
+    import urllib.request
 
-        # Try /models endpoint which LiteLLM supports
-        req = urllib.request.Request("http://localhost:4000/models")
-        response = urllib.request.urlopen(req, timeout=2)
-        data = json.loads(response.read().decode())
-        return isinstance(data, dict) and "data" in data
-    except Exception:
-        return False
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request("http://localhost:4000/models")
+            response = urllib.request.urlopen(req, timeout=5)
+            data = json.loads(response.read().decode())
+            return isinstance(data, dict) and "data" in data
+        except Exception:
+            if attempt == 0:
+                time.sleep(1)
+    return False
 
 
 def _check_smolagents_installed() -> bool:
@@ -359,12 +361,28 @@ def get_project_socket_path(project_path: Path = None) -> Path:
 
 
 def find_project_root(start_path: Path = None) -> Path:
-    """Find project root by walking up looking for .knowledge-db."""
-    current = (start_path or Path.cwd()).resolve()
+    """Find project root by walking up looking for .knowledge-db or project markers.
+
+    First looks for .knowledge-db (initialized KB). If not found, falls back to
+    common project markers (.git, CLAUDE.md, pyproject.toml) so that KB can be
+    initialized on first use.
+    """
+    start = (start_path or Path.cwd()).resolve()
+
+    # First pass: look for existing .knowledge-db
+    current = start
     while current != current.parent:
         if (current / ".knowledge-db").exists():
             return current
         current = current.parent
+
+    # Second pass: fall back to project markers (for fresh KB init)
+    current = start
+    while current != current.parent:
+        if any((current / marker).exists() for marker in (".git", "CLAUDE.md", "pyproject.toml")):
+            return current
+        current = current.parent
+
     return None
 
 
@@ -1263,6 +1281,7 @@ def provider_list():
         except Exception:
             pass
 
+    total_models = sum(model_counts.values())
     for name, info in sorted(providers.items()):
         status = (
             f"[green]{SYM_OK} ACTIVE[/green]"
@@ -1274,6 +1293,12 @@ def provider_list():
         table.add_row(name.upper(), status, models)
 
     console.print(table)
+
+    # Note about shared models if multiple providers configured
+    if len(providers) > 1 and total_models > 0:
+        console.print(
+            f"\n[dim]{total_models} unique models total (shared models counted once)[/dim]"
+        )
 
 
 @provider.command(name="add")
@@ -1324,7 +1349,12 @@ def provider_add(provider_name: str, api_key: str):
     for model in recommended_models:
         console.print(f"  • {model['model_name']}")
 
-    install_models = click.confirm("\nAdd these recommended models?", default=True)
+    # Auto-confirm when --api-key was provided (non-interactive mode)
+    if api_key:
+        install_models = True
+        console.print()
+    else:
+        install_models = click.confirm("\nAdd these recommended models?", default=True)
 
     if install_models:
         # Load existing config or create new one
@@ -1692,8 +1722,7 @@ def model_remove(model_name: str):
     console.print("\nRemaining models:")
     models = list_models_in_config(config_file)
     for model in models:
-        thinking_label = " (thinking)" if model["is_thinking"] else ""
-        console.print(f"  • {model['model_name']}{thinking_label}")
+        console.print(f"  • {model['model_name']}")
 
     console.print("\nRestart services to apply changes:")
     console.print("  [cyan]kln restart[/cyan]")
@@ -2975,6 +3004,7 @@ def multi(task: str, thorough: bool, manager_model: str, output: str, telemetry:
       - Security Auditor: Security analysis
       - Synthesizer: Report formatting
 
+    \b
     Examples:
         kln multi "Review src/auth/ for security issues"
         kln multi --thorough "Review the authentication module"
@@ -3071,9 +3101,10 @@ def init(provider: Optional[str], api_key: Optional[str]):
     optionally configures an API provider. Run 'kln start' separately
     when ready to start the LiteLLM proxy.
 
+    \b
     Examples:
         kln init                                    # Interactive menu
-        kln init --provider nanogpt --api-key $KEY  # Silent NanoGPT setup
+        kln init --provider nanogpt --api-key $KEY  # Non-interactive setup
         kln init --provider skip                    # Knowledge system only
     """
     from klean.config_generator import (
@@ -3184,9 +3215,12 @@ def init(provider: Optional[str], api_key: Optional[str]):
             for model in prov_models:
                 console.print(f"  • {model['model_name']}")
 
-        # Ask if user wants to install models
-        console.print()
-        install_models = click.confirm("Install these recommended models?", default=True)
+        # Ask if user wants to install models (auto-confirm when --api-key provided)
+        if api_key:
+            install_models = True
+        else:
+            console.print()
+            install_models = click.confirm("Install these recommended models?", default=True)
 
         # Generate config files (preserving existing providers)
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)

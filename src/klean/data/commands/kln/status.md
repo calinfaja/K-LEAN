@@ -65,31 +65,17 @@ When invoked:
    K-LEAN Commands
    ==================
 
-   /kln:quick <model> <focus>
-     Fast single-model review (~60s)
-     Models: qwen, deepseek, glm, minimax, kimi, hermes
+   /kln:quick <focus>        Fast single-model review (~30s)
+   /kln:multi <focus>        Multi-model consensus (~60s)
+   /kln:rethink [context]    Contrarian debugging (~20s)
+   /kln:agent <role> <task>  Specialist agent (~2min)
+   /kln:doc <title>          Session documentation
+   /kln:learn [topic]        Mid-session knowledge capture
+   /kln:remember             End-of-session capture
+   /kln:status [sub]         System health (this command)
+   /kln:help                 Full command reference
 
-   /kln:multi <focus>
-     Multi-model consensus review (~2min)
-     Uses: qwen, deepseek, glm
-
-   /kln:agent --role <role> <task>
-     SmolKLN specialist agent execution
-     Roles: code-reviewer, security-auditor, debugger, performance-engineer
-
-   /kln:doc [summary|detailed]
-     Generate session documentation
-     Default: summary format
-
-   /kln:remember <lesson>
-     End-of-session knowledge capture
-     Saves to Serena lessons-learned
-
-   /kln:status [models|health|help]
-     System status and health checks
-     This command
-
-   Need more info? Try: kln --help
+   Need more info? Try: /kln:help or kln --help
    ```
 
 ## Example Output
@@ -100,17 +86,15 @@ K-LEAN Status Dashboard
 =======================
 
 Core Components:
-  [[OK]] LiteLLM Proxy (6 models)
-  [[OK]] Knowledge DB (1,234 entries)
-  [[OK]] Serena MCP (2 memory stores)
+  [[OK]] LiteLLM Proxy (N models)
+  [[OK]] Knowledge DB (N entries)
+  [[OK]] Serena MCP (connected)
 
 Models Available:
-  qwen/qwen2.5-72b-instruct         [[OK]] 2.3s
-  deepseek/deepseek-chat            [[OK]] 1.8s
-  glm/glm-4-flash                   [[OK]] 1.2s
-  minimax/Minimax-Text-01           [[OK]] 2.1s
-  kimi/moonshot-v1-128k             [[OK]] 1.9s
-  hermes/hermes-3-llama-3.1-405b    [[OK]] 3.4s
+  model-a                          [[OK]] 1.2s
+  model-b                          [[OK]] 2.3s
+  model-c                          [[OK]] 1.8s
+  ...                              (varies by provider)
 ```
 
 ### Health Check

@@ -202,6 +202,7 @@ class MultiAgentExecutor:
                     max_steps=agent_config.max_steps,
                     planning_interval=agent_config.planning_interval,
                     additional_authorized_imports=safe_imports,
+                    code_block_tags="markdown",  # Match KLEAN prompt's ```py format
                     step_callbacks=[add_step_awareness],  # Warn on low steps
                 )
 
@@ -256,6 +257,7 @@ class MultiAgentExecutor:
                 max_steps=manager_config.max_steps,
                 planning_interval=manager_config.planning_interval,
                 additional_authorized_imports=safe_imports,
+                code_block_tags="markdown",  # Match KLEAN prompt's ```py format
                 step_callbacks=[add_step_awareness],  # Warn on low steps
                 final_answer_checks=[
                     validate_citations,

@@ -163,13 +163,18 @@ class AsyncExecutor:
             # Check for pending tasks
             pending = self.queue.get_pending()
 
-            if not pending:
+            if not pending or not isinstance(pending, list):
                 # No work, sleep and retry
                 self._stop.wait(self.poll_interval)
                 continue
 
             # Process first pending task
             task = pending[0]
+
+            # Validate task has required string attributes (guard against mock objects)
+            if not isinstance(getattr(task, "agent", None), str):
+                continue
+
             self.queue.mark_running(task.id)
 
             try:

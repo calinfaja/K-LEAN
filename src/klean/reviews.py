@@ -347,7 +347,7 @@ Provide: Grade (A-F), Risk, Top 3 Issues, Verdict"""
 async def second_opinion(
     focus: str,
     context: str,
-    primary_model: str = "deepseek-r1",
+    primary_model: str = None,
     fallback_models: list[str] | None = None,
     system_prompt: str = "Concise code reviewer.",
     timeout: float = 60.0,
@@ -359,16 +359,21 @@ async def second_opinion(
     Args:
         focus: Review focus area.
         context: Code context.
-        primary_model: Preferred model to try first.
-        fallback_models: List of fallback models to try.
+        primary_model: Preferred model to try first (auto-detected if None).
+        fallback_models: List of fallback models to try (auto-detected if None).
         system_prompt: System prompt for the model.
         timeout: Request timeout.
 
     Returns:
         ReviewResult from first successful model.
     """
-    if fallback_models is None:
-        fallback_models = ["qwen3-coder", "kimi-k2", "glm-4.6-thinking"]
+    async with httpx.AsyncClient() as discovery_client:
+        if primary_model is None or fallback_models is None:
+            healthy = await _get_healthy_models(discovery_client, count=4)
+            if primary_model is None:
+                primary_model = healthy[0] if healthy else "default"
+            if fallback_models is None:
+                fallback_models = healthy[1:] if len(healthy) > 1 else []
 
     models_to_try = [primary_model] + fallback_models
 
@@ -546,7 +551,7 @@ def run_consensus_review(
 def run_second_opinion(
     focus: str,
     context: str,
-    primary_model: str = "deepseek-r1",
+    primary_model: str = None,
 ) -> ReviewResult:
     """Synchronous wrapper for second_opinion.
 

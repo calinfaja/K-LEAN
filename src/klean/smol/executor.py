@@ -281,6 +281,7 @@ class SmolKLNExecutor:
             max_steps=max_steps,
             planning_interval=3,  # Plan every 3 steps to stay on track
             additional_authorized_imports=safe_imports,
+            code_block_tags="markdown",  # Match KLEAN prompt's ```py format
             step_callbacks=[add_step_awareness],  # Warn on low steps
             final_answer_checks=[
                 validate_citations,

@@ -415,7 +415,9 @@ class ReviewEngine:
         # Resolve model
         if model == "auto":
             models = self.resolver.select_models(count=1, task=focus, prefer_fastest=True)
-            model = models[0] if models else "qwen3-coder"
+            if not models:
+                return {"error": "No models available. Check LiteLLM: kln status"}
+            model = models[0]
 
         prompt = self._load_prompt(focus, context)
 

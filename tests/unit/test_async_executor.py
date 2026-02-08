@@ -125,12 +125,14 @@ class TestSubmit:
 
         mock_queue = MagicMock()
         mock_queue.enqueue.return_value = "task123"
+        mock_queue.get_pending.return_value = []  # Prevent worker from processing mock tasks
 
         with patch("klean.smol.async_executor.TaskQueue", return_value=mock_queue):
             async_exec = AsyncExecutor()
             task_id = async_exec.submit("agent", "do something")
 
             assert task_id == "task123"
+            async_exec.stop(wait=True, timeout=1)
 
     def test_enqueues_task(self):
         """Should enqueue task with parameters."""
@@ -138,12 +140,14 @@ class TestSubmit:
 
         mock_queue = MagicMock()
         mock_queue.enqueue.return_value = "task123"
+        mock_queue.get_pending.return_value = []  # Prevent worker from processing mock tasks
 
         with patch("klean.smol.async_executor.TaskQueue", return_value=mock_queue):
             async_exec = AsyncExecutor()
             async_exec.submit("my-agent", "my-task", model="gpt-4", project_path="/path")
 
             mock_queue.enqueue.assert_called_once_with("my-agent", "my-task", "gpt-4", "/path")
+            async_exec.stop(wait=True, timeout=1)
 
     def test_ensures_worker_started(self):
         """Should start worker after submit."""

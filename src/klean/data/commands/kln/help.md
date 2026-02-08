@@ -13,13 +13,14 @@ Knowledge-driven Lightweight Execution & Analysis Network
 
 | Command | Type | Duration | Description |
 |---------|------|----------|-------------|
-| `/kln:quick <focus>` | API | ~60s | Fast single-model review for quick insights |
-| `/kln:multi <focus>` | API | ~2min | Multi-model consensus (parallel execution) |
+| `/kln:quick <focus>` | API | ~30s | Fast single-model review for quick insights |
+| `/kln:multi <focus>` | API | ~60s | Multi-model consensus (parallel execution) |
+| `/kln:rethink [context]` | API | ~20s | Contrarian debugging when stuck 10+ minutes |
 | `/kln:agent <task>` | SDK | ~2min | SmolKLN specialist agent for domain-specific tasks |
 | `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
-| `/kln:learn [topic]` | Local | ~30s | Extract learnings from context (mid-session) |
-| `/kln:remember` | Local | ~60s | End-of-session knowledge capture and summary |
-| `/kln:status` | Local | ~5s | System health, available models, and quick help |
+| `/kln:learn [topic]` | Local | ~10s | Extract learnings from context (mid-session) |
+| `/kln:remember` | Local | ~30s | End-of-session knowledge capture and summary |
+| `/kln:status` | Local | ~2s | System health, available models, and quick help |
 
 ## Universal Flags
 
@@ -39,16 +40,12 @@ All commands support these optional flags:
 
 K-LEAN dynamically queries available models from LiteLLM proxy (localhost:4000).
 
-### Smart Routing
+### Model Selection
 
-When no model is specified, K-LEAN selects based on task type:
+When no model is specified, K-LEAN uses the first available model from your LiteLLM proxy.
+Use `-m <model>` to pick a specific model, or `-n <count>` for multi-model consensus.
 
-- **Quality/Architecture**: `qwen` - Best overall reasoning
-- **Code/Performance**: `deepseek` - Excellent for technical depth
-- **Standards/Best Practices**: `glm` - Follows conventions strictly
-- **Research/Documentation**: `minimax` - Great for context synthesis
-- **Agent Workflows**: `kimi` - Strong at multi-step tasks
-- **Scripts/Tools**: `hermes` - Fast and practical
+Models depend on your configured providers. Run `kln model list` to see what's available.
 
 ### Model Health
 
@@ -81,6 +78,18 @@ Use `/kln:status` or `kln model list` to see current model availability.
 
 # JSON output for parsing
 /kln:multi "Test coverage gaps" -o json
+```
+
+### Rethink (Stuck Debugging)
+```bash
+# Default: 5 models with contrarian perspectives
+/kln:rethink
+
+# Provide debugging context
+/kln:rethink "memory leak persists after fix"
+
+# Fewer models for faster response
+/kln:rethink --models 3
 ```
 
 ### SmolKLN Agents
@@ -152,7 +161,7 @@ kln doctor -f        # Diagnose issues with auto-fix
 kln start            # Start all services
 kln admin debug      # Live monitoring dashboard
 kln model list       # List available models
-kln model list --test   # Test all models with latency
+kln model list --health # Check all model health status
 ```
 
 ## Getting Started
