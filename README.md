@@ -80,6 +80,17 @@ kln init --provider nanogpt --api-key $NANOGPT_API_KEY
 kln start
 ```
 
+### Knowledge-Only Install (no API key needed)
+
+If you only want the persistent knowledge system without multi-model reviews:
+
+```bash
+pipx install kln-ai
+kln init --provider skip
+```
+
+This installs the knowledge database, session hooks, slash commands (`/kln:learn`, `/kln:remember`), and `FindKnowledge` search. No LiteLLM proxy or API keys required. Add a provider later with `kln init --provider nanogpt --api-key $KEY`.
+
 ### 4. Use in Claude Code
 
 ```bash
@@ -323,7 +334,7 @@ At session start, the system injects context from previous sessions:
 
 This means every new session starts with awareness of what happened before -- carry-forward items, active warnings, and recent discoveries. The Knowledge DB acts as long-term memory that persists across sessions, compactions, and context limits.
 
-**Storage:** Per-project `.knowledge-db/` directory with `entries.jsonl` (append-only), dense/sparse index files, and a TCP server for fast queries. Schema V3.2 supports 9 entry types with date, branch, and type filtering.
+**Storage:** Per-project `.knowledge-db/` directory with `entries.jsonl` (append-only), dense/sparse index files, and a TCP server for fast queries. Schema V3.1 supports 9 entry types with date, branch, and type filtering.
 
 ---
 
@@ -400,7 +411,7 @@ kln multi            # Run multi-agent orchestrated review
 | Python | 3.9+ | `python3 --version` |
 | Claude Code | 2.0+ | `claude --version` |
 | pipx | any | `pipx --version` |
-| API Key | - | NanoGPT or OpenRouter |
+| API Key | - | NanoGPT or OpenRouter (optional for knowledge-only) |
 
 ---
 
