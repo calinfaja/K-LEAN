@@ -1,7 +1,7 @@
 # Project Index: K-LEAN
 
-**Generated:** 2026-02-07
-**Package:** `kln-ai` v1.0.0b7
+**Generated:** 2026-02-08
+**Package:** `kln-ai` v1.0.0b10
 **Python:** >=3.9 | **License:** Apache-2.0
 
 ---
@@ -66,6 +66,7 @@ k-lean/
 | `kln-hook-prompt` | `klean.hooks:prompt_handler` | UserPromptSubmit hook |
 | `kln-hook-bash` | `klean.hooks:post_bash` | PostToolUse (Bash) hook |
 | `kln-hook-web` | `klean.hooks:post_web` | PostToolUse (Web*) hook |
+| `kln-hook-compact` | `klean.hooks:pre_compact` | PreCompact hook (session logs) |
 
 ---
 

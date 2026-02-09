@@ -58,7 +58,7 @@ cd k-lean
 pipx install -e .
 
 # Verify installation
-kln --version       # Should show 1.0.0b6
+kln --version       # Should show current version
 kln doctor          # Check configuration
 ```
 
@@ -94,13 +94,17 @@ k-lean/
 │   ├── cli.py              # CLI entry point (kln command)
 │   ├── platform.py         # Cross-platform utilities (psutil, platformdirs)
 │   ├── reviews.py          # Async review engine (httpx)
-│   ├── hooks.py            # Hook entry points (4 functions)
+│   ├── hooks.py            # Hook entry points (5 functions)
 │   ├── smol/               # SmolKLN agent framework
 │   └── data/               # Installable assets
 │       ├── scripts/        # Python scripts for knowledge DB
-│       ├── commands/kln/   # Slash commands (.md)
-│       ├── agents/         # SmolKLN agent definitions
-│       └── config/         # Config templates
+│       ├── commands/kln/   # Slash commands (9 .md files)
+│       ├── agents/         # SmolKLN agent definitions (8 + template)
+│       ├── config/         # Config templates (LiteLLM, CLAUDE.md)
+│       ├── core/           # Review prompts and role definitions
+│       ├── multi-agents/   # Multi-agent orchestration definitions
+│       ├── prompts/        # Shared prompt templates
+│       └── rules/          # Claude Code rules (kln.md)
 ├── docs/                   # Documentation
 │   └── architecture/       # Technical docs (this folder)
 ├── tests/                  # Test suite
@@ -584,15 +588,15 @@ kln admin sync --check
 
 ```bash
 # Edit both files with new version
-vim pyproject.toml                    # version = "1.0.0b7"
-vim src/klean/__init__.py             # __version__ = "1.0.0b7"
+vim pyproject.toml                    # version = "X.Y.Z"
+vim src/klean/__init__.py             # __version__ = "X.Y.Z"
 
 # Verify they match
 ./src/klean/data/scripts/prepare-release.sh --check
 
 # Commit
 git add -A
-git commit -m "chore: bump version to 1.0.0b7"
+git commit -m "chore: bump version to X.Y.Z"
 git push
 ```
 
@@ -617,7 +621,7 @@ verify   -> Check version matches pyproject.toml and __init__.py
 test     -> Lint, pytest, sync check
 publish  -> Build, twine check, upload to PyPI
 verify   -> Check PyPI API, test install in fresh venv
-tag      -> Create git tag (v1.0.0b7)
+tag      -> Create git tag (vX.Y.Z)
 ```
 
 #### Step 4: Create GitHub Release
@@ -672,4 +676,4 @@ kln --version
 
 ---
 
-*Last updated: 2026-01*
+*Last updated: 2026-02*

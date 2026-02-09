@@ -627,6 +627,15 @@ class KnowledgeDB:
                 }
                 results.append(entry)
 
+        # Deduplicate by entry ID (keep highest score)
+        seen_ids = {}
+        for entry in results:
+            eid = entry.get("id", "")
+            if eid and (eid not in seen_ids or entry["score"] > seen_ids[eid]["score"]):
+                seen_ids[eid] = entry
+        if seen_ids:
+            results = [e for e in results if seen_ids.get(e.get("id", "")) is e]
+
         # Boost pinned entries (research: usage-proven value ranks higher)
         for r in results:
             if r.get("pinned"):

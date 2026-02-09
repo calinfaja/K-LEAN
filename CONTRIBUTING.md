@@ -34,10 +34,14 @@ Thank you for your interest in contributing to K-LEAN!
 4. Commit with clear messages
 5. Push and create a Pull Request
 
+## Requirements
+
+- **Python 3.9+** (check with `python3 --version`)
+- **pipx** for isolated installation
+
 ## Code Style
 
-- **Python**: Follow PEP 8
-- **Bash**: Use shellcheck, quote variables
+- **Python**: PEP 8, 100-char line length (ruff/black)
 - **Documentation**: Update relevant docs with changes
 
 ## Pull Request Guidelines

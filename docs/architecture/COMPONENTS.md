@@ -234,7 +234,7 @@ K-LEAN integrates with Claude Code via **5 Python entry points** that trigger on
 | `asyncReview` | Background quick review |
 | `asyncConsensus` | Background consensus review |
 
-**Note:** `SaveThis` was replaced by `/kln:learn` for context-aware capture.
+**Note:** For context-aware knowledge capture, use `/kln:learn` (slash command) instead of hook keywords. The `SaveInfo <url>` keyword is for URL-based capture only.
 
 **Implementation:** `src/klean/hooks.py:prompt_handler()`
 
@@ -402,7 +402,7 @@ The Knowledge DB provides **persistent semantic memory** across Claude Code sess
                       v
 +-----------------------------------------------------+
 |               knowledge-capture.py                   |
-|  Parse -> V2 Schema -> TCP to server OR direct file |
+|  Parse -> V3.1 Schema -> TCP to server OR direct file |
 +---------------------+-------------------------------+
                       |
                       v

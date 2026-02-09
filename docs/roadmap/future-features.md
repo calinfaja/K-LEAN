@@ -6,12 +6,12 @@
 
 ## Patterns We Already Have (Keep)
 
-| Pattern | K-LEAN Script | Why It Works |
-|---------|---------------|--------------|
-| **Multi-Model Consensus** | `consensus-review.sh` | Run 3+ models in parallel via API |
-| **Health Fallback** | `get-healthy-models.sh` | Auto-switch to working model if one fails |
-| **Thinking Models** | All review scripts | Check `reasoning_content` for DeepSeek/GLM |
-| **Knowledge Inject** | Review scripts | Query KB, add to prompt if relevant |
+| Pattern | Implementation | Why It Works |
+|---------|----------------|--------------|
+| **Multi-Model Consensus** | `reviews.consensus_review()` | Run 3+ models in parallel via async httpx |
+| **Health Fallback** | `reviews._get_healthy_models()` | Auto-switch to working model if one fails |
+| **Thinking Models** | `reviews._extract_content()` | Check `reasoning_content` for DeepSeek/GLM, strip `<think>` tags |
+| **Knowledge Inject** | `hooks.py` prompt handler | Query KB, add to prompt if relevant |
 | **SmolKLN Agents** | `kln-smol` | Tool-equipped specialist agents |
 
 These are solid. Don't change.
@@ -22,22 +22,13 @@ These are solid. Don't change.
 
 ### 1. JSON Output Mode
 
-**What:** Add `--json` flag to scripts for pipeline chaining.
+**What:** Add structured JSON output to review commands.
 
-**Why:** Enables `quick-review.sh --json | jq '.grade'` for automation.
+**Why:** Enables pipeline chaining and automation of review results.
 
-**How:**
-```bash
-# Add to quick-review.sh (after line 130)
-if [ "$JSON_OUTPUT" = "true" ]; then
-    jq -n --arg grade "$GRADE" --arg risk "$RISK" --arg content "$CONTENT" \
-        '{grade: $grade, risk: $risk, content: $content}'
-else
-    echo "$CONTENT"
-fi
-```
+**How:** The `/kln:quick` and `/kln:multi` slash commands already support `--output json` flag. The `reviews.py` module returns structured dicts that can be serialized.
 
-**Effort:** 30 min per script
+**Status:** Partially implemented via slash command flags. Full CLI support pending.
 
 ---
 
@@ -82,7 +73,7 @@ fi
 | Feature | K-LEAN | Others |
 |---------|--------|--------|
 | Multi-model consensus | ✅ 3-5 models parallel | ❌ |
-| Knowledge DB persistence | ✅ txtai semantic search | ❌ |
+| Knowledge DB persistence | ✅ fastembed semantic search | ❌ |
 | LiteLLM cost routing | ✅ Multi-provider | ❌ |
 | Rethink (contrarian debug) | ✅ 4 techniques | ❌ |
 | Thinking model support | ✅ DeepSeek, GLM, Kimi | Limited |
@@ -216,10 +207,12 @@ mcp__klean__health_check()
 
 ## Next Steps (Priority Order)
 
-1. [ ] Add `--json` to quick-review.sh
-2. [ ] Test /kln:remember command
-3. [ ] Document in README for OSS release
+1. [ ] Full JSON output support for CLI review commands
+2. [x] Test /kln:remember command (validated in QA v1.0.0b7)
+3. [x] Document in README for OSS release (done)
+4. [ ] GitHub PR integration for team adoption
+5. [ ] Cost tracking via LiteLLM spend logs
 
 ---
 
-*Last updated: 2026-01-01*
+*Last updated: 2026-02*

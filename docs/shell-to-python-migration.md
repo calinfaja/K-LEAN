@@ -4,8 +4,9 @@ This document compares the old shell scripts with their Python replacements as p
 
 ## Overview
 
-- **Total Shell Scripts**: 33 files (4 hooks + 1 lib + 28 scripts)
+- **Total Shell Scripts Replaced**: 33 files (4 hooks + 1 lib + 28 scripts)
 - **New Python Modules**: 3 files (platform.py, reviews.py, hooks.py)
+- **Hook Entry Points**: 5 (session, prompt, bash, web, compact)
 - **Key Change**: All functionality now works on Windows, Linux, and macOS
 
 ## Hook Replacements
@@ -16,6 +17,7 @@ This document compares the old shell scripts with their Python replacements as p
 | `hooks/user-prompt-handler.sh` | `kln-hook-prompt` | `klean.hooks:prompt_handler` |
 | `hooks/post-bash-handler.sh` | `kln-hook-bash` | `klean.hooks:post_bash` |
 | `hooks/post-web-handler.sh` | `kln-hook-web` | `klean.hooks:post_web` |
+| *(new in b8)* | `kln-hook-compact` | `klean.hooks:pre_compact` |
 
 ### Functionality Comparison
 
@@ -164,6 +166,7 @@ All new Python implementations have corresponding tests:
 - [x] Knowledge server uses TCP instead of Unix socket
 - [x] Process management uses psutil
 - [x] Path utilities work on all platforms
-- [x] All 274 unit tests pass
-- [ ] Manual testing on Windows
+- [x] All unit tests pass
+- [x] PreCompact hook added (kln-hook-compact, new in b8)
+- [ ] Manual testing on Windows (deferred - CI covers Windows via GitHub Actions)
 - [ ] CI matrix for all platforms

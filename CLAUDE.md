@@ -60,6 +60,8 @@ Claude Code
 | `src/klean/cli.py` | Click CLI with subgroups: `model`, `provider`, `admin` |
 | `src/klean/discovery.py` | Dynamic model discovery from LiteLLM proxy |
 | `src/klean/config_generator.py` | LiteLLM config generation with non-destructive merging |
+| `src/klean/model_defaults.py` | Default model configurations per provider |
+| `src/klean/model_utils.py` | Model name extraction and parsing utilities |
 | `src/klean/smol/executor.py` | Single agent execution with tool use |
 | `src/klean/smol/multi_agent.py` | Multi-agent orchestration and consensus |
 | `src/klean/smol/loader.py` | Agent definition loading from markdown (YAML frontmatter + system prompt) |
@@ -73,8 +75,12 @@ Claude Code
 data/
 ├── scripts/        # Python scripts for knowledge DB
 ├── commands/kln/   # Slash commands (9 .md files)
-├── agents/         # SmolKLN agent definitions (8 .md files)
-└── config/         # Config templates
+├── agents/         # SmolKLN agent definitions (8 + template)
+├── config/         # Config templates (LiteLLM, CLAUDE.md)
+├── core/           # Review prompts and role definitions
+├── multi-agents/   # Multi-agent orchestration definitions (6 .md files)
+├── prompts/        # Shared prompt templates
+└── rules/          # Claude Code rules (kln.md)
 ```
 
 **Note:** Hooks are now Python entry points (`kln-hook-*`), not shell scripts.

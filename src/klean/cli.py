@@ -1296,7 +1296,7 @@ def provider_list():
     # Note about shared models if multiple providers configured
     if len(providers) > 1 and total_models > 0:
         console.print(
-            f"\n[dim]{total_models} unique models total (shared models counted once)[/dim]"
+            f"\n[dim]{total_models} models in config (shared models use first provider's key)[/dim]"
         )
 
 
@@ -1313,6 +1313,7 @@ def provider_add(provider_name: str, api_key: str):
     )
     from klean.model_defaults import get_nanogpt_models, get_openrouter_models
 
+    cli_api_key = api_key  # Track if provided via --api-key flag
     if not api_key:
         api_key = click.prompt(f"{provider_name.upper()} API Key", hide_input=True)
 
@@ -1348,8 +1349,8 @@ def provider_add(provider_name: str, api_key: str):
     for model in recommended_models:
         console.print(f"  • {model['model_name']}")
 
-    # Auto-confirm when --api-key was provided (non-interactive mode)
-    if api_key:
+    # Auto-confirm when --api-key was provided via CLI (non-interactive mode)
+    if cli_api_key:
         install_models = True
         console.print()
     else:
@@ -1542,7 +1543,7 @@ def model_list(test: bool, health: bool):
         return
 
     if test:
-        console.print("\n[dim]Testing models (5s timeout, uses tokens)...[/dim]")
+        console.print("\n[dim]Testing models (15s timeout, uses tokens)...[/dim]")
         import urllib.request
 
         # Test each model and record latency
@@ -1562,7 +1563,7 @@ def model_list(test: bool, health: bool):
                     data=data,
                     headers={"Content-Type": "application/json"},
                 )
-                urllib.request.urlopen(req, timeout=5)
+                urllib.request.urlopen(req, timeout=15)
                 latency = int((time.time() - start) * 1000)
                 results.append((model, latency))
                 console.print(f"  [green][OK][/green] {model}: {latency}ms")
@@ -1767,7 +1768,9 @@ def model_test(model: Optional[str], prompt: Optional[str], timeout: int):
             timeout=timeout,
         )
         resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
+        from klean.reviews import _extract_content
+
+        content = _extract_content(resp.json())
         console.print("[green]Success[/green]")
         console.print(f"Response: {content}")
     except Exception as e:
@@ -2645,26 +2648,30 @@ def doctor(auto_fix: bool):
     console.print("[bold]Service Status:[/bold]")
 
     # Check LiteLLM
-    litellm_status = check_litellm_detailed()
-    if litellm_status["running"]:
-        console.print(
-            f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)"
-        )
-
-        # Note: Model health moved to 'kln model list --health' for faster doctor execution
-        console.print("  [dim]○[/dim] Model Health: Use [cyan]kln model list --health[/cyan]")
+    config_yaml = CONFIG_DIR / "config.yaml"
+    if not config_yaml.exists():
+        console.print("  [dim]○[/dim] LiteLLM Proxy: Not configured (knowledge-only mode)")
     else:
-        if auto_fix:
-            console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
-            if start_litellm():
-                console.print("  [green][OK][/green] LiteLLM Proxy: STARTED")
-                fixes_applied.append("Started LiteLLM proxy")
-            else:
-                issues.append(("ERROR", "Failed to start LiteLLM proxy"))
-                console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM Proxy: FAILED TO START")
+        litellm_status = check_litellm_detailed()
+        if litellm_status["running"]:
+            console.print(
+                f"  [green][OK][/green] LiteLLM Proxy: RUNNING ({len(litellm_status['models'])} models)"
+            )
+
+            # Note: Model health moved to 'kln model list --health' for faster doctor execution
+            console.print("  [dim]○[/dim] Model Health: Use [cyan]kln model list --health[/cyan]")
         else:
-            issues.append(("WARNING", "LiteLLM proxy not running"))
-            console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM Proxy: NOT RUNNING")
+            if auto_fix:
+                console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
+                if start_litellm():
+                    console.print("  [green][OK][/green] LiteLLM Proxy: STARTED")
+                    fixes_applied.append("Started LiteLLM proxy")
+                else:
+                    issues.append(("ERROR", "Failed to start LiteLLM proxy"))
+                    console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM Proxy: FAILED TO START")
+            else:
+                issues.append(("WARNING", "LiteLLM proxy not running"))
+                console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM Proxy: NOT RUNNING")
 
     # Check Knowledge Server
     if check_knowledge_server():
@@ -3137,10 +3144,13 @@ def init(provider: Optional[str], api_key: Optional[str]):
 
     # Check if already initialized
     if (CONFIG_DIR / "config.yaml").exists():
-        console.print("[yellow]K-LEAN already initialized.[/yellow]")
-        if not click.confirm("Reconfigure?", default=False):
-            console.print("Cancelled.")
-            return
+        if api_key:
+            pass  # Non-interactive: proceed with reconfigure
+        else:
+            console.print("[yellow]K-LEAN already initialized.[/yellow]")
+            if not click.confirm("Reconfigure?", default=False):
+                console.print("Cancelled.")
+                return
 
     # Interactive menu if --provider not specified
     selected_providers = []

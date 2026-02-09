@@ -1574,7 +1574,7 @@ def get_tools_for_agent(
             if not results:
                 return f"No matches for '{pattern}' in {path}. Try: different keywords, broader file_pattern, or search_files first to find relevant files."
 
-            return "\n".join(results)
+            return f"Found {len(results)} matches:\n" + "\n".join(results)
 
         return project_grep
 
