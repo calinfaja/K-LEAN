@@ -6,11 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.0b11] - 2026-02-09
+
+### Removed
+- Dead code: async_executor.py, orchestrator.py, reflection.py, task_queue.py (never wired into CLI)
+- 3 test files for dead modules (74 tests)
+
 ### Fixed
-- Prevent Haiku refusals in session log generation by refining prompt structure
-- Improve session log quality: fix double-truncation (500->2000 char cap), async PreCompact, cross-midnight git window fix, TCP recv loop for knowledge capture
+- CHANGELOG.md rewritten with proper release sections (was single Unreleased blob)
+- Orchestrator agent definition rewritten (was 773-line Factory.ai copy-paste)
+- Stale version references across 5 documentation files
+- CLAUDE.md: added missing modules and data directories
+- COMPONENTS.md: fixed SaveThis -> SaveInfo, V2 -> V3.1 schema
+- CONTRIBUTING.md: added Python 3.9+ requirement, removed stale shellcheck reference
+- DEVELOPMENT.md: fixed hook count (4->5), added 4 missing data directories
+- future-features.md: replaced shell script refs with Python equivalents
+- shell-to-python-migration.md: added 5th hook entry
+- PROJECT_INDEX files: updated version, modules, test counts
 
 ### Changed
+- Prevent Haiku refusals in session log generation by refining prompt structure
+- Improve session log quality: fix double-truncation (500->2000 char cap), async PreCompact, cross-midnight git window fix, TCP recv loop for knowledge capture
 - Updated CLAUDE.md and README with recent knowledge system changes
 
 ## [1.0.0b10] - 2026-02-08

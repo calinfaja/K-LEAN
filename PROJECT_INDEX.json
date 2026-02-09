@@ -2,7 +2,7 @@
   "project": {
     "name": "k-lean",
     "package_name": "kln-ai",
-    "version": "1.0.0b10",
+    "version": "1.0.0b11",
     "description": "Multi-model code review and knowledge capture system for Claude Code",
     "generated": "2026-02-08",
     "python_version": ">=3.9",
@@ -70,15 +70,14 @@
     "path": "src/klean/smol/",
     "modules": {
       "executor": {"exports": ["SmolKLNExecutor"], "purpose": "Single agent execution with tool use"},
-      "orchestrator": {"exports": ["SmolKLNOrchestrator", "quick_orchestrate"], "purpose": "Multi-agent coordination"},
+      "multi_agent": {"exports": ["MultiAgentExecutor"], "purpose": "Multi-agent orchestration (kln multi)"},
+      "multi_config": {"exports": ["get_3_agent_config", "get_thorough_agent_config"], "purpose": "Agent configurations"},
       "memory": {"exports": ["AgentMemory", "SessionMemory", "MemoryEntry"], "purpose": "Context management and KB integration"},
       "tools": {"exports": ["read_file", "grep", "search_files", "get_default_tools"], "purpose": "Agent tools for code analysis"},
       "models": {"purpose": "LiteLLM model wrapper, thinking model support"},
       "loader": {"exports": ["parse_agent_file", "load_agent", "list_available_agents"], "purpose": "Agent definition loading from markdown"},
       "context": {"purpose": "Git context extraction (status, diff, log)"},
-      "reflection": {"purpose": "Agent self-reflection and retry"},
-      "async_executor": {"purpose": "Background async execution"},
-      "task_queue": {"purpose": "Persistent task queue"},
+      "prompts": {"purpose": "System prompt templates"},
       "mcp_tools": {"purpose": "MCP tool integration"}
     }
   },

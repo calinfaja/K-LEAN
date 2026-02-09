@@ -17,12 +17,6 @@ warnings.filterwarnings(
 # Core  # noqa: E402 - warning filter must run before imports
 from klean.discovery import get_model, list_models  # noqa: E402
 
-from .async_executor import (  # noqa: E402
-    AsyncExecutor,
-    get_async_executor,
-    get_task_status,
-    submit_async,
-)
 from .context import (  # noqa: E402
     ProjectContext,
     detect_project_root,
@@ -39,14 +33,6 @@ from .mcp_tools import (  # noqa: E402
 )
 from .memory import AgentMemory, MemoryEntry, SessionMemory  # noqa: E402
 from .models import create_model  # noqa: E402
-from .orchestrator import SmolKLNOrchestrator, quick_orchestrate  # noqa: E402
-from .reflection import (  # noqa: E402
-    Critique,
-    CritiqueVerdict,
-    ReflectionEngine,
-    create_reflection_engine,
-)
-from .task_queue import QueuedTask, TaskQueue, TaskState  # noqa: E402
 from .tools import KnowledgeRetrieverTool, get_default_tools  # noqa: E402
 
 __all__ = [
@@ -71,25 +57,9 @@ __all__ = [
     "AgentMemory",
     "SessionMemory",
     "MemoryEntry",
-    # Reflection
-    "ReflectionEngine",
-    "Critique",
-    "CritiqueVerdict",
-    "create_reflection_engine",
     # MCP Tools
     "get_mcp_tools",
     "get_mcp_server_config",
     "list_available_mcp_servers",
     "load_mcp_config",
-    # Orchestrator
-    "SmolKLNOrchestrator",
-    "quick_orchestrate",
-    # Async Execution
-    "TaskQueue",
-    "QueuedTask",
-    "TaskState",
-    "AsyncExecutor",
-    "get_async_executor",
-    "submit_async",
-    "get_task_status",
 ]

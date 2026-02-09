@@ -1,7 +1,7 @@
 # Project Index: K-LEAN
 
 **Generated:** 2026-02-08
-**Package:** `kln-ai` v1.0.0b10
+**Package:** `kln-ai` v1.0.0b11
 **Python:** >=3.9 | **License:** Apache-2.0
 
 ---
@@ -34,10 +34,7 @@ k-lean/
 │   │   ├── models.py           # LiteLLM model wrapper
 │   │   ├── memory.py           # AgentMemory, SessionMemory
 │   │   ├── context.py          # Git context extraction
-│   │   ├── reflection.py       # Agent self-reflection
-│   │   ├── async_executor.py   # Background async execution
-│   │   ├── task_queue.py       # Persistent task queue
-│   │   └── orchestrator.py     # Multi-agent coordination
+│   │   └── prompts.py          # System prompt templates
 │   ├── tools/              # Standalone tool implementations
 │   └── data/               # Installable assets → ~/.claude/
 │       ├── scripts/            # Knowledge DB Python scripts
@@ -45,8 +42,8 @@ k-lean/
 │       ├── agents/             # 8 SmolKLN agent definitions
 │       ├── multi-agents/       # Multi-agent prompts (6 .md files)
 │       └── config/             # LiteLLM config templates
-├── tests/                  # 31 test files
-│   ├── unit/               # Unit tests (28 files)
+├── tests/                  # 24 test files
+│   ├── unit/               # Unit tests (21 files)
 │   └── core/               # Integration tests (3 files)
 ├── docs/                   # Documentation
 │   ├── architecture/       # OVERVIEW, COMPONENTS, DEVELOPMENT
@@ -121,9 +118,7 @@ Cross-platform utilities:
 | `loader.py` | Agent definition loading (YAML frontmatter + markdown) |
 | `memory.py` | `AgentMemory`, `SessionMemory` - Context management |
 | `context.py` | Git context extraction (status, diff, log) |
-| `reflection.py` | Agent self-reflection and retry |
-| `async_executor.py` | Background async execution |
-| `task_queue.py` | Persistent task queue (JSON-based) |
+| `prompts.py` | System prompt templates (KLEAN_SYSTEM_PROMPT) |
 
 ### Agent Configurations
 
@@ -187,7 +182,7 @@ Cross-platform utilities:
 
 ## Tests
 
-**31 test files** across unit/ and core/:
+**24 test files** across unit/ and core/:
 
 | Category | Files | Coverage |
 |----------|-------|----------|
@@ -201,7 +196,6 @@ Key test files:
 - `test_smol_executor.py` - Agent execution
 - `test_smol_multi_agent.py` - Multi-agent orchestration
 - `test_multi_config.py` - Agent configurations
-- `test_task_queue.py` - Task queue persistence
 
 ---
 

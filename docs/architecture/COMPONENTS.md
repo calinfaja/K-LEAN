@@ -778,12 +778,11 @@ src/klean/smol/
 |-- models.py            # LiteLLM model factory
 |-- context.py           # Project awareness
 |-- memory.py            # Session + KB memory
-|-- reflection.py        # Self-critique and retry
 |-- tools.py             # Tool definitions
 |-- mcp_tools.py         # MCP server loading
-|-- orchestrator.py      # Multi-agent coordination
-|-- task_queue.py        # Persistent queue
-`-- async_executor.py    # Background worker
+|-- multi_agent.py       # Multi-agent orchestration (kln multi)
+|-- multi_config.py      # Agent configs (3-agent / thorough)
+`-- prompts.py           # System prompt templates
 ```
 
 ---
