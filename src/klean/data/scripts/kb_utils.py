@@ -342,14 +342,6 @@ TYPE_SIGNALS = {
         "it turns out",
         "surprisingly",
     ],
-    "journal": [
-        # Session/work log entries
-        "worked on",
-        "session started",
-        "today I",
-        "spent time",
-        "working on",
-    ],
 }
 
 
@@ -357,7 +349,7 @@ def infer_type(title: str, insight: str) -> str:
     """Infer entry type from content.
 
     Checks signal words in order: warning > solution > pattern >
-    decision > discovery > journal > finding (default).
+    decision > discovery > finding (default).
 
     Args:
         title: Entry title.
@@ -365,7 +357,7 @@ def infer_type(title: str, insight: str) -> str:
 
     Returns:
         Inferred type: 'warning', 'solution', 'pattern', 'decision',
-        'discovery', 'journal', or 'finding'.
+        'discovery', or 'finding'.
     """
     text = f"{title} {insight}".lower()
 
@@ -456,7 +448,7 @@ SCHEMA_V3_FIELDS = [
 ]
 
 SCHEMA_V3_DEFAULTS = {
-    "type": "finding",  # warning|solution|pattern|finding|session|task|journal|decision|discovery
+    "type": "finding",  # warning|solution|pattern|finding|decision|discovery|commit
     "priority": "medium",  # critical|high|medium|low
     "keywords": [],  # Searchable terms (merged from tags + key_concepts)
     "source": "",  # URL or file:path:line or git:hash or conv:date
@@ -697,7 +689,7 @@ def migrate_entry(entry: dict) -> dict:
     - id: type-YYYYMMDD-xxxxx
     - title: Short title
     - insight: Full description (merged from summary + atomic_insight)
-    - type: warning|solution|pattern|finding|session|task (auto-inferred)
+    - type: warning|solution|pattern|finding|decision|discovery|commit (auto-inferred)
     - priority: critical|high|medium|low
     - keywords: Searchable terms (merged from tags + key_concepts)
     - source: URL or file:path:line or git:hash or conv:date

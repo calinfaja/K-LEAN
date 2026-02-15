@@ -80,24 +80,20 @@ User controls model priority via order in `~/.config/litellm/config.yaml`.
 | `/kln:status` | - |
 | `/kln:help` | - |
 
-## Hook Keywords
+## Knowledge Commands
 
-| Keyword | Action |
+| Command | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Semantic search KB (compact index with IDs) |
-| `FindKnowledge <query> since:YYYY-MM-DD` | Search with date filter |
-| `FindKnowledge <query> branch:<name>` | Search filtered by git branch |
-| `FindKnowledge <query> type:<type>` | Search filtered by entry type |
-| `FindKnowledgeDetail <id>` | Fetch full entry by ID (supports short prefixes) |
-| `SaveInfo` | LLM-evaluated URL save |
-| `asyncReview` | Background quick review |
-| `asyncConsensus` | Background consensus |
+| `/kln:find <query>` | Semantic search KB |
+| `/kln:find <query> since:YYYY-MM-DD` | Search with date filter |
+| `/kln:find <query> branch:<name>` | Search filtered by git branch |
+| `/kln:find <query> type:<type>` | Search filtered by entry type |
+| `/kln:learn` | Extract learnings from current context |
+| `/kln:remember` | End-of-session capture + Serena index |
 
-**Filter syntax:** Combine filters inline: `FindKnowledge auth since:2026-02-01 branch:feature/auth type:decision`
+**Filter syntax:** Combine filters inline: `/kln:find auth since:2026-02-01 branch:feature/auth type:decision`
 
-**Progressive disclosure:** `FindKnowledge` returns a compact index (title, type, date, score, short ID). Use `FindKnowledgeDetail <id>` to fetch the full entry with insight text, keywords, source, and related entries.
-
-**Note:** For context-aware saves, use `/kln:learn` slash command.
+**Note:** Learnings are also auto-extracted on `/compact` via PreCompact hook.
 
 ## Configuration Files
 
@@ -188,7 +184,7 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
   "id": "finding-20260207103000",
   "title": "Short descriptive title (max 80 chars)",
   "insight": "2-4 sentence explanation with actionable details",
-  "type": "warning|solution|pattern|decision|discovery|journal|finding|commit|session",
+  "type": "warning|solution|pattern|decision|discovery|finding|commit",
   "priority": "critical|high|medium|low",
   "keywords": ["searchable", "terms"],
   "source": "file:path:line|https://url|git:hash|conv:YYYY-MM-DD",
@@ -208,9 +204,7 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 | `pattern` | Reusable approaches, best practices |
 | `decision` | Architectural choices, "chose X over Y" |
 | `discovery` | "Found that...", "Turns out...", TIL moments |
-| `journal` | Session starts, work log entries |
 | `commit` | Git commit captures (auto-captured) |
-| `session` | Session log summaries (auto-generated on PreCompact) |
 | `finding` | Default - undocumented behavior, API quirks |
 
 **V3.1 fields** (added to V3 core):

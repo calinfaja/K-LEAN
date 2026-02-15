@@ -74,7 +74,7 @@ Claude Code
 ```
 data/
 ├── scripts/        # Python scripts for knowledge DB
-├── commands/kln/   # Slash commands (9 .md files)
+├── commands/kln/   # Slash commands (10 .md files)
 ├── agents/         # SmolKLN agent definitions (8 + template)
 ├── config/         # Config templates (LiteLLM, CLAUDE.md)
 ├── core/           # Review prompts and role definitions

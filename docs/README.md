@@ -63,11 +63,12 @@ kln start              # Start services
 kln model list         # List available models
 ```
 
-### Keywords
+### Knowledge Commands
 
 ```bash
-FindKnowledge <query>  # Search knowledge DB
-SaveInfo <url>         # Evaluate and save URL
+/kln:find <query>      # Search knowledge DB
+/kln:learn             # Extract learnings from context
+/kln:remember          # End-of-session capture
 ```
 
 ---

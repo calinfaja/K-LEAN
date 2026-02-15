@@ -200,10 +200,10 @@ K-LEAN integrates with Claude Code via **5 Python entry points** that trigger on
 | Entry Point | Trigger | Purpose |
 |-------------|---------|---------|
 | `kln-hook-session` | SessionStart | Auto-start LiteLLM + per-project KB |
-| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (FindKnowledge, FindKnowledgeDetail, SaveInfo, etc.) |
+| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (InitKB) |
 | `kln-hook-bash` | PostToolUse (Bash) | Git events -> timeline |
 | `kln-hook-web` | PostToolUse (Web*) | Auto-capture web content to KB |
-| `kln-hook-compact` | PreCompact | Session log generation via Claude Haiku |
+| `kln-hook-compact` | PreCompact | Session log via Haiku + auto-extract learnings to KB |
 
 ---
 
@@ -228,13 +228,9 @@ K-LEAN integrates with Claude Code via **5 Python entry points** that trigger on
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search KB (supports `since:`, `until:`, `branch:`, `type:` filters) |
-| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `InitKB` | Initialize project KB |
-| `asyncReview` | Background quick review |
-| `asyncConsensus` | Background consensus review |
 
-**Note:** For context-aware knowledge capture, use `/kln:learn` (slash command) instead of hook keywords. The `SaveInfo <url>` keyword is for URL-based capture only.
+**Note:** `FindKnowledge`, `FindKnowledgeDetail`, and `SaveInfo` were migrated to `/kln:find` slash command. Use `/kln:find` for knowledge search and `/kln:learn` for knowledge capture.
 
 **Implementation:** `src/klean/hooks.py:prompt_handler()`
 
@@ -370,7 +366,7 @@ or
 ```bash
 # Test hooks manually
 echo '{"source":"startup"}' | kln-hook-session
-echo '{"prompt":"FindKnowledge test"}' | kln-hook-prompt
+echo '{"prompt":"InitKB"}' | kln-hook-prompt
 ```
 
 ---
@@ -432,7 +428,7 @@ Each knowledge entry contains:
   "id": "finding-20260207103000",
   "title": "Short descriptive title (max 80 chars)",
   "insight": "2-4 sentence explanation with actionable details",
-  "type": "warning|solution|pattern|decision|discovery|journal|finding|commit|session",
+  "type": "warning|solution|pattern|decision|discovery|finding|commit",
   "priority": "critical|high|medium|low",
   "keywords": ["searchable", "terms"],
   "source": "file:path:line|https://url|git:hash|conv:YYYY-MM-DD",
@@ -445,7 +441,7 @@ Each knowledge entry contains:
 
 | Field | Purpose |
 |-------|---------|
-| `type` | Entry category (warning/solution/pattern/decision/discovery/journal/finding/commit/session) |
+| `type` | Entry category (warning/solution/pattern/decision/discovery/finding/commit) |
 | `priority` | Importance level (critical/high/medium/low) |
 | `keywords` | Searchable terms (merged from legacy tags + key_concepts) |
 | `source` | Actionable reference (file:path:line, git:hash, URL) |
@@ -511,8 +507,7 @@ print(result)
 | `/kln:learn` | Slash | Yes | Extract learnings from conversation context |
 | `/kln:learn "topic"` | Slash | Yes | Focused extraction on specific topic |
 | `/kln:remember` | Slash | Yes | End-of-session comprehensive capture |
-| `FindKnowledge <query>` | Hook | N/A | Search KB |
-| `SaveInfo <url>` | Hook | Partial | LLM evaluates URL content |
+| `/kln:find <query>` | Slash | N/A | Search KB with hybrid semantic search |
 
 ---
 
@@ -841,9 +836,9 @@ print(result["output"])
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search knowledge DB (compact index with IDs) |
-| `FindKnowledgeDetail <id>` | Fetch full entry by ID |
-| `SaveInfo <url>` | Smart save URL |
+| `/kln:find <query>` | Search knowledge DB |
+| `/kln:learn` | Extract learnings from context |
+| `/kln:remember` | End-of-session capture + Serena index |
 
 ---
 

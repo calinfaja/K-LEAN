@@ -89,7 +89,7 @@ pipx install kln-ai
 kln init --provider skip
 ```
 
-This installs the knowledge database, session hooks, slash commands (`/kln:learn`, `/kln:remember`), and `FindKnowledge` search. No LiteLLM proxy or API keys required. Add a provider later with `kln init --provider nanogpt --api-key $KEY`.
+This installs the knowledge database, session hooks, and slash commands (`/kln:learn`, `/kln:remember`, `/kln:find`). No LiteLLM proxy or API keys required. Add a provider later with `kln init --provider nanogpt --api-key $KEY`.
 
 ### 4. Use in Claude Code
 
@@ -177,17 +177,17 @@ Your insights survive sessions. Capture mid-session or end-of-session:
 # Synced to Serena lessons-learned
 ```
 
-**`FindKnowledge`** — Search anytime. Supports date, branch, and type filters.
+**`/kln:find`** — Search anytime. Supports date, branch, and type filters.
 ```
-FindKnowledge "JWT validation"
-FindKnowledge auth since:2026-02-01
-FindKnowledge type:decision since:2026-02-03
-FindKnowledge auth branch:feature/auth
+/kln:find "JWT validation"
+/kln:find auth since:2026-02-01
+/kln:find type:decision since:2026-02-03
+/kln:find auth branch:feature/auth
 ```
 
-**How:** Per-project knowledge database with hybrid search—dense embeddings (BGE-small via [fastembed](https://github.com/qdrant/fastembed)) + sparse matching (BM42) + RRF fusion + cross-encoder reranking. Runs locally via ONNX, <100ms queries. V3.1 schema adds temporal filtering by date, branch, and entry type.
+**How:** Per-project knowledge database with hybrid search—dense embeddings (BGE-small via [fastembed](https://github.com/qdrant/fastembed)) + sparse matching (BM42) + RRF fusion + cross-encoder reranking. Runs locally via ONNX, <100ms queries. V3.1 schema adds temporal filtering by date, branch, and entry type. Learnings are also **auto-extracted** on `/compact` via PreCompact hook.
 
-> **No API key?** Knowledge DB works fully offline. You can still use `/kln:learn`, `/kln:remember`, and `FindKnowledge` without NanoGPT or OpenRouter—embeddings run locally on your machine.
+> **No API key?** Knowledge DB works fully offline. You can still use `/kln:learn`, `/kln:remember`, and `/kln:find` without NanoGPT or OpenRouter—embeddings run locally on your machine.
 
 ---
 
@@ -232,22 +232,13 @@ Unlike models that review what you give them, **agents read your codebase themse
 
 | Hook | Trigger | What It Does |
 |------|---------|--------------|
-| `session-start` | Claude Code opens | Starts LiteLLM + Knowledge Server, creates journal entry |
-| `user-prompt` | You type keywords | `FindKnowledge` (with filters), `FindKnowledgeDetail`, `SaveInfo` |
+| `session-start` | Claude Code opens | Starts LiteLLM + Knowledge Server |
+| `user-prompt` | You type `InitKB` | Initialize project knowledge DB |
 | `post-bash` | After bash commands | Git commits, test failures, build errors, package installs |
 | `post-web` | After WebFetch | Doc URLs captured as discoveries |
-| `pre-compact` | Context compaction | Summarizes session via Claude Haiku, writes session log |
+| `pre-compact` | Context compaction | Session log via Haiku + auto-extract learnings to KB |
 
-**Keywords you can type directly** (no slash):
-```
-FindKnowledge "rate limiting"                    # Search KB (compact index)
-FindKnowledge auth since:2026-02-01 type:warning # Filtered search
-FindKnowledgeDetail abc12345                     # Full entry by ID
-SaveInfo https://docs.example.com                # Evaluate + save if useful
-asyncConsensus security                          # Background 3-model review
-```
-
-**How:** Claude Code hook system with pattern matching. Services auto-start on session begin. Git commits, test failures, build errors, and doc URLs auto-captured to KB with timestamp and branch metadata.
+**How:** Claude Code hook system with pattern matching. Services auto-start on session begin. Git commits, test failures, build errors, and doc URLs auto-captured to KB with timestamp and branch metadata. On compaction, Haiku extracts 0-5 atomic learnings from the full conversation.
 
 ---
 
@@ -356,6 +347,7 @@ Model. Project. Branch (● = dirty). Lines changed. Models ready. KB entry coun
 | `/kln:multi <focus>` | 3-5 model consensus | ~60s |
 | `/kln:agent <role>` | Specialist agent with tools | ~2min |
 | `/kln:rethink` | Contrarian debugging | ~20s |
+| `/kln:find <query>` | Search knowledge DB | ~5s |
 | `/kln:learn` | Capture insights from context | ~10s |
 | `/kln:remember` | End-of-session knowledge capture | ~20s |
 | `/kln:doc <title>` | Generate session docs | ~30s |

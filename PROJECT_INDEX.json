@@ -86,8 +86,9 @@
     "kln:multi": {"file": "data/commands/kln/multi.md", "purpose": "Multi-model consensus (~60s)"},
     "kln:agent": {"file": "data/commands/kln/agent.md", "purpose": "SmolKLN specialist agents (~2min)"},
     "kln:rethink": {"file": "data/commands/kln/rethink.md", "purpose": "Contrarian debugging (4 techniques)"},
+    "kln:find": {"file": "data/commands/kln/find.md", "purpose": "Search knowledge DB with hybrid semantic search"},
     "kln:learn": {"file": "data/commands/kln/learn.md", "purpose": "Context-aware learning extraction"},
-    "kln:remember": {"file": "data/commands/kln/remember.md", "purpose": "End-of-session capture"},
+    "kln:remember": {"file": "data/commands/kln/remember.md", "purpose": "End-of-session capture + Serena index"},
     "kln:doc": {"file": "data/commands/kln/doc.md", "purpose": "Documentation generation"},
     "kln:status": {"file": "data/commands/kln/status.md", "purpose": "System status"},
     "kln:help": {"file": "data/commands/kln/help.md", "purpose": "Command reference"}
@@ -96,10 +97,10 @@
     "note": "Hooks are Python entry points (cross-platform), not shell scripts",
     "protocol": "Read JSON stdin, output JSON stdout. Exit 0=success, 2=block",
     "session-start": {"entry_point": "kln-hook-session", "trigger": "SessionStart", "purpose": "Auto-start LiteLLM + KB server"},
-    "user-prompt": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["FindKnowledge", "FindKnowledgeDetail", "SaveInfo", "InitKB", "asyncReview", "asyncConsensus"]},
+    "user-prompt": {"entry_point": "kln-hook-prompt", "trigger": "UserPromptSubmit", "keywords": ["InitKB"]},
     "post-bash": {"entry_point": "kln-hook-bash", "trigger": "PostToolUse:Bash", "purpose": "Git commits, test failures, build errors, package installs -> KB"},
     "post-web": {"entry_point": "kln-hook-web", "trigger": "PostToolUse:Web*", "purpose": "Doc URL captures as discovery entries"},
-    "pre-compact": {"entry_point": "kln-hook-compact", "trigger": "PreCompact", "purpose": "Session log via Claude Haiku (transcript + git + KB -> .serena/memories/)"}
+    "pre-compact": {"entry_point": "kln-hook-compact", "trigger": "PreCompact", "purpose": "Session log via Haiku + auto-extract learnings to KB"}
   },
   "agents": {
     "code-reviewer": {"file": "data/agents/code-reviewer.md", "specialty": "OWASP, SOLID, code quality"},
@@ -120,7 +121,7 @@
       "sparse": "Qdrant/bm42-all-minilm-l6-v2-attentions",
       "reranker": "Xenova/ms-marco-MiniLM-L-6-v2"
     },
-    "entry_types": ["warning", "solution", "pattern", "decision", "discovery", "journal", "finding", "commit", "session"],
+    "entry_types": ["warning", "solution", "pattern", "decision", "discovery", "finding", "commit"],
     "search_pipeline": ["dense", "sparse", "rrf_fusion", "post_rrf_filtering", "reranking"],
     "filters": ["date_from", "date_to", "entry_type", "branch"],
     "server": {
@@ -128,7 +129,7 @@
       "port": "14000 + hash_offset",
       "features": ["server-owned writes", "immediate indexing", "add command", "date/branch/type filtering", "search_by_date", "get_timeline", "get_related", "get", "update_usage", "status"]
     },
-    "auto_capture": ["git_commits", "test_failures", "build_errors", "package_installs", "doc_urls", "session_starts"],
+    "auto_capture": ["git_commits", "test_failures", "build_errors", "package_installs", "doc_urls", "session_learnings"],
     "scripts": {
       "server": "data/scripts/knowledge-server.py",
       "capture": "data/scripts/knowledge-capture.py",

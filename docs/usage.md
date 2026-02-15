@@ -146,39 +146,34 @@ Persistent semantic memory across sessions with hybrid search and temporal filte
 | `pattern` | "use X for Y", "prefer", "best way" |
 | `decision` | "chose", "decided", "instead of", "trade-off" |
 | `discovery` | "found that", "turns out", "TIL", "surprisingly" |
-| `journal` | "worked on", "session started", "today I" |
 | `finding` | Default for everything else |
 
 ### Searching Knowledge
 
-Type these keywords directly in Claude Code (no `/` prefix):
+Use `/kln:find` slash command for knowledge search:
 
-| Keyword | Action |
+| Command | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Semantic search KB (returns compact index with IDs) |
-| `FindKnowledge <query> since:YYYY-MM-DD` | Search with date filter |
-| `FindKnowledge <query> branch:<name>` | Search filtered by git branch |
-| `FindKnowledge <query> type:<type>` | Search filtered by entry type |
-| `FindKnowledgeDetail <id>` | Fetch full entry by ID (supports short prefixes) |
-| `SaveInfo <url>` | Evaluate URL with LLM, save if relevant |
-| `InitKB` | Initialize Knowledge DB for current project |
+| `/kln:find <query>` | Semantic search KB |
+| `/kln:find <query> since:YYYY-MM-DD` | Search with date filter |
+| `/kln:find <query> branch:<name>` | Search filtered by git branch |
+| `/kln:find <query> type:<type>` | Search filtered by entry type |
 
-`FindKnowledge` returns a compact index for token efficiency:
+Results are numbered with insight excerpts:
 ```
-  [0.85] Auth refactor (solution, 2026-02-07) [id:abc12345]
-  [0.72] JWT token handling (pattern, 2026-02-06) [id:def67890]
-  Tip: "FindKnowledgeDetail <id>" for full entry
+  1. [solution] Auth refactor (2026-02-07) [id:abc12345]
+     Moved JWT validation to middleware, reduced duplicated checks...
+  2. [pattern] JWT token handling (2026-02-06) [id:def67890]
+     Use short-lived access tokens with refresh rotation...
 ```
 
-Use `FindKnowledgeDetail abc12345` to get the full insight text, keywords, source, and related entries.
+Use `--id` for full entry details. Type `InitKB` to initialize the Knowledge DB.
 
 **Examples:**
 ```bash
-FindKnowledge "authentication patterns"
-FindKnowledge auth since:2026-02-01
-FindKnowledge auth branch:feature/auth type:decision
-FindKnowledgeDetail abc12345
-SaveInfo https://docs.example.com/api
+/kln:find "authentication patterns"
+/kln:find auth since:2026-02-01
+/kln:find auth branch:feature/auth type:decision
 ```
 
 ### Auto-Captured Events
@@ -192,8 +187,7 @@ Hooks automatically capture events to the Knowledge DB:
 | Build errors | `finding` | high |
 | Package installs | `finding` | low |
 | Doc URL fetches | `discovery` | low |
-| Session starts | `journal` | low |
-| Session logs (PreCompact) | `session` | low |
+| Session learnings (PreCompact) | various | medium |
 
 All auto-captured entries include timestamp and git branch metadata.
 

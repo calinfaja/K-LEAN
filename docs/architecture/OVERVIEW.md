@@ -80,7 +80,7 @@ K-LEAN works natively on **Windows, Linux, and macOS**:
 | Component | Count | Description |
 |-----------|-------|-------------|
 | Models | Dynamic | Via LiteLLM (auto-discovered) |
-| Slash Commands | 9 | /kln:quick, multi, agent, rethink, doc, learn, remember, status, help |
+| Slash Commands | 10 | /kln:quick, multi, agent, rethink, doc, learn, remember, find, status, help |
 | SmolKLN Agents | 8 | code-reviewer, security-auditor, debugger, performance-engineer, rust-expert, c-pro, arm-cortex-expert, orchestrator |
 | Hooks | 5 | Python entry points (session, prompt, bash, web, compact) |
 | Rules | 1 | ~/.claude/rules/kln.md |
@@ -129,21 +129,18 @@ K-LEAN hooks are Python entry points that work cross-platform:
 | Entry Point | Hook Type | Purpose |
 |-------------|-----------|---------|
 | `kln-hook-session` | SessionStart | Auto-start LiteLLM + per-project KB |
-| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (FindKnowledge, FindKnowledgeDetail, SaveInfo, etc.) |
+| `kln-hook-prompt` | UserPromptSubmit | Keyword detection (InitKB) |
 | `kln-hook-bash` | PostToolUse (Bash) | Git commits, test failures, build errors, package installs -> KB |
 | `kln-hook-web` | PostToolUse (Web*) | Doc URLs captured as discovery entries |
-| `kln-hook-compact` | PreCompact | Session log via Claude Haiku (transcript + git + KB -> .serena/memories/) |
+| `kln-hook-compact` | PreCompact | Session log via Haiku + auto-extract learnings to KB |
 
 **Keywords detected by prompt handler:**
 
 | Keyword | Action |
 |---------|--------|
-| `FindKnowledge <query>` | Search KB (compact index; supports `since:`, `until:`, `branch:`, `type:` filters) |
-| `FindKnowledgeDetail <id>` | Fetch full KB entry by ID (supports short prefixes) |
-| `SaveInfo <url>` | Smart save URL with LLM evaluation |
 | `InitKB` | Initialize project KB |
-| `asyncReview` | Background quick review |
-| `asyncConsensus` | Background multi-model review |
+
+**Note:** `FindKnowledge`, `FindKnowledgeDetail`, and `SaveInfo` were migrated to `/kln:find` slash command.
 
 **Note:** For context-aware knowledge capture, use `/kln:learn` (slash command) instead of hook keywords.
 

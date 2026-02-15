@@ -6,7 +6,8 @@ Each hook function is an entry point that can be called by Claude Code.
 
 Hooks:
 - session_start: Auto-start LiteLLM proxy and Knowledge Server
-- prompt_handler: Dispatch keywords (FindKnowledge, SaveInfo, etc.)
+- prompt_handler: Dispatch keywords (InitKB)
+- pre_compact: Session log + automatic learning extraction via Haiku
 - post_bash: Detect git commits, log to timeline
 - post_web: Smart capture for URLs
 
@@ -812,7 +813,7 @@ def _extract_session_learnings(
         # Strip ```json ... ``` wrapper
         lines = response.split("\n")
         response = "\n".join(
-            l for l in lines if not l.strip().startswith("```")
+            line for line in lines if not line.strip().startswith("```")
         )
 
     try:
@@ -1369,7 +1370,6 @@ def post_web() -> None:
         "/api/",
         "tutorial",
     ]
-    project_root = find_project_root()
 
     for url in urls:
         url_lower = url.lower()

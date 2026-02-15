@@ -350,7 +350,7 @@ Examples:
         "--type",
         dest="entry_type",
         default="finding",
-        choices=["finding", "solution", "pattern", "warning", "decision", "discovery", "journal"],
+        choices=["finding", "solution", "pattern", "warning", "decision", "discovery"],
         help="Type of entry (default: finding, auto-inferred if omitted)",
     )
     parser.add_argument("--tags", default="", help="Comma-separated keywords")

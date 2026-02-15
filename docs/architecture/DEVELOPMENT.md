@@ -98,7 +98,7 @@ k-lean/
 │   ├── smol/               # SmolKLN agent framework
 │   └── data/               # Installable assets
 │       ├── scripts/        # Python scripts for knowledge DB
-│       ├── commands/kln/   # Slash commands (9 .md files)
+│       ├── commands/kln/   # Slash commands (10 .md files)
 │       ├── agents/         # SmolKLN agent definitions (8 + template)
 │       ├── config/         # Config templates (LiteLLM, CLAUDE.md)
 │       ├── core/           # Review prompts and role definitions
@@ -534,7 +534,7 @@ kln start -s all
 
 # Reset knowledge DB (per-project)
 rm -rf .knowledge-db/
-# Will auto-recreate on next /kln:learn or FindKnowledge
+# Will auto-recreate on next /kln:learn or /kln:find
 
 # Complete reinstall
 kln uninstall

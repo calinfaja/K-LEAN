@@ -457,7 +457,7 @@ class KnowledgeDB:
             entry: Dictionary with V3 schema fields:
                 - title (required): Short title (max 80 chars)
                 - insight (required): Full description (or 'summary' for V2 compat)
-                - type: warning|solution|pattern|finding|commit|session
+                - type: warning|solution|pattern|finding|decision|discovery|commit
                 - priority: critical|high|medium|low
                 - keywords: List of searchable terms
                 - source: URL or file:path:line or git:hash or conv:date
