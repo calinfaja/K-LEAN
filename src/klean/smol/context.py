@@ -249,6 +249,6 @@ def format_context_for_prompt(ctx: ProjectContext) -> str:
     # Serena status
     if ctx.serena_available:
         parts.append("\n## Serena Memory: Available")
-        parts.append("Project memories and lessons-learned are accessible.")
+        parts.append("Project memories and kln-lessons-learned are accessible.")
 
     return "\n".join(parts)

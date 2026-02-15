@@ -53,7 +53,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - `kln-hook-compact` (PreCompact hook) - automatic session log on context compaction via Claude Haiku
-- Session logs stored in `.serena/memories/session-log-YYYY-MM-DD.md` (Serena-discoverable)
+- Session logs stored in `.serena/memories/kln-session-YYYY-MM-DD.md` (Serena-discoverable)
 - Searchable KB session entries with `related_to` graph links
 - `kln admin persist-session` CLI command for manual session log generation
 - `FindKnowledgeDetail <id>` keyword for fetching full KB entries by ID (progressive disclosure)

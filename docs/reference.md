@@ -104,7 +104,7 @@ User controls model priority via order in `~/.config/litellm/config.yaml`.
 | `~/.claude/settings.json` | Claude Code settings |
 | `.knowledge-db/entries.jsonl` | KB entries (per-project) |
 | `.knowledge-db/index/` | Semantic index |
-| `.serena/memories/session-log-*.md` | Session logs (per-project, Serena-discoverable) |
+| `.serena/memories/kln-session-*.md` | Session logs (per-project, Serena-discoverable) |
 | `~/.klean/logs/phoenix.log` | Phoenix telemetry logs |
 | `.claude/kln/agentExecute/` | SmolKLN agent reports |
 | `.claude/kln/quickReview/` | Quick review outputs |
@@ -218,8 +218,8 @@ SmolKLN agents can be traced with Phoenix for debugging and performance analysis
 - `git:<hash>` - Git commit
 - `conv:YYYY-MM-DD` - Conversation context
 - `bash:<command>` - Auto-captured from bash events
-- `session:YYYY-MM-DD` - Session journal entry
-- `session-log:YYYY-MM-DD` - Session log summary (links to .serena/memories/)
+- `session:YYYY-MM-DD` - Session summary entry
+- `session-log:YYYY-MM-DD` - Session log summary (links to .serena/memories/kln-session-*.md)
 
 ## Review Areas
 

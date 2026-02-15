@@ -199,7 +199,7 @@ When Claude Code compacts context (PreCompact hook), K-LEAN automatically genera
 2. Gets git log since 6am
 3. Queries KB for today's entries (findings, warnings, solutions)
 4. Sends all three to Claude Haiku for summarization
-5. Appends to `.serena/memories/session-log-YYYY-MM-DD.md`
+5. Appends to `.serena/memories/kln-session-YYYY-MM-DD.md`
 6. Creates a searchable KB entry (type: `session`) linking to the full log
 
 Session logs are Serena-discoverable and injected as context on next session start:
@@ -329,7 +329,7 @@ kln admin persist-session  # Generate session log via Claude Haiku
 | Quick reviews | `.claude/kln/quickReview/` |
 | Knowledge DB | `.knowledge-db/` |
 | Timeline | `.knowledge-db/timeline.txt` |
-| Session logs | `.serena/memories/session-log-YYYY-MM-DD.md` |
+| Session logs | `.serena/memories/kln-session-YYYY-MM-DD.md` |
 | System logs | `~/.klean/logs/` |
 | Phoenix traces | `http://localhost:6006` |
 

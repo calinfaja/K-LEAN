@@ -478,7 +478,7 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
 
     # 8. Append to session log file
     today = datetime.now().strftime("%Y-%m-%d")
-    memory_file = project_root / ".serena" / "memories" / f"session-log-{today}.md"
+    memory_file = project_root / ".serena" / "memories" / f"kln-session-{today}.md"
 
     try:
         if memory_file.exists():
@@ -492,7 +492,7 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
     # 9. Extract atomic learnings from conversation (automatic /kln:learn)
     _extract_session_learnings(project_root, conversation, summary)
 
-    return f"Session log updated: session-log-{today}"
+    return f"Session log updated: kln-session-{today}"
 
 
 def _extract_user_messages(transcript_path: str) -> tuple[str, str, str]:
@@ -884,13 +884,13 @@ def _read_latest_session_log(project_root: Path) -> str:
         project_root: Project root path.
 
     Returns:
-        Content of the most recent session-log-*.md file, or empty string.
+        Content of the most recent kln-session-*.md file, or empty string.
     """
     memory_dir = project_root / ".serena" / "memories"
     if not memory_dir.exists():
         return ""
 
-    logs = sorted(memory_dir.glob("session-log-*.md"), reverse=True)
+    logs = sorted(memory_dir.glob("kln-session-*.md"), reverse=True)
     if not logs:
         return ""
 
@@ -952,7 +952,7 @@ def _get_kb_context(project_root: Path) -> str:
     Returns:
         Formatted context string or empty string.
     """
-    serena_prompt = "[>] Session history: mcp__serena__read_memory lessons-learned"
+    serena_prompt = "[>] Session history: mcp__serena__read_memory kln-lessons-learned"
 
     if not _is_kb_server_running(project_root):
         return serena_prompt

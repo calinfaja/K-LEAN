@@ -168,6 +168,6 @@ Releases are published via GitHub Actions workflow `.github/workflows/publish.ym
 - Cross-platform: Use `klean.platform` for paths and process management
 - Hooks: Python entry points (`kln-hook-*`), read JSON from stdin, output JSON to stdout
 - PreCompact: async hook, generates session log via Claude Haiku, validates structured output
-- Session logs: `.serena/memories/session-log-YYYY-MM-DD.md` (auto-generated on PreCompact)
+- Session logs: `.serena/memories/kln-session-YYYY-MM-DD.md` (auto-generated on PreCompact)
 - IPC: TCP localhost (not Unix sockets) for cross-platform compatibility
 - Commit style: conventional commits (`feat:`, `fix:`, `docs:`, etc.)

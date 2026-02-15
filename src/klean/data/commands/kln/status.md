@@ -114,7 +114,7 @@ Service Health Check
 [[OK]] Serena MCP
     Status: Connected
     Tools: 2 available
-    - lessons-learned
+    - kln-lessons-learned
     - architecture-review-system
 ```
 

@@ -266,13 +266,13 @@ class AgentMemory:
         return persisted
 
     def sync_serena_to_kb(self, serena_content: str) -> int:
-        """Sync Serena lessons-learned content to Knowledge DB.
+        """Sync Serena kln-lessons-learned content to Knowledge DB.
 
-        Parses the lessons-learned markdown and imports each lesson
+        Parses the kln-lessons-learned markdown and imports each lesson
         as a searchable KB entry.
 
         Args:
-            serena_content: Raw content from Serena lessons-learned memory
+            serena_content: Raw content from Serena kln-lessons-learned memory
 
         Returns:
             Number of lessons synced
@@ -347,9 +347,9 @@ class AgentMemory:
                     "insight": content.strip()[:1000],
                     "type": lesson_type,
                     "priority": "high",  # Serena lessons are curated
-                    "keywords": ["serena", "lessons-learned", lesson.get("context", "")]
+                    "keywords": ["serena", "kln-lessons-learned", lesson.get("context", "")]
                     if lesson.get("context")
-                    else ["serena", "lessons-learned"],
+                    else ["serena", "kln-lessons-learned"],
                     "source": f"serena:{lesson.get('date', 'unknown')}",
                 }
             )

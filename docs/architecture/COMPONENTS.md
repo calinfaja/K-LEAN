@@ -271,7 +271,7 @@ K-LEAN integrates with Claude Code via **5 Python entry points** that trigger on
 2. Get git log since 6am
 3. Query KB for today's entries (findings, warnings, solutions, patterns)
 4. Send all three data sources to Claude Haiku (`claude -p --model haiku`)
-5. Append summary to `.serena/memories/session-log-YYYY-MM-DD.md`
+5. Append summary to `.serena/memories/kln-session-YYYY-MM-DD.md`
 6. Create searchable KB session entry with `related_to` link to session log file
 
 **Session log format:**

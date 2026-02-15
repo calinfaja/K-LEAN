@@ -81,7 +81,7 @@ Providers: NanoGPT, OpenRouter, Ollama (any OpenAI-compatible)
 ## Serena Memories
 
 Curated insights via `mcp__serena__*_memory` tools:
-- `lessons-learned` - Gotchas, patterns
+- `kln-lessons-learned` - Gotchas, patterns
 - `architecture-review-system` - System docs
 
 ## Hooks

@@ -922,7 +922,7 @@ class TestPersistSessionLog:
             assert "Session log updated" in result
 
             # Check file was created
-            log_files = list(memory_dir.glob("session-log-*.md"))
+            log_files = list(memory_dir.glob("kln-session-*.md"))
             assert len(log_files) == 1
             content = log_files[0].read_text()
             assert "# Session Log:" in content
@@ -941,7 +941,7 @@ class TestPersistSessionLog:
         from datetime import datetime
 
         today = datetime.now().strftime("%Y-%m-%d")
-        log_file = memory_dir / f"session-log-{today}.md"
+        log_file = memory_dir / f"kln-session-{today}.md"
         log_file.write_text("# Session Log: " + today + "\n\n## 10:00 - 11:00 | main\n- Earlier")
 
         mock_git = MagicMock()
@@ -1217,8 +1217,8 @@ class TestReadLatestSessionLog:
         memory_dir = tmp_path / ".serena" / "memories"
         memory_dir.mkdir(parents=True)
 
-        (memory_dir / "session-log-2026-02-06.md").write_text("# Old log")
-        (memory_dir / "session-log-2026-02-07.md").write_text("# Recent log")
+        (memory_dir / "kln-session-2026-02-06.md").write_text("# Old log")
+        (memory_dir / "kln-session-2026-02-07.md").write_text("# Recent log")
 
         result = _read_latest_session_log(tmp_path)
         assert "Recent log" in result
@@ -1308,7 +1308,7 @@ class TestGetKbContext:
         # Create session log file
         memory_dir = tmp_path / ".serena" / "memories"
         memory_dir.mkdir(parents=True)
-        log_file = memory_dir / "session-log-2026-02-07.md"
+        log_file = memory_dir / "kln-session-2026-02-07.md"
         log_file.write_text(
             "# Session Log: 2026-02-07\n\n"
             "### 14:00-15:30 | `main` | 2 commits\n\n"

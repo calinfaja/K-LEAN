@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync Serena lessons-learned to Knowledge DB.
+"""Sync Serena kln-lessons-learned to Knowledge DB.
 
 Makes curated Serena lessons searchable by SmolKLN agents.
 
@@ -20,7 +20,7 @@ if str(scripts_dir) not in sys.path:
 
 
 def parse_serena_lessons(content: str) -> list:
-    """Parse Serena lessons-learned markdown into structured lessons."""
+    """Parse Serena kln-lessons-learned markdown into structured lessons."""
     lessons = []
     current_lesson = {}
     current_content = []
@@ -104,9 +104,9 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
                     "insight": lesson["content"][:1000],
                     "type": lesson_type,
                     "priority": "high",  # Serena lessons are curated
-                    "keywords": ["serena", "lessons-learned", lesson.get("context", "")]
+                    "keywords": ["serena", "kln-lessons-learned", lesson.get("context", "")]
                     if lesson.get("context")
-                    else ["serena", "lessons-learned"],
+                    else ["serena", "kln-lessons-learned"],
                     "source": f"serena:{lesson.get('date', 'unknown')}",
                 }
             )
@@ -121,7 +121,7 @@ def sync_to_kb(lessons: list, db, dry_run: bool = False) -> int:
 def main():
     parser = argparse.ArgumentParser(description="Sync Serena lessons to Knowledge DB")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be synced")
-    parser.add_argument("--serena-path", help="Path to Serena lessons-learned file")
+    parser.add_argument("--serena-path", help="Path to Serena kln-lessons-learned file")
     parser.add_argument("--project", "-p", help="Project path for Knowledge DB")
     args = parser.parse_args()
 
@@ -131,8 +131,8 @@ def main():
     else:
         # Try common locations
         candidates = [
-            Path.cwd() / ".serena" / "memories" / "lessons-learned.md",
-            Path.home() / "claudeAgentic" / ".serena" / "memories" / "lessons-learned.md",
+            Path.cwd() / ".serena" / "memories" / "kln-lessons-learned.md",
+            Path.home() / "claudeAgentic" / ".serena" / "memories" / "kln-lessons-learned.md",
         ]
         serena_path = None
         for c in candidates:
@@ -141,7 +141,7 @@ def main():
                 break
 
     if not serena_path or not serena_path.exists():
-        print("[ERROR] Serena lessons-learned not found")
+        print("[ERROR] Serena kln-lessons-learned not found")
         print("   Tried:", candidates if not args.serena_path else [args.serena_path])
         sys.exit(1)
 

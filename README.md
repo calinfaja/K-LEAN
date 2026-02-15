@@ -174,7 +174,7 @@ Your insights survive sessions. Capture mid-session or end-of-session:
 ```
 /kln:remember
 # Saved 6 entries (2 warnings, 2 patterns, 1 solution, 1 decision)
-# Synced to Serena lessons-learned
+# Synced to Serena kln-lessons-learned
 ```
 
 **`/kln:find`** — Search anytime. Supports date, branch, and type filters.
@@ -282,7 +282,7 @@ Transcript JSONL (thousands of lines)
 [5] Claude Haiku ---------> Structured markdown:
     |                        Accomplished / Decisions / Discovered / Carry Forward
     v
-[6] Persist --------------> .serena/memories/session-log-YYYY-MM-DD.md
+[6] Persist --------------> .serena/memories/kln-session-YYYY-MM-DD.md
                              + searchable KB entry (type: session)
 ```
 

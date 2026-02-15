@@ -77,7 +77,7 @@ For each significant learning:
 
 **This is the key step that links KB entries to Serena for future retrieval.**
 
-Use `mcp__serena__edit_memory` to append to `lessons-learned.md`:
+Use `mcp__serena__edit_memory` to append to `kln-lessons-learned.md`:
 
 ```markdown
 ---
@@ -98,7 +98,7 @@ Use `mcp__serena__edit_memory` to append to `lessons-learned.md`:
 ### Step 5: Verify and Clear
 
 1. **Verify KB saves**: `/kln:find <topic>`
-2. **Check Serena**: `mcp__serena__read_memory lessons-learned`
+2. **Check Serena**: `mcp__serena__read_memory kln-lessons-learned`
 3. **Clear when ready**: `/compact` or `/clear`
 
 ## Example Output
@@ -126,7 +126,7 @@ Saving to Knowledge DB...
 [OK] Saved 5 entries
 
 Generating Serena summary...
-[OK] Appended to lessons-learned.md
+[OK] Appended to kln-lessons-learned.md
 
 ---
 ### Remember: 2026-01-11 15:45
