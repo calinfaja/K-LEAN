@@ -92,3 +92,6 @@ backups/
 
 # Local-only documents (not for repo)
 docs/contributions/
+
+# QA datasets
+datasets/

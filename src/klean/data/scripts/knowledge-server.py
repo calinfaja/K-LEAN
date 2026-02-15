@@ -369,6 +369,22 @@ class KnowledgeServer:
                         response = {"status": "ok", "entry": entry}
                     else:
                         response = {"error": f"Entry not found: {entry_id}"}
+            elif cmd == "reload":
+                # Reload index from disk (picks up externally-added entries)
+                if not self.db:
+                    response = {"error": "No index loaded"}
+                else:
+                    try:
+                        old_count = self.db.count()
+                        self.db._load_index()
+                        new_count = self.db.count()
+                        response = {
+                            "status": "ok",
+                            "old_count": old_count,
+                            "new_count": new_count,
+                        }
+                    except Exception as e:
+                        response = {"error": f"Reload failed: {e}"}
             else:
                 response = {"error": f"Unknown command: {cmd}"}
 

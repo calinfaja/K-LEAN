@@ -245,7 +245,7 @@ class KnowledgeDB:
                     debug_log(f"Loaded {len(self._sparse_vectors)} sparse vectors")
 
                 # Load entries into memory
-                self._entries = []
+                all_entries = []
                 if self.jsonl_path.exists():
                     with open(self.jsonl_path) as f:
                         for line in f:
@@ -253,17 +253,55 @@ class KnowledgeDB:
                                 try:
                                     e = json.loads(line)
                                     if isinstance(e, dict):
-                                        self._entries.append(migrate_entry(e))
+                                        all_entries.append(migrate_entry(e))
                                 except json.JSONDecodeError:
                                     pass
 
-                # Validate consistency
-                if len(self._embeddings) != len(self._entries):
-                    debug_log(
-                        f"WARNING: Index/entries mismatch ({len(self._embeddings)} vs {len(self._entries)})"
-                    )
+                # Align _entries with embedding order using _id_to_row mapping
+                indexed_ids = set(self._id_to_row.keys())
+                entries_by_id = {}
+                unindexed = []
+                for e in all_entries:
+                    eid = e.get("id", "")
+                    if eid in indexed_ids:
+                        entries_by_id[eid] = e
+                    elif eid:
+                        unindexed.append(e)
 
-                debug_log(f"Loaded {len(self._id_to_row)} embeddings from disk")
+                # Rebuild _entries in embedding row order
+                self._entries = [None] * len(self._embeddings)
+                for eid, row_idx in self._id_to_row.items():
+                    if eid in entries_by_id and row_idx < len(self._entries):
+                        self._entries[row_idx] = entries_by_id[eid]
+
+                # Fill any None slots with empty dicts (defensive)
+                for i in range(len(self._entries)):
+                    if self._entries[i] is None:
+                        self._entries[i] = {"id": self._row_to_id.get(i, ""), "title": "?"}
+
+                # Index any entries from JSONL that aren't in the embeddings
+                if unindexed:
+                    debug_log(f"Indexing {len(unindexed)} unindexed entries from JSONL...")
+                    for entry in unindexed:
+                        searchable = self._build_searchable_text(entry)
+                        embedding = list(self.dense_model.embed([searchable]))[0]
+                        self._embeddings = np.vstack([self._embeddings, embedding])
+
+                        row_idx = len(self._id_to_row)
+                        entry_id = entry.get("id") or str(uuid.uuid4())
+                        entry["id"] = entry_id
+                        self._id_to_row[entry_id] = row_idx
+                        self._row_to_id[row_idx] = entry_id
+                        self._entries.append(entry)
+
+                        sparse_vec = self._generate_sparse_embedding(searchable)
+                        if sparse_vec:
+                            self._sparse_vectors[row_idx] = sparse_vec
+
+                    self._save_index()
+                    debug_log(f"Repaired index: {len(self._id_to_row)} entries now indexed")
+                else:
+                    debug_log(f"Loaded {len(self._id_to_row)} embeddings from disk")
             except Exception as e:
                 debug_log(f"Failed to load index: {e}")
                 self._embeddings = None
@@ -431,7 +469,7 @@ class KnowledgeDB:
             # Build documents for reranking
             documents = []
             for r in results:
-                text = f"{r.get('title', '')} {r.get('summary', '')}"
+                text = f"{r.get('title', '')} {r.get('insight', r.get('summary', ''))}"
                 documents.append(text)
 
             # Get reranking scores

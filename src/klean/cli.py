@@ -1384,7 +1384,7 @@ def provider_add(provider_name: str, api_key: str):
 
     console.print("\nNext steps:")
     console.print("  • Review models: [cyan]kln model list[/cyan]")
-    console.print("  • Restart services: [cyan]kln restart[/cyan]")
+    console.print("  • Restart services: [cyan]kln stop && kln start[/cyan]")
 
 
 @provider.command(name="set-key")
@@ -1622,12 +1622,15 @@ def model_add(provider: str, model_id: str):
         sys.exit(1)
 
     # Parse the model ID
+    # OpenRouter format: provider/model-name (e.g. anthropic/claude-3.5-sonnet)
+    # NanoGPT format: provider/model-name (e.g. moonshotai/kimi-k2)
+    # Extract model name from last path segment, strip :free/:extended suffixes
     if provider == "openrouter":
         full_model_id = f"openrouter/{model_id}"
-        model_name = model_id.split("/")[-1]
+        model_name = model_id.split("/")[-1].split(":")[0]
     elif provider == "nanogpt":
         full_model_id = f"openai/{model_id}"
-        model_name = model_id.split("/")[-1]
+        model_name = model_id.split("/")[-1].split(":")[0]
     else:
         console.print(f"[red]Error: Unknown provider '{provider}'[/red]")
         sys.exit(1)
@@ -1686,7 +1689,7 @@ def model_add(provider: str, model_id: str):
         console.print(f"  Provider: {provider}")
         console.print(f"  LiteLLM ID: {full_model_id}")
         console.print("\nRestart services to use the new model:")
-        console.print("  [cyan]kln restart[/cyan]")
+        console.print("  [cyan]kln stop && kln start[/cyan]")
     except Exception as e:
         console.print(f"[red]Error saving config: {e}[/red]")
 
@@ -1725,7 +1728,7 @@ def model_remove(model_name: str):
         console.print(f"  • {model['model_name']}")
 
     console.print("\nRestart services to apply changes:")
-    console.print("  [cyan]kln restart[/cyan]")
+    console.print("  [cyan]kln stop && kln start[/cyan]")
 
 
 @model.command(name="test")
@@ -2181,7 +2184,10 @@ def uninstall(yes: bool):
     console.print("  - ~/.claude/commands/kln/")
     console.print("  - ~/.claude/hooks/")
     console.print("  - ~/.claude/rules/kln.md")
-    console.print("  - ~/.klean/agents/")
+    console.print("  - ~/.claude/kln/ (core module)")
+    console.print("  - ~/.klean/ (agents, logs, pids)")
+    console.print("  - ~/.venvs/knowledge-db/ (KB venv)")
+    console.print("  [dim]Note: ~/.config/litellm/ preserved (may be shared)[/dim]")
 
     if not yes and not click.confirm("\nProceed with uninstallation?"):
         console.print("[yellow]Uninstallation cancelled[/yellow]")
@@ -2206,7 +2212,9 @@ def uninstall(yes: bool):
         CLAUDE_DIR / "commands" / "kln",
         CLAUDE_DIR / "hooks",
         CLAUDE_DIR / "rules" / "kln.md",
-        SMOL_AGENTS_DIR,
+        CLAUDE_DIR / "kln",
+        KLEAN_DIR,
+        VENV_DIR,
     ]:
         if path.exists():
             backup_path = backup_dir / path.name
@@ -2217,6 +2225,32 @@ def uninstall(yes: bool):
             else:
                 shutil.move(str(path), str(backup_path))
             removed.append(str(path))
+
+    # Clean kln-hook entries from settings.json
+    settings_file = CLAUDE_DIR / "settings.json"
+    if settings_file.exists():
+        try:
+            settings = json.loads(settings_file.read_text())
+            hooks = settings.get("hooks", {})
+            cleaned = 0
+            for event in list(hooks.keys()):
+                original_len = len(hooks[event])
+                hooks[event] = [
+                    entry
+                    for entry in hooks[event]
+                    if not any(
+                        "kln-hook" in h.get("command", "")
+                        for h in entry.get("hooks", [])
+                    )
+                ]
+                cleaned += original_len - len(hooks[event])
+                if not hooks[event]:
+                    del hooks[event]
+            if cleaned:
+                settings_file.write_text(json.dumps(settings, indent=2) + "\n")
+                console.print(f"[green][OK][/green] Cleaned {cleaned} hook entries from settings.json")
+        except Exception as e:
+            console.print(f"[yellow]○[/yellow] Could not clean hooks from settings.json: {e}")
 
     console.print(f"\n[green]Removed {len(removed)} components[/green]")
     console.print(f"[dim]Backups saved to: {backup_dir}[/dim]")
@@ -2446,94 +2480,127 @@ def doctor(auto_fix: bool):
             except Exception as e:
                 console.print(f"  [yellow]○[/yellow] Could not validate LiteLLM config: {e}")
 
-        # Check .env file
+        # Check .env file -- only for providers referenced in config.yaml
         env_file = CONFIG_DIR / ".env"
+        # Detect which providers are actually configured
+        import re as _re
+
+        needed_keys = set()
+        if config_yaml.exists():
+            try:
+                for m in _re.finditer(r"os\.environ/([A-Z_]+_API_KEY)", config_yaml.read_text()):
+                    needed_keys.add(m.group(1))
+            except Exception:
+                pass
+
         if not env_file.exists():
-            issues.append(("ERROR", "LiteLLM .env file not found - run `kln init`"))
-            console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM .env: NOT FOUND")
+            if needed_keys:
+                issues.append(("ERROR", "LiteLLM .env file not found - run `kln init`"))
+                console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM .env: NOT FOUND")
         else:
             env_content = env_file.read_text()
-            has_api_key = (
-                "NANOGPT_API_KEY=" in env_content and "your-nanogpt-api-key-here" not in env_content
-            )
-            has_api_base = "NANOGPT_API_BASE=" in env_content
 
-            if not has_api_key:
-                issues.append(("ERROR", "NANOGPT_API_KEY not configured in .env"))
-                console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM .env: NANOGPT_API_KEY not set")
-            else:
-                console.print("  [green][OK][/green] LiteLLM .env: NANOGPT_API_KEY configured")
+            for key_name in sorted(needed_keys):
+                placeholder = f"your-{key_name.lower().replace('_', '-')}-here"
+                has_key = (
+                    f"{key_name}=" in env_content and placeholder not in env_content
+                )
+                if has_key:
+                    console.print(f"  [green][OK][/green] LiteLLM .env: {key_name} configured")
+                else:
+                    issues.append(("ERROR", f"{key_name} not configured in .env"))
+                    console.print(f"  [red]{SYM_FAIL}[/red] LiteLLM .env: {key_name} not set")
 
-            if not has_api_base:
-                issues.append(("WARNING", "NANOGPT_API_BASE not set - will auto-detect on start"))
-                console.print("  [yellow]○[/yellow] LiteLLM .env: NANOGPT_API_BASE not set")
+            # NanoGPT-specific: check API base and subscription
+            if "NANOGPT_API_KEY" in needed_keys:
+                has_nanogpt_key = (
+                    "NANOGPT_API_KEY=" in env_content
+                    and "your-nanogpt-api-key-here" not in env_content
+                )
+                has_api_base = "NANOGPT_API_BASE=" in env_content
 
-                if auto_fix and has_api_key:
-                    # Extract API key and auto-detect
-                    import re
+                if has_nanogpt_key and not has_api_base:
+                    issues.append(
+                        ("WARNING", "NANOGPT_API_BASE not set - will auto-detect on start")
+                    )
+                    console.print(
+                        "  [yellow]○[/yellow] LiteLLM .env: NANOGPT_API_BASE not set"
+                    )
 
-                    key_match = re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
-                    if key_match:
-                        api_key = key_match.group(1)
-                        console.print("    [dim]Auto-detecting subscription status...[/dim]")
-                        try:
-                            import urllib.request
-
-                            req = urllib.request.Request(
-                                "https://nano-gpt.com/api/subscription/v1/usage",
-                                headers={"Authorization": f"Bearer {api_key}"},
+                    if auto_fix:
+                        key_match = _re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
+                        if key_match:
+                            api_key = key_match.group(1)
+                            console.print(
+                                "    [dim]Auto-detecting subscription status...[/dim]"
                             )
-                            response = urllib.request.urlopen(req, timeout=5)
-                            data = json.loads(response.read().decode())
-                            if data.get("active"):
-                                api_base = "https://nano-gpt.com/api/subscription/v1"
-                                console.print(
-                                    "    [green][OK] Subscription account detected[/green]"
+                            try:
+                                import urllib.request
+
+                                req = urllib.request.Request(
+                                    "https://nano-gpt.com/api/subscription/v1/usage",
+                                    headers={"Authorization": f"Bearer {api_key}"},
                                 )
-                            else:
-                                api_base = "https://nano-gpt.com/api/v1"
-                                console.print("    [yellow]○ Pay-per-use account detected[/yellow]")
-
-                            # Append to .env
-                            with open(env_file, "a") as f:
-                                f.write(f"\nNANOGPT_API_BASE={api_base}\n")
-                            console.print("    [green][OK] Saved NANOGPT_API_BASE to .env[/green]")
-                            fixes_applied.append("Auto-detected and saved NANOGPT_API_BASE")
-                        except Exception as e:
-                            console.print(f"    [red]{SYM_FAIL} Could not detect: {e}[/red]")
-            else:
-                # Check if subscription is still active
-                import re
-
-                key_match = re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
-                base_match = re.search(r"NANOGPT_API_BASE=(\S+)", env_content)
-                if key_match and base_match:
-                    api_key = key_match.group(1)
-                    api_base = base_match.group(1)
-                    if "subscription" in api_base:
+                                response = urllib.request.urlopen(req, timeout=5)
+                                data = json.loads(response.read().decode())
+                                if data.get("active"):
+                                    api_base = "https://nano-gpt.com/api/subscription/v1"
+                                    console.print(
+                                        "    [green][OK] Subscription account detected[/green]"
+                                    )
+                                else:
+                                    api_base = "https://nano-gpt.com/api/v1"
+                                    console.print(
+                                        "    [yellow]○ Pay-per-use account detected[/yellow]"
+                                    )
+                                with open(env_file, "a") as f:
+                                    f.write(f"\nNANOGPT_API_BASE={api_base}\n")
+                                console.print(
+                                    "    [green][OK] Saved NANOGPT_API_BASE to .env[/green]"
+                                )
+                                fixes_applied.append(
+                                    "Auto-detected and saved NANOGPT_API_BASE"
+                                )
+                            except Exception as e:
+                                console.print(
+                                    f"    [red]{SYM_FAIL} Could not detect: {e}[/red]"
+                                )
+                elif has_nanogpt_key and has_api_base:
+                    base_match = _re.search(r"NANOGPT_API_BASE=(\S+)", env_content)
+                    key_match = _re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
+                    if key_match and base_match and "subscription" in base_match.group(1):
                         try:
                             import urllib.request
 
                             req = urllib.request.Request(
                                 "https://nano-gpt.com/api/subscription/v1/usage",
-                                headers={"Authorization": f"Bearer {api_key}"},
+                                headers={
+                                    "Authorization": f"Bearer {key_match.group(1)}"
+                                },
                             )
-                            response = urllib.request.urlopen(req, timeout=5)
-                            data = json.loads(response.read().decode())
+                            resp = urllib.request.urlopen(req, timeout=5)
+                            data = json.loads(resp.read().decode())
                             if data.get("active"):
                                 remaining = data.get("daily", {}).get("remaining", 0)
                                 console.print(
-                                    f"  [green][OK][/green] NanoGPT Subscription: ACTIVE ({remaining} daily remaining)"
+                                    f"  [green][OK][/green] NanoGPT Subscription:"
+                                    f" ACTIVE ({remaining} daily remaining)"
                                 )
                             else:
-                                issues.append(("WARNING", "NanoGPT subscription is not active"))
-                                console.print("  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE")
+                                issues.append(
+                                    ("WARNING", "NanoGPT subscription is not active")
+                                )
+                                console.print(
+                                    "  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE"
+                                )
                         except Exception:
                             console.print(
                                 "  [yellow]○[/yellow] NanoGPT Subscription: Could not verify"
                             )
-                    else:
-                        console.print("  [green][OK][/green] LiteLLM .env: Pay-per-use configured")
+                    elif base_match:
+                        console.print(
+                            "  [green][OK][/green] LiteLLM .env: Pay-per-use configured"
+                        )
 
     # Check Python venv
     if VENV_DIR.exists():
@@ -2686,8 +2753,9 @@ def doctor(auto_fix: bool):
                 issues.append(("ERROR", "Failed to start Knowledge server"))
                 console.print(f"  [red]{SYM_FAIL}[/red] Knowledge Server: FAILED TO START")
         else:
-            issues.append(("WARNING", "Knowledge server not running"))
-            console.print(f"  [red]{SYM_FAIL}[/red] Knowledge Server: NOT RUNNING")
+            console.print(
+                "  [yellow]○[/yellow] Knowledge Server: STOPPED (auto-starts on first query)"
+            )
 
     # Check SmolKLN
     console.print("\n[bold]SmolKLN Status:[/bold]")

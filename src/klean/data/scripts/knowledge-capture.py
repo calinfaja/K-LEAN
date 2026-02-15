@@ -284,6 +284,32 @@ def send_entry_to_server(entry: dict, project_path: str) -> bool:
         return False
 
 
+def _notify_server_reload(project_path: str) -> None:
+    """Send reload command to running KB server (best-effort)."""
+    import socket
+
+    try:
+        from kb_utils import get_kb_port_file
+    except ImportError:
+        return
+
+    port_file = get_kb_port_file(Path(project_path))
+    if not port_file.exists():
+        return
+
+    try:
+        port = int(port_file.read_text().strip())
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5.0)
+        sock.connect(("127.0.0.1", port))
+        sock.sendall(json.dumps({"cmd": "reload"}).encode("utf-8"))
+        sock.recv(4096)  # Read response to complete handshake
+        sock.close()
+        debug_log("Notified server to reload index")
+    except Exception as e:
+        debug_log(f"Server reload notification failed (non-fatal): {e}")
+
+
 def save_entry(entry, knowledge_dir):
     """Save entry to knowledge database with proper indexing.
 
@@ -298,24 +324,28 @@ def save_entry(entry, knowledge_dir):
     if send_entry_to_server(entry, project_path):
         return True
 
-    # Method 2: Direct KnowledgeDB (writes to file, but server has stale index)
+    # Method 2: Direct KnowledgeDB (writes to file + index)
     try:
         from knowledge_db import KnowledgeDB
 
         db = KnowledgeDB(project_path)
         db.add(entry)
-        debug_log("Entry added via direct KnowledgeDB (server index may be stale)")
+        debug_log("Entry added via direct KnowledgeDB")
+        # Tell running server to reload so it picks up the new entry
+        _notify_server_reload(project_path)
         return True
     except ImportError:
         debug_log("KnowledgeDB not available, falling back to JSONL-only")
     except Exception as e:
         debug_log(f"KnowledgeDB.add() failed: {e}, falling back to JSONL-only")
 
-    # Method 3: JSONL-only fallback (searchable after server restart)
+    # Method 3: JSONL-only fallback
     entries_file = knowledge_dir / "entries.jsonl"
     with open(entries_file, "a") as f:
         f.write(json.dumps(entry) + "\n")
-    debug_log("Entry appended to JSONL (searchable after server restart)")
+    debug_log("Entry appended to JSONL")
+    # Tell running server to reload so it indexes the new entry
+    _notify_server_reload(project_path)
 
     return True
 
