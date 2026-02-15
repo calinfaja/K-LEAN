@@ -9,26 +9,15 @@
 - Need thorough review → `/kln:multi`
 - Found useful info during work → `/kln:learn`
 - End of session → `/kln:remember`
-- "How did we solve X before?" → `FindKnowledge <query>`
+- "How did we solve X before?" → `/kln:find <query>`
 
 **Knowledge Commands:**
 - `/kln:learn` - Extract learnings from current context (mid-session)
 - `/kln:learn "topic"` - Focused extraction on specific topic
-- `/kln:remember` - Comprehensive end-of-session capture
+- `/kln:remember` - End-of-session capture + Serena index
+- `/kln:find <query>` - Search knowledge DB with hybrid semantic search
 
-**Hook Keywords (type directly):**
-- `FindKnowledge <query>` - Search knowledge DB (compact index with IDs)
-- `FindKnowledgeDetail <id>` - Fetch full entry by ID
-- `SaveInfo <url>` - Evaluate URL with LLM and save if relevant
-
-**Python API (cross-platform):**
-```python
-# Knowledge capture via TCP (server must be running)
-# Use kb_utils.py or knowledge-capture.py from pipx venv
-
-# Types: finding, solution, pattern, warning, decision, discovery, journal, commit, session
-# Priority: low, medium, high, critical
-```
+**Note**: Learnings are also captured automatically on `/compact` (PreCompact hook).
 
 **CLI:** `kln status` | `kln doctor -f` | `kln model list`
 

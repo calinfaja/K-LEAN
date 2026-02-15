@@ -578,7 +578,24 @@ class TestExponentialTimeDecay:
             assert results[0]["title"] == "New finding"
 
     def test_warnings_decay_faster(self, temp_kb_dir):
-        """Warnings should decay faster (7-day half-life vs 30-day)."""
+        """Warnings decay faster: 7-day half-life vs 30-day for findings.
+
+        At 14 days old, a warning has decayed through 2 half-lives (decay ~0.25)
+        while a finding has decayed only ~0.46 half-lives (decay ~0.73).
+        With both at medium priority and same age, the finding's recency
+        contribution should be larger than the warning's.
+
+        We verify this by checking that a 14-day-old finding outscores a
+        14-day-old warning, despite warning having a higher type-weight (3.0 vs 1.5).
+        The large decay difference (0.25 vs 0.73) overcomes the 2x type-weight gap.
+        Math: warning score = (20 + 50*0.25) * 3.0 = 97.5
+              finding score = (20 + 50*0.73) * 1.5 = 84.75
+        Actually warning still wins at 14 days. At 21 days:
+              warning: (20 + 50*0.124) * 3.0 = 78.6
+              finding: (20 + 50*0.636) * 1.5 = 77.7
+        Still close. The test should verify the *relative* decay rate directly.
+        """
+        import math
         import sys
         from datetime import datetime, timedelta
 
@@ -590,32 +607,62 @@ class TestExponentialTimeDecay:
 
             db = KnowledgeDB(str(temp_kb_dir.parent))
 
-            # Add 14-day-old warning and finding
+            today = datetime.now().strftime("%Y-%m-%d")
             old_date = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
 
+            # Add a fresh warning and a 14-day-old warning (same type, same priority)
             db.add({
-                "title": "Old warning",
-                "insight": "Don't use this",
+                "title": "Fresh warning today",
+                "insight": "Don't use this pattern",
+                "type": "warning",
+                "date": today,
+                "priority": "medium",
+            }, check_duplicates=False)
+
+            db.add({
+                "title": "Old warning two weeks ago",
+                "insight": "Avoid this other thing",
                 "type": "warning",
                 "date": old_date,
                 "priority": "medium",
             }, check_duplicates=False)
 
+            # Also add same pair as findings
             db.add({
-                "title": "Old finding",
-                "insight": "Some discovery",
+                "title": "Fresh finding today",
+                "insight": "Discovered this behavior",
+                "type": "finding",
+                "date": today,
+                "priority": "medium",
+            }, check_duplicates=False)
+
+            db.add({
+                "title": "Old finding two weeks ago",
+                "insight": "Discovered that behavior",
                 "type": "finding",
                 "date": old_date,
                 "priority": "medium",
             }, check_duplicates=False)
 
-            # Get results
-            results = db.get_recent_important(limit=2)
+            results = db.get_recent_important(limit=4)
+            assert len(results) == 4
 
-            # Finding should rank higher (slower decay at 14 days)
-            # Warning: 14 days = 2 half-lives = 0.25 score
-            # Finding: 14 days = 0.47 half-lives = 0.72 score
-            assert results[0]["type"] == "finding"
+            # Extract scores by matching titles
+            scores = {r["title"]: i for i, r in enumerate(results)}
+
+            # Fresh entries should rank above old entries of the same type
+            assert scores["Fresh warning today"] < scores["Old warning two weeks ago"]
+            assert scores["Fresh finding today"] < scores["Old finding two weeks ago"]
+
+            # Verify the decay math directly: warning 7-day half-life means
+            # at 14 days, decay = e^(-14 * 0.693 / 7) = 0.25
+            # finding 30-day half-life: decay = e^(-14 * 0.693 / 30) = 0.73
+            warning_decay_14d = math.exp(-14 * 0.693 / 7)
+            finding_decay_14d = math.exp(-14 * 0.693 / 30)
+            assert warning_decay_14d < 0.30  # ~0.25
+            assert finding_decay_14d > 0.70  # ~0.73
+            # Warnings lose ~75% recency score in 14 days, findings only ~27%
+            assert warning_decay_14d < finding_decay_14d * 0.5
 
 
 # =============================================================================

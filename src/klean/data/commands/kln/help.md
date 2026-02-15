@@ -20,6 +20,7 @@ Knowledge-driven Lightweight Execution & Analysis Network
 | `/kln:doc <title>` | Local | ~30s | Create documentation from current session |
 | `/kln:learn [topic]` | Local | ~10s | Extract learnings from context (mid-session) |
 | `/kln:remember` | Local | ~30s | End-of-session knowledge capture and summary |
+| `/kln:find <query>` | Local | ~5s | Search knowledge DB with semantic + keyword search |
 | `/kln:status` | Local | ~2s | System health, available models, and quick help |
 
 ## Universal Flags
@@ -144,12 +145,10 @@ Use `/kln:status` or `kln model list` to see current model availability.
 | `/kln:learn` | Slash | Extract learnings from context (mid-session, context-aware) |
 | `/kln:learn "topic"` | Slash | Focused extraction on specific topic |
 | `/kln:remember` | Slash | Comprehensive end-of-session capture |
-| `FindKnowledge <query>` | Hook | Semantic search KB (compact index with IDs) |
-| `FindKnowledge <query> since:YYYY-MM-DD` | Hook | Search with date filter |
-| `FindKnowledge <query> branch:<name>` | Hook | Search filtered by git branch |
-| `FindKnowledge <query> type:<type>` | Hook | Search filtered by entry type |
-| `FindKnowledgeDetail <id>` | Hook | Fetch full entry by ID (supports short prefixes) |
-| `SaveInfo <url>` | Hook | Evaluate URL with LLM and save if relevant |
+| `/kln:find <query>` | Slash | Search knowledge DB with hybrid semantic search |
+| `/kln:find <query> since:YYYY-MM-DD` | Slash | Search with date filter |
+| `/kln:find <query> branch:<name>` | Slash | Search filtered by git branch |
+| `/kln:find <query> type:<type>` | Slash | Search filtered by entry type |
 
 ## K-LEAN CLI
 
@@ -183,5 +182,5 @@ kln model list --health # Check all model health status
 - Quick reference: `/kln:status`
 - Model health: `kln model list --health`
 - System diagnostics: `kln doctor -f`
-- Knowledge search: `FindKnowledge <query>`
+- Knowledge search: `/kln:find <query>`
 

@@ -33,30 +33,6 @@ from klean.platform import (
     spawn_background,
 )
 
-# Import infer_type from kb_utils (in data/scripts/ or ~/.claude/scripts/)
-try:
-    from klean.data.scripts.kb_utils import infer_type
-except ImportError:
-    # Fallback: try from installed location
-    _scripts_dir = Path.home() / ".claude" / "scripts"
-    if str(_scripts_dir) not in sys.path:
-        sys.path.insert(0, str(_scripts_dir))
-    try:
-        from kb_utils import infer_type
-    except ImportError:
-        # Inline fallback if kb_utils not available
-        def infer_type(title: str, insight: str) -> str:
-            """Minimal fallback type inference."""
-            text = f"{title} {insight}".lower()
-            if any(w in text for w in ["don't", "avoid", "bug", "fails", "error"]):
-                return "warning"
-            if any(w in text for w in ["fixed", "solved", "solution"]):
-                return "solution"
-            if any(w in text for w in ["use ", "prefer", "pattern"]):
-                return "pattern"
-            return "finding"
-
-
 # =============================================================================
 # Hook I/O Helpers
 # =============================================================================
@@ -352,10 +328,6 @@ def session_start() -> None:
                 if _start_kb_server(project_root):
                     messages.append(f"Knowledge server started for {project_root.name}")
 
-            # Create journal entry on startup
-            if source == "startup" and _is_kb_server_running(project_root):
-                _create_session_journal(project_root)
-
             # Inject recent/important KB entries as context (only on startup/resume)
             if source in ("startup", "resume"):
                 context = _get_kb_context(project_root)
@@ -367,33 +339,6 @@ def session_start() -> None:
         _output_text("K-LEAN: " + "; ".join(messages))
 
     sys.exit(0)
-
-
-def _create_session_journal(project_root: Path) -> None:
-    """Create a journal entry when a session starts.
-
-    Args:
-        project_root: Project root path.
-    """
-    branch = _get_current_branch()
-    branch_info = f" on {branch}" if branch else ""
-
-    entry = {
-        "title": f"Session started{branch_info}",
-        "insight": f"New coding session started for {project_root.name}{branch_info}",
-        "type": "journal",
-        "priority": "low",
-        "keywords": ["session", "start", project_root.name],
-        "source": f"session:{datetime.now().strftime('%Y-%m-%d')}",
-        "timestamp": datetime.now().isoformat(),
-        "branch": branch,
-    }
-
-    result = _kb_send(project_root, {"cmd": "add", "entry": entry})
-    if result:
-        _debug_log("Created session journal entry")
-    else:
-        _debug_log("Failed to create session journal")
 
 
 def pre_compact() -> None:
@@ -543,8 +488,8 @@ def _persist_session_log(project_root: Path, transcript_path: str = "") -> str:
     except Exception as e:
         return f"Failed to write session log: {e}"
 
-    # 9. Create searchable KB entry (idempotent, per time range)
-    _create_session_kb_entry(project_root, branch, summary, time_range)
+    # 9. Extract atomic learnings from conversation (automatic /kln:learn)
+    _extract_session_learnings(project_root, conversation, summary)
 
     return f"Session log updated: session-log-{today}"
 
@@ -808,63 +753,101 @@ def _parse_session_sections(text: str) -> dict[str, list[str]]:
     return sections
 
 
-def _create_session_kb_entry(
-    project_root: Path, branch: str, summary: str, time_range: str = ""
+def _extract_session_learnings(
+    project_root: Path, conversation: str, summary: str
 ) -> None:
-    """Create a searchable KB entry from the session log summary.
+    """Extract atomic KB entries from session conversation via Claude Haiku.
 
-    Idempotent: skips if a session entry with this source already exists.
-    Includes related_to path to the full session log file for graph traversal.
+    Uses the full conversation transcript to identify 0-5 reusable learnings
+    and saves them as properly-typed KB entries (warning, solution, pattern, etc.).
+
+    Based on A-MEM (NeurIPS 2025) end-of-session reflection approach.
 
     Args:
         project_root: Project root path.
-        branch: Current git branch.
-        summary: Haiku-generated session summary markdown.
-        time_range: Session time range (e.g. "07:18-16:45").
+        conversation: Extracted conversation transcript.
+        summary: Haiku-generated session summary (for context).
     """
-    today = datetime.now().strftime("%Y-%m-%d")
-    source = f"session-log:{today}:{time_range}" if time_range else f"session-log:{today}"
+    if not _is_kb_server_running(project_root):
+        return
 
-    # Idempotency check: use date-filtered search (more reliable than semantic)
-    resp = _kb_send(
-        project_root,
-        {
-            "cmd": "search_by_date",
-            "start": today,
-            "end": today,
-            "entry_type": "session",
-            "limit": 20,
-        },
-        recv_size=8192,
+    # Need meaningful conversation to extract from
+    if not conversation or len(conversation) < 1000:
+        _debug_log("extract_learnings: conversation too short, skipping")
+        return
+
+    branch = _get_current_branch() or "unknown"
+
+    # Build extraction prompt - tight for Haiku, with anti-noise filters
+    prompt = (
+        "Extract 0-5 reusable developer learnings from this session.\n\n"
+        "RULES (mandatory):\n"
+        "- Each learning MUST reference a specific file, function, error, or config\n"
+        "- Discard generic advice (\"write tests\", \"use good names\")\n"
+        "- Discard session logistics (\"worked on X\", \"started debugging\")\n"
+        "- Discard obvious/well-documented behaviors\n"
+        "- Ask: would a new developer on this project already know this? If yes, skip\n"
+        "- If nothing worth saving, return an empty array []\n\n"
+        f"SESSION SUMMARY:\n{summary[:2000]}\n\n"
+        f"SESSION CONVERSATION:\n{conversation[:80000]}\n\n"
+        "Return ONLY a JSON array (no markdown, no explanation):\n"
+        "[\n"
+        '  {"title": "max 80 chars, name the specific thing",\n'
+        '   "insight": "2-4 sentences. What happened, why, the concrete detail.",\n'
+        '   "type": "warning|solution|pattern|finding|decision|discovery",\n'
+        '   "priority": "critical|high|medium|low",\n'
+        '   "keywords": ["specific-term-1", "specific-term-2", "specific-term-3"],\n'
+        '   "source": "file:path:line or git:hash or conv:date"}\n'
+        "]\n"
     )
-    if resp and resp.get("status") == "ok":
-        for e in resp.get("results", []):
-            if e.get("source") == source:
-                return  # Already exists
 
-    sections = _parse_session_sections(summary)
-    insight_parts = sections["accomplished"][:4]
-    if sections["carry"]:
-        insight_parts.append(
-            "Next: "
-            + "; ".join(c.removeprefix("- [ ] ").removeprefix("- ") for c in sections["carry"][:3])
+    response = _call_claude_haiku(prompt)
+    if not response:
+        _debug_log("extract_learnings: Haiku not available")
+        return
+
+    # Parse JSON response - Haiku sometimes wraps in markdown code blocks
+    response = response.strip()
+    if response.startswith("```"):
+        # Strip ```json ... ``` wrapper
+        lines = response.split("\n")
+        response = "\n".join(
+            l for l in lines if not l.strip().startswith("```")
         )
-    insight = "\n".join(insight_parts) if insight_parts else summary[:300]
 
-    # Full path to session log for graph traversal
-    log_path = str(project_root / ".serena" / "memories" / f"session-log-{today}.md")
+    try:
+        entries = json.loads(response)
+    except (json.JSONDecodeError, ValueError):
+        _debug_log(f"extract_learnings: failed to parse JSON: {response[:200]}")
+        return
 
-    entry = {
-        "title": f"Session: {today} {time_range} on {branch}",
-        "insight": insight,
-        "type": "session",
-        "priority": "low",
-        "keywords": ["session", "log", branch, today],
-        "source": source,
-        "branch": branch,
-        "related_to": [log_path],
-    }
-    _kb_send(project_root, {"cmd": "add", "entry": entry})
+    if not isinstance(entries, list):
+        _debug_log("extract_learnings: response is not a list")
+        return
+
+    saved = 0
+    for entry in entries[:5]:  # Hard cap at 5
+        if not isinstance(entry, dict):
+            continue
+        title = entry.get("title", "")
+        insight = entry.get("insight", "")
+        if not title or not insight or len(title) < 10:
+            continue
+
+        kb_entry = {
+            "title": title[:80],
+            "insight": insight[:500],
+            "type": entry.get("type", "finding"),
+            "priority": entry.get("priority", "medium"),
+            "keywords": entry.get("keywords", [])[:5],
+            "source": entry.get("source", f"conv:{datetime.now().strftime('%Y-%m-%d')}"),
+            "timestamp": datetime.now().isoformat(),
+            "branch": branch,
+        }
+        _kb_send(project_root, {"cmd": "add", "entry": kb_entry})
+        saved += 1
+
+    _debug_log(f"extract_learnings: saved {saved} entries from session")
 
 
 def _call_claude_haiku(prompt: str) -> str:
@@ -1035,7 +1018,12 @@ def _get_kb_context(project_root: Path) -> str:
         toon_recent = _format_entries_toon(recent)
         parts.append(f"[KB] RECENT:\n{toon_recent}")
 
-    # 5. Serena prompt
+    # 5. Track usage for all injected entries (enables auto-pinning)
+    injected_ids = [e.get("id") for e in warnings + pinned + recent if e.get("id")]
+    if injected_ids:
+        _update_usage(project_root, injected_ids)
+
+    # 6. Serena prompt
     parts.append(serena_prompt)
 
     return "\n\n".join(parts)
@@ -1048,10 +1036,9 @@ def prompt_handler() -> None:
     Output: {"decision": "block", "reason": "..."} OR context text
 
     Handles keywords:
-    - FindKnowledge <query> - Search knowledge DB (compact index)
-    - FindKnowledgeDetail <id> - Full entry by ID
-    - SaveInfo <url> - Smart save with LLM evaluation
     - InitKB - Initialize knowledge DB
+
+    Note: FindKnowledge/SaveInfo migrated to /kln:find slash command.
 
     Exit code: 0=continue, 2=block with reason
     """
@@ -1068,32 +1055,6 @@ def prompt_handler() -> None:
     _debug_log(f"prompt_handler: {prompt[:50]}...")
 
     prompt_lower = prompt.lower().strip()
-
-    # === FindKnowledge <query> ===
-    if prompt_lower.startswith("findknowledge "):
-        query = prompt[14:].strip()  # Remove "FindKnowledge "
-        if query:
-            result = _handle_find_knowledge(query)
-            if result:
-                _output_json({"additionalContext": result})
-        sys.exit(0)
-
-    # === FindKnowledgeDetail <id> ===
-    if prompt_lower.startswith("findknowledgedetail "):
-        entry_id = prompt[19:].strip()
-        if entry_id:
-            result = _handle_find_knowledge_detail(entry_id)
-            if result:
-                _output_json({"additionalContext": result})
-        sys.exit(0)
-
-    # === SaveInfo <url> ===
-    if prompt_lower.startswith("saveinfo "):
-        content = prompt[9:].strip()  # Remove "SaveInfo "
-        if content:
-            result = _handle_save_info(content)
-            _output_json({"systemMessage": result})
-        sys.exit(0)
 
     # === InitKB ===
     if prompt_lower == "initkb" or prompt_lower.startswith("initkb "):
@@ -1204,6 +1165,15 @@ def _capture_git_commit() -> None:
         commit_msg = parts[1] if len(parts) > 1 else ""
         author = parts[2] if len(parts) > 2 else ""
 
+        # Skip trivial commits -- low KB value, adds noise
+        trivial_prefixes = ("chore", "style", "docs", "ci", "build")
+        msg_lower = commit_msg.lower()
+        if any(msg_lower.startswith(p) for p in trivial_prefixes) and len(commit_msg) < 50:
+            _debug_log(f"Skipping trivial commit {short_hash}: {commit_msg[:40]}")
+            # Still log to timeline, just don't save to KB
+            _log_to_timeline("commit", f"[{short_hash}] {commit_msg[:60]}")
+            return
+
         # Get changed files with stat
         result = subprocess.run(
             ["git", "diff", "--stat", "--name-only", "HEAD~1", "HEAD"],
@@ -1221,6 +1191,18 @@ def _capture_git_commit() -> None:
         # Save to KB if server is running
         if not _is_kb_server_running(project_root):
             return
+
+        # Exact-match dedup: skip if this commit hash already exists in KB
+        existing = _kb_send(
+            project_root,
+            {"cmd": "search", "query": f"git:{full_hash}", "limit": 1},
+            timeout=2.0,
+        )
+        if existing:
+            for r in existing.get("results", []):
+                if r.get("source") == f"git:{full_hash}":
+                    _debug_log(f"Commit {short_hash} already in KB, skipping")
+                    return
 
         # Build insight with changed files for searchability
         files_str = ", ".join(changed_files[:5]) if changed_files else "no files"
@@ -1392,31 +1374,8 @@ def post_web() -> None:
     for url in urls:
         url_lower = url.lower()
         if any(p in url_lower for p in doc_patterns):
+            # Log to timeline only -- shallow URL-only entries add noise to KB
             _log_to_timeline("web", f"Fetched docs: {url}")
-
-            # Create KB entry for doc URLs
-            if project_root and _is_kb_server_running(project_root):
-                from urllib.parse import urlparse
-
-                parsed = urlparse(url)
-                domain = parsed.netloc
-                path_summary = parsed.path.rstrip("/").split("/")[-1] or domain
-
-                entry = {
-                    "title": f"Docs: {domain} - {path_summary}",
-                    "insight": f"Documentation reference captured from {tool_name}: {url}",
-                    "type": "discovery",
-                    "priority": "low",
-                    "keywords": ["docs", "reference", domain, path_summary],
-                    "source": url,
-                    "timestamp": datetime.now().isoformat(),
-                    "branch": _get_current_branch(),
-                }
-
-                if _kb_send(project_root, {"cmd": "add", "entry": entry}):
-                    _debug_log(f"Captured doc URL to KB: {url[:60]}")
-                else:
-                    _debug_log(f"Failed to capture doc URL: {url[:60]}")
 
     sys.exit(0)
 
@@ -1424,186 +1383,6 @@ def post_web() -> None:
 # =============================================================================
 # Handler Functions
 # =============================================================================
-
-
-def _parse_find_knowledge_query(raw_query: str) -> tuple[str, dict]:
-    """Parse FindKnowledge query with optional filters.
-
-    Supports syntax like:
-        FindKnowledge auth since:2026-02-01
-        FindKnowledge auth branch:feature/auth
-        FindKnowledge auth type:decision
-        FindKnowledge auth since:2026-02-01 until:2026-02-07
-
-    Args:
-        raw_query: Raw query string after "FindKnowledge ".
-
-    Returns:
-        Tuple of (clean_query, filters_dict).
-    """
-    filters = {}
-    query_parts = []
-
-    for token in raw_query.split():
-        if token.startswith("since:"):
-            filters["date_from"] = token[6:]
-        elif token.startswith("until:") or token.startswith("before:"):
-            filters["date_to"] = token.split(":", 1)[1]
-        elif token.startswith("branch:"):
-            filters["branch"] = token[7:]
-        elif token.startswith("type:"):
-            filters["entry_type"] = token[5:]
-        else:
-            query_parts.append(token)
-
-    return " ".join(query_parts), filters
-
-
-def _handle_find_knowledge(query: str) -> str:
-    """Handle FindKnowledge keyword with optional date/branch/type filters.
-
-    Returns compact index with entry IDs for progressive disclosure.
-    Use FindKnowledgeDetail <id> to get full entry details.
-
-    Supports:
-        FindKnowledge auth
-        FindKnowledge auth since:2026-02-01
-        FindKnowledge auth branch:feature/auth type:decision
-
-    Args:
-        query: Search query (may include filter tokens).
-
-    Returns:
-        Search results as compact formatted string.
-    """
-    project_root = find_project_root()
-    if not project_root:
-        return "No project found"
-
-    kb_dir = project_root / ".knowledge-db"
-    if not kb_dir.exists():
-        return "Knowledge DB not initialized. Use InitKB to create it."
-
-    # Parse filters from query
-    clean_query, filters = _parse_find_knowledge_query(query)
-
-    # Try to query via server
-    if not _is_kb_server_running(project_root):
-        return "Knowledge server not running. Start it with: kln start"
-
-    cmd = {"cmd": "search", "query": clean_query or "*", "limit": 10}
-    cmd.update(filters)
-
-    data = _kb_send(project_root, cmd, timeout=5.0, recv_size=65536)
-    if data is None:
-        return "Search error: failed to communicate with KB server"
-
-    results = data.get("results", [])
-
-    if not results:
-        filter_desc = f" (filters: {filters})" if filters else ""
-        return f"No results found for: {clean_query}{filter_desc}"
-
-    # Track usage for returned results
-    result_ids = [r.get("id") for r in results if r.get("id")]
-    if result_ids:
-        _update_usage(project_root, result_ids)
-
-    filter_desc = ""
-    if filters:
-        filter_desc = f" [filters: {', '.join(f'{k}={v}' for k, v in filters.items())}]"
-
-    output = [f"Found {len(results)} results for '{clean_query}'{filter_desc}:\n"]
-    for r in results:
-        score = r.get("score", 0)
-        title = r.get("title", r.get("id", "?"))
-        entry_type = r.get("type", "")
-        date = r.get("date", "")
-        entry_id = r.get("id", "")
-
-        meta_parts = []
-        if entry_type:
-            meta_parts.append(entry_type)
-        if date:
-            meta_parts.append(date)
-        meta = f" ({', '.join(meta_parts)})" if meta_parts else ""
-
-        id_str = f" [id:{entry_id[:8]}]" if entry_id else ""
-        output.append(f"  [{score:.2f}] {title}{meta}{id_str}")
-
-    output.append('\nTip: "FindKnowledgeDetail <id>" for full entry')
-    return "\n".join(output)
-
-
-def _handle_find_knowledge_detail(entry_id: str) -> str:
-    """Fetch and display full details of a knowledge entry by ID.
-
-    Supports both full UUIDs and short prefixes (8+ chars).
-
-    Args:
-        entry_id: Full or partial entry UUID.
-
-    Returns:
-        Formatted entry details or error message.
-    """
-    project_root = find_project_root()
-    if not project_root:
-        return "No project found"
-
-    if not _is_kb_server_running(project_root):
-        return "Knowledge server not running. Start it with: kln start"
-
-    # Resolve entry: short ID prefix vs full UUID
-    if len(entry_id) < 36:
-        data = _kb_send(
-            project_root,
-            {"cmd": "recent", "limit": 200},
-            timeout=3.0,
-            recv_size=131072,
-        )
-        if not data:
-            return f"Error fetching entry: {entry_id}"
-
-        matches = [e for e in data.get("entries", []) if e.get("id", "").startswith(entry_id)]
-        if not matches:
-            return f"No entry found matching ID prefix: {entry_id}"
-        if len(matches) > 1:
-            return f"Ambiguous ID prefix '{entry_id}', matches {len(matches)} entries"
-        entry = matches[0]
-    else:
-        data = _kb_send(
-            project_root,
-            {"cmd": "get", "id": entry_id},
-            timeout=3.0,
-            recv_size=65536,
-        )
-        if not data or "error" in data:
-            return f"Entry not found: {entry_id}"
-        entry = data.get("entry", {})
-
-    # Format full entry
-    lines = [f"=== {entry.get('title', 'Untitled')} ==="]
-    lines.append(f"Type: {entry.get('type', '?')} | Priority: {entry.get('priority', '?')}")
-    lines.append(f"Date: {entry.get('date', '?')} | Branch: {entry.get('branch', '?')}")
-
-    insight = entry.get("insight", entry.get("summary", ""))
-    if insight:
-        lines.append(f"\n{insight}")
-
-    keywords = entry.get("keywords", entry.get("tags", []))
-    if keywords:
-        lines.append(f"\nKeywords: {', '.join(keywords)}")
-
-    source = entry.get("source", "")
-    if source:
-        lines.append(f"Source: {source}")
-
-    related = entry.get("related_to", [])
-    if related:
-        lines.append(f"Related: {', '.join(related[:5])}")
-
-    lines.append(f"ID: {entry.get('id', '?')}")
-    return "\n".join(lines)
 
 
 def _update_usage(project_root: Path, entry_ids: list[str]) -> None:
@@ -1614,204 +1393,6 @@ def _update_usage(project_root: Path, entry_ids: list[str]) -> None:
         entry_ids: List of entry IDs to update.
     """
     _kb_send(project_root, {"cmd": "update_usage", "ids": entry_ids})
-
-
-def _handle_save_info(content: str) -> str:
-    """Handle SaveInfo keyword - extract and save knowledge from URL.
-
-    Uses LiteLLM with dynamic model discovery to extract key points.
-
-    Args:
-        content: URL to fetch and process.
-
-    Returns:
-        Result message.
-    """
-    project_root = find_project_root()
-    if not project_root:
-        return "No project found"
-
-    # Check if it's a URL
-    if not content.startswith(("http://", "https://")):
-        return "SaveInfo: Expected a URL"
-
-    url = content.strip()
-
-    # Check if KB server is running
-    if not _is_kb_server_running(project_root):
-        return "SaveInfo: Knowledge server not running. Start with: kln start"
-
-    try:
-        # Fetch URL content
-        import httpx
-
-        _debug_log(f"SaveInfo: Fetching {url}")
-        resp = httpx.get(url, timeout=15, follow_redirects=True)
-        resp.raise_for_status()
-
-        # Get text content (strip HTML if needed)
-        content_type = resp.headers.get("content-type", "")
-        if "html" in content_type:
-            # Simple HTML stripping - just get text
-            import re
-
-            text = re.sub(r"<[^>]+>", " ", resp.text)
-            text = re.sub(r"\s+", " ", text).strip()
-        else:
-            text = resp.text
-
-        # Truncate for LLM
-        text = text[:8000]
-
-        # Get model from discovery
-        model = _get_first_healthy_model()
-        if not model:
-            # Fallback: save raw URL without extraction
-            return _save_url_raw(project_root, url)
-
-        # Extract knowledge using LLM
-        _debug_log(f"SaveInfo: Extracting with model {model}")
-        extracted = _extract_from_url(url, text, model)
-
-        if not extracted:
-            return _save_url_raw(project_root, url)
-
-        # Build V3 schema entry
-        title = extracted.get("title", url[:60])
-        insight = extracted.get("insight", text[:500])
-
-        # Auto-infer type from content using centralized logic
-        entry_type = infer_type(title, insight)
-
-        entry = {
-            "title": title,
-            "insight": insight,
-            "type": entry_type,
-            "priority": "medium",
-            "keywords": extracted.get("keywords", ["web"]),
-            "source": url,
-        }
-
-        # Save to KB
-        result = _kb_send(project_root, {"cmd": "add", "entry": entry}, timeout=5.0)
-        if result and result.get("status") == "ok":
-            title_short = entry["title"][:50]
-            return f"SaveInfo: Saved '{title_short}' from {url}"
-        else:
-            error = (result or {}).get("error", "unknown")
-            return f"SaveInfo: Failed to save - {error}"
-
-    except httpx.HTTPError as e:
-        return f"SaveInfo: Failed to fetch URL - {e}"
-    except Exception as e:
-        _debug_log(f"SaveInfo error: {e}")
-        return f"SaveInfo: Error processing URL - {e}"
-
-
-def _get_first_healthy_model() -> str | None:
-    """Get first available model from LiteLLM using dynamic discovery.
-
-    Returns:
-        Model name or None if LiteLLM not available.
-    """
-    try:
-        import httpx
-
-        resp = httpx.get("http://localhost:4000/v1/models", timeout=3)
-        if resp.status_code == 200:
-            models = [m["id"] for m in resp.json().get("data", [])]
-            return models[0] if models else None
-    except Exception:
-        pass
-    return None
-
-
-def _extract_from_url(url: str, text: str, model: str) -> dict | None:
-    """Extract knowledge from URL content using LLM.
-
-    Args:
-        url: Source URL.
-        text: Page content.
-        model: LiteLLM model to use.
-
-    Returns:
-        Dict with V3 schema fields: title, insight, keywords.
-    """
-    try:
-        import httpx
-
-        prompt = f"""Extract knowledge from this web page content. Return JSON only.
-
-URL: {url}
-
-Content:
-{text[:6000]}
-
-Return this exact JSON structure:
-{{
-  "title": "Short descriptive title (max 80 chars)",
-  "insight": "2-4 sentence explanation of the key information and why it matters. Be specific and actionable.",
-  "keywords": ["keyword1", "keyword2", "keyword3"]
-}}
-
-JSON:"""
-
-        resp = httpx.post(
-            "http://localhost:4000/v1/chat/completions",
-            json={
-                "model": model,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3,
-                "max_tokens": 500,
-            },
-            timeout=30,
-        )
-
-        if resp.status_code != 200:
-            return None
-
-        content = resp.json()["choices"][0]["message"]["content"]
-
-        # Handle thinking models that return in reasoning_content
-        if not content:
-            content = resp.json()["choices"][0]["message"].get("reasoning_content", "")
-
-        # Extract JSON from response
-        import re
-
-        json_match = re.search(r"\{[^{}]*\}", content, re.DOTALL)
-        if json_match:
-            return json.loads(json_match.group())
-
-    except Exception as e:
-        _debug_log(f"LLM extraction failed: {e}")
-
-    return None
-
-
-def _save_url_raw(project_root: Path, url: str) -> str:
-    """Save URL without LLM extraction (fallback).
-
-    Args:
-        project_root: Project root path.
-        url: URL to save.
-
-    Returns:
-        Result message.
-    """
-    entry = {
-        "title": f"Web: {url[:60]}",
-        "insight": f"URL saved for reference: {url}",
-        "type": "finding",
-        "priority": "low",
-        "keywords": ["web", "url"],
-        "source": url,
-    }
-
-    result = _kb_send(project_root, {"cmd": "add", "entry": entry}, timeout=5.0)
-    if result:
-        return f"SaveInfo: Saved URL (no LLM extraction): {url}"
-    return "SaveInfo: Failed to save URL"
 
 
 def _handle_init_kb() -> str:

@@ -40,12 +40,20 @@ except ImportError:
 
 
 def format_compact(results):
-    """Compact format for quick overview."""
+    """Compact format for quick overview -- human-readable, no raw scores."""
     lines = []
-    for r in results:
-        score = r.get("score", 0)
+    for i, r in enumerate(results, 1):
         title = r.get("title", "Untitled")
-        lines.append(f"[{score:.2f}] {title}")
+        entry_type = r.get("type", "")
+        date = (r.get("date") or r.get("found_date", ""))[:10]
+        entry_id = r.get("id", "")[:8]
+        insight = r.get("insight") or r.get("summary") or ""
+        # Truncate insight to ~80 chars at word boundary
+        if len(insight) > 80:
+            insight = insight[:77].rsplit(" ", 1)[0] + "..."
+        lines.append(f"{i}. [{entry_type}] {title} ({date}) [id:{entry_id}]")
+        if insight:
+            lines.append(f"   {insight}")
     return "\n".join(lines)
 
 
@@ -55,36 +63,33 @@ def format_detailed(results):
     for i, r in enumerate(results, 1):
         score = r.get("score", 0)
         title = r.get("title", "Untitled")
+        entry_id = r.get("id", "")
         lines.append(f"\n{'=' * 60}")
         lines.append(f"[{i}] {title} (score: {score:.2f})")
         lines.append(f"{'=' * 60}")
+        lines.append(f"ID: {entry_id}")
 
-        if r.get("url"):
-            lines.append(f"URL: {r['url']}")
         if r.get("type"):
             lines.append(f"Type: {r['type']}")
+        if r.get("priority"):
+            lines.append(f"Priority: {r['priority']}")
         if r.get("date") or r.get("found_date"):
             lines.append(f"Date: {(r.get('date') or r.get('found_date', ''))[:10]}")
-        if r.get("summary"):
-            lines.append(f"\nSummary: {r['summary']}")
-        if r.get("problem_solved"):
-            lines.append(f"\nProblem Solved: {r['problem_solved']}")
-        if r.get("key_concepts"):
-            concepts = r["key_concepts"]
-            if isinstance(concepts, str):
-                # SQLite stored it as string, try to parse
-                try:
-                    import json
+        if r.get("source"):
+            lines.append(f"Source: {r['source']}")
+        if r.get("branch"):
+            lines.append(f"Branch: {r['branch']}")
 
-                    concepts = json.loads(concepts)
-                except (json.JSONDecodeError, TypeError):
-                    concepts = [concepts]
-            if isinstance(concepts, list):
-                lines.append(f"Concepts: {', '.join(concepts)}")
-        if r.get("what_worked"):
-            lines.append(f"\nWhat Worked: {r['what_worked']}")
-        if r.get("constraints"):
-            lines.append(f"Constraints: {r['constraints']}")
+        # V3 insight (preferred) or V2 summary
+        insight = r.get("insight") or r.get("summary")
+        if insight:
+            lines.append(f"\nInsight: {insight}")
+        if r.get("keywords") or r.get("tags"):
+            kw = r.get("keywords") or r.get("tags", [])
+            if isinstance(kw, list):
+                lines.append(f"Keywords: {', '.join(kw)}")
+        if r.get("pinned"):
+            lines.append("Pinned: yes")
 
     return "\n".join(lines)
 
@@ -129,19 +134,54 @@ def format_json(results):
     return json.dumps(results, indent=2)
 
 
+def format_single_entry(entry):
+    """Format a single entry for --id detail view."""
+    lines = [f"{'=' * 60}"]
+    lines.append(f"Title: {entry.get('title', 'Untitled')}")
+    lines.append(f"ID: {entry.get('id', '')}")
+    lines.append(f"Type: {entry.get('type', 'finding')}")
+    lines.append(f"Priority: {entry.get('priority', 'medium')}")
+    if entry.get("date"):
+        lines.append(f"Date: {entry['date'][:10]}")
+    if entry.get("source"):
+        lines.append(f"Source: {entry['source']}")
+    if entry.get("branch"):
+        lines.append(f"Branch: {entry['branch']}")
+    if entry.get("pinned"):
+        lines.append("Pinned: yes")
+
+    insight = entry.get("insight") or entry.get("summary")
+    if insight:
+        lines.append(f"\nInsight:\n{insight}")
+
+    kw = entry.get("keywords") or entry.get("tags", [])
+    if isinstance(kw, list) and kw:
+        lines.append(f"\nKeywords: {', '.join(kw)}")
+
+    related = entry.get("related_to", [])
+    if related:
+        lines.append(f"Related: {', '.join(related)}")
+
+    lines.append(f"{'=' * 60}")
+    return "\n".join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Semantic knowledge search",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s "BLE optimization"           # Basic search
-  %(prog)s "auth" --format inject       # For LLM injection
-  %(prog)s "React" -n 10 --json         # JSON output, 10 results
+  %(prog)s "BLE optimization"                       # Basic search
+  %(prog)s "auth" --format inject                   # For LLM injection
+  %(prog)s "React" -n 10 --json                     # JSON output, 10 results
+  %(prog)s "memory leak" --since 2026-02-01         # Recent entries only
+  %(prog)s "crash" --type warning                   # Only warnings
+  %(prog)s --id abc12345                            # Get entry by ID
         """,
     )
 
-    parser.add_argument("query", help="Search query (natural language)")
+    parser.add_argument("query", nargs="?", default="", help="Search query (natural language)")
     parser.add_argument("--limit", "-n", type=int, default=5, help="Maximum results (default: 5)")
     parser.add_argument(
         "--format",
@@ -155,6 +195,13 @@ Examples:
     parser.add_argument(
         "--min-score", type=float, default=0.0, help="Minimum relevance score (0-1)"
     )
+    # Filters (passed to KnowledgeDB.search())
+    parser.add_argument("--since", help="Entries from this date (YYYY-MM-DD)")
+    parser.add_argument("--until", help="Entries up to this date (YYYY-MM-DD)")
+    parser.add_argument("--type", dest="entry_type", help="Filter by type (warning, solution, etc)")
+    parser.add_argument("--branch", help="Filter by git branch")
+    # Detail retrieval
+    parser.add_argument("--id", dest="entry_id", help="Get a specific entry by ID (full or prefix)")
 
     args = parser.parse_args()
 
@@ -182,8 +229,41 @@ Examples:
             print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Search
-    results = db.search(args.query, limit=args.limit)
+    # Detail retrieval mode
+    if args.entry_id:
+        entry = db.get(args.entry_id)
+        # Try prefix match if exact match fails
+        if not entry:
+            for e in db._entries:
+                if e.get("id", "").startswith(args.entry_id):
+                    entry = e
+                    break
+        if entry:
+            if args.format == "json":
+                print(json.dumps(entry, indent=2))
+            else:
+                print(format_single_entry(entry))
+            sys.exit(0)
+        else:
+            if args.format == "json":
+                print(json.dumps({"error": f"Entry not found: {args.entry_id}"}))
+            else:
+                print(f"Entry not found: {args.entry_id}", file=sys.stderr)
+            sys.exit(1)
+
+    # Search mode requires a query
+    if not args.query:
+        parser.error("query is required (or use --id for detail retrieval)")
+
+    # Search with filters
+    results = db.search(
+        args.query,
+        limit=args.limit,
+        date_from=args.since,
+        date_to=args.until,
+        entry_type=args.entry_type,
+        branch=args.branch,
+    )
 
     # Filter by minimum score
     if args.min_score > 0:

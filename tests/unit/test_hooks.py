@@ -3,7 +3,7 @@
 Tests cover:
 - Hook I/O helpers (read_input, output_json)
 - Service management (LiteLLM, KB server detection)
-- Keyword dispatch (FindKnowledge, SaveInfo, InitKB)
+- Keyword dispatch (InitKB)
 - Timeline logging
 """
 
@@ -135,29 +135,6 @@ class TestIsKbServerRunning:
 # =============================================================================
 # Handler Tests
 # =============================================================================
-
-
-class TestHandleFindKnowledge:
-    """Tests for _handle_find_knowledge() function."""
-
-    def test_returns_no_project_when_not_found(self):
-        """Should return message when no project found."""
-        from klean.hooks import _handle_find_knowledge
-
-        with patch("klean.hooks.find_project_root", return_value=None):
-            result = _handle_find_knowledge("test query")
-            assert "No project found" in result
-
-    def test_returns_not_initialized_when_no_kb_dir(self, tmp_path):
-        """Should return message when KB dir doesn't exist."""
-        from klean.hooks import _handle_find_knowledge
-
-        project = tmp_path / "project"
-        project.mkdir()
-
-        with patch("klean.hooks.find_project_root", return_value=project):
-            result = _handle_find_knowledge("test query")
-            assert "not initialized" in result
 
 
 class TestHandleInitKb:
@@ -939,7 +916,7 @@ class TestPersistSessionLog:
                 "klean.hooks._call_claude_haiku",
                 return_value="### 14:00-15:00 | `main` | 1 commits\n\n**Accomplished**\n- Add auth (abc1234)",
             ),
-            patch("klean.hooks._create_session_kb_entry") as mock_kb,
+            patch("klean.hooks._extract_session_learnings") as mock_extract,
         ):
             result = _persist_session_log(tmp_path, "")
             assert "Session log updated" in result
@@ -951,8 +928,8 @@ class TestPersistSessionLog:
             assert "# Session Log:" in content
             assert "**Accomplished**" in content
 
-            # Check KB entry creation was called
-            mock_kb.assert_called_once()
+            # Check learning extraction was called
+            mock_extract.assert_called_once()
 
     def test_appends_to_existing_log(self, tmp_path):
         """Should append to existing session log file."""
@@ -978,7 +955,7 @@ class TestPersistSessionLog:
                 "klean.hooks._call_claude_haiku",
                 return_value="### 14:00-15:00 | `main` | 1 commits\n\n**Accomplished**\n- Fix bug (def5678)",
             ),
-            patch("klean.hooks._create_session_kb_entry"),
+            patch("klean.hooks._extract_session_learnings"),
         ):
             result = _persist_session_log(tmp_path, "")
             assert "Session log updated" in result
@@ -1023,7 +1000,7 @@ class TestPersistSessionLog:
             patch(
                 "klean.hooks._call_claude_haiku", return_value="## 14:00 | main\n- Work"
             ) as mock_haiku,
-            patch("klean.hooks._create_session_kb_entry"),
+            patch("klean.hooks._extract_session_learnings"),
         ):
             _persist_session_log(tmp_path, "")
             # Verify KB entries were included in prompt
@@ -1118,56 +1095,99 @@ class TestGetTodayKbEntries:
             assert len(lines) == 15
 
 
-class TestCreateSessionKbEntry:
-    """Tests for _create_session_kb_entry() function."""
+class TestExtractSessionLearnings:
+    """Tests for _extract_session_learnings() function."""
 
-    def test_creates_entry(self, tmp_path):
-        """Should create a KB session entry with correct fields and related_to path."""
-        from klean.hooks import _create_session_kb_entry
+    def test_extracts_and_saves_entries(self, tmp_path):
+        """Should parse Haiku JSON response and save entries to KB."""
+        from klean.hooks import _extract_session_learnings
 
-        # First call: search returns no existing entry
-        # Second call: add the entry
-        search_resp = {"status": "ok", "results": []}
-        add_resp = {"status": "ok"}
+        haiku_response = json.dumps([
+            {
+                "title": "fastembed requires numpy<2.0 on Python 3.9",
+                "insight": "When installing fastembed on Python 3.9, numpy 2.x causes ImportError. Pin numpy<2.0 in requirements.",
+                "type": "warning",
+                "priority": "high",
+                "keywords": ["fastembed", "numpy", "python39"],
+                "source": "file:requirements.txt:5",
+            }
+        ])
 
-        with patch("klean.hooks._kb_send", side_effect=[search_resp, add_resp]) as mock_send:
-            _create_session_kb_entry(
-                tmp_path, "main", "## 14:00 | main\n- Did X\n- Did Y\n- Commits: abc123"
-            )
-            assert mock_send.call_count == 2
-            add_call = mock_send.call_args_list[1]
-            entry = add_call[0][1]["entry"]
-            assert entry["type"] == "session"
-            assert "main" in entry["title"]
-            assert "Did X" in entry["insight"]
-            # Verify graph link to full session log
-            assert len(entry["related_to"]) == 1
-            assert "session-log-" in entry["related_to"][0]
-            assert str(tmp_path) in entry["related_to"][0]
-
-    def test_skips_when_already_exists(self, tmp_path):
-        """Should skip creation if session entry for today exists."""
-        from datetime import datetime
-
-        from klean.hooks import _create_session_kb_entry
-
-        today = datetime.now().strftime("%Y-%m-%d")
-        source = f"session-log:{today}"
-
-        search_resp = {"status": "ok", "results": [{"source": source, "title": "Existing"}]}
-
-        with patch("klean.hooks._kb_send", return_value=search_resp) as mock_send:
-            _create_session_kb_entry(tmp_path, "main", "## 14:00 | main\n- Work")
-            # Should only call search, not add
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._call_claude_haiku", return_value=haiku_response),
+            patch("klean.hooks._get_current_branch", return_value="main"),
+            patch("klean.hooks._kb_send") as mock_send,
+        ):
+            conversation = "USER: fixed numpy issue with fastembed\nCLAUDE: pinned numpy<2.0\n" * 30
+            _extract_session_learnings(tmp_path, conversation, "summary")
             assert mock_send.call_count == 1
+            entry = mock_send.call_args[0][1]["entry"]
+            assert entry["type"] == "warning"
+            assert "fastembed" in entry["title"]
+            assert entry["priority"] == "high"
 
-    def test_handles_server_unavailable(self, tmp_path):
-        """Should not crash when KB server is down."""
-        from klean.hooks import _create_session_kb_entry
+    def test_skips_short_conversation(self, tmp_path):
+        """Should skip extraction when conversation is too short."""
+        from klean.hooks import _extract_session_learnings
 
-        with patch("klean.hooks._kb_send", return_value=None):
-            # Should not raise
-            _create_session_kb_entry(tmp_path, "main", "## 14:00 | main\n- Work")
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._call_claude_haiku") as mock_haiku,
+        ):
+            _extract_session_learnings(tmp_path, "short", "summary")
+            mock_haiku.assert_not_called()
+
+    def test_handles_empty_array_response(self, tmp_path):
+        """Should handle Haiku returning empty array (nothing worth saving)."""
+        from klean.hooks import _extract_session_learnings
+
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._call_claude_haiku", return_value="[]"),
+            patch("klean.hooks._get_current_branch", return_value="main"),
+            patch("klean.hooks._kb_send") as mock_send,
+        ):
+            _extract_session_learnings(tmp_path, "x" * 1500, "summary")
+            mock_send.assert_not_called()
+
+    def test_handles_malformed_json(self, tmp_path):
+        """Should not crash on malformed Haiku response."""
+        from klean.hooks import _extract_session_learnings
+
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._call_claude_haiku", return_value="not json at all"),
+            patch("klean.hooks._get_current_branch", return_value="main"),
+            patch("klean.hooks._kb_send") as mock_send,
+        ):
+            _extract_session_learnings(tmp_path, "x" * 1500, "summary")
+            mock_send.assert_not_called()
+
+    def test_caps_at_five_entries(self, tmp_path):
+        """Should save at most 5 entries even if Haiku returns more."""
+        from klean.hooks import _extract_session_learnings
+
+        entries = [
+            {
+                "title": f"Learning number {i} about something specific",
+                "insight": f"Detail about learning {i} with concrete information.",
+                "type": "finding",
+                "priority": "medium",
+                "keywords": [f"kw{i}"],
+                "source": f"file:src/mod{i}.py:1",
+            }
+            for i in range(8)
+        ]
+
+        with (
+            patch("klean.hooks._is_kb_server_running", return_value=True),
+            patch("klean.hooks._call_claude_haiku", return_value=json.dumps(entries)),
+            patch("klean.hooks._get_current_branch", return_value="main"),
+            patch("klean.hooks._kb_send") as mock_send,
+        ):
+            _extract_session_learnings(tmp_path, "x" * 1500, "summary")
+            assert mock_send.call_count == 5
 
 
 class TestReadLatestSessionLog:
@@ -1368,200 +1388,6 @@ class TestGetKbContext:
 # =============================================================================
 # Progressive Disclosure Tests
 # =============================================================================
-
-
-class TestHandleFindKnowledgeCompact:
-    """Tests for _handle_find_knowledge() compact output."""
-
-    def test_returns_compact_format_with_ids(self, tmp_path):
-        """Should return compact index with entry IDs, no insight text."""
-        from klean.hooks import _handle_find_knowledge
-
-        project = tmp_path / "project"
-        project.mkdir()
-        (project / ".knowledge-db").mkdir()
-
-        search_results = [
-            {
-                "id": "abc12345-6789-0000-0000-000000000000",
-                "title": "Auth refactor",
-                "type": "solution",
-                "date": "2026-02-07",
-                "score": 0.85,
-                "insight": "Long insight text that should not appear in compact output",
-            },
-        ]
-
-        with (
-            patch("klean.hooks.find_project_root", return_value=project),
-            patch("klean.hooks._is_kb_server_running", return_value=True),
-            patch("klean.hooks._kb_send", return_value={"results": search_results}),
-            patch("klean.hooks._update_usage"),
-        ):
-            result = _handle_find_knowledge("auth")
-
-            assert "[id:abc12345]" in result
-            assert "Auth refactor" in result
-            assert "0.85" in result
-            # Insight text should NOT be in output
-            assert "Long insight text" not in result
-            assert "FindKnowledgeDetail" in result
-
-    def test_no_branch_in_compact_output(self, tmp_path):
-        """Should not include branch in compact output."""
-        from klean.hooks import _handle_find_knowledge
-
-        project = tmp_path / "project"
-        project.mkdir()
-        (project / ".knowledge-db").mkdir()
-
-        search_results = [
-            {
-                "id": "abc12345-0000-0000-0000-000000000000",
-                "title": "Test",
-                "type": "finding",
-                "date": "2026-02-07",
-                "branch": "feature/auth",
-                "score": 0.90,
-            },
-        ]
-
-        with (
-            patch("klean.hooks.find_project_root", return_value=project),
-            patch("klean.hooks._is_kb_server_running", return_value=True),
-            patch("klean.hooks._kb_send", return_value={"results": search_results}),
-            patch("klean.hooks._update_usage"),
-        ):
-            result = _handle_find_knowledge("test")
-            assert "feature/auth" not in result
-
-
-class TestHandleFindKnowledgeDetail:
-    """Tests for _handle_find_knowledge_detail() function."""
-
-    def test_returns_no_project_when_not_found(self):
-        """Should return error when no project found."""
-        from klean.hooks import _handle_find_knowledge_detail
-
-        with patch("klean.hooks.find_project_root", return_value=None):
-            result = _handle_find_knowledge_detail("abc123")
-            assert "No project found" in result
-
-    def test_returns_error_when_server_down(self, tmp_path):
-        """Should return error when KB server not running."""
-        from klean.hooks import _handle_find_knowledge_detail
-
-        with (
-            patch("klean.hooks.find_project_root", return_value=tmp_path),
-            patch("klean.hooks._is_kb_server_running", return_value=False),
-        ):
-            result = _handle_find_knowledge_detail("abc123")
-            assert "not running" in result
-
-    def test_fetches_full_entry_by_uuid(self, tmp_path):
-        """Should fetch and format full entry by UUID."""
-        from klean.hooks import _handle_find_knowledge_detail
-
-        full_id = "abc12345-6789-0123-4567-890123456789"
-        entry = {
-            "id": full_id,
-            "title": "Auth refactor completed",
-            "type": "solution",
-            "priority": "high",
-            "date": "2026-02-07",
-            "branch": "main",
-            "insight": "Refactored auth to use JWT tokens for better scalability.",
-            "keywords": ["auth", "jwt", "refactor"],
-            "source": "commit:abc123",
-        }
-
-        with (
-            patch("klean.hooks.find_project_root", return_value=tmp_path),
-            patch("klean.hooks._is_kb_server_running", return_value=True),
-            patch("klean.hooks._kb_send", return_value={"status": "ok", "entry": entry}),
-        ):
-            result = _handle_find_knowledge_detail(full_id)
-
-            assert "Auth refactor completed" in result
-            assert "solution" in result
-            assert "high" in result
-            assert "JWT tokens" in result
-            assert "auth, jwt, refactor" in result
-            assert "commit:abc123" in result
-            assert full_id in result
-
-    def test_resolves_short_id_prefix(self, tmp_path):
-        """Should resolve short ID prefix by scanning recent entries."""
-        from klean.hooks import _handle_find_knowledge_detail
-
-        entries = [
-            {
-                "id": "abc12345-full-uuid-here-000000000000",
-                "title": "Matched entry",
-                "type": "finding",
-                "priority": "medium",
-                "date": "2026-02-07",
-                "insight": "This is the matched entry",
-                "keywords": ["test"],
-            },
-            {
-                "id": "def67890-full-uuid-here-000000000000",
-                "title": "Other entry",
-                "type": "solution",
-            },
-        ]
-
-        with (
-            patch("klean.hooks.find_project_root", return_value=tmp_path),
-            patch("klean.hooks._is_kb_server_running", return_value=True),
-            patch("klean.hooks._kb_send", return_value={"entries": entries}),
-        ):
-            result = _handle_find_knowledge_detail("abc12345")
-
-            assert "Matched entry" in result
-            assert "This is the matched entry" in result
-
-    def test_returns_not_found_for_bad_prefix(self, tmp_path):
-        """Should return error when no entry matches the prefix."""
-        from klean.hooks import _handle_find_knowledge_detail
-
-        with (
-            patch("klean.hooks.find_project_root", return_value=tmp_path),
-            patch("klean.hooks._is_kb_server_running", return_value=True),
-            patch("klean.hooks._kb_send", return_value={"entries": []}),
-        ):
-            result = _handle_find_knowledge_detail("zzz99999")
-            assert "No entry found" in result
-
-
-class TestPromptHandlerFindKnowledgeDetail:
-    """Tests for FindKnowledgeDetail keyword in prompt_handler()."""
-
-    def test_dispatches_findknowledgedetail(self, tmp_path, capsys):
-        """Should dispatch FindKnowledgeDetail keyword to handler."""
-        from klean.hooks import prompt_handler
-
-        input_data = {"prompt": "FindKnowledgeDetail abc12345"}
-
-        with (
-            patch("sys.stdin", StringIO(json.dumps(input_data))),
-            patch("klean.hooks.find_project_root", return_value=tmp_path),
-            patch("klean.hooks._is_kb_server_running", return_value=False),
-        ):
-            with pytest.raises(SystemExit) as exc_info:
-                prompt_handler()
-            assert exc_info.value.code == 0
-
-    def test_exits_zero_on_empty_id(self):
-        """Should exit 0 when FindKnowledgeDetail has no ID."""
-        from klean.hooks import prompt_handler
-
-        input_data = {"prompt": "FindKnowledgeDetail "}
-
-        with patch("sys.stdin", StringIO(json.dumps(input_data))):
-            with pytest.raises(SystemExit) as exc_info:
-                prompt_handler()
-            assert exc_info.value.code == 0
 
 
 # =============================================================================

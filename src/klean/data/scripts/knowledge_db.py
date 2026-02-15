@@ -474,13 +474,32 @@ class KnowledgeDB:
         if "insight" not in entry and "summary" not in entry:
             raise ValueError("Entry must have 'insight' field (or 'summary' for V2 compat)")
 
-        # Semantic deduplication check (research-backed, threshold 0.85)
+        # Reject low-quality entries: baseline length + known garbage patterns
+        title = entry.get("title", "").strip()
+        if len(title) < 5 or len(title.split()) < 2:
+            debug_log(f"Rejected entry with short title: '{title[:50]}'")
+            return ""
+        import re
+
+        garbage_patterns = [
+            r"^Session (?:started|ended|log)",  # Auto-generated session entries
+            r"^Docs?: .+ - ",  # Shallow URL scrapes: "Docs: site.com - Page Title"
+            r"^Documentation (?:reference|page)",  # Generic doc captures
+            r"^https?://",  # Raw URLs as titles
+            r"^Untitled",  # Placeholder titles
+        ]
+        for pat in garbage_patterns:
+            if re.match(pat, title, re.IGNORECASE):
+                debug_log(f"Rejected garbage pattern '{pat}': '{title[:50]}'")
+                return ""
+
+        # Semantic deduplication check (threshold 0.92 -- industry standard for near-duplicates)
         if check_duplicates and self._entries:
             query = f"{entry.get('title', '')} {entry.get('insight', entry.get('summary', ''))}"
             try:
                 # Fast search without reranking for dedup check
                 similar = self.search(query, limit=1, rerank=False)
-                if similar and similar[0].get("score", 0) > 0.85:
+                if similar and similar[0].get("score", 0) > 0.92:
                     existing_id = similar[0].get("id")
                     existing_title = similar[0].get("title", "")[:50]
                     debug_log(
@@ -1005,6 +1024,7 @@ class KnowledgeDB:
         Get recent and/or high-priority entries for context injection.
 
         Prioritizes by a combination of:
+        - Type weight (warnings/solutions score highest, journals/sessions excluded)
         - Recency (exponential decay with type-aware half-life)
         - Priority (critical > high > medium > low)
         - Usage count (frequently used = valuable)
@@ -1020,11 +1040,33 @@ class KnowledgeDB:
         if not self._entries:
             return []
 
+        # Type-weight multipliers: high-value types score more, noise types excluded
+        type_weights = {
+            "warning": 3.0,
+            "solution": 2.5,
+            "decision": 2.0,
+            "pattern": 2.0,
+            "finding": 1.5,
+            "discovery": 1.5,
+            "lesson": 1.5,
+            "best-practice": 1.5,
+            "commit": 0.5,
+            "journal": 0.0,  # Excluded from injection
+            "session": 0.0,  # Excluded from injection
+        }
+
         # Score entries
         priority_scores = {"critical": 100, "high": 50, "medium": 20, "low": 10}
         scored = []
 
         for entry in self._entries:
+            entry_type = entry.get("type", "finding")
+            weight = type_weights.get(entry_type, 1.0)
+
+            # Skip types with zero weight
+            if weight == 0.0:
+                continue
+
             score = 0
             # Priority weight
             score += priority_scores.get(entry.get("priority", "medium"), 20)
@@ -1044,7 +1086,7 @@ class KnowledgeDB:
                         age_days = (datetime.now() - entry_date).days
 
                         # Type-aware half-life
-                        half_life = 7 if entry.get("type") == "warning" else 30
+                        half_life = 7 if entry_type == "warning" else 30
                         # Exponential decay: e^(-age * ln(2) / half_life)
                         decay = math.exp(-age_days * 0.693 / half_life)
                         # Scale to 0-50 points (bounded contribution)
@@ -1054,6 +1096,8 @@ class KnowledgeDB:
                 except (ValueError, TypeError):
                     score += 10
 
+            # Apply type-weight multiplier
+            score *= weight
             scored.append((score, entry))
 
         # Sort by score descending

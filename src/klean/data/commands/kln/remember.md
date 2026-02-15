@@ -59,7 +59,7 @@ For each significant learning:
     --json-input '{
       "title": "Short descriptive title (max 80 chars)",
       "insight": "2-4 sentence explanation. Be specific. 50-150 words.",
-      "type": "warning|solution|pattern|finding|decision|discovery|journal",
+      "type": "warning|solution|pattern|finding|decision|discovery",
       "priority": "critical|high|medium|low",
       "keywords": ["keyword1", "keyword2", "keyword3"],
       "source": "file:path.py:42 or git:hash or conv:YYYY-MM-DD"
@@ -93,11 +93,11 @@ Use `mcp__serena__edit_memory` to append to `lessons-learned.md`:
 - **Topics**: Enable future keyword search in Serena
 - **Captured count**: Know something exists without reading all
 - **Key insight**: Triggers spaced retrieval (forces recall)
-- **Search KB line**: Direct prompts for FindKnowledge in next session
+- **Search KB line**: Direct prompts for `/kln:find` in next session
 
 ### Step 5: Verify and Clear
 
-1. **Verify KB saves**: `FindKnowledge <topic>`
+1. **Verify KB saves**: `/kln:find <topic>`
 2. **Check Serena**: `mcp__serena__read_memory lessons-learned`
 3. **Clear when ready**: `/compact` or `/clear`
 
@@ -147,6 +147,6 @@ When you start a new session, Serena context is injected. You'll see:
 > Search KB: "SessionStart" "cross-platform" "kb-doctor"
 ```
 
-Use `FindKnowledge <keyword>` to retrieve the full atomic entries from KB.
+Use `/kln:find <keyword>` to retrieve the full atomic entries from KB.
 
 The summary acts as an **index** - you know WHAT was captured and WHERE to find details.

@@ -2148,7 +2148,7 @@ def install(dev: bool, component: str, yes: bool):
     if component == "knowledge-only":
         console.print("\n[bold]Next steps:[/bold]")
         console.print("  1. Capture learnings: [cyan]/kln:learn[/cyan]")
-        console.print("  2. Search knowledge: type [cyan]FindKnowledge query[/cyan]")
+        console.print("  2. Search knowledge: [cyan]/kln:find query[/cyan]")
         console.print("\nAdd API provider later for code reviews:")
         console.print("  [cyan]kln init --provider nanogpt --api-key $KEY[/cyan]")
     else:
@@ -3295,7 +3295,7 @@ def init(provider: Optional[str], api_key: Optional[str]):
     if provider == "skip":
         console.print("Knowledge system ready (no LiteLLM configured):")
         console.print("  • Capture learnings: [cyan]/kln:learn[/cyan]")
-        console.print("  • Search knowledge: type [cyan]FindKnowledge query[/cyan]")
+        console.print("  • Search knowledge: [cyan]/kln:find query[/cyan]")
         console.print("\nAdd API provider later:")
         console.print("  [cyan]kln init --provider nanogpt --api-key $KEY[/cyan]")
     else:
