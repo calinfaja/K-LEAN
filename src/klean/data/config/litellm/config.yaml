@@ -1,103 +1,10 @@
 # K-LEAN LiteLLM Configuration
 # ============================
 #
-# ENDPOINT RULES:
-#   *-thinking models -> NANOGPT_THINKING_API_BASE
-#   all other models  -> NANOGPT_API_BASE
-#
+# Models are added automatically via `kln provider add <provider>`.
 # No quotes around os.environ/ values!
 
 litellm_settings:
   drop_params: true
 
-model_list:
-  # ===================
-  # TOP 8 AGENTIC MODELS
-  # ===================
-
-  # #1 Kimi K2 Thinking
-  - model_name: kimi-k2-thinking
-    litellm_params:
-      model: openai/moonshotai/kimi-k2-thinking
-      api_base: os.environ/NANOGPT_THINKING_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #2 GLM 4.7 Thinking
-  - model_name: glm-4.7-thinking
-    litellm_params:
-      model: openai/zai-org/glm-4.7:thinking
-      api_base: os.environ/NANOGPT_THINKING_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #3 DeepSeek V3.2 Thinking
-  - model_name: deepseek-v3.2-thinking
-    litellm_params:
-      model: openai/deepseek/deepseek-v3.2:thinking
-      api_base: os.environ/NANOGPT_THINKING_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #4 GPT-OSS 120B
-  - model_name: gpt-oss-120b
-    litellm_params:
-      model: openai/openai/gpt-oss-120b
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #5 Qwen3 Coder
-  - model_name: qwen3-coder
-    litellm_params:
-      model: openai/qwen/qwen3-coder
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #6 Llama 4 Maverick
-  - model_name: llama-4-maverick
-    litellm_params:
-      model: openai/meta-llama/llama-4-maverick
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #7 MiMo V2 Flash
-  - model_name: mimo-v2-flash
-    litellm_params:
-      model: openai/xiaomi/mimo-v2-flash
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # #8 DeepSeek R1
-  - model_name: deepseek-r1
-    litellm_params:
-      model: openai/deepseek-ai/DeepSeek-R1-0528
-      api_base: os.environ/NANOGPT_THINKING_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # ===================
-  # NON-THINKING VERSIONS
-  # ===================
-
-  - model_name: kimi-k2
-    litellm_params:
-      model: openai/moonshotai/kimi-k2-instruct
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  - model_name: glm-4.7
-    litellm_params:
-      model: openai/zai-org/glm-4.7
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  - model_name: deepseek-v3.2
-    litellm_params:
-      model: openai/deepseek/deepseek-v3.2
-      api_base: os.environ/NANOGPT_API_BASE
-      api_key: os.environ/NANOGPT_API_KEY
-
-  # ===================
-  # GOOGLE (via OpenRouter)
-  # ===================
-
-  - model_name: gemini-2.5-flash
-    litellm_params:
-      model: openrouter/google/gemini-2.5-flash
-      api_key: os.environ/OPENROUTER_API_KEY
+model_list: []

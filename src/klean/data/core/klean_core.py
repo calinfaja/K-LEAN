@@ -542,12 +542,17 @@ class ReviewEngine:
         """Fallback: extract review data from text format"""
         result = {"grade": None, "risk": None, "findings": [], "summary": ""}
 
-        for line in content.split("\n"):
-            line = line.strip()
-            if line.startswith("GRADE:"):
-                result["grade"] = line.split(":")[1].strip().split()[0]
-            elif line.startswith("RISK:"):
-                result["risk"] = line.split(":")[1].strip().split()[0]
+        # Regex patterns handle: "GRADE: B", "**GRADE:** B", "Grade: B", "- GRADE: B"
+        grade_match = re.search(r"\*{0,2}GRADE\*{0,2}\s*:\s*\*{0,2}\s*([A-F][+-]?)", content, re.I)
+        if grade_match:
+            result["grade"] = grade_match.group(1).upper()
+
+        risk_match = re.search(
+            r"\*{0,2}RISK\*{0,2}\s*:\s*\*{0,2}\s*(LOW|MEDIUM|HIGH|CRITICAL)",
+            content, re.I,
+        )
+        if risk_match:
+            result["risk"] = risk_match.group(1).upper()
 
         # Extract critical issues section
         if "CRITICAL ISSUES:" in content or "CRITICAL:" in content:
@@ -1198,10 +1203,15 @@ def cli_rethink(args):
     parser.add_argument(
         "-n", "--models", default="5", help="Number of models OR specific model name"
     )
+    parser.add_argument("-m", "--model", help="Alias for --models (single model)")
     parser.add_argument("-c", "--context-file", help="File containing debugging context")
     parser.add_argument("-o", "--output", choices=["text", "json"], default="text")
     parser.add_argument("--telemetry", action="store_true", help="Enable Phoenix telemetry")
     parsed = parser.parse_args(args)
+
+    # -m is an alias for --models (single model override)
+    if parsed.model:
+        parsed.models = parsed.model
 
     engine = ReviewEngine()
 
