@@ -235,14 +235,14 @@ class TestPromptHandlerHook:
                 prompt_handler()
             assert exc_info.value.code == 0
 
-    def test_handles_findknowledge_keyword(self, tmp_path):
-        """Should handle FindKnowledge keyword."""
+    def test_unknown_keyword_passes_through(self, tmp_path):
+        """Unknown keywords should pass through without error."""
         from klean.hooks import prompt_handler
 
         project = tmp_path / "project"
         project.mkdir()
 
-        input_data = {"prompt": "FindKnowledge test query"}
+        input_data = {"prompt": "SomeUnknownKeyword test query"}
 
         with patch("sys.stdin", StringIO(json.dumps(input_data))):
             with patch("klean.hooks.find_project_root", return_value=project):
@@ -451,7 +451,9 @@ class TestExtractUserMessages:
         lines = [
             json.dumps({"type": "file-history-snapshot", "snapshot": {}}),
             json.dumps({"type": "user", "message": {"content": "Fix the auth bug in login"}}),
-            json.dumps({"type": "assistant", "message": {"content": "I'll fix the JWT validation."}}),
+            json.dumps(
+                {"type": "assistant", "message": {"content": "I'll fix the JWT validation."}}
+            ),
             json.dumps({"type": "user", "message": {"content": "Now run the tests please"}}),
         ]
         transcript.write_text("\n".join(lines))
@@ -505,20 +507,28 @@ class TestExtractUserMessages:
         transcript = tmp_path / "transcript.jsonl"
         lines = [
             # List with tool_result -> should be skipped
-            json.dumps({
-                "type": "user",
-                "message": {"content": [
-                    {"type": "tool_result", "content": "file contents here"},
-                    {"type": "text", "text": "This should be skipped due to tool_result"},
-                ]},
-            }),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {
+                        "content": [
+                            {"type": "tool_result", "content": "file contents here"},
+                            {"type": "text", "text": "This should be skipped due to tool_result"},
+                        ]
+                    },
+                }
+            ),
             # List with only text -> should be extracted
-            json.dumps({
-                "type": "user",
-                "message": {"content": [
-                    {"type": "text", "text": "Please review this implementation carefully"},
-                ]},
-            }),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": "Please review this implementation carefully"},
+                        ]
+                    },
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -533,7 +543,9 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({"type": "user", "message": {"content": f"Message number {i} with enough text"}})
+            json.dumps(
+                {"type": "user", "message": {"content": f"Message number {i} with enough text"}}
+            )
             for i in range(20)
         ]
         transcript.write_text("\n".join(lines))
@@ -576,16 +588,20 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({
-                "type": "user",
-                "message": {"content": "First question of the session"},
-                "timestamp": "2026-02-08T09:15:30.000Z",
-            }),
-            json.dumps({
-                "type": "user",
-                "message": {"content": "Last question of the session"},
-                "timestamp": "2026-02-08T17:45:10.000Z",
-            }),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "First question of the session"},
+                    "timestamp": "2026-02-08T09:15:30.000Z",
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "Last question of the session"},
+                    "timestamp": "2026-02-08T17:45:10.000Z",
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -599,14 +615,29 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "text", "text": "I fixed the authentication validation logic."},
-                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/src/hooks.py"}},
-                    {"type": "tool_use", "name": "Edit", "input": {"file_path": "/src/cli.py"}},
-                ]},
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "I fixed the authentication validation logic.",
+                            },
+                            {
+                                "type": "tool_use",
+                                "name": "Read",
+                                "input": {"file_path": "/src/hooks.py"},
+                            },
+                            {
+                                "type": "tool_use",
+                                "name": "Edit",
+                                "input": {"file_path": "/src/cli.py"},
+                            },
+                        ]
+                    },
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -623,25 +654,40 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "tool_use", "name": "mcp__sequential-thinking__sequentialthinking",
-                     "input": {"thought": "thinking..."}},
-                ]},
-            }),
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "tool_use", "name": "TaskUpdate", "input": {"taskId": "1"}},
-                ]},
-            }),
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "text", "text": "Here is the result of my analysis."},
-                ]},
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "name": "mcp__sequential-thinking__sequentialthinking",
+                                "input": {"thought": "thinking..."},
+                            },
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "tool_use", "name": "TaskUpdate", "input": {"taskId": "1"}},
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": "Here is the result of my analysis."},
+                        ]
+                    },
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -656,28 +702,42 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/a.py"}},
-                ]},
-            }),
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/b.py"}},
-                ]},
-            }),
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "tool_use", "name": "Read", "input": {"file_path": "/c.py"}},
-                ]},
-            }),
-            json.dumps({
-                "type": "user",
-                "message": {"content": "What did you find in those files?"},
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "tool_use", "name": "Read", "input": {"file_path": "/a.py"}},
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "tool_use", "name": "Read", "input": {"file_path": "/b.py"}},
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "tool_use", "name": "Read", "input": {"file_path": "/c.py"}},
+                        ]
+                    },
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "What did you find in those files?"},
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -693,14 +753,18 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": "Let me read the file and check the contents."},
-            }),
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": "The implementation uses a TCP socket for IPC."},
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": "Let me read the file and check the contents."},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": "The implementation uses a TCP socket for IPC."},
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -715,13 +779,40 @@ class TestExtractUserMessages:
         transcript = tmp_path / "transcript.jsonl"
         lines = [
             # Pre-boundary conversation (should be skipped)
-            json.dumps({"type": "user", "message": {"content": "Old question from before compaction happened"}}),
-            json.dumps({"type": "assistant", "message": {"content": "Old answer that should not appear in output."}}),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "Old question from before compaction happened"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": "Old answer that should not appear in output."},
+                }
+            ),
             # Compact boundary marker
-            json.dumps({"type": "system", "subtype": "compact_boundary", "content": "Conversation compacted", "timestamp": "2026-02-08T13:30:00.000Z"}),
+            json.dumps(
+                {
+                    "type": "system",
+                    "subtype": "compact_boundary",
+                    "content": "Conversation compacted",
+                    "timestamp": "2026-02-08T13:30:00.000Z",
+                }
+            ),
             # Post-boundary conversation (should be extracted)
-            json.dumps({"type": "user", "message": {"content": "New question after compaction happened here"}}),
-            json.dumps({"type": "assistant", "message": {"content": "New answer that should appear in the output."}}),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "New question after compaction happened here"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {"content": "New answer that should appear in the output."},
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -737,9 +828,15 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({"type": "user", "message": {"content": "First question of the session here"}}),
-            json.dumps({"type": "assistant", "message": {"content": "First answer of the entire session."}}),
-            json.dumps({"type": "user", "message": {"content": "Second question of the session here"}}),
+            json.dumps(
+                {"type": "user", "message": {"content": "First question of the session here"}}
+            ),
+            json.dumps(
+                {"type": "assistant", "message": {"content": "First answer of the entire session."}}
+            ),
+            json.dumps(
+                {"type": "user", "message": {"content": "Second question of the session here"}}
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -754,11 +851,29 @@ class TestExtractUserMessages:
 
         transcript = tmp_path / "transcript.jsonl"
         lines = [
-            json.dumps({"type": "user", "message": {"content": "Very old question from first segment"}}),
-            json.dumps({"type": "system", "subtype": "compact_boundary", "content": "Conversation compacted"}),
-            json.dumps({"type": "user", "message": {"content": "Middle question between two boundaries"}}),
-            json.dumps({"type": "system", "subtype": "compact_boundary", "content": "Conversation compacted"}),
-            json.dumps({"type": "user", "message": {"content": "Latest question after second boundary"}}),
+            json.dumps(
+                {"type": "user", "message": {"content": "Very old question from first segment"}}
+            ),
+            json.dumps(
+                {
+                    "type": "system",
+                    "subtype": "compact_boundary",
+                    "content": "Conversation compacted",
+                }
+            ),
+            json.dumps(
+                {"type": "user", "message": {"content": "Middle question between two boundaries"}}
+            ),
+            json.dumps(
+                {
+                    "type": "system",
+                    "subtype": "compact_boundary",
+                    "content": "Conversation compacted",
+                }
+            ),
+            json.dumps(
+                {"type": "user", "message": {"content": "Latest question after second boundary"}}
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -767,7 +882,6 @@ class TestExtractUserMessages:
         assert "Middle question" not in messages
         assert "Latest question" in messages
 
-
     def test_long_text_not_over_truncated(self, tmp_path):
         """Should keep up to 2000 chars per turn, not just 500."""
         from klean.hooks import _extract_user_messages
@@ -775,12 +889,16 @@ class TestExtractUserMessages:
         transcript = tmp_path / "transcript.jsonl"
         long_text = "Agent 1 findings: important stuff. " * 60  # ~2100 chars
         lines = [
-            json.dumps({
-                "type": "assistant",
-                "message": {"content": [
-                    {"type": "text", "text": long_text},
-                ]},
-            }),
+            json.dumps(
+                {
+                    "type": "assistant",
+                    "message": {
+                        "content": [
+                            {"type": "text", "text": long_text},
+                        ]
+                    },
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -799,14 +917,18 @@ class TestExtractUserMessages:
             + "Detail about previous work. " * 50  # ~1400 chars of noise
         )
         lines = [
-            json.dumps({
-                "type": "user",
-                "message": {"content": long_summary},
-            }),
-            json.dumps({
-                "type": "user",
-                "message": {"content": "Now let's work on the actual task at hand"},
-            }),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": long_summary},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "user",
+                    "message": {"content": "Now let's work on the actual task at hand"},
+                }
+            ),
         ]
         transcript.write_text("\n".join(lines))
 
@@ -1071,7 +1193,11 @@ class TestGetTodayKbEntries:
         from klean.hooks import _get_today_kb_entries
 
         entries = [
-            {"type": "finding", "title": "Auth weakness", "insight": "bcrypt replaced by md5 in migration"},
+            {
+                "type": "finding",
+                "title": "Auth weakness",
+                "insight": "bcrypt replaced by md5 in migration",
+            },
             {"type": "warning", "title": "SQL injection", "insight": ""},
         ]
         resp = {"status": "ok", "entries": entries}
@@ -1080,7 +1206,9 @@ class TestGetTodayKbEntries:
             result = _get_today_kb_entries(tmp_path)
             assert "Auth weakness: bcrypt replaced by md5" in result
             # No insight -> no colon suffix
-            assert "[warning] SQL injection\n" in result or result.endswith("[warning] SQL injection")
+            assert "[warning] SQL injection\n" in result or result.endswith(
+                "[warning] SQL injection"
+            )
 
     def test_limits_to_15_entries(self, tmp_path):
         """Should cap output at 15 entries."""
@@ -1102,16 +1230,18 @@ class TestExtractSessionLearnings:
         """Should parse Haiku JSON response and save entries to KB."""
         from klean.hooks import _extract_session_learnings
 
-        haiku_response = json.dumps([
-            {
-                "title": "fastembed requires numpy<2.0 on Python 3.9",
-                "insight": "When installing fastembed on Python 3.9, numpy 2.x causes ImportError. Pin numpy<2.0 in requirements.",
-                "type": "warning",
-                "priority": "high",
-                "keywords": ["fastembed", "numpy", "python39"],
-                "source": "file:requirements.txt:5",
-            }
-        ])
+        haiku_response = json.dumps(
+            [
+                {
+                    "title": "fastembed requires numpy<2.0 on Python 3.9",
+                    "insight": "When installing fastembed on Python 3.9, numpy 2.x causes ImportError. Pin numpy<2.0 in requirements.",
+                    "type": "warning",
+                    "priority": "high",
+                    "keywords": ["fastembed", "numpy", "python39"],
+                    "source": "file:requirements.txt:5",
+                }
+            ]
+        )
 
         with (
             patch("klean.hooks._is_kb_server_running", return_value=True),

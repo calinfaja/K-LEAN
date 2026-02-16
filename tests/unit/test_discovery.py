@@ -300,6 +300,6 @@ class TestIsAvailable:
         # Assert
         call_args = mock_get.call_args
         # timeout should be 3 seconds
-        assert "timeout=3" in str(call_args) or "timeout" in call_args.kwargs, (
-            "Should use timeout parameter"
-        )
+        assert (
+            "timeout=3" in str(call_args) or "timeout" in call_args.kwargs
+        ), "Should use timeout parameter"

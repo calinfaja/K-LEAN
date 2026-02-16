@@ -49,14 +49,16 @@ def temp_project(tmp_path):
     (project / ".git").mkdir()
 
     # Create CLAUDE.md
-    (project / "CLAUDE.md").write_text("""# Test Project
+    (project / "CLAUDE.md").write_text(
+        """# Test Project
 
 ## Commands
 - `/test` - Run tests
 
 ## Architecture
 Simple test project for unit tests.
-""")
+"""
+    )
 
     return project
 
@@ -72,7 +74,8 @@ def temp_agents_dir(tmp_path):
     agents_dir.mkdir()
 
     # Create sample agent with full YAML frontmatter
-    (agents_dir / "security-auditor.md").write_text("""---
+    (agents_dir / "security-auditor.md").write_text(
+        """---
 name: security-auditor
 description: Security audit specialist
 model: deepseek-r1
@@ -90,26 +93,32 @@ You are a security auditor. Analyze code for vulnerabilities.
 - SQL injection
 - XSS
 - Authentication flaws
-""")
+"""
+    )
 
     # Agent with minimal frontmatter
-    (agents_dir / "simple-reviewer.md").write_text("""---
+    (agents_dir / "simple-reviewer.md").write_text(
+        """---
 name: simple-reviewer
 description: Simple code reviewer
 ---
 
 You review code for quality issues.
-""")
+"""
+    )
 
     # Agent with no frontmatter
-    (agents_dir / "no-frontmatter.md").write_text("""# Basic Agent
+    (agents_dir / "no-frontmatter.md").write_text(
+        """# Basic Agent
 
 This agent has no YAML frontmatter.
 It should use defaults.
-""")
+"""
+    )
 
     # Agent with inherit model
-    (agents_dir / "inherit-model.md").write_text("""---
+    (agents_dir / "inherit-model.md").write_text(
+        """---
 name: inherit-agent
 description: Uses inherited model
 model: inherit
@@ -117,7 +126,8 @@ tools: ["read_file"]
 ---
 
 Inherits model from LiteLLM discovery.
-""")
+"""
+    )
 
     return agents_dir
 

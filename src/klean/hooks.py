@@ -6,7 +6,7 @@ Each hook function is an entry point that can be called by Claude Code.
 
 Hooks:
 - session_start: Auto-start LiteLLM proxy and Knowledge Server
-- prompt_handler: Dispatch keywords (InitKB)
+- prompt_handler: Dispatch keywords (InitKB). Other keywords migrated to /kln:* slash commands.
 - pre_compact: Session log + automatic learning extraction via Haiku
 - post_bash: Detect git commits, log to timeline
 - post_web: Smart capture for URLs

@@ -120,11 +120,7 @@ class TestValidateCitations:
         - file4.py:40
         - file5.py:50
         """
-        memory = MockMemory(
-            [
-                "Only found at file1.py:10"  # Only 1 valid
-            ]
-        )
+        memory = MockMemory(["Only found at file1.py:10"])  # Only 1 valid
 
         # Act
         result = validate_citations(answer, memory)

@@ -172,12 +172,14 @@ class TestAddModelToConfig:
         # Create config with existing model
         # Note: extract_model_name converts dots to hyphens
         config_path = tmp_path / "config.yaml"
-        config_path.write_text("""model_list:
+        config_path.write_text(
+            """model_list:
   - model_name: claude-3-5-sonnet
     litellm_params:
       model: openrouter/anthropic/claude-3.5-sonnet
       api_key: os.environ/OPENROUTER_API_KEY
-""")
+"""
+        )
 
         result = add_model_to_config(
             config_path, "openrouter/anthropic/claude-3.5-sonnet", "openrouter"
@@ -209,7 +211,8 @@ class TestRemoveModelFromConfig:
         from klean.config_generator import remove_model_from_config
 
         config_path = tmp_path / "config.yaml"
-        config_path.write_text("""model_list:
+        config_path.write_text(
+            """model_list:
   - model_name: model-to-remove
     litellm_params:
       model: openrouter/test/model
@@ -218,7 +221,8 @@ class TestRemoveModelFromConfig:
     litellm_params:
       model: openrouter/test/keep
       api_key: os.environ/OPENROUTER_API_KEY
-""")
+"""
+        )
 
         result = remove_model_from_config(config_path, "model-to-remove")
 
@@ -252,14 +256,16 @@ class TestListModelsInConfig:
         from klean.config_generator import list_models_in_config
 
         config_path = tmp_path / "config.yaml"
-        config_path.write_text("""model_list:
+        config_path.write_text(
+            """model_list:
   - model_name: model-1
     litellm_params:
       model: test/1
   - model_name: model-2
     litellm_params:
       model: test/2
-""")
+"""
+        )
 
         result = list_models_in_config(config_path)
 
@@ -293,9 +299,11 @@ class TestLoadConfigYaml:
         from klean.config_generator import load_config_yaml
 
         config_path = tmp_path / "config.yaml"
-        config_path.write_text("""model_list:
+        config_path.write_text(
+            """model_list:
   - model_name: test
-""")
+"""
+        )
 
         result = load_config_yaml(config_path)
 

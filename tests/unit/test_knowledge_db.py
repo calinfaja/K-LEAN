@@ -555,20 +555,26 @@ class TestExponentialTimeDecay:
 
             # Add old entry (30 days ago)
             old_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-            db.add({
-                "title": "Old finding",
-                "insight": "This is old",
-                "date": old_date,
-                "priority": "medium",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Old finding",
+                    "insight": "This is old",
+                    "date": old_date,
+                    "priority": "medium",
+                },
+                check_duplicates=False,
+            )
 
             # Add recent entry (today)
-            db.add({
-                "title": "New finding",
-                "insight": "This is new",
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "priority": "medium",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "New finding",
+                    "insight": "This is new",
+                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "priority": "medium",
+                },
+                check_duplicates=False,
+            )
 
             # Get recent important
             results = db.get_recent_important(limit=2)
@@ -611,38 +617,50 @@ class TestExponentialTimeDecay:
             old_date = (datetime.now() - timedelta(days=14)).strftime("%Y-%m-%d")
 
             # Add a fresh warning and a 14-day-old warning (same type, same priority)
-            db.add({
-                "title": "Fresh warning today",
-                "insight": "Don't use this pattern",
-                "type": "warning",
-                "date": today,
-                "priority": "medium",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Fresh warning today",
+                    "insight": "Don't use this pattern",
+                    "type": "warning",
+                    "date": today,
+                    "priority": "medium",
+                },
+                check_duplicates=False,
+            )
 
-            db.add({
-                "title": "Old warning two weeks ago",
-                "insight": "Avoid this other thing",
-                "type": "warning",
-                "date": old_date,
-                "priority": "medium",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Old warning two weeks ago",
+                    "insight": "Avoid this other thing",
+                    "type": "warning",
+                    "date": old_date,
+                    "priority": "medium",
+                },
+                check_duplicates=False,
+            )
 
             # Also add same pair as findings
-            db.add({
-                "title": "Fresh finding today",
-                "insight": "Discovered this behavior",
-                "type": "finding",
-                "date": today,
-                "priority": "medium",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Fresh finding today",
+                    "insight": "Discovered this behavior",
+                    "type": "finding",
+                    "date": today,
+                    "priority": "medium",
+                },
+                check_duplicates=False,
+            )
 
-            db.add({
-                "title": "Old finding two weeks ago",
-                "insight": "Discovered that behavior",
-                "type": "finding",
-                "date": old_date,
-                "priority": "medium",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Old finding two weeks ago",
+                    "insight": "Discovered that behavior",
+                    "type": "finding",
+                    "date": old_date,
+                    "priority": "medium",
+                },
+                check_duplicates=False,
+            )
 
             results = db.get_recent_important(limit=4)
             assert len(results) == 4
@@ -686,16 +704,20 @@ class TestSemanticDeduplication:
             db = KnowledgeDB(str(temp_kb_dir.parent))
 
             # Add first entry
-            db.add({
-                "title": "Use dependency injection for testing",
-                "insight": "Dependency injection makes code more testable",
-            })
+            db.add(
+                {
+                    "title": "Use dependency injection for testing",
+                    "insight": "Dependency injection makes code more testable",
+                }
+            )
 
             # Try to add near-duplicate
-            db.add({
-                "title": "Dependency injection improves testability",
-                "insight": "Use DI to make code easier to test",
-            })
+            db.add(
+                {
+                    "title": "Dependency injection improves testability",
+                    "insight": "Use DI to make code easier to test",
+                }
+            )
 
             # Should return the existing ID (deduplication)
             # At minimum, we shouldn't have 2 entries if dedup works
@@ -714,15 +736,19 @@ class TestSemanticDeduplication:
             db = KnowledgeDB(str(temp_kb_dir.parent))
 
             # Add distinct entries
-            db.add({
-                "title": "BLE power optimization",
-                "insight": "Use sleep modes for better battery life",
-            })
+            db.add(
+                {
+                    "title": "BLE power optimization",
+                    "insight": "Use sleep modes for better battery life",
+                }
+            )
 
-            db.add({
-                "title": "Python async patterns",
-                "insight": "Use asyncio for I/O bound operations",
-            })
+            db.add(
+                {
+                    "title": "Python async patterns",
+                    "insight": "Use asyncio for I/O bound operations",
+                }
+            )
 
             # Both should be added (distinct topics)
             assert db._embeddings.shape[0] == 2
@@ -740,15 +766,21 @@ class TestSemanticDeduplication:
             db = KnowledgeDB(str(temp_kb_dir.parent))
 
             # Add identical entries with dedup disabled
-            db.add({
-                "title": "Test entry",
-                "insight": "Test content",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Test entry",
+                    "insight": "Test content",
+                },
+                check_duplicates=False,
+            )
 
-            db.add({
-                "title": "Test entry",
-                "insight": "Test content",
-            }, check_duplicates=False)
+            db.add(
+                {
+                    "title": "Test entry",
+                    "insight": "Test content",
+                },
+                check_duplicates=False,
+            )
 
             # Both should be added (dedup disabled)
             assert db._embeddings.shape[0] == 2

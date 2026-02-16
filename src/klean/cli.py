@@ -233,8 +233,15 @@ def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) -> int:
-    """Copy or symlink files from source to destination."""
+def copy_files(
+    src: Path, dst: Path, pattern: str = "*", symlink: bool = False, clean_stale: bool = False
+) -> int:
+    """Copy or symlink files from source to destination.
+
+    Args:
+        clean_stale: If True, remove files in dst matching pattern that don't exist in src.
+                     Only use for kln-exclusive directories (e.g. commands/kln/, agents/).
+    """
     # Handle case where dst is a symlink (e.g., from previous dev mode install)
     # When switching to production mode, we need a real directory
     if not symlink and dst.is_symlink():
@@ -245,6 +252,9 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
     if not src.exists():
         console.print(f"[yellow]Warning: Source not found: {src}[/yellow]")
         return 0
+
+    # Collect source file/dir names for stale detection
+    source_names = {item.name for item in src.glob(pattern) if item.is_file() or item.is_dir()}
 
     for item in src.glob(pattern):
         if item.is_file():
@@ -278,6 +288,16 @@ def copy_files(src: Path, dst: Path, pattern: str = "*", symlink: bool = False) 
                     shutil.rmtree(dst_subdir)
                 shutil.copytree(item, dst_subdir)
             count += 1
+
+    # Remove stale files in destination that no longer exist in source
+    # Only when clean_stale=True (kln-exclusive directories)
+    if clean_stale and source_names:
+        for dst_item in dst.glob(pattern):
+            if dst_item.name not in source_names:
+                if dst_item.is_file() or dst_item.is_symlink():
+                    dst_item.unlink()
+                elif dst_item.is_dir():
+                    shutil.rmtree(dst_item)
 
     return count
 
@@ -1960,7 +1980,7 @@ def install(dev: bool, component: str, yes: bool):
         # KLN commands
         kln_dst = CLAUDE_DIR / "commands" / "kln"
         if source_commands_kln.exists():
-            count = copy_files(source_commands_kln, kln_dst, "*.md", symlink=dev)
+            count = copy_files(source_commands_kln, kln_dst, "*.md", symlink=dev, clean_stale=True)
             installed["commands_kln"] = count
             console.print(f"  [green]Installed {count} /kln: commands[/green]")
 
@@ -1983,7 +2003,7 @@ def install(dev: bool, component: str, yes: bool):
         pkg_agents = DATA_DIR / "agents"
         if pkg_agents.exists():
             ensure_dir(SMOL_AGENTS_DIR)
-            count = copy_files(pkg_agents, SMOL_AGENTS_DIR, "*.md", symlink=dev)
+            count = copy_files(pkg_agents, SMOL_AGENTS_DIR, "*.md", symlink=dev, clean_stale=True)
             installed["smolkln_agents"] = count
             console.print(f"  [green]Installed {count} SmolKLN agents to {SMOL_AGENTS_DIR}[/green]")
         else:
