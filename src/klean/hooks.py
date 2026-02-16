@@ -754,9 +754,7 @@ def _parse_session_sections(text: str) -> dict[str, list[str]]:
     return sections
 
 
-def _extract_session_learnings(
-    project_root: Path, conversation: str, summary: str
-) -> None:
+def _extract_session_learnings(project_root: Path, conversation: str, summary: str) -> None:
     """Extract atomic KB entries from session conversation via Claude Haiku.
 
     Uses the full conversation transcript to identify 0-5 reusable learnings
@@ -784,8 +782,8 @@ def _extract_session_learnings(
         "Extract 0-5 reusable developer learnings from this session.\n\n"
         "RULES (mandatory):\n"
         "- Each learning MUST reference a specific file, function, error, or config\n"
-        "- Discard generic advice (\"write tests\", \"use good names\")\n"
-        "- Discard session logistics (\"worked on X\", \"started debugging\")\n"
+        '- Discard generic advice ("write tests", "use good names")\n'
+        '- Discard session logistics ("worked on X", "started debugging")\n'
         "- Discard obvious/well-documented behaviors\n"
         "- Ask: would a new developer on this project already know this? If yes, skip\n"
         "- If nothing worth saving, return an empty array []\n\n"
@@ -812,9 +810,7 @@ def _extract_session_learnings(
     if response.startswith("```"):
         # Strip ```json ... ``` wrapper
         lines = response.split("\n")
-        response = "\n".join(
-            line for line in lines if not line.strip().startswith("```")
-        )
+        response = "\n".join(line for line in lines if not line.strip().startswith("```"))
 
     try:
         entries = json.loads(response)

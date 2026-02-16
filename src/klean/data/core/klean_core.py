@@ -196,9 +196,11 @@ class ModelResolver:
                         id=model_id,
                         latency_ms=info.get("latency_ms"),
                         available=info.get("available", True),
-                        last_tested=datetime.fromisoformat(info["last_tested"])
-                        if info.get("last_tested")
-                        else None,
+                        last_tested=(
+                            datetime.fromisoformat(info["last_tested"])
+                            if info.get("last_tested")
+                            else None
+                        ),
                     )
             except Exception:
                 pass
@@ -549,7 +551,8 @@ class ReviewEngine:
 
         risk_match = re.search(
             r"\*{0,2}RISK\*{0,2}\s*:\s*\*{0,2}\s*(LOW|MEDIUM|HIGH|CRITICAL)",
-            content, re.I,
+            content,
+            re.I,
         )
         if risk_match:
             result["risk"] = risk_match.group(1).upper()

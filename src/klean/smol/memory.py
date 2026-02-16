@@ -347,9 +347,11 @@ class AgentMemory:
                     "insight": content.strip()[:1000],
                     "type": lesson_type,
                     "priority": "high",  # Serena lessons are curated
-                    "keywords": ["serena", "kln-lessons-learned", lesson.get("context", "")]
-                    if lesson.get("context")
-                    else ["serena", "kln-lessons-learned"],
+                    "keywords": (
+                        ["serena", "kln-lessons-learned", lesson.get("context", "")]
+                        if lesson.get("context")
+                        else ["serena", "kln-lessons-learned"]
+                    ),
                     "source": f"serena:{lesson.get('date', 'unknown')}",
                 }
             )

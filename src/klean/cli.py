@@ -2238,17 +2238,16 @@ def uninstall(yes: bool):
                 hooks[event] = [
                     entry
                     for entry in hooks[event]
-                    if not any(
-                        "kln-hook" in h.get("command", "")
-                        for h in entry.get("hooks", [])
-                    )
+                    if not any("kln-hook" in h.get("command", "") for h in entry.get("hooks", []))
                 ]
                 cleaned += original_len - len(hooks[event])
                 if not hooks[event]:
                     del hooks[event]
             if cleaned:
                 settings_file.write_text(json.dumps(settings, indent=2) + "\n")
-                console.print(f"[green][OK][/green] Cleaned {cleaned} hook entries from settings.json")
+                console.print(
+                    f"[green][OK][/green] Cleaned {cleaned} hook entries from settings.json"
+                )
         except Exception as e:
             console.print(f"[yellow]○[/yellow] Could not clean hooks from settings.json: {e}")
 
@@ -2502,9 +2501,7 @@ def doctor(auto_fix: bool):
 
             for key_name in sorted(needed_keys):
                 placeholder = f"your-{key_name.lower().replace('_', '-')}-here"
-                has_key = (
-                    f"{key_name}=" in env_content and placeholder not in env_content
-                )
+                has_key = f"{key_name}=" in env_content and placeholder not in env_content
                 if has_key:
                     console.print(f"  [green][OK][/green] LiteLLM .env: {key_name} configured")
                 else:
@@ -2523,17 +2520,13 @@ def doctor(auto_fix: bool):
                     issues.append(
                         ("WARNING", "NANOGPT_API_BASE not set - will auto-detect on start")
                     )
-                    console.print(
-                        "  [yellow]○[/yellow] LiteLLM .env: NANOGPT_API_BASE not set"
-                    )
+                    console.print("  [yellow]○[/yellow] LiteLLM .env: NANOGPT_API_BASE not set")
 
                     if auto_fix:
                         key_match = _re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
                         if key_match:
                             api_key = key_match.group(1)
-                            console.print(
-                                "    [dim]Auto-detecting subscription status...[/dim]"
-                            )
+                            console.print("    [dim]Auto-detecting subscription status...[/dim]")
                             try:
                                 import urllib.request
 
@@ -2558,13 +2551,9 @@ def doctor(auto_fix: bool):
                                 console.print(
                                     "    [green][OK] Saved NANOGPT_API_BASE to .env[/green]"
                                 )
-                                fixes_applied.append(
-                                    "Auto-detected and saved NANOGPT_API_BASE"
-                                )
+                                fixes_applied.append("Auto-detected and saved NANOGPT_API_BASE")
                             except Exception as e:
-                                console.print(
-                                    f"    [red]{SYM_FAIL} Could not detect: {e}[/red]"
-                                )
+                                console.print(f"    [red]{SYM_FAIL} Could not detect: {e}[/red]")
                 elif has_nanogpt_key and has_api_base:
                     base_match = _re.search(r"NANOGPT_API_BASE=(\S+)", env_content)
                     key_match = _re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
@@ -2574,9 +2563,7 @@ def doctor(auto_fix: bool):
 
                             req = urllib.request.Request(
                                 "https://nano-gpt.com/api/subscription/v1/usage",
-                                headers={
-                                    "Authorization": f"Bearer {key_match.group(1)}"
-                                },
+                                headers={"Authorization": f"Bearer {key_match.group(1)}"},
                             )
                             resp = urllib.request.urlopen(req, timeout=5)
                             data = json.loads(resp.read().decode())
@@ -2587,20 +2574,14 @@ def doctor(auto_fix: bool):
                                     f" ACTIVE ({remaining} daily remaining)"
                                 )
                             else:
-                                issues.append(
-                                    ("WARNING", "NanoGPT subscription is not active")
-                                )
-                                console.print(
-                                    "  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE"
-                                )
+                                issues.append(("WARNING", "NanoGPT subscription is not active"))
+                                console.print("  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE")
                         except Exception:
                             console.print(
                                 "  [yellow]○[/yellow] NanoGPT Subscription: Could not verify"
                             )
                     elif base_match:
-                        console.print(
-                            "  [green][OK][/green] LiteLLM .env: Pay-per-use configured"
-                        )
+                        console.print("  [green][OK][/green] LiteLLM .env: Pay-per-use configured")
 
     # Check Python venv
     if VENV_DIR.exists():

@@ -385,14 +385,16 @@ class SmolKLNExecutor:
             prompt_parts.append(f"\n# Additional Context\n{context}")
 
         # Instructions - minimal, let agent .md file control output format
-        prompt_parts.append(f"""
+        prompt_parts.append(
+            f"""
 # Instructions
 Working directory: {self.project_root}
 
 You MUST examine actual files before providing feedback.
 Use your tools: knowledge_search, search_files, read_file to investigate.
 Provide specific file:line references for findings.
-""")
+"""
+        )
 
         return "\n".join(prompt_parts)
 
