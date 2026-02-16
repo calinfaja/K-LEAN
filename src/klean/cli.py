@@ -52,9 +52,10 @@ from klean.platform import (
 
 console = Console()
 
-# Cross-platform ASCII symbols (Windows cp1252 can't encode Unicode)
+# Cross-platform ASCII symbols (Windows cp1252 can't encode Unicode circle ○)
 SYM_OK = "[OK]"
 SYM_FAIL = "[X]"
+SYM_WARN = "-"
 
 
 def get_litellm_binary() -> Path | None:
@@ -1511,7 +1512,7 @@ def model_list(test: bool, health: bool):
                 console.print("[dim]Check: kln doctor -f[/dim]\n")
             else:
                 console.print(
-                    f"[yellow]○ {healthy_count}/{total} models healthy ({unhealthy_count} failing)[/yellow]\n"
+                    f"[yellow]{SYM_WARN} {healthy_count}/{total} models healthy ({unhealthy_count} failing)[/yellow]\n"
                 )
 
             # Show unhealthy models
@@ -2249,7 +2250,9 @@ def uninstall(yes: bool):
                     f"[green][OK][/green] Cleaned {cleaned} hook entries from settings.json"
                 )
         except Exception as e:
-            console.print(f"[yellow]○[/yellow] Could not clean hooks from settings.json: {e}")
+            console.print(
+                f"[yellow]{SYM_WARN}[/yellow] Could not clean hooks from settings.json: {e}"
+            )
 
     console.print(f"\n[green]Removed {len(removed)} components[/green]")
     console.print(f"[dim]Backups saved to: {backup_dir}[/dim]")
@@ -2477,7 +2480,9 @@ def doctor(auto_fix: bool):
                         "    [dim]Never commit API keys. Use: api_key: os.environ/NANOGPT_API_KEY[/dim]"
                     )
             except Exception as e:
-                console.print(f"  [yellow]○[/yellow] Could not validate LiteLLM config: {e}")
+                console.print(
+                    f"  [yellow]{SYM_WARN}[/yellow] Could not validate LiteLLM config: {e}"
+                )
 
         # Check .env file -- only for providers referenced in config.yaml
         env_file = CONFIG_DIR / ".env"
@@ -2520,7 +2525,9 @@ def doctor(auto_fix: bool):
                     issues.append(
                         ("WARNING", "NANOGPT_API_BASE not set - will auto-detect on start")
                     )
-                    console.print("  [yellow]○[/yellow] LiteLLM .env: NANOGPT_API_BASE not set")
+                    console.print(
+                        f"  [yellow]{SYM_WARN}[/yellow] LiteLLM .env: NANOGPT_API_BASE not set"
+                    )
 
                     if auto_fix:
                         key_match = _re.search(r"NANOGPT_API_KEY=(\S+)", env_content)
@@ -2544,7 +2551,7 @@ def doctor(auto_fix: bool):
                                 else:
                                     api_base = "https://nano-gpt.com/api/v1"
                                     console.print(
-                                        "    [yellow]○ Pay-per-use account detected[/yellow]"
+                                        f"    [yellow]{SYM_WARN} Pay-per-use account detected[/yellow]"
                                     )
                                 with open(env_file, "a") as f:
                                     f.write(f"\nNANOGPT_API_BASE={api_base}\n")
@@ -2575,10 +2582,12 @@ def doctor(auto_fix: bool):
                                 )
                             else:
                                 issues.append(("WARNING", "NanoGPT subscription is not active"))
-                                console.print("  [yellow]○[/yellow] NanoGPT Subscription: INACTIVE")
+                                console.print(
+                                    f"  [yellow]{SYM_WARN}[/yellow] NanoGPT Subscription: INACTIVE"
+                                )
                         except Exception:
                             console.print(
-                                "  [yellow]○[/yellow] NanoGPT Subscription: Could not verify"
+                                f"  [yellow]{SYM_WARN}[/yellow] NanoGPT Subscription: Could not verify"
                             )
                     elif base_match:
                         console.print("  [green][OK][/green] LiteLLM .env: Pay-per-use configured")
@@ -2637,11 +2646,11 @@ def doctor(auto_fix: bool):
             console.print(f"  [red]{SYM_FAIL}[/red] settings.json: Invalid JSON")
     else:
         missing_hooks = ["SessionStart", "UserPromptSubmit", "PostToolUse", "PreCompact"]
-        console.print("  [yellow]○[/yellow] settings.json: Not found")
+        console.print(f"  [yellow]{SYM_WARN}[/yellow] settings.json: Not found")
 
     if missing_hooks:
         issues.append(("WARNING", f"Missing hooks in settings.json: {', '.join(missing_hooks)}"))
-        console.print(f"  [yellow]○[/yellow] Missing hooks: {', '.join(missing_hooks)}")
+        console.print(f"  [yellow]{SYM_WARN}[/yellow] Missing hooks: {', '.join(missing_hooks)}")
 
         if auto_fix:
             console.print("  [dim]Auto-configuring hooks...[/dim]")
@@ -2678,19 +2687,19 @@ def doctor(auto_fix: bool):
                 console.print("  [green][OK][/green] Statusline: CONFIGURED")
             elif statusline_command:
                 console.print(
-                    f"  [yellow]○[/yellow] Statusline: Different command configured: {statusline_command}"
+                    f"  [yellow]{SYM_WARN}[/yellow] Statusline: Different command configured: {statusline_command}"
                 )
             else:
-                console.print("  [yellow]○[/yellow] Statusline: Not configured")
+                console.print(f"  [yellow]{SYM_WARN}[/yellow] Statusline: Not configured")
                 if auto_fix:
                     console.print("  [dim]Auto-configuring statusline...[/dim]")
                     if configure_statusline():
                         console.print("  [green][OK][/green] Statusline: CONFIGURED")
                         fixes_applied.append("Configured Claude Code statusline")
         except json.JSONDecodeError:
-            console.print("  [yellow]○[/yellow] Statusline: Could not read settings.json")
+            console.print(f"  [yellow]{SYM_WARN}[/yellow] Statusline: Could not read settings.json")
     else:
-        console.print("  [yellow]○[/yellow] Statusline: settings.json not found")
+        console.print(f"  [yellow]{SYM_WARN}[/yellow] Statusline: settings.json not found")
 
     # Service checks with auto-fix
     console.print("[bold]Service Status:[/bold]")
@@ -2698,7 +2707,9 @@ def doctor(auto_fix: bool):
     # Check LiteLLM
     config_yaml = CONFIG_DIR / "config.yaml"
     if not config_yaml.exists():
-        console.print("  [dim]○[/dim] LiteLLM Proxy: Not configured (knowledge-only mode)")
+        console.print(
+            f"  [dim]{SYM_WARN}[/dim] LiteLLM Proxy: Not configured (knowledge-only mode)"
+        )
     else:
         litellm_status = check_litellm_detailed()
         if litellm_status["running"]:
@@ -2707,10 +2718,14 @@ def doctor(auto_fix: bool):
             )
 
             # Note: Model health moved to 'kln model list --health' for faster doctor execution
-            console.print("  [dim]○[/dim] Model Health: Use [cyan]kln model list --health[/cyan]")
+            console.print(
+                f"  [dim]{SYM_WARN}[/dim] Model Health: Use [cyan]kln model list --health[/cyan]"
+            )
         else:
             if auto_fix:
-                console.print("  [yellow]○[/yellow] LiteLLM Proxy: NOT RUNNING - Starting...")
+                console.print(
+                    f"  [yellow]{SYM_WARN}[/yellow] LiteLLM Proxy: NOT RUNNING - Starting..."
+                )
                 if start_litellm():
                     console.print("  [green][OK][/green] LiteLLM Proxy: STARTED")
                     fixes_applied.append("Started LiteLLM proxy")
@@ -2726,7 +2741,9 @@ def doctor(auto_fix: bool):
         console.print("  [green][OK][/green] Knowledge Server: RUNNING")
     else:
         if auto_fix:
-            console.print("  [yellow]○[/yellow] Knowledge Server: NOT RUNNING - Starting...")
+            console.print(
+                f"  [yellow]{SYM_WARN}[/yellow] Knowledge Server: NOT RUNNING - Starting..."
+            )
             if start_knowledge_server():
                 console.print("  [green][OK][/green] Knowledge Server: STARTED")
                 fixes_applied.append("Started Knowledge server")
@@ -2735,7 +2752,7 @@ def doctor(auto_fix: bool):
                 console.print(f"  [red]{SYM_FAIL}[/red] Knowledge Server: FAILED TO START")
         else:
             console.print(
-                "  [yellow]○[/yellow] Knowledge Server: STOPPED (auto-starts on first query)"
+                f"  [yellow]{SYM_WARN}[/yellow] Knowledge Server: STOPPED (auto-starts on first query)"
             )
 
     # Check SmolKLN
@@ -2745,13 +2762,13 @@ def doctor(auto_fix: bool):
         agent_count = len([f for f in smolkln_agents_dir.glob("*.md") if f.name != "TEMPLATE.md"])
         console.print(f"  [green][OK][/green] SmolKLN Agents: {agent_count} installed")
     else:
-        console.print("  [yellow]○[/yellow] SmolKLN Agents: Not installed")
+        console.print(f"  [yellow]{SYM_WARN}[/yellow] SmolKLN Agents: Not installed")
 
     if _check_smolagents_installed():
         console.print("  [green][OK][/green] smolagents: Installed")
     else:
         issues.append(("INFO", "smolagents not installed - SmolKLN agents won't work"))
-        console.print("  [yellow]○[/yellow] smolagents: NOT INSTALLED")
+        console.print(f"  [yellow]{SYM_WARN}[/yellow] smolagents: NOT INSTALLED")
         console.print("    [dim]Install with: pipx inject kln-ai 'smolagents[litellm]'[/dim]")
 
     # Check rules
@@ -2761,7 +2778,7 @@ def doctor(auto_fix: bool):
         console.print("  [green][OK][/green] kln.md: Installed")
     else:
         issues.append(("INFO", "Rules not installed - run kln install"))
-        console.print("  [yellow]○[/yellow] kln.md: NOT INSTALLED")
+        console.print(f"  [yellow]{SYM_WARN}[/yellow] kln.md: NOT INSTALLED")
         console.print("    [dim]Install with: kln install[/dim]")
 
     console.print("")
@@ -2819,7 +2836,7 @@ def start(service: str, port: int, telemetry: bool):
         if check_litellm():
             console.print("[green][OK][/green] LiteLLM Proxy: Already running")
         else:
-            console.print("[yellow]○[/yellow] Starting LiteLLM Proxy...")
+            console.print(f"[yellow]{SYM_WARN}[/yellow] Starting LiteLLM Proxy...")
             if start_litellm(background=True, port=port):
                 console.print(f"[green][OK][/green] LiteLLM Proxy: Started on port {port}")
                 started.append("LiteLLM")
@@ -2835,7 +2852,9 @@ def start(service: str, port: int, telemetry: bool):
             if check_knowledge_server(project):
                 console.print(f"[green][OK][/green] Knowledge Server: Running for {project.name}")
             else:
-                console.print(f"[yellow]○[/yellow] Starting Knowledge Server for {project.name}...")
+                console.print(
+                    f"[yellow]{SYM_WARN}[/yellow] Starting Knowledge Server for {project.name}..."
+                )
                 if start_knowledge_server(project, wait=False):
                     console.print(
                         f"[green][OK][/green] Knowledge Server: Starting for {project.name}"
@@ -2849,7 +2868,7 @@ def start(service: str, port: int, telemetry: bool):
                     failed.append("Knowledge")
         else:
             console.print(
-                "[yellow]○[/yellow] Knowledge Server: No project found (auto-starts on query)"
+                "[yellow]{SYM_WARN}[/yellow] Knowledge Server: No project found (auto-starts on query)"
             )
 
     # Phoenix telemetry (optional)
@@ -2857,7 +2876,7 @@ def start(service: str, port: int, telemetry: bool):
         if check_phoenix():
             console.print("[green][OK][/green] Phoenix Telemetry: Already running")
         else:
-            console.print("[yellow]○[/yellow] Starting Phoenix Telemetry...")
+            console.print(f"[yellow]{SYM_WARN}[/yellow] Starting Phoenix Telemetry...")
             if start_phoenix(background=True):
                 console.print(
                     "[green][OK][/green] Phoenix Telemetry: Started on http://localhost:6006"
@@ -2909,7 +2928,7 @@ def stop(service: str, all_projects: bool):
             stopped.append("LiteLLM")
             log_debug_event("cli", "service_stop", service="litellm")
         else:
-            console.print("[yellow]○[/yellow] LiteLLM Proxy: Was not running")
+            console.print(f"[yellow]{SYM_WARN}[/yellow] LiteLLM Proxy: Was not running")
 
     if service in ["all", "knowledge"]:
         if all_projects:
@@ -2923,7 +2942,7 @@ def stop(service: str, all_projects: bool):
                 stopped.append(f"Knowledge ({len(servers)})")
                 log_debug_event("cli", "service_stop", service="knowledge", count=len(servers))
             else:
-                console.print("[yellow]○[/yellow] Knowledge Servers: None running")
+                console.print(f"[yellow]{SYM_WARN}[/yellow] Knowledge Servers: None running")
         else:
             # Stop current project's server
             project = find_project_root()
@@ -2938,10 +2957,10 @@ def stop(service: str, all_projects: bool):
                     )
                 else:
                     console.print(
-                        f"[yellow]○[/yellow] Knowledge Server: Was not running for {project.name}"
+                        f"[yellow]{SYM_WARN}[/yellow] Knowledge Server: Was not running for {project.name}"
                     )
             else:
-                console.print("[yellow]○[/yellow] Knowledge Server: No project found")
+                console.print(f"[yellow]{SYM_WARN}[/yellow] Knowledge Server: No project found")
                 # Show hint about --all-projects
                 servers = list_knowledge_servers()
                 if servers:
