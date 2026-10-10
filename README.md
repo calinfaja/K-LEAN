@@ -1,3 +1,30 @@
+> ## ⚰️ Archived — here lies K-LEAN (2026)
+>
+> K-LEAN tried to give Claude Code a committee: round up OpenAI, Gemini, DeepSeek,
+> Moonshot & friends, make them argue, and ship only what they agreed on. A second
+> opinion for your agent, before "second opinion for your agent" was a product.
+>
+> The idea was good enough that other people — hi, **Perplexity** — went off and
+> built the same thing. I'll take that as peer review.
+>
+> Making it work taught me an enormous amount: LiteLLM proxying, multi-model
+> consensus, cross-platform hooks on Windows/Linux/macOS, a persistent knowledge
+> store, packaging to PyPI. Zero regrets on the learning.
+>
+> Then the coding harnesses got *really* good. Turns out one very capable model in
+> a very good harness beats a parliament of mediocre ones arguing in the comments.
+> Asking five LLMs to vote on your diff became like hiring a focus group to help
+> you tie your shoes.
+>
+> Right idea, wrong decade — by about eighteen months. Archived with affection.
+> The code still runs; it just no longer needs to.
+>
+> — Calin
+>
+> _(read-only now. the committee has adjourned.)_
+
+---
+
 <p align="center">
   <img src="assets/logo-banner.png" alt="K-LEAN" width="500">
 </p>
